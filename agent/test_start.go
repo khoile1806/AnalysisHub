@@ -6,10 +6,8 @@ import (
 )
 
 func main() {
-	// Let's test start /wait
-	cmd := exec.Command("cmd.exe", "/c", "start", "/wait", "Test Window", "ping.exe", "8.8.8.8", "-n", "3")
-	
-	fmt.Println("Starting...")
+	cmd := exec.Command("cmd.exe", "/c", "start", "/wait", "MyTitle", "cmd.exe", "/c", "echo Hello World && timeout 3")
+	// No CreationFlags, no Stdout!
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("Error:", err)

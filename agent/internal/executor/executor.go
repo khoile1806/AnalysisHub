@@ -168,11 +168,10 @@ func ExecuteJob(ctx context.Context, req JobRequest, workDir string, outputCh ch
 	pr, pw := io.Pipe()
 
 	if runtime.GOOS == "windows" {
-		// On Windows, run the tool in a completely new console window (CREATE_NEW_CONSOLE).
-		// We DO NOT redirect stdout/stderr so that the new window can render
-		// the output natively (including colors and progress bars).
-		// Instead, we just send a notification to the dashboard.
-		cmd.SysProcAttr = getSysProcAttr()
+		// On Windows, the command uses 'start /wait' which spawns a new visible
+		// console window. We DO NOT redirect stdout/stderr to the pipe,
+		// otherwise 'start' itself would just pipe nothing, and the web UI
+		// would hang. Instead we just send a notification to the dashboard.
 		go func() {
 			fmt.Fprintln(pw, "[!] Tool is running in a NEW console window on the Agent.")
 			fmt.Fprintln(pw, "[!] Output will be displayed on the Agent's screen, not here.")
@@ -399,15 +398,21 @@ func listTree(ctx context.Context, root, dir, skipName string, outputCh chan<- s
 func buildCommand(ctx context.Context, execPath string, args []string) *exec.Cmd {
 	if runtime.GOOS == "windows" {
 		ext := strings.ToLower(filepath.Ext(execPath))
+		// We use `cmd.exe /c start /wait "ForensicHub Tool" ...`
+		// This forces Windows to pop up a fresh console window with its own
+		// standard handles, so the user can see the native rendering (colors, etc).
 		switch ext {
 		case ".ps1":
 			psArgs := append([]string{"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", execPath}, args...)
-			return exec.CommandContext(ctx, "powershell.exe", psArgs...)
+			startArgs := append([]string{"/c", "start", "/wait", "ForensicHub Tool", "powershell.exe"}, psArgs...)
+			return exec.CommandContext(ctx, "cmd.exe", startArgs...)
 		case ".bat", ".cmd":
 			cmdArgs := append([]string{"/c", execPath}, args...)
-			return exec.CommandContext(ctx, "cmd.exe", cmdArgs...)
+			startArgs := append([]string{"/c", "start", "/wait", "ForensicHub Tool", "cmd.exe"}, cmdArgs...)
+			return exec.CommandContext(ctx, "cmd.exe", startArgs...)
 		default:
-			return exec.CommandContext(ctx, execPath, args...)
+			startArgs := append([]string{"/c", "start", "/wait", "ForensicHub Tool", execPath}, args...)
+			return exec.CommandContext(ctx, "cmd.exe", startArgs...)
 		}
 	}
 	// Linux / other: direct execution.
