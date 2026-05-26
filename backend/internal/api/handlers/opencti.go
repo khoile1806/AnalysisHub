@@ -1,0 +1,302 @@
+package handlers
+
+import (
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"github.com/forensichub/backend/internal/crypto"
+	"github.com/forensichub/backend/internal/models"
+)
+
+type OpenCTIConfigPayload struct {
+	URL      string `json:"url"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
+}
+
+// GetOpenCTIConfig retrieves the current config without exposing raw passwords/tokens
+func GetOpenCTIConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var config models.OpenCTIConfig
+	if err := db.First(&config).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusOK, models.OpenCTIConfig{})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config"})
+		return
+	}
+
+	config.HasAuth = config.Token != "" || config.Password != ""
+	config.Password = "" // Never send to client
+	config.Token = ""    // Never send to client
+
+	c.JSON(http.StatusOK, config)
+}
+
+// SaveOpenCTIConfig saves and encrypts the OpenCTI configuration
+func SaveOpenCTIConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+
+	if aesKey == "" {
+		// Fallback to JWT secret if AES key is not set, just to prevent crash, though it should be 32 bytes.
+		// It's better to explicitly check length
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
+		return
+	}
+
+	var payload OpenCTIConfigPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var config models.OpenCTIConfig
+	err := db.First(&config).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	// Encrypt sensitive fields if they are provided
+	if payload.Password != "" {
+		encPass, err := crypto.Encrypt(payload.Password, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		config.Password = encPass
+	}
+
+	if payload.Token != "" {
+		encToken, err := crypto.Encrypt(payload.Token, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		config.Token = encToken
+	}
+
+	config.URL = payload.URL
+	config.Username = payload.Username
+	config.UpdatedAt = time.Now()
+
+	if err == gorm.ErrRecordNotFound {
+		if err := db.Create(&config).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
+			return
+		}
+	} else {
+		if err := db.Save(&config).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Configuration saved"})
+}
+
+// SyncOpenCTI triggers a fetch from OpenCTI
+func SyncOpenCTI(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+
+	var config models.OpenCTIConfig
+	if err := db.First(&config).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenCTI is not configured"})
+		return
+	}
+
+	if config.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenCTI URL is empty"})
+		return
+	}
+
+	// Decrypt token or password
+	var token string
+	var err error
+	if config.Token != "" {
+		token, err = crypto.Decrypt(config.Token, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decrypt token"})
+			return
+		}
+	} else if config.Password != "" {
+		// NOTE: In a real production scenario, we'd implement OpenCTI's local login here.
+		// For now, we assume Token is the primary method for API access.
+		_ , _ = crypto.Decrypt(config.Password, aesKey)
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "Username/Password auth not fully implemented for Sync. Please provide an API Token."})
+		return
+	}
+
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid authentication token found"})
+		return
+	}
+
+	// Execute GraphQL Query
+	query := `
+	query {
+		stixCyberObservables(first: 5000, orderBy: created_at, orderMode: desc) {
+			edges {
+				node {
+					id
+					entity_type
+					observable_value
+					x_opencti_description
+				}
+			}
+		}
+	}
+	`
+
+	payloadObj := map[string]string{
+		"query": query,
+	}
+	payloadBytes, _ := json.Marshal(payloadObj)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/graphql", config.URL), bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: tr,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("OpenCTI request failed: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("[opencti] Error response: %s", string(bodyBytes))
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("OpenCTI returned status %d", resp.StatusCode)})
+		return
+	}
+
+	var gqlResp struct {
+		Data struct {
+			StixCyberObservables struct {
+				Edges []struct {
+					Node struct {
+						ID          string `json:"id"`
+						EntityType  string `json:"entity_type"`
+						Value       string `json:"observable_value"`
+						Description string `json:"x_opencti_description"`
+					} `json:"node"`
+				} `json:"edges"`
+			} `json:"stixCyberObservables"`
+		} `json:"data"`
+		Errors []interface{} `json:"errors"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&gqlResp); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse OpenCTI response"})
+		return
+	}
+
+	if len(gqlResp.Errors) > 0 {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "OpenCTI GraphQL returned errors"})
+		return
+	}
+
+	addedCount := 0
+	for _, edge := range gqlResp.Data.StixCyberObservables.Edges {
+		node := edge.Node
+		if node.Value == "" {
+			continue
+		}
+
+		ioc := models.IOC{
+			Value:       node.Value,
+			Type:        node.EntityType,
+			Source:      "OpenCTI",
+			Description: node.Description,
+		}
+
+		// Use FirstOrCreate or clause to ignore duplicates based on value and type
+		// Because value and type combination is unique in the model
+		result := db.Where("value = ? AND type = ?", ioc.Value, ioc.Type).FirstOrCreate(&ioc)
+		if result.RowsAffected > 0 {
+			addedCount++
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("Successfully synced %d new IOCs", addedCount),
+		"added":   addedCount,
+	})
+}
+
+// ListIOCs returns the synchronized IOCs
+func ListIOCs(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var iocs []models.IOC
+	if err := db.Order("created_at desc").Limit(10000).Find(&iocs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, iocs)
+}
+
+// CreateManualIOC allows manual entry of indicators
+func CreateManualIOC(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var payload struct {
+		Type        string `json:"type" binding:"required"`
+		Value       string `json:"value" binding:"required"`
+		Description string `json:"description"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ioc := models.IOC{
+		Value:       payload.Value,
+		Type:        payload.Type,
+		Source:      "Manual",
+		Description: payload.Description,
+	}
+
+	result := db.Where("value = ? AND type = ?", ioc.Value, ioc.Type).FirstOrCreate(&ioc)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error while saving IOC"})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "This IOC already exists in the database"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Manual IOC added successfully", "ioc": ioc})
+}
+

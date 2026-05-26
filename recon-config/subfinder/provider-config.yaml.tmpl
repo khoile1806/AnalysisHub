@@ -1,0 +1,39 @@
+# Subfinder provider config — rendered at container start from env vars by
+# render-provider-config.sh. Sources without an env var stay empty and are
+# silently skipped by subfinder.
+#
+# To enable a source, set the matching env var in docker-compose (or .env):
+#   SUBFINDER_SHODAN, SUBFINDER_VIRUSTOTAL, SUBFINDER_CENSYS, ...
+# Multiple keys for the same source: comma-separated.
+# Censys takes an "id:secret" pair; concatenate with ':' in the env var.
+bevigil: [${SUBFINDER_BEVIGIL}]
+binaryedge: [${SUBFINDER_BINARYEDGE}]
+bufferover: [${SUBFINDER_BUFFEROVER}]
+builtwith: [${SUBFINDER_BUILTWITH}]
+c99: [${SUBFINDER_C99}]
+censys: [${SUBFINDER_CENSYS}]
+certspotter: [${SUBFINDER_CERTSPOTTER}]
+chaos: [${SUBFINDER_CHAOS}]
+chinaz: [${SUBFINDER_CHINAZ}]
+dnsdb: [${SUBFINDER_DNSDB}]
+dnsrepo: [${SUBFINDER_DNSREPO}]
+facebook: [${SUBFINDER_FACEBOOK}]
+fofa: [${SUBFINDER_FOFA}]
+fullhunt: [${SUBFINDER_FULLHUNT}]
+github: [${SUBFINDER_GITHUB}]
+hunter: [${SUBFINDER_HUNTER}]
+intelx: [${SUBFINDER_INTELX}]
+leakix: [${SUBFINDER_LEAKIX}]
+netlas: [${SUBFINDER_NETLAS}]
+passivetotal: [${SUBFINDER_PASSIVETOTAL}]
+quake: [${SUBFINDER_QUAKE}]
+redhuntlabs: [${SUBFINDER_REDHUNTLABS}]
+robtex: [${SUBFINDER_ROBTEX}]
+securitytrails: [${SUBFINDER_SECURITYTRAILS}]
+shodan: [${SUBFINDER_SHODAN}]
+threatbook: [${SUBFINDER_THREATBOOK}]
+virustotal: [${SUBFINDER_VIRUSTOTAL}]
+whoisxmlapi: [${SUBFINDER_WHOISXMLAPI}]
+zoomeyeapi: [${SUBFINDER_ZOOMEYE}]
+alienvault: [${SUBFINDER_ALIENVAULT}]
+urlscan: [${SUBFINDER_URLSCAN}]

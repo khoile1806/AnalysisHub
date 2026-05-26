@@ -1,0 +1,212 @@
+[
+  {
+    "id": "php_eval_base64",
+    "regex": "eval\\s*\\(\\s*(base64_decode|gzinflate|gzuncompress|str_rot13)",
+    "score": 80,
+    "lang": "php"
+  },
+  {
+    "id": "php_assert_super",
+    "regex": "assert\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE|SERVER)",
+    "score": 85,
+    "lang": "php"
+  },
+  {
+    "id": "php_preg_replace_e",
+    "regex": "preg_replace\\s*\\([^,]+/[a-zA-Z]*e[a-zA-Z]*['\"]",
+    "score": 80,
+    "lang": "php"
+  },
+  {
+    "id": "php_dynamic_exec_super",
+    "regex": "(system|shell_exec|passthru|exec|popen|proc_open)\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+    "score": 90,
+    "lang": "php"
+  },
+  {
+    "id": "php_create_function",
+    "regex": "create_function\\s*\\(",
+    "score": 60,
+    "lang": "php"
+  },
+  {
+    "id": "php_chr_concat_payload",
+    "regex": "(chr\\s*\\(\\s*\\d+\\s*\\)\\s*\\.\\s*){5,}",
+    "score": 70,
+    "lang": "php"
+  },
+  {
+    "id": "php_eval_post",
+    "regex": "eval\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+    "score": 95,
+    "lang": "php"
+  },
+  {
+    "id": "php_obfuscated_var",
+    "regex": "\\$\\{\\s*['\"][\\\\x0-9a-f]+['\"]\\s*\\}",
+    "score": 65,
+    "lang": "php"
+  },
+  {
+    "id": "php_known_shell_marker",
+    "regex": "(c99shell|r57shell|WSO\\s*\\d+|b374k|FilesMan|Indo[xX]ploit|ALFA\\s*TEaM)",
+    "score": 90,
+    "lang": "php"
+  },
+  {
+    "id": "asp_wscript_shell",
+    "regex": "Server\\.CreateObject\\s*\\(\\s*['\"]WScript\\.Shell['\"]",
+    "score": 85,
+    "lang": "asp"
+  },
+  {
+    "id": "asp_eval_request",
+    "regex": "(Eval|Execute)\\s*\\(\\s*Request\\.(Form|QueryString|Item)",
+    "score": 90,
+    "lang": "asp"
+  },
+  {
+    "id": "jsp_runtime_exec_param",
+    "regex": "Runtime\\.getRuntime\\s*\\(\\s*\\)\\.exec\\s*\\(\\s*request\\.getParameter",
+    "score": 90,
+    "lang": "jsp"
+  },
+  {
+    "id": "jsp_processbuilder_param",
+    "regex": "new\\s+ProcessBuilder\\s*\\([^)]*request\\.getParameter",
+    "score": 88,
+    "lang": "jsp"
+  },
+  {
+    "id": "py_eval_request",
+    "regex": "(eval|exec)\\s*\\(\\s*(os\\.environ|request\\.|sys\\.argv|input\\()",
+    "score": 80,
+    "lang": "python"
+  },
+  {
+    "id": "py_subprocess_shell_input",
+    "regex": "subprocess\\.[a-zA-Z]+\\([^)]*shell\\s*=\\s*True[^)]*(input|argv|environ|request)",
+    "score": 80,
+    "lang": "python"
+  },
+  {
+    "id": "perl_backtick_param",
+    "regex": "`[^`]*\\$(?:ENV|ARGV|param)[^`]*`",
+    "score": 75,
+    "lang": "perl"
+  },
+  {
+    "id": "shell_curl_pipe_sh",
+    "regex": "curl\\s+[^|]+\\|\\s*(bash|sh)\\b",
+    "score": 70,
+    "lang": "shell"
+  },
+  {
+    "id": "any_long_b64_blob",
+    "regex": "[A-Za-z0-9+/]{600,}={0,2}",
+    "score": 30,
+    "lang": "any"
+  },
+  {
+    "id": "php_reverse_shell_banner",
+    "regex": "(php-reverse-shell|pentestmonkey@pentestmonkey\\.net|pentestmonkey\\.net/tools)",
+    "score": 95,
+    "lang": "php"
+  },
+  {
+    "id": "php_hardcoded_bin_sh",
+    "regex": "['\"]\\s*/bin/(sh|bash)\\s+-i\\s*['\"]",
+    "score": 75,
+    "lang": "php"
+  },
+  {
+    "id": "php_file_put_contents_post",
+    "regex": "file_put_contents\\s*\\([^,]{0,200},\\s*\\$_(GET|POST|REQUEST|COOKIE|FILES)",
+    "score": 85,
+    "lang": "php"
+  },
+  {
+    "id": "php_fsockopen_shell_spawn",
+    "regex": "fsockopen\\s*\\([^)]+\\)",
+    "score": 45,
+    "lang": "php"
+  },
+  {
+    "id": "php_dynamic_func_call_super",
+    "regex": "\\$_(GET|POST|REQUEST|COOKIE)\\s*\\[[^\\]]{1,60}\\]\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+    "score": 97,
+    "lang": "php"
+  },
+  {
+    "id": "php_call_user_func_super",
+    "regex": "call_user_func(_array)?\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+    "score": 93,
+    "lang": "php"
+  },
+  {
+    "id": "php_array_map_func_super",
+    "regex": "(array_map|array_filter|usort|uasort|uksort)\\s*\\(\\s*\\$_(GET|POST|REQUEST|COOKIE)",
+    "score": 92,
+    "lang": "php"
+  },
+  {
+    "id": "php_include_user_input",
+    "regex": "\\b(include|require)(_once)?\\s*[(\\s]\\s*\\$_(GET|POST|REQUEST|COOKIE|SERVER)",
+    "score": 80,
+    "lang": "php"
+  },
+  {
+    "id": "php_hex_obfuscated_func",
+    "regex": "(\\\\x73\\\\x79\\\\x73\\\\x74\\\\x65\\\\x6d|\\\\x65\\\\x78\\\\x65\\\\x63|\\\\x65\\\\x76\\\\x61\\\\x6c|\\\\x73\\\\x68\\\\x65\\\\x6c\\\\x6c)",
+    "score": 78,
+    "lang": "php"
+  },
+  {
+    "id": "php_pack_hex_decode",
+    "regex": "pack\\s*\\(\\s*[\"']H\\*[\"']",
+    "score": 65,
+    "lang": "php"
+  },
+  {
+    "id": "php_putenv_ldpreload",
+    "regex": "putenv\\s*\\(\\s*[\"']LD_PRELOAD",
+    "score": 88,
+    "lang": "php"
+  },
+  {
+    "id": "php_variable_func_from_var",
+    "regex": "\\$\\w+\\s*=\\s*[\"'](system|exec|passthru|shell_exec|popen|proc_open|assert)[\"']\\s*;",
+    "score": 82,
+    "lang": "php"
+  },
+  {
+    "id": "aspx_process_start",
+    "regex": "System\\.Diagnostics\\.Process|Process\\.Start\\s*\\(",
+    "score": 85,
+    "lang": "asp"
+  },
+  {
+    "id": "aspx_adodb_stream",
+    "regex": "ADODB\\.Stream|Scripting\\.FileSystemObject",
+    "score": 60,
+    "lang": "asp"
+  },
+  {
+    "id": "js_child_process_exec",
+    "regex": "require\\s*\\(['\"]child_process['\"]\\)",
+    "score": 55,
+    "lang": "js"
+  },
+  {
+    "id": "htaccess_force_php_exec",
+    "regex": "(SetHandler\\s+application/x-httpd-php|AddType\\s+application/x-httpd-php|AddHandler\\s+(php|cgi-script))",
+    "score": 72,
+    "lang": "htaccess"
+  },
+  {
+    "id": "py_import_os_exec",
+    "regex": "__import__\\s*\\(\\s*['\"]os['\"]\\s*\\)\\.(system|popen|execvp|execl)",
+    "score": 82,
+    "lang": "python"
+  }
+]

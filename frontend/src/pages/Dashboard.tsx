@@ -1,0 +1,143 @@
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import {
+  Server, ClipboardList, ShieldAlert, Bug, ArrowRight,
+} from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { agentsApi } from '@/api/agents'
+import { jobsApi } from '@/api/jobs'
+import { cveCollectionApi } from '@/api/cve_collection'
+import { openctiApi } from '@/api/opencti'
+import { JobStatusBadge } from '@/components/StatusBadge'
+
+interface StatCardProps {
+  label: string
+  value: number | string
+  sub?: string
+  icon: React.ElementType
+  color: string
+  loading: boolean
+}
+
+function StatCard({ label, value, sub, icon: Icon, color, loading }: StatCardProps) {
+  return (
+    <div className="card p-5 flex items-start justify-between">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-400 mb-1 truncate">{label}</p>
+        {loading ? (
+          <div className="skeleton h-8 w-16 rounded" />
+        ) : (
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl font-bold text-gray-100">{value}</p>
+            {sub && <span className="text-[10px] text-gray-500 font-medium truncate">{sub}</span>}
+          </div>
+        )}
+      </div>
+      <div className={`flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${color}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+    </div>
+  )
+}
+
+export default function DashboardPage() {
+  const agentsQ = useQuery({ queryKey: ['agents'], queryFn: () => agentsApi.list(),    refetchInterval: 20_000 })
+  const jobsQ   = useQuery({ queryKey: ['jobs'],   queryFn: () => jobsApi.list(),      refetchInterval: 20_000 })
+  const cvesQ   = useQuery({ queryKey: ['cve-coll'], queryFn: () => cveCollectionApi.getAll() })
+  const iocsQ   = useQuery({ queryKey: ['iocs'],   queryFn: () => openctiApi.listIOCs() })
+
+  const agents = agentsQ.data ?? []
+  const jobs   = jobsQ.data   ?? []
+  const cves   = cvesQ.data   ?? []
+  const iocs   = iocsQ.data   ?? []
+
+  const onlineAgents = useMemo(() => agents.filter((a) => a.status === 'online'), [agents])
+  const kevCves      = useMemo(() => cves.filter((c) => c.is_kev), [cves])
+  const recentJobs   = jobs.slice(0, 6)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-100">DFIR Overview</h1>
+        <p className="text-sm text-gray-500 mt-1">Forensic & Hunting platform · live tally.</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Link to="/agents"><StatCard label="Agents · online" value={onlineAgents.length}
+          sub={`/ ${agents.length} total`} icon={Server}
+          color="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+          loading={agentsQ.isLoading} /></Link>
+        <Link to="/jobs"><StatCard label="Jobs" value={jobs.length}
+          icon={ClipboardList}
+          color="bg-blue-500/10 text-blue-400 border border-blue-500/30"
+          loading={jobsQ.isLoading} /></Link>
+        <Link to="/cve-collection"><StatCard label="CVEs · KEV" value={kevCves.length}
+          sub={`/ ${cves.length} collected`} icon={Bug}
+          color="bg-amber-500/10 text-amber-400 border border-amber-500/30"
+          loading={cvesQ.isLoading} /></Link>
+        <Link to="/opencti"><StatCard label="IOCs" value={iocs.length}
+          icon={ShieldAlert}
+          color="bg-purple-500/10 text-purple-400 border border-purple-500/30"
+          loading={iocsQ.isLoading} /></Link>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section className="card p-4">
+          <h2 className="flex items-center justify-between text-sm font-semibold text-gray-200 mb-3">
+            <span>Recent jobs</span>
+            <Link to="/jobs" className="text-xs text-gray-500 hover:text-emerald-400 flex items-center gap-1">
+              all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </h2>
+          {recentJobs.length === 0 ? (
+            <div className="text-xs text-gray-500 py-6 text-center">No jobs yet</div>
+          ) : (
+            <ul className="space-y-2">
+              {recentJobs.map((j) => (
+                <li key={j.id}>
+                  <Link to={`/jobs/${j.id}`}
+                    className="flex items-center justify-between text-xs p-2 rounded hover:bg-gray-800/60">
+                    <span className="truncate text-gray-300">{j.tool?.name ?? j.id.slice(0, 8)}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <JobStatusBadge status={j.status} />
+                      <span className="text-[10px] text-gray-500">
+                        {j.created_at && formatDistanceToNow(new Date(j.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="card p-4">
+          <h2 className="flex items-center justify-between text-sm font-semibold text-gray-200 mb-3">
+            <span>KEV CVEs</span>
+            <Link to="/cve-collection" className="text-xs text-gray-500 hover:text-emerald-400 flex items-center gap-1">
+              all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </h2>
+          {kevCves.length === 0 ? (
+            <div className="text-xs text-gray-500 py-6 text-center">No KEV-flagged CVEs collected</div>
+          ) : (
+            <ul className="space-y-2">
+              {kevCves.slice(0, 6).map((c) => (
+                <li key={c.id} className="text-xs p-2 rounded hover:bg-gray-800/60">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-gray-200">{c.id}</span>
+                    <span className="text-[10px] text-amber-400">KEV</span>
+                  </div>
+                  {c.description && (
+                    <div className="text-gray-500 text-[11px] mt-0.5 line-clamp-1">{c.description}</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}

