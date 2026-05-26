@@ -16,17 +16,12 @@ const (
 	ContextUserID         = "userID"
 	ContextRole           = "role"
 	ContextAgentID        = "agentID"
-	ContextCatchSessionID = "catchSessionID"
 )
 
 // Claims extends jwt.RegisteredClaims with application-specific fields.
-// CatchSessionID, when non-empty, marks the token as a scoped catch-session
-// unlock token issued by POST /catch/sessions/:id/unlock. AuthMiddleware
-// rejects such tokens to prevent privilege escalation onto the regular API.
 type Claims struct {
 	UserID         string `json:"user_id,omitempty"`
 	Role           string `json:"role,omitempty"`
-	CatchSessionID string `json:"catch_session_id,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -67,12 +62,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		// Reject scoped catch-session unlock tokens — they are not authorised
-		// for the regular API surface.
-		if claims.CatchSessionID != "" || claims.UserID == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid token scope"})
-			return
-		}
+
 
 		c.Set(ContextUserID, claims.UserID)
 		c.Set(ContextRole, claims.Role)
@@ -80,56 +70,6 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	}
 }
 
-// CatchSessionAuthMiddleware validates a scoped JWT issued by
-// POST /catch/sessions/:id/unlock. The token must carry catch_session_id
-// equal to the :id path parameter. Accepts the token via header
-// X-Catch-Session-Token or, for EventSource compatibility, ?session_token=.
-func CatchSessionAuthMiddleware(jwtSecret string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenStr := c.GetHeader("X-Catch-Session-Token")
-		if tokenStr == "" {
-			tokenStr = c.Query("session_token")
-		}
-		if tokenStr == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "session token required"})
-			return
-		}
-
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return []byte(jwtSecret), nil
-		})
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid or expired session token"})
-			return
-		}
-
-		if claims.CatchSessionID == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid token scope"})
-			return
-		}
-
-		// Token must match the path's session ID.
-		pathID := c.Param("id")
-		if pathID == "" || claims.CatchSessionID != pathID {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "session token does not match this session"})
-			return
-		}
-
-		c.Set(ContextCatchSessionID, claims.CatchSessionID)
-		c.Next()
-	}
-}
-
-// GetCatchSessionID retrieves the unlocked catch session ID from the Gin context.
-func GetCatchSessionID(c *gin.Context) string {
-	v, _ := c.Get(ContextCatchSessionID)
-	s, _ := v.(string)
-	return s
-}
 
 // AgentAuthMiddleware validates the X-Agent-Token header against the agents table.
 // On success it stores agentID in the Gin context.

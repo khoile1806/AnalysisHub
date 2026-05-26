@@ -165,11 +165,6 @@ type Hub struct {
 	fsSessions map[string]*FsSession
 	fsMu       sync.RWMutex
 
-	// catchSubs maps catch session ID → list of subscriber channels for
-	// realtime inbound HTTP capture events. Pattern mirrors realtimeSubs.
-	catchSubs map[string][]chan string
-	catchMu   sync.RWMutex
-
 	// cveSubs is a list of channels for realtime CVE collection updates.
 	cveSubs []chan bool
 	cveMu   sync.RWMutex
@@ -198,7 +193,6 @@ func NewHub() *Hub {
 		latestRealtime:   make(map[string]string),
 		terminalSessions: make(map[string]*TerminalSession),
 		fsSessions:       make(map[string]*FsSession),
-		catchSubs:        make(map[string][]chan string),
 		cveSubs:          make([]chan bool, 0),
 	}
 }
@@ -614,52 +608,6 @@ func (h *Hub) closeAgentFsSessions(agentID string) {
 			}()
 		} else if sess.OnError != nil {
 			sess.OnError("agent disconnected")
-		}
-	}
-}
-
-// SubscribeCatch returns a channel that receives JSON summaries of inbound
-// catch requests for the given session ID as they are captured. Call
-// UnsubscribeCatch when done to avoid goroutine leaks.
-func (h *Hub) SubscribeCatch(sessionID string) chan string {
-	ch := make(chan string, 64)
-	h.catchMu.Lock()
-	h.catchSubs[sessionID] = append(h.catchSubs[sessionID], ch)
-	h.catchMu.Unlock()
-	return ch
-}
-
-// UnsubscribeCatch removes ch from the catch subscriber list and closes it.
-func (h *Hub) UnsubscribeCatch(sessionID string, ch chan string) {
-	h.catchMu.Lock()
-	defer h.catchMu.Unlock()
-	subs := h.catchSubs[sessionID]
-	newSubs := make([]chan string, 0, len(subs))
-	for _, s := range subs {
-		if s != ch {
-			newSubs = append(newSubs, s)
-		}
-	}
-	if len(newSubs) == 0 {
-		delete(h.catchSubs, sessionID)
-	} else {
-		h.catchSubs[sessionID] = newSubs
-	}
-	close(ch)
-}
-
-// PublishCatch fans out a JSON-encoded request summary to all subscribers of
-// the given catch session. Non-blocking: subscribers with full buffers are
-// skipped to keep the inbound HTTP handler latency stable.
-func (h *Hub) PublishCatch(sessionID string, data string) {
-	h.catchMu.RLock()
-	subs := make([]chan string, len(h.catchSubs[sessionID]))
-	copy(subs, h.catchSubs[sessionID])
-	h.catchMu.RUnlock()
-	for _, ch := range subs {
-		select {
-		case ch <- data:
-		default:
 		}
 	}
 }

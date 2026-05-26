@@ -271,19 +271,17 @@ func streamFsToResponse(c *gin.Context, hub *appws.Hub, agentID string, cmd appw
 		OnChunk: func(b64 string, size int64) {
 			firstLog.Do(func() {
 				log.Printf("[fs] <- agent=%s session=%s first chunk after %s", agentID, sessionID, time.Since(dispatchedAt))
+				signalFirst()
 			})
 			data, err := base64.StdEncoding.DecodeString(b64)
 			if err != nil {
 				_ = pw.CloseWithError(err)
-				signalFirst()
 				return
 			}
 			if _, err := pw.Write(data); err != nil {
 				_ = pw.CloseWithError(err)
-				signalFirst()
 				return
 			}
-			signalFirst()
 		},
 		OnDone: func() {
 			_ = pw.Close()

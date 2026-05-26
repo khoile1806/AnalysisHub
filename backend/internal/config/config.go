@@ -54,14 +54,6 @@ type Config struct {
 	WPScanAPITokens []string
 	// AESEncryptionKey is a 32-byte key used for encrypting sensitive data like OpenCTI credentials.
 	AESEncryptionKey string
-	// Osint* are optional API keys for the OSINT footprinting module. The
-	// module works without any of them (free no-key sources), and each key
-	// simply unlocks one richer collector. Empty → that collector is skipped.
-	OsintVirusTotalKey string
-	OsintShodanKey     string
-	OsintAbuseIPDBKey  string
-	OsintHIBPKey       string
-	OsintNumVerifyKey  string
 }
 
 // Load reads configuration from environment variables, applying defaults where appropriate.
@@ -90,14 +82,6 @@ func Load() *Config {
 		GitHubToken:     getEnv("GITHUB_TOKEN", ""),
 		WPScanAPITokens: loadWPScanTokens(),
 		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "default-insecure-key-exct-32-byt"),
-		// VirusTotal & Shodan reuse the keys already configured for the recon
-		// module (SUBFINDER_*) when no dedicated OSINT_* key is set, so the
-		// OSINT collectors work without duplicating credentials.
-		OsintVirusTotalKey: pickKey(getEnv("OSINT_VIRUSTOTAL_API_KEY", ""), getEnv("SUBFINDER_VIRUSTOTAL", "")),
-		OsintShodanKey:     pickKey(getEnv("OSINT_SHODAN_API_KEY", ""), getEnv("SUBFINDER_SHODAN", "")),
-		OsintAbuseIPDBKey:  getEnv("OSINT_ABUSEIPDB_API_KEY", ""),
-		OsintHIBPKey:       getEnv("OSINT_HIBP_API_KEY", ""),
-		OsintNumVerifyKey:  getEnv("OSINT_NUMVERIFY_API_KEY", ""),
 	}
 }
 
@@ -141,20 +125,6 @@ func loadWPScanTokens() []string {
 		add(os.Getenv(fmt.Sprintf("WPSCAN_API_TOKEN_%d", i)))
 	}
 	return out
-}
-
-// pickKey returns primary when set, otherwise the first non-empty entry of
-// fallback (which may be a comma-separated list, as subfinder accepts).
-func pickKey(primary, fallback string) string {
-	if s := strings.TrimSpace(primary); s != "" {
-		return s
-	}
-	for _, p := range strings.Split(fallback, ",") {
-		if s := strings.TrimSpace(p); s != "" {
-			return s
-		}
-	}
-	return ""
 }
 
 // getEnv returns the value of the environment variable named by key,

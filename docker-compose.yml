@@ -50,69 +50,9 @@ services:
       - USE_HTTPS=${USE_HTTPS:-false}
       - WPSCAN_API_TOKEN=${WPSCAN_API_TOKEN:-cPjhzW2Jq6NeHD9MMLLesLSfbrvzZbmQOUHEcEjYLsM}
       - WPSCAN_API_TOKEN_2=${WPSCAN_API_TOKEN_2:-md9YXsKj1b0L4KlwelaFqpPE5YT5qxgz53KeD3PoAiM}
-      - NUCLEI_TEMPLATES_PATH=/home/appuser/.local/nuclei-templates
-      # ── Subfinder provider API keys ──────────────────────────────────────
-      # Rendered into provider-config.yaml at container start by
-      # render-provider-configs.sh. Unset vars stay empty arrays and the
-      # matching source is silently skipped by subfinder.
-      - SUBFINDER_VIRUSTOTAL=${SUBFINDER_VIRUSTOTAL:-8fcb182d0d2a31a007a385ddbc87adfb81a96185cbc4e17f4c005d0f895df4f4}
-      - SUBFINDER_ALIENVAULT=${SUBFINDER_ALIENVAULT:-8ab26f04dd03fe81cbbd287007b9f0012b1d36e62737f2a868302d0ece1c8c51}
-      - SUBFINDER_URLSCAN=${SUBFINDER_URLSCAN:-019e30f3-12b6-72c5-967c-889e7530a021}
-      - SUBFINDER_SHODAN=${SUBFINDER_SHODAN:-uf2thwsqgqcOXYCnk6PTFanZbSAMafEC}
-      - SUBFINDER_CENSYS=${SUBFINDER_CENSYS:-}
-      - SUBFINDER_FULLHUNT=${SUBFINDER_FULLHUNT:-}
-      - SUBFINDER_GITHUB=${SUBFINDER_GITHUB:-}
-      - SUBFINDER_SECURITYTRAILS=${SUBFINDER_SECURITYTRAILS:-}
-      - SUBFINDER_BINARYEDGE=${SUBFINDER_BINARYEDGE:-}
-      - SUBFINDER_CHAOS=${SUBFINDER_CHAOS:-}
-      - SUBFINDER_BEVIGIL=${SUBFINDER_BEVIGIL:-}
-      - SUBFINDER_BUILTWITH=${SUBFINDER_BUILTWITH:-}
-      - SUBFINDER_C99=${SUBFINDER_C99:-}
-      - SUBFINDER_CERTSPOTTER=${SUBFINDER_CERTSPOTTER:-}
-      - SUBFINDER_DNSDB=${SUBFINDER_DNSDB:-}
-      - SUBFINDER_FACEBOOK=${SUBFINDER_FACEBOOK:-}
-      - SUBFINDER_FOFA=${SUBFINDER_FOFA:-}
-      - SUBFINDER_HUNTER=${SUBFINDER_HUNTER:-}
-      - SUBFINDER_INTELX=${SUBFINDER_INTELX:-}
-      - SUBFINDER_LEAKIX=${SUBFINDER_LEAKIX:-}
-      - SUBFINDER_NETLAS=${SUBFINDER_NETLAS:-}
-      - SUBFINDER_PASSIVETOTAL=${SUBFINDER_PASSIVETOTAL:-}
-      - SUBFINDER_QUAKE=${SUBFINDER_QUAKE:-}
-      - SUBFINDER_REDHUNTLABS=${SUBFINDER_REDHUNTLABS:-}
-      - SUBFINDER_ROBTEX=${SUBFINDER_ROBTEX:-}
-      - SUBFINDER_THREATBOOK=${SUBFINDER_THREATBOOK:-}
-      - SUBFINDER_WHOISXMLAPI=${SUBFINDER_WHOISXMLAPI:-}
-      - SUBFINDER_ZOOMEYE=${SUBFINDER_ZOOMEYE:-}
-      - SUBFINDER_BUFFEROVER=${SUBFINDER_BUFFEROVER:-}
-      - SUBFINDER_CHINAZ=${SUBFINDER_CHINAZ:-}
-      - SUBFINDER_DNSREPO=${SUBFINDER_DNSREPO:-}
-      # ── OSINT module API keys (all optional) ─────────────────────────────
-      # VirusTotal & Shodan fall back to the SUBFINDER_* keys above when left
-      # empty, so the OSINT collectors reuse the recon credentials by default.
-      - OSINT_VIRUSTOTAL_API_KEY=${OSINT_VIRUSTOTAL_API_KEY:-}
-      - OSINT_SHODAN_API_KEY=${OSINT_SHODAN_API_KEY:-}
-      - OSINT_ABUSEIPDB_API_KEY=${OSINT_ABUSEIPDB_API_KEY:-e117024a39f1b3edf064777cd7bc77bdbab441b3801e3a6e6483fedd317378586a9386977ddf95b3}
-      - OSINT_HIBP_API_KEY=${OSINT_HIBP_API_KEY:-}
-      - OSINT_NUMVERIFY_API_KEY=${OSINT_NUMVERIFY_API_KEY:-09883c354816e9e21602b1ade7be9227}
     volumes:
       - storage_data:/app/storage
       - ./backend/data:/app/data
-      - recon_screenshots:/screenshots
-      - nuclei_templates:/home/appuser/.local/nuclei-templates
-      - recon_amass_data:/home/appuser/.config/amass
-      - recon_subfinder_data:/home/appuser/.config/subfinder
-
-      # [VIDEO PLAYER] 
-      # Để mapping thư mục từ máy tính (host) vào Docker
-      - "E:\\Backup:/host_videos:ro"
-      - "E:\\Movie:/host_videos2:ro"
-      - "E:\\Hà Nhân xuyên không:/host_videos3:ro"
-    # NET_RAW: allows nmap raw-socket scans (-sS) if needed in the future.
-    # seccomp=unconfined: required for Chromium (gowitness screenshots) in Docker.
-    cap_add:
-      - NET_RAW
-    security_opt:
-      - seccomp=unconfined
     ports:
       - "${SERVER_PORT:-8080}:8080"
     depends_on:
@@ -140,7 +80,3 @@ volumes:
   postgres_data:
   redis_data:
   storage_data:
-  recon_screenshots:
-  nuclei_templates:
-  recon_amass_data:
-  recon_subfinder_data:

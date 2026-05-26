@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,15 +22,6 @@ func CORS(allowedOrigins []string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// Skip global CORS for the public catch endpoint — CatchInbound sets
-		// its own permissive CORS headers so target callbacks (often from
-		// arbitrary browser origins via blind-XSS payloads) are never blocked
-		// or aborted on preflight.
-		if strings.HasPrefix(c.Request.URL.Path, "/catch/") {
-			c.Next()
-			return
-		}
-
 		origin := c.GetHeader("Origin")
 		if origin != "" {
 			if _, ok := allowed[origin]; ok {

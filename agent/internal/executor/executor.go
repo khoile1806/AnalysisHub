@@ -164,12 +164,25 @@ func ExecuteJob(ctx context.Context, req JobRequest, workDir string, outputCh ch
 	cmd := buildCommand(ctx, execPath, args)
 	cmd.Dir = toolDir
 
-	// Use io.Pipe and MultiWriter to "tee" the output: 
-	// 1. Dữ liệu sẽ in ra cửa sổ Console thực tế trên máy Agent (os.Stdout/Stderr).
-	// 2. Dữ liệu sẽ được gửi về Dashboard thông qua outputCh.
+	// Use io.Pipe so we can stream output to the dashboard.
 	pr, pw := io.Pipe()
-	cmd.Stdout = io.MultiWriter(os.Stdout, pw)
-	cmd.Stderr = io.MultiWriter(os.Stderr, pw)
+
+	if runtime.GOOS == "windows" {
+		// On Windows, run the tool in a completely new console window (CREATE_NEW_CONSOLE).
+		// We DO NOT redirect stdout/stderr so that the new window can render
+		// the output natively (including colors and progress bars).
+		// Instead, we just send a notification to the dashboard.
+		cmd.SysProcAttr = getSysProcAttr()
+		go func() {
+			fmt.Fprintln(pw, "[!] Tool is running in a NEW console window on the Agent.")
+			fmt.Fprintln(pw, "[!] Output will be displayed on the Agent's screen, not here.")
+		}()
+	} else {
+		// On Linux/macOS, use MultiWriter to tee the output to the agent's console
+		// and the dashboard simultaneously.
+		cmd.Stdout = io.MultiWriter(os.Stdout, pw)
+		cmd.Stderr = io.MultiWriter(os.Stderr, pw)
+	}
 
 	if err := cmd.Start(); err != nil {
 		pw.Close()
