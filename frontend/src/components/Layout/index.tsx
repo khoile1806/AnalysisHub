@@ -42,7 +42,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/cve',       icon: Bug,             label: 'Vulnerability Search' },
       { to: '/cve-collection', icon: LibraryBig, label: 'Threat Intelligence' },
-      { to: '/opencti',   icon: ShieldAlert,     label: 'OpenCTI' },
+      { to: '/opencti',   icon: ShieldAlert,     label: 'ELK Threat Hunting' },
     ]
   },
 ]
@@ -53,7 +53,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   agents:    'Agent Management',
   jobs:      'Jobs',
   cve:       'Vulnerability Search',
-  opencti:   'OpenCTI Config',
+  opencti:   'ELK Threat Hunting',
   'webshell-scanner': 'Webshell Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',

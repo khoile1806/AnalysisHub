@@ -1,5 +1,69 @@
 [
   {
+    "id": "CVE-2026-9632",
+    "description": "A flaw has been found in UTT HiPER 1250GW up to 3.2.7-210907-180535. Affected by this issue is the function strcpy of the file /goform/formGroupConfig of the component Web Management Interface. Executing a manipulation of the argument Profile can lead to stack-based buffer overflow. It is possible to launch the attack remotely. The exploit has been published and may be used.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:36.067",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T03:15:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9631",
+    "description": "A vulnerability was detected in UTT HiPER 1250GW up to 3.2.7-210907-180535. Affected by this vulnerability is the function strcpy of the file /goform/formConfigFastDirectionW of the component Web Management Interface. Performing a manipulation of the argument Profile results in stack-based buffer overflow. It is possible to initiate the attack remotely. The exploit is now public and may be used.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.907",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T03:15:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9628",
+    "description": "A weakness has been identified in UTT HiPER 1200GW up to 2.5.3-170306. Affected is an unknown function of the file /goform/formPptpClientConfig of the component Web Management Interface. This manipulation of the argument PPTP server address/username/password/tunnel name causes stack-based buffer overflow. The attack may be initiated remotely. The exploit has been made available to the public and could be used for attacks.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.747",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T03:15:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9627",
+    "description": "A security flaw has been discovered in UTT HiPER 1200GW up to 2.5.3-170306. This impacts the function strcpy of the file /goform/setSysAdm of the component Web Management Interface. The manipulation of the argument sysAdmUser/sysAdmPass results in buffer overflow. The attack can be launched remotely. The exploit has been released to the public and may be used for attacks.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.583",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T03:14:58Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-9609",
     "description": "A vulnerability was identified in QianFox FoxCMS up to 1.2.6. This affects the function Edit of the file Admin.php. The manipulation leads to weak password recovery. The attack can be initiated remotely. The exploit is publicly available and might be used. The project was informed of the problem early through an issue report but has not responded yet.",
     "severity": "medium",

@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,18 +19,46 @@ import (
 )
 
 type OpenCTIConfigPayload struct {
-	URL      string `json:"url"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Token    string `json:"token"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	Token       string `json:"token"`
 }
 
-// GetOpenCTIConfig retrieves the current config without exposing raw passwords/tokens
+// sanitizeOpenCTI strips secrets and adds the has_auth flag for client responses.
+func sanitizeOpenCTI(cfg *models.OpenCTIConfig) {
+	cfg.HasAuth = cfg.Token != "" || cfg.Password != ""
+	cfg.Password = ""
+	cfg.Token = ""
+}
+
+// ListOpenCTIConfigs returns all saved OpenCTI profiles.
+func ListOpenCTIConfigs(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var configs []models.OpenCTIConfig
+	if err := db.Order("is_active desc, created_at asc").Find(&configs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list configs"})
+		return
+	}
+	for i := range configs {
+		sanitizeOpenCTI(&configs[i])
+	}
+	c.JSON(http.StatusOK, configs)
+}
+
+// GetOpenCTIConfig (legacy singular) returns the currently ACTIVE profile.
 func GetOpenCTIConfig(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	var config models.OpenCTIConfig
-	if err := db.First(&config).Error; err != nil {
+	err := db.Where("is_active = ?", true).First(&config).Error
+	if err == gorm.ErrRecordNotFound {
+		err = db.First(&config).Error
+	}
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, models.OpenCTIConfig{})
 			return
@@ -37,22 +66,188 @@ func GetOpenCTIConfig(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config"})
 		return
 	}
-
-	config.HasAuth = config.Token != "" || config.Password != ""
-	config.Password = "" // Never send to client
-	config.Token = ""    // Never send to client
-
+	sanitizeOpenCTI(&config)
 	c.JSON(http.StatusOK, config)
 }
 
-// SaveOpenCTIConfig saves and encrypts the OpenCTI configuration
+// CreateOpenCTIConfig adds a new OpenCTI profile (auto-active when first).
+func CreateOpenCTIConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+	if aesKey == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
+		return
+	}
+
+	var payload OpenCTIConfigPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(payload.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
+
+	cfg := models.OpenCTIConfig{
+		Name:        strings.TrimSpace(payload.Name),
+		Description: payload.Description,
+		URL:         payload.URL,
+		Username:    payload.Username,
+	}
+	if payload.Password != "" {
+		enc, err := crypto.Encrypt(payload.Password, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.Password = enc
+	}
+	if payload.Token != "" {
+		enc, err := crypto.Encrypt(payload.Token, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.Token = enc
+	}
+
+	var count int64
+	db.Model(&models.OpenCTIConfig{}).Count(&count)
+	if count == 0 {
+		cfg.IsActive = true
+	}
+
+	if err := db.Create(&cfg).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
+		return
+	}
+
+	sanitizeOpenCTI(&cfg)
+	c.JSON(http.StatusCreated, cfg)
+}
+
+// UpdateOpenCTIConfig modifies a profile; leaves secrets in place when blank.
+func UpdateOpenCTIConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+	if aesKey == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
+		return
+	}
+
+	id := c.Param("id")
+	var cfg models.OpenCTIConfig
+	if err := db.First(&cfg, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	var payload OpenCTIConfigPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if strings.TrimSpace(payload.Name) != "" {
+		cfg.Name = strings.TrimSpace(payload.Name)
+	}
+	cfg.Description = payload.Description
+	cfg.URL = payload.URL
+	cfg.Username = payload.Username
+
+	if payload.Password != "" {
+		enc, err := crypto.Encrypt(payload.Password, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.Password = enc
+	}
+	if payload.Token != "" {
+		enc, err := crypto.Encrypt(payload.Token, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.Token = enc
+	}
+
+	if err := db.Save(&cfg).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
+		return
+	}
+	sanitizeOpenCTI(&cfg)
+	c.JSON(http.StatusOK, cfg)
+}
+
+// DeleteOpenCTIConfig removes a profile; auto-promotes another when needed.
+func DeleteOpenCTIConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	id := c.Param("id")
+
+	var cfg models.OpenCTIConfig
+	if err := db.First(&cfg, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	if err := db.Delete(&models.OpenCTIConfig{}, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete profile"})
+		return
+	}
+	if cfg.IsActive {
+		var next models.OpenCTIConfig
+		if err := db.Order("updated_at desc").First(&next).Error; err == nil {
+			db.Model(&next).Update("is_active", true)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Profile deleted", "id": cfg.ID})
+}
+
+// ActivateOpenCTIConfig marks the chosen profile active and clears the rest.
+func ActivateOpenCTIConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	id := c.Param("id")
+
+	var cfg models.OpenCTIConfig
+	if err := db.First(&cfg, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.OpenCTIConfig{}).Where("id <> ?", cfg.ID).Update("is_active", false).Error; err != nil {
+			return err
+		}
+		return tx.Model(&cfg).Update("is_active", true).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate profile"})
+		return
+	}
+
+	cfg.IsActive = true
+	sanitizeOpenCTI(&cfg)
+	c.JSON(http.StatusOK, cfg)
+}
+
+// SaveOpenCTIConfig is kept for backward compatibility — upserts active profile.
 func SaveOpenCTIConfig(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	aesKey := c.GetString("aesEncryptionKey")
-
 	if aesKey == "" {
-		// Fallback to JWT secret if AES key is not set, just to prevent crash, though it should be 32 bytes.
-		// It's better to explicitly check length
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
 		return
 	}
@@ -63,43 +258,52 @@ func SaveOpenCTIConfig(c *gin.Context) {
 		return
 	}
 
-	var config models.OpenCTIConfig
-	err := db.First(&config).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	var cfg models.OpenCTIConfig
+	err := db.Where("is_active = ?", true).First(&cfg).Error
+	if err == gorm.ErrRecordNotFound {
+		err = db.First(&cfg).Error
+	}
+	creating := err == gorm.ErrRecordNotFound
+	if err != nil && !creating {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
 
-	// Encrypt sensitive fields if they are provided
+	if creating {
+		cfg.Name = "Default"
+		cfg.IsActive = true
+	}
+	if strings.TrimSpace(payload.Name) != "" {
+		cfg.Name = strings.TrimSpace(payload.Name)
+	}
+	cfg.Description = payload.Description
+	cfg.URL = payload.URL
+	cfg.Username = payload.Username
+
 	if payload.Password != "" {
-		encPass, err := crypto.Encrypt(payload.Password, aesKey)
+		enc, err := crypto.Encrypt(payload.Password, aesKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
 			return
 		}
-		config.Password = encPass
+		cfg.Password = enc
 	}
-
 	if payload.Token != "" {
-		encToken, err := crypto.Encrypt(payload.Token, aesKey)
+		enc, err := crypto.Encrypt(payload.Token, aesKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
 			return
 		}
-		config.Token = encToken
+		cfg.Token = enc
 	}
 
-	config.URL = payload.URL
-	config.Username = payload.Username
-	config.UpdatedAt = time.Now()
-
-	if err == gorm.ErrRecordNotFound {
-		if err := db.Create(&config).Error; err != nil {
+	if creating {
+		if err := db.Create(&cfg).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
 			return
 		}
 	} else {
-		if err := db.Save(&config).Error; err != nil {
+		if err := db.Save(&cfg).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
 			return
 		}
@@ -114,9 +318,16 @@ func SyncOpenCTI(c *gin.Context) {
 	aesKey := c.GetString("aesEncryptionKey")
 
 	var config models.OpenCTIConfig
-	if err := db.First(&config).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "OpenCTI is not configured"})
-		return
+	if err := db.Where("is_active = ?", true).First(&config).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			if err := db.First(&config).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "OpenCTI is not configured"})
+				return
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "OpenCTI is not configured"})
+			return
+		}
 	}
 
 	if config.URL == "" {

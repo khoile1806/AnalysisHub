@@ -32,18 +32,49 @@ const (
 )
 
 type ELKConfigPayload struct {
-	URL      string `json:"url"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	APIKey   string `json:"api_key"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	APIKey      string `json:"api_key"`
 }
 
-// GetELKConfig retrieves the ELK config without exposing raw passwords/tokens
+// sanitizeELK strips secrets and adds the has_auth flag for client responses.
+func sanitizeELK(cfg *models.ELKConfig) {
+	cfg.HasAuth = cfg.APIKey != "" || cfg.Password != ""
+	cfg.Password = ""
+	cfg.APIKey = ""
+}
+
+// ListELKConfigs returns all saved ELK profiles. Secrets are never exposed.
+func ListELKConfigs(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	var configs []models.ELKConfig
+	if err := db.Order("is_active desc, created_at asc").Find(&configs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list configs"})
+		return
+	}
+	for i := range configs {
+		sanitizeELK(&configs[i])
+	}
+	c.JSON(http.StatusOK, configs)
+}
+
+// GetELKConfig (legacy singular endpoint) returns the currently ACTIVE profile,
+// keeping older callers / FE pages working without changes.
 func GetELKConfig(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
 	var config models.ELKConfig
-	if err := db.First(&config).Error; err != nil {
+	err := db.Where("is_active = ?", true).First(&config).Error
+	if err != nil {
+		// Fallback for very old single-row deployments that haven't been
+		// migrated yet.
+		err = db.First(&config).Error
+	}
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, models.ELKConfig{})
 			return
@@ -51,19 +82,217 @@ func GetELKConfig(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get config"})
 		return
 	}
-
-	config.HasAuth = config.APIKey != "" || config.Password != ""
-	config.Password = ""
-	config.APIKey = ""
-
+	sanitizeELK(&config)
 	c.JSON(http.StatusOK, config)
 }
 
-// SaveELKConfig saves and encrypts the ELK configuration
+// CreateELKConfig adds a new ELK profile. If it is the very first profile in
+// the DB it is automatically marked active so hunts work out of the box.
+func CreateELKConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+	if aesKey == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
+		return
+	}
+
+	var payload ELKConfigPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(payload.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
+
+	cfg := models.ELKConfig{
+		Name:        strings.TrimSpace(payload.Name),
+		Description: payload.Description,
+		URL:         payload.URL,
+		Username:    payload.Username,
+	}
+	if payload.Password != "" {
+		enc, err := crypto.Encrypt(payload.Password, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.Password = enc
+	}
+	if payload.APIKey != "" {
+		enc, err := crypto.Encrypt(payload.APIKey, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.APIKey = enc
+	}
+
+	var count int64
+	db.Model(&models.ELKConfig{}).Count(&count)
+	if count == 0 {
+		cfg.IsActive = true
+	}
+
+	if err := db.Create(&cfg).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
+		return
+	}
+
+	if uid, ok := middleware.GetUserID(c); ok {
+		writeAudit(c, db, &uid, nil, "elk.config.create", fmt.Sprintf("elk:%d", cfg.ID), fmt.Sprintf("created ELK profile %q", cfg.Name))
+	}
+
+	sanitizeELK(&cfg)
+	c.JSON(http.StatusCreated, cfg)
+}
+
+// UpdateELKConfig modifies an existing profile. Secrets are only re-encrypted
+// if a non-empty value is supplied — submitting blank Password/APIKey leaves
+// the stored secret intact (so the FE can avoid round-tripping passwords).
+func UpdateELKConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+	if aesKey == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
+		return
+	}
+
+	id := c.Param("id")
+	var cfg models.ELKConfig
+	if err := db.First(&cfg, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	var payload ELKConfigPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if strings.TrimSpace(payload.Name) != "" {
+		cfg.Name = strings.TrimSpace(payload.Name)
+	}
+	cfg.Description = payload.Description
+	cfg.URL = payload.URL
+	cfg.Username = payload.Username
+
+	if payload.Password != "" {
+		enc, err := crypto.Encrypt(payload.Password, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.Password = enc
+	}
+	if payload.APIKey != "" {
+		enc, err := crypto.Encrypt(payload.APIKey, aesKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
+			return
+		}
+		cfg.APIKey = enc
+	}
+
+	if err := db.Save(&cfg).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
+		return
+	}
+
+	if uid, ok := middleware.GetUserID(c); ok {
+		writeAudit(c, db, &uid, nil, "elk.config.update", fmt.Sprintf("elk:%d", cfg.ID), fmt.Sprintf("updated ELK profile %q", cfg.Name))
+	}
+
+	sanitizeELK(&cfg)
+	c.JSON(http.StatusOK, cfg)
+}
+
+// DeleteELKConfig removes a profile. Refuses to delete the last active profile
+// unless another one would be promoted — admin must explicitly activate another
+// profile first. This guards against the user accidentally losing all access.
+func DeleteELKConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	id := c.Param("id")
+
+	var cfg models.ELKConfig
+	if err := db.First(&cfg, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	if err := db.Delete(&models.ELKConfig{}, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete profile"})
+		return
+	}
+
+	// If the deleted profile was active, auto-promote the most recently
+	// updated remaining profile so the user is never left without a target.
+	if cfg.IsActive {
+		var next models.ELKConfig
+		if err := db.Order("updated_at desc").First(&next).Error; err == nil {
+			db.Model(&next).Update("is_active", true)
+		}
+	}
+
+	if uid, ok := middleware.GetUserID(c); ok {
+		writeAudit(c, db, &uid, nil, "elk.config.delete", fmt.Sprintf("elk:%d", cfg.ID), fmt.Sprintf("deleted ELK profile %q", cfg.Name))
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile deleted", "id": cfg.ID})
+}
+
+// ActivateELKConfig marks the given profile active and clears IsActive on all
+// others in a single transaction.
+func ActivateELKConfig(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	id := c.Param("id")
+
+	var cfg models.ELKConfig
+	if err := db.First(&cfg, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.ELKConfig{}).Where("id <> ?", cfg.ID).Update("is_active", false).Error; err != nil {
+			return err
+		}
+		return tx.Model(&cfg).Update("is_active", true).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate profile"})
+		return
+	}
+
+	if uid, ok := middleware.GetUserID(c); ok {
+		writeAudit(c, db, &uid, nil, "elk.config.activate", fmt.Sprintf("elk:%d", cfg.ID), fmt.Sprintf("activated ELK profile %q", cfg.Name))
+	}
+
+	cfg.IsActive = true
+	sanitizeELK(&cfg)
+	c.JSON(http.StatusOK, cfg)
+}
+
+// SaveELKConfig is kept for backward compatibility: it upserts the currently
+// active profile (or creates a "Default" one). New UIs should use the
+// multi-profile endpoints above.
 func SaveELKConfig(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	aesKey := c.GetString("aesEncryptionKey")
-
 	if aesKey == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server missing AES_ENCRYPTION_KEY config"})
 		return
@@ -75,49 +304,59 @@ func SaveELKConfig(c *gin.Context) {
 		return
 	}
 
-	var config models.ELKConfig
-	err := db.First(&config).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	var cfg models.ELKConfig
+	err := db.Where("is_active = ?", true).First(&cfg).Error
+	if err == gorm.ErrRecordNotFound {
+		err = db.First(&cfg).Error
+	}
+	creating := err == gorm.ErrRecordNotFound
+	if err != nil && !creating {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
 
+	if creating {
+		cfg.Name = "Default"
+		cfg.IsActive = true
+	}
+	if strings.TrimSpace(payload.Name) != "" {
+		cfg.Name = strings.TrimSpace(payload.Name)
+	}
+	cfg.Description = payload.Description
+	cfg.URL = payload.URL
+	cfg.Username = payload.Username
+
 	if payload.Password != "" {
-		encPass, encErr := crypto.Encrypt(payload.Password, aesKey)
+		enc, encErr := crypto.Encrypt(payload.Password, aesKey)
 		if encErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
 			return
 		}
-		config.Password = encPass
+		cfg.Password = enc
 	}
-
 	if payload.APIKey != "" {
-		encKey, encErr := crypto.Encrypt(payload.APIKey, aesKey)
+		enc, encErr := crypto.Encrypt(payload.APIKey, aesKey)
 		if encErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Encryption failed"})
 			return
 		}
-		config.APIKey = encKey
+		cfg.APIKey = enc
 	}
 
-	config.URL = payload.URL
-	config.Username = payload.Username
-	config.UpdatedAt = time.Now()
-
-	if err == gorm.ErrRecordNotFound {
-		if err := db.Create(&config).Error; err != nil {
+	if creating {
+		if err := db.Create(&cfg).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save config"})
 			return
 		}
 	} else {
-		if err := db.Save(&config).Error; err != nil {
+		if err := db.Save(&cfg).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
 			return
 		}
 	}
 
 	if uid, ok := middleware.GetUserID(c); ok {
-		writeAudit(c, db, &uid, nil, "elk.config.update", "elk", "updated ELK configuration")
+		writeAudit(c, db, &uid, nil, "elk.config.update", "elk", "updated ELK active profile")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Configuration saved"})
@@ -375,7 +614,12 @@ func StreamELKAutoHunt(c *gin.Context) {
 // ready-to-use Authorization header value (Basic or ApiKey).
 func loadELKAuth(db *gorm.DB, aesKey string) (models.ELKConfig, string, error) {
 	var config models.ELKConfig
-	if err := db.First(&config).Error; err != nil {
+	err := db.Where("is_active = ?", true).First(&config).Error
+	if err == gorm.ErrRecordNotFound {
+		// Fall back to any profile so legacy single-row deployments still work.
+		err = db.First(&config).Error
+	}
+	if err != nil {
 		return config, "", fmt.Errorf("ELK is not configured")
 	}
 	if strings.TrimSpace(config.URL) == "" {

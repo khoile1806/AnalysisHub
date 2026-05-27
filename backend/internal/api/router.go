@@ -123,15 +123,28 @@ func NewRouter(
 		// OpenCTI Integration + IOC store
 		protected.GET("/opencti/config", handlers.GetOpenCTIConfig)
 		protected.PUT("/opencti/config", handlers.SaveOpenCTIConfig)
+		protected.GET("/opencti/configs", handlers.ListOpenCTIConfigs)
+		protected.POST("/opencti/configs", handlers.CreateOpenCTIConfig)
+		protected.PUT("/opencti/configs/:id", handlers.UpdateOpenCTIConfig)
+		protected.DELETE("/opencti/configs/:id", handlers.DeleteOpenCTIConfig)
+		protected.POST("/opencti/configs/:id/activate", handlers.ActivateOpenCTIConfig)
 		protected.POST("/opencti/sync", handlers.SyncOpenCTI)
 		protected.GET("/iocs", handlers.ListIOCs)
 		protected.POST("/iocs", handlers.CreateManualIOC)
 
-		// ELK Hunt
+		// ELK Hunt — config (multi-profile) + manual + auto + file-based hunts.
 		protected.GET("/elk/config", handlers.GetELKConfig)
 		protected.PUT("/elk/config", handlers.SaveELKConfig)
+		protected.GET("/elk/configs", handlers.ListELKConfigs)
+		protected.POST("/elk/configs", handlers.CreateELKConfig)
+		protected.PUT("/elk/configs/:id", handlers.UpdateELKConfig)
+		protected.DELETE("/elk/configs/:id", handlers.DeleteELKConfig)
+		protected.POST("/elk/configs/:id/activate", handlers.ActivateELKConfig)
 		protected.POST("/elk/hunt", handlers.RunELKHunt)
 		protected.GET("/elk/hunt/stream", handlers.StreamELKAutoHunt)
+		protected.POST("/elk/iocs/parse", handlers.ParseIOCFile)
+		protected.GET("/elk/hunt/file-stream", handlers.StreamELKFileHunt)
+		protected.POST("/elk/hunt/file-stream", handlers.StreamELKFileHunt)
 
 		// CVE Collection
 		protected.GET("/cve-collection", handlers.GetCVECollection)

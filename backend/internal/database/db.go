@@ -59,6 +59,12 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
 
+	// Backfill: legacy single-row ELK/OpenCTI configs predate the multi-profile
+	// schema. Give them a name + active=true so they remain usable after the
+	// new columns are added by AutoMigrate.
+	db.Exec(`UPDATE elk_configs SET name = COALESCE(NULLIF(name, ''), 'Default'), is_active = TRUE WHERE name IS NULL OR name = ''`)
+	db.Exec(`UPDATE open_cti_configs SET name = COALESCE(NULLIF(name, ''), 'Default'), is_active = TRUE WHERE name IS NULL OR name = ''`)
+
 	log.Println("[db] migrations applied successfully")
 	return db, nil
 }
