@@ -113,36 +113,8 @@ All configuration lives in `.env` at the repository root.
 | `AES_ENCRYPTION_KEY` | placeholder | Must be exactly **32 bytes** (256-bit). Used to encrypt third-party integration credentials (e.g. OpenCTI). |
 | `NVD_API_KEY` | _(empty)_ | Raises NVD CVE rate limit (5 → 50 req / 30 s). |
 | `GITHUB_TOKEN` | _(empty)_ | Raises GitHub Search rate limit (10 → 30 req/min). |
-| `OSINT_VIRUSTOTAL_API_KEY` | _(empty)_ | OSINT module — VirusTotal domain-reputation collector. Falls back to `SUBFINDER_VIRUSTOTAL` when empty. |
-| `OSINT_SHODAN_API_KEY` | _(empty)_ | OSINT module — full Shodan host collector for IP targets. Falls back to `SUBFINDER_SHODAN` when empty (a free-tier key returns 403 on the host API — the free Shodan InternetDB collector still runs regardless). |
-| `OSINT_ABUSEIPDB_API_KEY` | _(empty)_ | OSINT module — unlocks the AbuseIPDB abuse-score collector for IP targets. |
-| `OSINT_HIBP_API_KEY` | _(empty)_ | OSINT module — unlocks the Have I Been Pwned breach-check collector for email targets. |
-| `OSINT_NUMVERIFY_API_KEY` | _(empty)_ | OSINT module — unlocks the NumVerify carrier / line-type collector for phone targets. |
 
-### OSINT Footprinting
-
-The **OSINT** module (sidebar → *Hacking → OSINT*) takes a single identifier —
-an IP, domain, email, phone number, or username — auto-detects its type, and
-passively collects the traces that identifier left across the internet,
-streaming progress live and grouping findings by source. Each discovered
-related identifier (a registrant email, an MX domain, a PTR hostname, a
-probable username…) is a one-click **pivot** that starts a fresh investigation.
-
-A **username** investigation checks ~17 platforms (GitHub, GitLab, Reddit,
-Telegram, Keybase, npm…) by HTTP and lists JS-walled platforms (X, Instagram,
-Facebook, TikTok, LinkedIn…) as candidate links to confirm by hand — note
-that automated profile detection yields *candidates*, not proof, and an
-email's local part is only a *probable* username. IP addresses cannot be
-mapped to social-media accounts and the module does not attempt to.
-
-It works with **zero configuration** using free no-key sources: RDAP/WHOIS,
-DNS, crt.sh Certificate Transparency, the Wayback Machine, ip-api geolocation,
-Shodan InternetDB, and Gravatar. It also cross-checks the target against the
-local OpenCTI IOC store. The VirusTotal and Shodan collectors **reuse the
-recon module's `SUBFINDER_VIRUSTOTAL` / `SUBFINDER_SHODAN` keys automatically**
-— no extra setup. The remaining `OSINT_*` keys above each unlock one more
-collector; an unset key simply marks that collector *skipped*. The module is
-backend-native: it does **not** use the forensic agent.
+> The OSINT module (and its `OSINT_*` API keys) lives in the sibling **OffSecHub** repo — it is not part of the slim ForensicHub stack.
 
 ---
 

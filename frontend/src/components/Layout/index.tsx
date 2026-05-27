@@ -14,6 +14,7 @@ import {
   ArrowUp,
   Menu,
   X,
+  Crosshair,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
@@ -32,6 +33,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/agents',    icon: Server,          label: 'Agents' },
       { to: '/tools',     icon: Wrench,          label: 'Tools' },
+      { to: '/hunting',   icon: Crosshair,       label: 'Scenario Hunting' },
       { to: '/webshell-scanner', icon: Shield,      label: 'Webshell Scanner' },
     ]
   },
@@ -53,6 +55,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   cve:       'Vulnerability Search',
   opencti:   'OpenCTI Config',
   'webshell-scanner': 'Webshell Scanner',
+  'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
 }
 

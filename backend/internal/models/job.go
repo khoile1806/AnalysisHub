@@ -26,6 +26,7 @@ type Job struct {
 	ToolID       uuid.UUID  `gorm:"type:uuid;not null"                             json:"tool_id"`
 	Tool         Tool       `gorm:"foreignKey:ToolID"                              json:"tool,omitempty"`
 	Args         string     `                                                      json:"args"`
+	DeploymentID *uuid.UUID `gorm:"type:uuid;index"                                json:"deployment_id,omitempty"` // set when job is part of a hunting scenario batch deploy
 	Status       JobStatus  `gorm:"default:'pending'"                              json:"status"`
 	Output       string     `gorm:"type:text"                                      json:"output,omitempty"`
 	ArtifactPath string     `                                                      json:"artifact_path,omitempty"` // path to uploaded artifact

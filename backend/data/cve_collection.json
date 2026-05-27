@@ -1,5 +1,2408 @@
 [
   {
+    "id": "CVE-2026-9609",
+    "description": "A vulnerability was identified in QianFox FoxCMS up to 1.2.6. This affects the function Edit of the file Admin.php. The manipulation leads to weak password recovery. The attack can be initiated remotely. The exploit is publicly available and might be used. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 4.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.413",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:47:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9608",
+    "description": "A vulnerability was determined in QianFox FoxCMS up to 1.2.6. The impacted element is an unknown function of the file /Tag/edit of the component Administrator Backend. Executing a manipulation can lead to cross site scripting. It is possible to launch the attack remotely. The exploit has been publicly disclosed and may be utilized. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "low",
+    "cvss_score": 2.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.247",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:47:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9207",
+    "description": "Tanium addressed an unauthorized code execution vulnerability in Connect.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.130",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:47:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9156",
+    "description": "Tanium addressed a denial of service vulnerability in Tanium Server.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:35.003",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:47:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7493",
+    "description": "The Appointment Booking Calendar — Simply Schedule Appointments Booking Plugin plugin for WordPress is vulnerable to denial of service in all versions up to, and including, 1.6.11.5. This is due to a publicly accessible REST API endpoint (/wp-json/ssa/v1/async) that calls PHP's sleep() function on a user-supplied delay parameter without any rate limiting. This makes it possible for unauthenticated attackers to exhaust PHP worker processes, denying access to the site to legitimate users.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:34.770",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:47:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6565",
+    "description": "The Style Kits – Advanced Theme Styles for Elementor, Elementor Kits \u0026 Elementor Patterns plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the '/wp-json/agwp/v1/tokens/save' endpoint kit title parameter in versions up to, and including, 2.5.0 due to insufficient input sanitization and output escaping in an admin attribute context. This makes it possible for authenticated attackers, with contributor-level access and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page.",
+    "severity": "medium",
+    "cvss_score": 6.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:34.640",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:47:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49017",
+    "description": "In OpenStack Swift before 2.36.2 and 2.37.2, s3api middleware enters an infinite loop when processing a truncated aws-chunked PUT request body. The StreamingInput class repeatedly appends an empty buffer and re-reads, causing the proxy-server worker handling the request to become permanently unresponsive with increasing CPU and memory consumption. An authenticated attacker can systematically exhaust all proxy-server workers, resulting in denial of service. The defect was introduced in Swift 2.36.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:34.327",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49014",
+    "description": "In GDAL 3.1.0 through 3.13.0, scanForGeometryContainers in the netCDF driver allows code execution via a stack-based buffer overflow. It reads a geometry attribute into a fixed-size stack buffer without validating the attribute length. The attacker embeds the exploit as an oversized geometry attribute in a crafted NetCDF file. This achieves arbitrary code execution on the server running GDAL. This is in frmts/netcdf/netcdfsg.cpp.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T02:16:34.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9607",
+    "description": "A vulnerability was found in itsourcecode Courier Management System 1.0. The affected element is an unknown function of the file /parcel_list.php. Performing a manipulation of the argument s results in sql injection. It is possible to initiate the attack remotely. The exploit has been made public and could be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T00:16:39.567",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9606",
+    "description": "A vulnerability has been found in itsourcecode Courier Management System 1.0. Impacted is an unknown function of the file /manage_user.php. Such manipulation of the argument ID leads to sql injection. The attack may be performed from remote. The exploit has been disclosed to the public and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T00:16:39.333",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9605",
+    "description": "A flaw has been found in GNU libredwg up to 0.13.4.8160. This issue affects the function bit_read_RC of the file bits.c of the component Dwgbmp Utility. This manipulation causes heap-based buffer overflow. The attack is possible to be carried out remotely. The exploit has been published and may be used. Patch name: 8f03865f37f5d4ffd616fef802acc980be54d300. Applying a patch is the recommended action to fix this issue.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T00:16:39.157",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9312",
+    "description": "A server-side request forgery (SSRF) vulnerability was identified in GitHub Enterprise Server that allowed an unauthenticated attacker to send crafted requests to internal services by exploiting insufficient input validation in an upload endpoint. By injecting path traversal content into request parameters, an attacker could bypass the intended request flow and redirect internal API calls, potentially accessing internal services and exposing sensitive credentials. This vulnerability affected all versions of GitHub Enterprise Server prior to 3.22 and was fixed in versions 3.16.20, 3.17.17, 3.18.11, 3.19.8, 3.20.4, and 3.21.1. This vulnerability was reported via the GitHub Bug Bounty program.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T00:16:39.020",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8606",
+    "description": "A Server-Side Request Forgery (SSRF) vulnerability was identified in GitHub Enterprise Server that allowed an attacker to cause the server to issue HTTP requests to internal services via the security advisories package lookup feature. By directing requests to an internal management service and measuring response timing, an attacker could infer the values of sensitive environment variables, including signing secrets and private keys. Exploitation required GitHub Packages to be enabled; on instances not running in private mode the vulnerability was exploitable without authentication, otherwise any authenticated user could exploit it. This vulnerability affected all versions of GitHub Enterprise Server prior to 3.21.1 and was fixed in versions 3.20.3, 3.19.7, 3.18.10, 3.17.16, and 3.16.19. This vulnerability was reported via the GitHub Bug Bounty program.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-27T00:16:37.900",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9604",
+    "description": "A vulnerability was detected in JeecgBoot up to 3.9.1. This vulnerability affects unknown code of the component AiragModelController. The manipulation of the argument list/queryById results in improper access controls. The attack can be executed remotely. The exploit is now public and may be used. Upgrading to version 3.9.2 is able to resolve this issue. The affected component should be upgraded.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T23:16:21.433",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8680",
+    "description": "Rejected reason: This CVE ID has been rejected or withdrawn by its CVE Numbering Authority.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T23:16:21.357",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8647",
+    "description": "Crypt::ScryptKDF versions through 0.010 for Perl uses insecure random number source when no CSPRNG module is available.\n\nThe random_bytes function fell back to using the built-in rand() function when none of the Perl modules Crypt::PRNG, Crypt::OpenSSL::Random, Net::SSLeay, Crypt::Random, or Bytes::Random::Secure were available.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T23:16:21.247",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46740",
+    "description": "Mojolicious::Plugin::Statsd versions through 0.04 for Perl allowed metric injections.\n\nThe metric names and set values were not checked for newlines, colons or pipes. Metrics generated from untrusted sources could inject additional statsd metrics.\n\nVersion 0.06 changes the module from being a statsd client to using a separate statsd client. It defaults to using a version of Net::Statsd::Tiny that fixes a similar issue (CVE-2026-46720).",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T23:16:20.923",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9603",
+    "description": "A security vulnerability has been detected in SourceCodester eDoc Doctor Appointment System 1.0. This affects an unknown part of the file /admin/delete-session.php. The manipulation of the argument ID leads to missing authorization. Remote exploitation of the attack is possible. The exploit has been disclosed publicly and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:44.467",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9584",
+    "description": "A security vulnerability has been detected in code-projects Project Management System 1.0. Affected is an unknown function of the file chk.php of the component Login. The manipulation leads to sql injection. It is possible to initiate the attack remotely. The exploit has been disclosed publicly and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:44.300",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-5260",
+    "description": "A flaw was found in libgnutls. A remote attacker, by sending an extremely short premaster secret during an RSA key exchange to a server using an RSA key backed by a PKCS#11 token, could trigger a short heap overread. This memory corruption vulnerability could lead to information disclosure.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:44.170",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48710",
+    "description": "Starlette is a lightweight ASGI framework/toolkit. Prior to version 1.0.1, the HTTP `Host` request header was not validated before being used to reconstruct `request.url`. Because the routing algorithm relies on the raw HTTP path while `request.url` is rebuilt from the `Host` header, a malformed header could make `request.url.path` differ from the path that was actually requested. Middleware and endpoints that apply security restrictions based on `request.url` (rather than the raw `scope` path) could therefore be bypassed. Users should upgrade to a version greater than or equal to version 1.0.1, which validates the `Host` header against the grammar of RFC 9112 §3.2 / RFC 3986 §3.2.2 when constructing `request.url` and falls back to `scope[\"server\"]` for malformed values.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:44.020",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45574",
+    "description": "epa4all-client is the Java Client for epa4all / ePA 3.0 in the Telematik Infrastruktur. Prior to 1.2.2, an attacker on the network path between the ePA service and the Konnektor can present any TLS certificate (self-signed, expired, wrong CN) and intercept all SOAP traffic. This includes patient identifiers (KVNR), SMC-B card operations (authentication, signing), document content, and credential exchanges. This vulnerability is fixed in 1.2.2.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.887",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45298",
+    "description": "Dozzle is a realtime log viewer for docker containers. Prior to 10.5.2, in a default dozzle deploy (the documented quickstart, no DOZZLE_AUTH_PROVIDER set), POST /api/notifications/test-webhook is reachable without authentication and forwards an attacker-controlled URL into a WebhookDispatcher that sends an HTTP POST to the supplied URL with attacker-controlled request headers, and returns the response status code AND up to 1MB of the response body to the caller, when the target replies non-2xx. This vulnerability is fixed in 10.5.2.",
+    "severity": "high",
+    "cvss_score": 8.6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.733",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44985",
+    "description": "Dozzle is a realtime log viewer for docker containers. Prior to 10.5.2, he WebSocket upgrader for the /exec and /attach endpoints uses CheckOrigin: func(r *http.Request) bool { return true }, accepting upgrade requests from any origin. Combined with the JWT cookie using SameSite: Lax, this enables Cross-Site WebSocket Hijacking (CSWSH). An attacker hosting a page on a same-site origin (e.g., a sibling subdomain, or another service on localhost) can initiate a WebSocket connection to the exec endpoint that carries the victim's valid JWT cookie, gaining interactive shell access in any container the victim is authorized to access. This vulnerability is fixed in 10.5.2.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.587",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44983",
+    "description": "smallbitvec is a growable bit-vector for Rust, optimized for size. From 1.0.1 to 2.6.0, an integer overflow in the internal capacity calculation of smallbitvec can lead to an undersized heap allocation, resulting in a heap buffer overflow through safe APIs only. This allows memory corruption without requiring unsafe code from the caller. This vulnerability is fixed in 2.6.1.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.440",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:46:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44966",
+    "description": "Velocity.js is a JavaScript implementation of the Apache Velocity template engine. In 2.1.5 and earlier, a prototype pollution vulnerability was discovered in velocityjs. This issue occurs during the processing of #set directives in Velocity templates. If an application renders a template controlled by an attacker, it is possible to modify Object.prototype, potentially leading to Denial of Service (DoS) or Remote Code Execution (RCE) depending on the server environment.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.293",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44905",
+    "description": "Vanetza is an open-source implementation of the ETSI C-ITS protocol suite. In 26.02 and earlier, a denial-of-service vulnerability was identified in the cryptographic verification pipeline of Vanetza. When processing incoming V2X messages, the ASN.1 decoder accepts the structure as syntactically valid. However, this reveals a logic-based protocol failure where semantic constraints on specific fields are only strictly enforced during OER re-encoding. Specifically, if a crafted packet contains a certificate where the Psid (Provider Service Identifier) sub-type violates subtype constraints (e.g., out-of-range or invalid CHOICE variant), it is accepted during initial parsing, where subtype constraints are not enforced. Later, when StraightVerifyService attempts to calculate a message hash for cryptographic verification, it must re-encode the signing certificate. The underlying ASN.1 wrapper (asn1c_wrapper.cpp) detects the semantic violation during encoding and raises a std::runtime_error. This exception is not caught within the encoding path and propagates to std::terminate, resulting in immediate process termination. This vulnerability is fixed with commit e1a2e2709210d309458c3d77f98d50dec26c0df0.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.150",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44903",
+    "description": "Prometheus is an open-source monitoring system and time series database. From 2.49.0 to before 3.5.3 and 3.11.3, in the Prometheus server's legacy web UI (enabled via the command-line flag --enable-feature=old-ui), the histogram heatmap chart view does not escape le label values when inserting them into the HTML for use as axis tick mark labels. An attacker who can inject crafted metrics can execute JavaScript in the browser of any Prometheus user who views the metric in the heatmap chart UI. This vulnerability is fixed in 3.5.3 and 3.11.3.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:43.010",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44900",
+    "description": "epa4all-client is the Java Client for epa4all / ePA 3.0 in the Telematik Infrastruktur. Prior to 1.2.1, in  SignedPublicKeysTrustValidatorImpl.isTrusted(), the ECDSA signature verification at line 45 discards the boolean return value of Signature.verify(). The method performs certificate chain validation, OCSP check, and signature algorithm setup, but never checks whether the signature actually matches. For any structurally valid signature, it returns true.  This vulnerability is fixed in 1.2.1.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.873",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44895",
+    "description": "GitLab MCP Server lets an AI agent talk directly to GitLab. Prior to 0.6.0, the HTTP transport in src/transport.ts ships with no authentication layer at all and a wildcard Access-Control-Allow-Origin: * on every response. The structural defect is that the SSE server stands up a stateful, mutation-capable RPC endpoint that is backed by the operator's GITLAB_PERSONAL_ACCESS_TOKEN without any inbound credential check, then advertises itself to every cross-origin browser context via the wildcard CORS header. The httpServer.listen(port) call at line 97 also passes no host argument, so the bind defaults to 0.0.0.0 and exposes the auth-less surface on every interface. This vulnerability is fixed in 0.6.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.730",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44788",
+    "description": "SharpCompress is a fully managed C# library to deal with many compression types and formats. In 0.47.4 and earlier, a path traversal vulnerability in IArchive.WriteToDirectory() allows a malicious archive to create directories outside the intended extraction root. For TAR archives, this can be escalated to arbitrary file writes by chaining with a symlink entry, giving a full write primitive on the target filesystem subject to the permissions of the running process.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.587",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44213",
+    "description": "The OpenTelemetry.Exporter.Instana exports telemetry to Instana backend. Prior to 1.1.0, the OpenTelemetry.Exporter.Instana NuGet package does not validate HTTPS/TLS certificates are valid when sending telemetry to a configured Instana back-end when a proxy is configured using the INSTANA_ENDPOINT_PROXY environment variable. If a network attacker can Man-in-the-Middle (MitM) the proxy connection, all OpenTelemetry telemetry data and the Instana API key are exposed to the attacker. This vulnerability is fixed in 1.1.0.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.443",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-43988",
+    "description": "Vanetza is an open-source implementation of the ETSI C-ITS protocol suite. In 26.02 and earlier, a denial-of-service vulnerability was identified in the ASN.1/OER parsing pipeline of Vanetza. When processing malformed network packets containing corrupted ASN.1/OER structures (e.g., invalid length fields or malformed certificate encoding), the ASN.1 wrapper (asn1c_wrapper.cpp) raises a std::runtime_error. This exception is not caught at the parsing boundary and propagates to std::terminate, resulting in process termination. This vulnerability is fixed with commit 62dfe58a8342512b6e1947d75821402ada524f1a.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.303",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42015",
+    "description": "A flaw was found in gnutls. An off-by-one error exists in the PKCS#12 bag element bounds check. This vulnerability allows an remote attacker to write past the internal array of a PKCS#12 bag when appending to a bag that already contains 32 elements. This memory corruption could lead to a denial of service (DoS) or potentially other unspecified impacts.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42013",
+    "description": "A flaw was found in gnutls. When validating certificates, an oversized Subject Alternative Name (SAN) could cause the validation process to incorrectly fall back to checking the Common Name (CN) field. This could allow a remote attacker to bypass proper certificate validation, potentially leading to spoofing or man-in-the-middle attacks.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:42.050",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42012",
+    "description": "A flaw was found in gnutls. A remote attacker could exploit this vulnerability by presenting a specially crafted certificate that contains Uniform Resource Identifier (URI) or Service (SRV) Subject Alternative Names (SANs). This could cause the certificate validation process to incorrectly fall back to checking DNS hostnames against the Common Name (CN), potentially allowing the attacker to spoof legitimate services or intercept sensitive information.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:41.913",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-46307",
+    "description": "A logic issue was addressed with improved restrictions. This issue is fixed in macOS Tahoe 26. An app may be able to access sensitive user data.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:41.640",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-46284",
+    "description": "A race condition was addressed with additional validation. This issue is fixed in macOS Sequoia 15.7, macOS Tahoe 26. An app may be able to gain root privileges.",
+    "severity": "high",
+    "cvss_score": 7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:41.537",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-46280",
+    "description": "An out-of-bounds read was addressed with improved bounds checking. This issue is fixed in macOS Tahoe 26. An app may be able to cause unexpected system termination.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:41.423",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-43451",
+    "description": "A permissions issue was addressed by removing the vulnerable code. This issue is fixed in macOS Tahoe 26. An app may be able to access sensitive user data.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:41.317",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-43306",
+    "description": "A logic issue was addressed with improved checks. This issue is fixed in macOS Sequoia 15.7, macOS Sonoma 14.8, macOS Tahoe 26. A malicious app may be able to gain root privileges.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:40.823",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-43290",
+    "description": "A permissions issue was addressed with additional restrictions. This issue is fixed in macOS Sequoia 15.7, macOS Sonoma 14.8, macOS Tahoe 26. An app may be able to modify protected parts of the file system.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:40.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-43289",
+    "description": "A logic issue was addressed with improved validation. This issue is fixed in macOS Sequoia 15.7, macOS Sonoma 14.8, macOS Tahoe 26. A malicious app may be able to access sensitive user data.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T22:16:40.587",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:45:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9642",
+    "description": "There is a mitigation bypass / (incomplete fix) for CVE-2025-62582 (Unauthenticated Remote Database Access) \n\nAn unauthenticated remote attacker can access configured databases in a DIAView project.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:45.827",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9583",
+    "description": "A weakness has been identified in SourceCodester CET Automated Grading System with AI Predictive Analytics 1.0. This impacts an unknown function of the file /index.php of the component SQL Handler. Executing a manipulation can lead to information exposure through error message. The attack may be performed from remote. The exploit has been made available to the public and could be used for attacks.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:45.667",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9582",
+    "description": "A security flaw has been discovered in SourceCodester CET Automated Grading System with AI Predictive Analytics 1.0. This affects an unknown function. Performing a manipulation results in cross-site request forgery. The attack is possible to be carried out remotely. The exploit has been released to the public and may be used for attacks.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:45.493",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9581",
+    "description": "A vulnerability was identified in JeecgBoot up to 3.9.1. The impacted element is an unknown function of the file /sys/comment/add. Such manipulation leads to improper access controls. The attack can be executed remotely. The exploit is publicly available and might be used. Upgrading to version 3.9.2 is sufficient to resolve this issue. Upgrading the affected component is recommended.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:45.327",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9580",
+    "description": "A vulnerability was determined in JeecgBoot up to 3.9.1. The affected element is the function LoginController.selectDepart of the file /sys/selectDepart. This manipulation causes improper access controls. Remote exploitation of the attack is possible. The exploit has been publicly disclosed and may be utilized. Upgrading to version 3.9.2 is sufficient to fix this issue. It is suggested to upgrade the affected component.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:45.167",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9579",
+    "description": "A vulnerability was found in JeecgBoot up to 3.9.1. Impacted is the function user.getUsername of the file /sys/user/login/setting/userEdit of the component SysUser. The manipulation of the argument userIdentity results in improper access controls. The attack may be launched remotely. The exploit has been made public and could be used. Upgrading to version 3.9.2 is recommended to address this issue. The affected component should be upgraded.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:44.980",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8676",
+    "description": "An attacker is able to downgrade the security of a Bluetooth LE connection by deleting an existing bond, spoofing the bonded device and creating a new bond.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:44.630",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:44:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "MAL-2026-4823",
+    "description": "Malicious code in msc-terminal (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-25T10:04:53Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-05-27T02:27:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-48593",
+    "description": "Uncontrolled Resource Consumption vulnerability in oban-bg oban_web ('Elixir.Oban.Web.CronExpr' modules) allows memory exhaustion via unbounded cron range expansion.\n\nAn attacker with access to schedule cron jobs can submit a malicious cron expression such as \"0 0 1-100000000 * *\". When a user with dashboard access views the cron job list, 'Elixir.Oban.Web.CronExpr':describe/1 is called to render the expression. parse_range/1 parses both range endpoints via Integer.parse/1 with no bounds check, and the downstream helpers expand_dom_parts/1 and expand_dow_parts/1 materialise the range eagerly via Enum.to_list/1, causing allocation of ~2.4 GB and stalling or crashing the BEAM node. A sibling helper extract_dom_values already validates range bounds, but the expansion helpers do not.\n\nThis issue affects oban_web: from 2.12.0 before 2.12.5.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:41.857",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:27:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48592",
+    "description": "Missing Authorization vulnerability in oban-bg oban_web ('Elixir.Oban.Web.Jobs.DetailComponent' modules) allows unauthorized job worker substitution.\n\nThe handle_event(\"save-job\", ...) handler in 'Elixir.Oban.Web.Jobs.DetailComponent' does not perform an authorization check, unlike the sibling cancel, delete, and retry handlers which all verify the caller's privileges via can?/2. An authenticated user with :read_only access can push a forged save-job LiveView WebSocket event to overwrite a job's worker field with any other existing Oban.Worker module in the application. On the job's next execution attempt, Oban will invoke perform/1 on the attacker-chosen module instead of the intended one.\n\nThis issue affects oban_web: from 2.12.0 before 2.12.5.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:41.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:27:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47672",
+    "description": "epa4all-client is the Java Client for epa4all / ePA 3.0 in the Telematik Infrastruktur. In 1.2.4 and earlier, any network-reachable caller can write arbitrary documents to any patient's electronic health record accessible by the institution's SMC-B card. In a misconfigured deployment (e.g., following the production Docker example in the README), this is exploitable from the local network without credentials.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:41.483",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:27:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45575",
+    "description": "epa4all-client is the Java Client for epa4all / ePA 3.0 in the Telematik Infrastruktur. Prior to 1.2.2, an attacker who can MITM the TLS connection between the client and the IDP (within the TI network) can substitute a forged discovery document. The forged document redirects uri_puk_idp_enc and uri_puk_idp_sig to attacker-controlled URLs. The client then encrypts the SMC-B-signed challenge response to the attacker's encryption key and POSTs it to the attacker's auth endpoint. This captures the signed authentication material. This vulnerability is fixed in 1.2.2.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:40.373",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:27:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45413",
+    "description": "MaxKB is an open-source AI assistant for enterprise. Prior to 2.9.1, user passwords are stored using unsalted MD5 hashes, making them trivially crackable via rainbow tables or GPU-accelerated brute force (hashcat). This vulnerability is fixed in 2.9.1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:40.233",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45412",
+    "description": "MaxKB is an open-source AI assistant for enterprise. Prior to 2.9.1, SSRF via work_flow_template Import. Authenticated users can supply arbitrary URLs in work_flow_template.downloadUrl which are fetched server-side without any URL validation or internal IP filtering. This vulnerability is fixed in 2.9.1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:40.097",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44899",
+    "description": "Mistune is a Python Markdown parser with renderers and plugins. Prior to 3.2.1, the Image directive plugin validates the :width: and :height: options with a regex compiled as _num_re = re.compile(r\"^\\d+(?:\\.\\d*)?\"). When the validated value is not a plain integer, render_block_image() inserts it directly into a style=\"width:...;\" or style=\"height:...;\" attribute. Because the value was accepted by the prefix-only regex, any CSS after the leading digits reaches the style= attribute verbatim and without escaping. This vulnerability is fixed in 3.2.1.",
+    "severity": "medium",
+    "cvss_score": 4.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.953",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44898",
+    "description": "Mistune is a Python Markdown parser with renderers and plugins. Prior to 3.2.1, render_toc_ul() builds a \u003cul\u003e table-of-contents tree from a list of (level, id, text) tuples. Both the id value (used as href=\"#\u003cid\u003e\") and the text value (used as the visible link label) are inserted into \u003ca\u003e tags via a plain Python format string — with no HTML escaping applied to either value. When heading IDs are derived from user-supplied heading text (the standard use-case for readable slug anchors), an attacker can craft a heading whose text breaks out of the href=\"#...\" attribute context, injecting arbitrary HTML tags including \u003cscript\u003e blocks directly into the rendered TOC. This vulnerability is fixed in 3.2.1.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.810",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44897",
+    "description": "Mistune is a Python Markdown parser with renderers and plugins. Prior to 3.2.1, HTMLRenderer.heading() builds the opening \u003chN\u003e tag by string-concatenating the id attribute value directly into the HTML — with no call to escape(), safe_entity(), or any other sanitisation function. A double-quote character \" in the id value terminates the attribute, allowing an attacker to inject arbitrary additional attributes (event handlers, src=, href=, etc.) into the heading element. This vulnerability is fixed in 3.2.1.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.657",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44896",
+    "description": "Mistune is a Python Markdown parser with renderers and plugins. In 3.2.0 and realier, in src/mistune/directives/image.py, the render_figure() function concatenates figclass and figwidth options directly into HTML attributes without escaping. This allows attribute injection and XSS even when HTMLRenderer(escape=True) is used, because these values bypass the inline renderer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.477",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44847",
+    "description": "MaxKB is an open-source AI assistant for enterprise. Prior to 2.9.0, MaxKB's webhook trigger endpoint (/api/trigger/v1/webhook/{trigger_id}) is accessible without authentication. The WebhookAuth class unconditionally returns (None, {}), which Django REST Framework interprets as successful authentication. Combined with optional per-trigger token verification and no backend enforcement of token requirements, any unauthenticated attacker who knows a valid trigger ID can invoke webhook triggers to execute their bound tasks. This vulnerability is fixed in 2.9.0.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.313",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44844",
+    "description": "eml_parser serves as a python module for parsing eml files and returning various information found in the e-mail as well as computed information. Prior to 3.0.1, EmlParser.get_raw_body_text() recurses unconditionally for every nested message/rfc822 attachment without any depth limit. An attacker who can supply a badly crafted EML file with approximately 120 nested message/rfc822 parts triggers an unhandled RecursionError and aborts parsing of the message. A 12 KB EML file is enough to crash a worker. Though this causes the parser to crash, it is an unlikely scenario as the suggested EML that crashes the parser would not pass basic RFC compliance tests. This vulnerability is fixed in 3.0.1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.163",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44843",
+    "description": "LangChain is a framework for building agents and LLM-powered applications. Prior to 0.3.85 and 1.3.3, LangChain contains older runtime code paths that deserialize run inputs, run outputs, or other application-controlled payloads using overly broad object allowlists. These paths may call load() with allowed_objects=\"all\". This does not enable arbitrary Python object deserialization, but it does allow any trusted LangChain-serializable object to be revived, which is broader than these runtime paths require. As a result, attacker-supplied LangChain serialized constructor dictionaries may cause trusted runtime paths to instantiate classes with untrusted constructor arguments. This vulnerability is fixed in 0.3.85 and 1.3.3.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:39.003",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44837",
+    "description": "view_component is a framework for building reusable, testable, and encapsulated view components in Ruby on Rails. From 3.0.0 to 4.9.0, the system test entrypoint canonicalizes a user-controlled file path with File.realpath, then checks whether the resolved path starts with the temp directory path. This is not a safe containment check because sibling directories can share the same string prefix. This vulnerability is fixed in 4.9.0.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:38.853",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44836",
+    "description": "view_component is a framework for building reusable, testable, and encapsulated view components in Ruby on Rails. From 3.0.0 to 4.9.0, the preview route derives an example name from the URL and calls it with public_send. The code does not verify that the requested method is one of the preview examples explicitly defined by the preview class. As a result, inherited public methods on ViewComponent::Preview are route-reachable. The most important one is render_with_template, which accepts template: and locals:. Those values can come from request params and are later passed to Rails as render template:. If previews are exposed, an attacker can render internal Rails templates that are not otherwise routable. This vulnerability is fixed in 4.9.0.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:38.710",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44708",
+    "description": "Mistune is a Python Markdown parser with renderers and plugins. Prior to 3.2.1, the mistune math plugin renders inline math ($...$) and block math ($$...$$) by concatenating the raw user-supplied content directly into the HTML output without any HTML escaping. This occurs even when the parser is explicitly created with escape=True, which is supposed to guarantee that all user-controlled text is sanitised before reaching the DOM. This vulnerability is fixed in 3.2.1.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:38.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44451",
+    "description": "Lumiverse is a full-featured AI chat application. Prior to 0.9.7, the component override system transpiles user-supplied TSX via Sucrase and evaluates it with new Function, shadowing dangerous globals (fetch, window, eval, etc.) with undefined. A static source validator (validateComponentOverrideSource) additionally blocks these identifiers by word-boundary regex. Both controls are bypassed. String-split bypass of the static validator: any blocked identifier can be reconstructed at runtime from string fragments ('ownerDoc' + 'ument'). DOM ref escape from the sandbox: useRef and useEffect are provided in scope. A ref attached to a rendered element gives a live DOM node. From any real DOM node, node['ownerDoc'+'ument']['def'+'aultView'] yields the real window, bypassing all identifier shadows. Theme packs (.lumitheme / .lumiverse-theme) are the shareable delivery mechanism. A malicious pack is an exploit path: the victim imports the file, enables one component override in the Theme Editor, and the payload fires in their authenticated session.This vulnerability is fixed in 0.9.7.",
+    "severity": "critical",
+    "cvss_score": 9.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:38.303",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44450",
+    "description": "Lumiverse is a full-featured AI chat application. Prior to 0.9.7, the MCP server creation endpoint validates the command field against an allowlist of binary names but forwards the args array to the child process without any validation. Every binary on the allowlist accepts an inline-code execution flag (-e for node/bun, -c for python3/deno), giving any logged-in user arbitrary OS-level code execution on the Lumiverse server. The route requires only requireAuth (not requireOwner). The server binds on all interfaces (::) and the host-header rebinding check is bypassed trivially by any HTTP client that sends Host: localhost:\u003cport\u003e directly, making this exploitable from any machine with network access to the server port. This vulnerability is fixed in 0.9.7.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:38.173",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44449",
+    "description": "Lumiverse is a full-featured AI chat application. Prior to 0.9.7, when the primary toSmbPath(fullPath) call throws, the method falls back to a dirname/basename split and only validates the directory prefix. The basename is concatenated directly into the smbclient -c script without validation. smbclient interprets ; as a subcommand separator and !cmd as a local-shell escape that runs cmd on the host. A path whose directory component is clean but whose basename contains \"; !\u003ccmd\u003e; echo \" achieves arbitrary command execution on the Lumiverse server. This vulnerability is fixed in 0.9.7.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:38.037",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44444",
+    "description": "Lumiverse is a full-featured AI chat application. Prior to 0.9.7, the Spindle extension build pipeline calls bun install without the --ignore-scripts flag before running the static backend safety scan (assertSafeBackendBundle). A malicious extension that ships a package.json with a preinstall, postinstall, or prepare lifecycle script achieves host-level code execution the moment an admin presses Install before any dist file is inspected. This vulnerability is fixed in 0.9.7.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:37.897",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44443",
+    "description": "Lumiverse is a full-featured AI chat application. Prior to 0.9.7, consumeNonce() only checks that the module-level variable is set and unexpired. It does not validate any value from the incoming HTTP request or bind the nonce to the admin's session. If the admin's auth.api.signUpEmail() call fails before the before hook fires (e.g. BetterAuth rejects a duplicate email at the validation layer), the nonce is set but never consumed. Any POST /api/auth/sign-up/email request that arrives during the remaining window registers successfully regardless of who sent it. An attacker who can observe or predict when the admin is creating users (must be a dupplicate user) can race the 10-second window to register an unauthorized account. This vulnerability is fixed in 0.9.7.",
+    "severity": "medium",
+    "cvss_score": 4.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:37.760",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44209",
+    "description": "Banks generates meaningful LLM prompts using a template language that makes sense. Prior to 2.4.2, banks uses jinja2.Environment() (unsandboxed) to render prompt templates. Applications that pass user-supplied strings as the template argument to Prompt() are vulnerable to Server-Side Template Injection (SSTI), which can lead to Remote Code Execution (RCE) on the host system. This vulnerability is fixed in 2.4.2.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:37.620",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42337",
+    "description": "MaxKB is an open-source AI assistant for enterprise. MaxKB 2.8.0 and prior are vulnerable to a broken access control vulnerability in the OSS file service URL fetch API (chat/api/oss/get_url). The endpoint uses application_id from the URL path without validating ownership, allowing attackers to perform operations under other applications’ policies. This vulnerability is fixed in 2.8.1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:37.317",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:26:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42336",
+    "description": "MaxKB is an open-source AI assistant for enterprise. MaxKB 2.8.0 and prior are vulnerable to a server-side request forgery (SSRF) bypass in the OSS file service URL fetch functionality due to inconsistent DNS resolution between validation and actual request execution, allowing attackers to access internal network services. This vulnerability is fixed in 2.8.1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:37.170",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42335",
+    "description": "MaxKB is an open-source AI assistant for enterprise. Prior to 2.8.1, MaxKB v2.8.0 and prior are vulnerable to a server-side request forgery (SSRF) bypass in the OSS file service URL fetch (chat/api/oss/get_url) endpoint. The vulnerability exists due to inconsistent URL parsing between the urlparse validation function and the requests HTTP client, allowing attackers to access internal network services. This vulnerability is fixed in 2.8.1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:37.017",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-36239",
+    "description": "PbootCMS v.3.2.11 contains a code injection vulnerability in its site configuration functionality",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:36.480",
+    "poc_links": [
+      "https://github.com/TazmiDev/CVE-2026-36239"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-68711",
+    "description": "AppLockZ App Lock and Fingerprint Lock (applock.passwordfingerprint.applockz) 4.2.11 for Android allows a local attacker with physical access to bypass the PIN lock. The lock is implemented as an overlay rather than by using Android's secure authentication APIs. By navigating cascading interface flows - insecure navigation through exposed routes facilitates app control evasion {I.N.T.E.R.F.A.C.E] via advertisement or browser intents, an attacker can evade lockscreen verification and access protected apps (e.g., Chrome). This results in information disclosure and privilege escalation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:36.043",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-68708",
+    "description": "SailingLab AppLock (aka com.alpha.applock) 4.3.8 for Android allows a local attacker with physical access to bypass the PIN lock. The lock is implemented as an overlay rather than by using Android's secure authentication APIs. By navigating cascading interface flows - insecure navigation through exposed routes facilitates app control evasion {I.N.T.E.R.F.A.C.E] via advertisement or browser intents - an attacker can evade lockscreen verification and access protected apps (e.g., Chrome). This results in information disclosure and privilege escalation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:35.940",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-14361",
+    "description": "Missing Authorization vulnerability in AA-Team Woocommerce Envato Affiliates allows Accessing Functionality Not Properly Constrained by ACLs.\n\nThis issue affects Woocommerce Envato Affiliates: from n/a through 1.2.1.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T21:16:35.313",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9575",
+    "description": "A vulnerability has been found in itsourcecode Student Transcript Processing System 1.0. This issue affects some unknown processing of the file /admin/modules/class/index.php?view=view. The manipulation of the argument ID leads to sql injection. The attack may be initiated remotely. The exploit has been disclosed to the public and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:21.823",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9574",
+    "description": "A flaw has been found in itsourcecode Student Transcript Processing System 1.0. This vulnerability affects unknown code of the file /admin/modules/student/trans.php. Executing a manipulation of the argument studentId/cid can lead to sql injection. The attack can be launched remotely. The exploit has been published and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:21.663",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9573",
+    "description": "A vulnerability was detected in itsourcecode Student Transcript Processing System 1.0. This affects an unknown part of the file /admin/modules/student/index.php?view=view. Performing a manipulation of the argument studentId results in sql injection. The attack can be initiated remotely. The exploit is now public and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:21.503",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8453",
+    "description": "Rejected reason: ** REJECT ** DO NOT USE THIS CANDIDATE NUMBER. Reason: This candidate was issued in error. Notes: All references and descriptions in this candidate have been removed to prevent accidental usage.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:21.130",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44833",
+    "description": "Snipe-IT is an IT asset/license management system. Prior to 8.4.1, an open redirect vulnerability in Snipe-IT allows attackers to redirect users to malicious sites via unvalidated HTTP Referer header stored in session variable. This vulnerability is fixed in 8.4.1.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:20.317",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44832",
+    "description": "Snipe-IT is an IT asset/license management system. Prior to 8.4.1, aAn authenticated user with only users.edit permission can escalate their own privileges to admin by sending a PATCH request to /api/v1/users/{id} with permissions[admin]=1. The API controller only strips the superuser key from the permissions array, allowing admin and all other permission keys to be set by any user who can update users. This vulnerability is fixed in 8.4.1.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:20.183",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44831",
+    "description": "Snipe-IT is an IT asset/license management system. Prior to 8.4.1, users with component view access could be impacted by an unescaped notes column, resulting in cross-site scripting (XSS). This vulnerability is fixed in 8.4.1.",
+    "severity": "medium",
+    "cvss_score": 4.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:20.027",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44214",
+    "description": "eventsource-encoder encodes events as well-formed EventSource/Server Sent Event (SSE) messages. Prior to 1.0.2, eventsource-encoder does not sanitize the event or id fields of an EventSourceMessage before serializing them. An attacker who controls either field can inject arbitrary Server-Sent Events line terminators (\\n, \\r, or \\r\\n) and thereby forge additional SSE fields or entire messages on the stream. This vulnerability is fixed in 1.0.2.",
+    "severity": "medium",
+    "cvss_score": 5.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:19.803",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27331",
+    "description": "Missing Authorization vulnerability in Magepeople inc. WpTravelly allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects WpTravelly: from n/a through 2.1.5.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:17.073",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25444",
+    "description": "Missing Authorization vulnerability in Magepeople inc. WpBookingly allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects WpBookingly: from n/a through 1.2.9.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:16.933",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25426",
+    "description": "Missing Authorization vulnerability in Magepeople inc. Taxi Booking Manager for WooCommerce allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects Taxi Booking Manager for WooCommerce: from n/a through 2.0.1.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:16.800",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24520",
+    "description": "Missing Authorization vulnerability in bPlugins Tiktok Feed allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects Tiktok Feed: from n/a through 1.0.24.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:16.640",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:25:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-68710",
+    "description": "Easyelife App lock (aka Fingerprint,Applock or locker.app.safe.applocker) 1.9.2 for Android allows a local attacker with physical access to bypass the PIN lock. The lock is implemented as an overlay rather than by using Android's secure authentication APIs. By navigating cascading interface flows - insecure navigation through exposed routes facilitates app control evasion {I.N.T.E.R.F.A.C.E] via advertisement or browser intents - an attacker can evade lockscreen verification and access protected apps (e.g., Chrome), resulting in information disclosure and privilege escalation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:16.317",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-68709",
+    "description": "SailingLab AppLock (aka com.alpha.applock) 4.3.8 for Android allows a local attacker to trigger arbitrary JavaScript execution via BrowserMainActivity, which accepts VIEW intents with javascript: URIs. This unsafe navigation path results in script execution and may allow UI spoofing or privilege escalation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T20:16:16.167",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9572",
+    "description": "A security vulnerability has been detected in GPAC up to 2.4.0. Affected by this issue is the function Media_GetSample of the file src/isomedia/media.c of the component MP4Box. Such manipulation of the argument cat leads to memory leak. The attack can only be performed from a local environment. The exploit has been disclosed publicly and may be used. The name of the patch is e79c5cbe8b3fed27f4854ec229457d30c96206f1. It is best practice to apply a patch to resolve this issue.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:34.890",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9568",
+    "description": "A weakness has been identified in ThingsBoard up to 4.3.1.1. Affected by this vulnerability is the function getGatewayDockerComposeFile of the file /api/v1/provision of the component YAML Handler. This manipulation causes code injection. It is possible to initiate the attack remotely. The attack's complexity is rated as high. The exploitation appears to be difficult. The project was informed of the problem early through a pull request but has not reacted yet.",
+    "severity": "medium",
+    "cvss_score": 5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:34.610",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8890",
+    "description": "code100x contains an authentication bypass vulnerability in the Mobile API that allows unauthenticated attackers to impersonate arbitrary users by supplying a crafted JSON payload in the 'g' HTTP header. The middleware in middleware.ts skips identity header generation when an Auth-Key header is present without validating its value, allowing attackers to inject a spoofed user identity header that the downstream route handler in the mobile courses endpoint accepts as trusted, granting unauthorized access to course data belonging to any enrolled user or administrator.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:34.007",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-4051",
+    "description": "IBM Engineering Lifecycle Management 7.0.3, 7.1.0, and 7.2.0 could allow an attacker with administrative privileges to execute remote code due to exposed method that is not properly restricted.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:28.990",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48689",
+    "description": "FastNetMon Community Edition through 1.2.9 contains an off-by-one heap-based buffer overflow in the dynamic_binary_buffer_t class (src/dynamic_binary_buffer.hpp). Five methods (append_dynamic_buffer, append_data_as_pointer, append_data_as_object_ptr, memcpy_from_ptr, memcpy_from_object_ptr) use an incorrect bounds check of the form 'if (offset + length \u003e maximum_internal_storage_size + 1)' instead of the correct 'if (offset + length \u003e maximum_internal_storage_size)'. This allows writing exactly one byte past the end of the heap-allocated buffer. The class is used pervasively in BGP message encoding/decoding, NetFlow template processing, and Flow Spec NLRI construction. An attacker who can send network traffic (NetFlow, sFlow, IPFIX, or BGP) to a FastNetMon instance can trigger this overflow, potentially achieving arbitrary code execution by corrupting heap metadata. Notably, the append_byte() method uses the correct bounds check, confirming the inconsistency.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:28.663",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-3660",
+    "description": "IBM Engineering Lifecycle Management 7.0.3, 7.1.0, and 7.2.0 could allow an unauthenticated remote attacker to update server property files that would allow them to gain unauthorized access to the application.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:27.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-3603",
+    "description": "IBM Engineering Lifecycle Management 7.0.3, 7.1.0, and 7.2.0 is vulnerable to an XML external entity injection (XXE) attack when processing XML data. An authenticated attacker could exploit this vulnerability to expose sensitive information or consume memory resources.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T19:16:27.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-27T02:24:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9567",
+    "description": "A security flaw has been discovered in GPAC up to 2.4.0. Affected is the function MergeFragment of the file src/isomedia/isom_intern.c of the component MP4Box. The manipulation results in null pointer dereference. The attack needs to be approached locally. The exploit has been released to the public and may be used for attacks. The patch is identified as 525bf1af642c30af04e4df5345e6d798c0a4d8a1. It is advisable to implement a patch to correct this issue.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:58.883",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9566",
+    "description": "A vulnerability was identified in teableio teable up to 1.9.x. This impacts an unknown function of the file apps/nextjs-app/src/features/auth/pages/LoginPage.tsx of the component Sign-up. The manipulation of the argument redirect leads to cross site scripting. The attack is possible to be carried out remotely. The exploit is publicly available and might be used. Upgrading to version release.2026-04-21T08-57-20Z.1513 will fix this issue. The affected component should be upgraded. The vendor confirms: \"The default branch of teableio/teable is develop, and the reported login redirect issue has already been fixed there. The login redirect flow now validates the redirect parameter with isValidRedirectPath() before navigation, which blocks javascript:, data:, and cross-origin redirects.\"",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:58.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9560",
+    "description": "Privilege escalation via background service of OpenVPN Connect 3.5.1 through 3.8.1 on macOS allows attackers to execute arbitrary commands with elevated privileges via local IPC channel",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:58.577",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9170",
+    "description": "IBM Web Server Plug-ins for WebSphere Application Server and WebSphere Liberty 8.5, 9.0 IBM WebSphere Application Server and WebSphere Application Server Liberty are vulnerable to denial of service and a potential remote code execution due to improper input validation.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:57.987",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8856",
+    "description": "IBM HTTP Server 8.5, and 9.0 is vulnerable to denial of service in configurations where an attacker has write access to parts of the server configuration.",
+    "severity": "high",
+    "cvss_score": 7.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:57.300",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8855",
+    "description": "IBM HTTP Server 8.5, and 9.0 is vulnerable to remote code execution and denial of service in configurations with TLS mutual authentication (client authentication).",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:57.170",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8854",
+    "description": "IBM HTTP Server 8.5, and 9.0 is vulnerable to denial of service via the optional module mod_mem_cache.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:57.013",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8835",
+    "description": "IBM HTTP Server 8.5, and 9.0 is vulnerable to invalid pointer dereference. A privileged user, authenticated to the Administration Server, could exploit this vulnerability to expose sensitive information or cause a denial of service.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:56.803",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8834",
+    "description": "IBM HTTP Server 8.5, and 9.0 contains a buffer overflow vulnerability. A privileged user, authenticated to the Administration Server, could exploit this vulnerability to execute remote code or cause a denial of service.",
+    "severity": "high",
+    "cvss_score": 8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:56.667",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8633",
+    "description": "IBM Web Server Plug-ins for WebSphere Application Server and WebSphere Liberty 8.5, 9.0 IBM WebSphere Application Server and WebSphere Application Server Liberty are vulnerable to remote code execution in the Web Server Plug-ins, through a specially crafted request.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:56.513",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8620",
+    "description": "IBM Web Server Plug-ins for WebSphere Application Server and WebSphere Liberty 8.5, 9.0 IBM WebSphere Application Server and WebSphere Application Server Liberty are vulnerable to HTTP request smuggling in the Web Server Plug-ins through a specially crafted request.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:56.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7454",
+    "description": "A maliciously crafted WRL file, when parsed through Autodesk 3ds Max, can force a Memory Corruption vulnerability. A malicious actor can leverage this vulnerability to execute arbitrary code in the context of the current process.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:56.200",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:20:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7453",
+    "description": "A maliciously crafted WRL file, when parsed through Autodesk 3ds Max, can cause a Stack Exhaustion vulnerability, leading to a denial-of-service condition.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:56.033",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7452",
+    "description": "A maliciously crafted WRL file, when parsed through Autodesk 3ds Max, can force a Memory Corruption vulnerability. A malicious actor can leverage this vulnerability to execute arbitrary code in the context of the current process.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:55.900",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7451",
+    "description": "A maliciously crafted TIF file, when parsed through Autodesk 3ds Max, can force an Out-of-Bounds Write vulnerability. A malicious actor may leverage this vulnerability to cause a crash, cause data corruption, or execute arbitrary code in the context of the current process.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:55.757",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7450",
+    "description": "A maliciously crafted PAR file, when parsed through Autodesk 3ds Max, can force a NULL Pointer Dereference vulnerability. Successful exploitation may cause the application to crash, leading to a denial-of-service condition.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:55.590",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7251",
+    "description": "Eppendorf BioFlo 320 is vulnerable to due to VNC server using a hard-coded password. If a remote attacker knows the network address of any BioFlo 320 model with remote access enabled, they can gain full control of the user interface by using this password. Once connected, the attacker would have full access to all control panel features for the BioFlo 320. VNC traffic is not encrypted.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:55.347",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48696",
+    "description": "FastNetMon Community Edition through 1.2.9 has a buffer overflow, a different vulnerability than CVE-2026-48686 and CVE-2026-48689.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:53.057",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48695",
+    "description": "FastNetMon Community Edition through 1.2.9 contains an OS command injection vulnerability in the MikroTik router integration plugin. The _log() function in src/mikrotik_plugin/fastnetmon_mikrotik.php (lines 107-108) constructs shell commands by concatenating the $msg parameter directly into exec() calls: exec(\"echo `date` \\\"- {FASTNETMON] - \" . $msg . \" \\\" \u003e\u003e \" . $FILE_LOG_TMP). This is identical in pattern to the Juniper plugin vulnerability. The $msg variable contains unsanitized attack data from command-line arguments. An attacker who can influence argv[] values can inject arbitrary shell commands. The fix is to replace exec() with file_put_contents() or use escapeshellarg().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:52.950",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48694",
+    "description": "FastNetMon Community Edition through 1.2.9 contains a configuration injection vulnerability in the Juniper router integration plugin. In src/juniper_plugin/fastnetmon_juniper.php, the $IP_ATTACK variable (received from argv[1]) is directly interpolated into Juniper NETCONF set-configuration commands at lines 69 and 90 without any validation or sanitization. Line 69: $conn-\u003eload_set_configuration(\"set routing-options static route {$IP_ATTACK} community 65535:666 discard\"). Line 90: $conn-\u003eload_set_configuration(\"delete routing-options static route {$IP_ATTACK}/32\"). An attacker who can control the IP address string can inject additional Juniper CLI configuration commands by embedding newline characters followed by arbitrary set/delete commands. This could modify the router's routing table, firewall filters, user accounts, or any other configuration element accessible via NETCONF. The impact is full router compromise.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:52.840",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47202",
+    "description": "Kavita is a cross platform reading server. Prior to 0.9.0.2, an Improper Token validation flaw permits a remote and unauthenticated threat actor to request a JWT for any user including admins given knowledge of their username. This vulnerability is fixed in 0.9.0.2.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:52.540",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46624",
+    "description": "Twenty is an open source CRM. From 1.7.7 through 1.16.7, a critical Remote Code Execution (RCE) vulnerability exists in Twenty CRM via a chained SQL Injection and PostgreSQL COPY TO PROGRAM attack. If Postgres user is a super user then any authenticated user can execute arbitrary OS commands on the database server by injecting SQL through the unsanitized timeZone parameter in the REST API groupBy endpoint. The timeZone field within the group_by query parameter is directly interpolated into a raw SQL expression using JavaScript template literals without any parameterization, validation, or escaping. This affects engine/api/graphql/graphql-query-runner/group-by/resolvers/utils/get-group-by-expression.util.ts.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:52.400",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44776",
+    "description": "Kavita is a cross platform reading server. Prior to 0.9.0, the download, size-check, and chapter metadata endpoints do not enforce library-level authorization. A low-privileged user who knows or guesses a chapterId, volumeId, or seriesId belonging to a library they are not assigned to can download the full file contents, query file sizes, and read metadata for that content. This affects /api/Download/volume-size, /api/Download/chapter-size, /api/Download/series-size, /api/Download/volume, /api/Download/chapter, /api/Download/series, and /api/Chapter. This vulnerability is fixed in 0.9.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:51.480",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44775",
+    "description": "Kavita is a cross platform reading server. Prior to 0.9.0, the ReaderController.GetImage endpoint is decorated with [AllowAnonymous], allowing completely unauthenticated access to page images from any chapter in any library. While the endpoint accepts an apiKey parameter, it is never validated. Since entity IDs are sequential integers, an unauthenticated attacker can trivially enumerate all content on the server. This vulnerability is fixed in 0.9.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:51.347",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44749",
+    "description": "The SAP Gateway allows attackers to inject content into error messages, potentially leading to disclosure of request artefacts (e.g., regex patterns) and revealing underlying URI parsing logic. Leading to low impact on confidentiality. Integrity and availability are unaffected.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:51.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44730",
+    "description": "OpenCTI is an open source platform for managing cyber threat intelligence knowledge and observables. Prior to 6.9.7, an organization admin can escalate their privileges by adding a user from a different organization with higher privileges, to their own organization. This is due to incorrect ACL on userEdit relationAdd. This vulnerability is fixed in 6.9.7.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:51.023",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44728",
+    "description": "Babel is a compiler for writing next generation JavaScript. From 7.12.0 to before 7.29.4 and 8.0.0-alpha.13, using Babel to compile code that was specifically crafted by an attacker can cause Babel to generate output code that executes arbitrary code. This vulnerability is fixed in 7.29.4 and 8.0.0-alpha.13.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:50.880",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:19:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44707",
+    "description": "Chatwoot is a customer engagement suite. From 2.14.0 to before 4.13.0, a Pre-Account Takeover (Pre-ATO) vulnerability existed in Chatwoot's authentication flow. Because email confirmation was not enforced before an account became usable, an attacker could pre-register an email address they did not own and set a password. If the legitimate owner of that email later signed in to Chatwoot using Google OAuth (or another OmniAuth provider), the OAuth flow silently confirmed the existing account without invalidating the attacker's pre-set credentials. The attacker could then continue to log in with the password they had originally chosen and access any data the victim subsequently entered into the dashboard, including PII, API keys, and other sensitive information. This vulnerability is fixed in 4.13.0.",
+    "severity": "medium",
+    "cvss_score": 6.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:50.743",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44706",
+    "description": "Chatwoot is a customer engagement suite. From 2.2.0 to before 4.11.2, a SQL injection vulnerability exists in the conversation and contact filter APIs. When filtering by a custom attribute of type date or number using the is_greater_than or is_less_than operators, user-supplied values in the values field of the filter payload are interpolated directly into the SQL query without parameterization. Any authenticated user with access to an account can exploit this to execute arbitrary SQL via time-based blind injection. This affects /api/v1/accounts/{account_id}/conversations/filter, /api/v1/accounts/{account_id}/contacts/filter, and /api/v1/accounts/{account_id}/custom_attribute_definitions. This vulnerability is fixed in 4.11.2.",
+    "severity": "high",
+    "cvss_score": 8.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:50.607",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44669",
+    "description": "FACTION is a PenTesting Report Generation and Collaboration Framework. Prior to 1.8.3, Faction is vulnerable to stored cross-site scripting (XSS) via attachment filenames in assessment file preview flows. User-supplied filename values are persisted and later rendered into HTML/attribute contexts without output encoding, allowing attacker-controlled JavaScript to execute in the browser of any user who views the affected page. Because the payload is stored server-side and rendered to other users, exploitation is persistent and can impact privileged accounts. This vulnerability is fixed in 1.8.3.",
+    "severity": "high",
+    "cvss_score": 8.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:50.420",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44668",
+    "description": "FACTION is a PenTesting Report Generation and Collaboration Framework. Prior to 1.8.3, AccessControlInterceptor, the authentication gate for all Struts2 actions, unconditionally calls invocation.invoke() without checking for a valid session. Four action methods in BoilerPlateConfig perform no local session check either, allowing an unauthenticated attacker to read, overwrite, deactivate, and permanently delete any boilerplate template in the system. This vulnerability is fixed in 1.8.3.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:50.270",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44667",
+    "description": "FACTION is a PenTesting Report Generation and Collaboration Framework. Prior to 1.8.3, Faction is vulnerable to stored cross-site scripting (XSS) via attachment filenames in remediation verification file preview flows. User-supplied filename values are persisted and then rendered into HTML and attribute contexts without output encoding, allowing attacker-controlled JavaScript to execute in the browser of any user who opens the affected verification/remediation views. Because the payload is stored server-side and rendered to other users, exploitation is persistent and can impact privileged accounts. This vulnerability is fixed in 1.8.3.",
+    "severity": "high",
+    "cvss_score": 8.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:50.120",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42448",
+    "description": "Magic Wormhole makes it possible to get arbitrary-sized files and directories from one computer to another. Prior to 0.24.0, there is a path traversal when a receiver who specifies \"--output \u003cdir\u003e\" where that output directory currently exists (as a directory). This vulnerability is fixed in 0.24.0.",
+    "severity": "low",
+    "cvss_score": 3.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:48.320",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-41164",
+    "description": "nuts-node is the reference implementation of the Nuts specification. Prior to 6.2.3 and 5.4.31, the v1 access token introspection endpoint (/auth/v1/introspect_access_token) accepts any JWT signed by a key present on the node, without validating the JWT type, issuer-to-key binding, or required claims. This allows a Verifiable Presentation (VP) JWT to be replayed as an access token and receive an active: true introspection response. This vulnerability is fixed in 6.2.3 and 5.4.31.",
+    "severity": "medium",
+    "cvss_score": 4.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:47.683",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24201",
+    "description": "NVIDIA vGPU software contains a vulnerability in the virtual GPU manager, where an attacker could cause an out-of-bound access. A successful exploit of this vulnerability might lead to data tampering, denial of service, or information disclosure.",
+    "severity": "medium",
+    "cvss_score": 5.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:39.263",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24200",
+    "description": "NVIDIA vGPU software contains a vulnerability in the virtual GPU manager, where an attacker could cause a use-after-free for stack memory. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:39.133",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24199",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability in a kernel module, where a user could cause a race condition by reordering compiler or processor memory instructions. A successful exploit of this vulnerability might lead to denial of service.",
+    "severity": "medium",
+    "cvss_score": 4.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.987",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24198",
+    "description": "NVIDIA GPU Display Driver for Linux  contains a vulnerability where an advanced attacker could use a race condition to leak sensitive memory, which might cause limited exposure of sensitive information to an unauthorized actor. A successful exploit of this vulnerability might lead to denial of service, data tampering, and information disclosure.",
+    "severity": "medium",
+    "cvss_score": 5.6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.860",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24197",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability in the Multi-Instance GPU (MIG) partition management, where an insecure default initialization of memory subsystem routing resources could lead to data corruption or a hang during partition reconfiguration. A successful exploit of this vulnerability might lead to denial of service.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.730",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24196",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability where a user could cause an out-of-bounds read. A successful exploit of this vulnerability might lead to denial of service and information disclosure.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.607",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24195",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability in UVM, where a user could cause improper input validation. A successful exploit of this vulnerability might lead to denial of service.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.490",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:18:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24194",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability in a kernel mode layer handler, where a user could cause improper permission handling. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.367",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24193",
+    "description": "NVIDIA Display Driver for Windows and Linux contains a vulnerability where an attacker could cause an out-of-bounds write. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.237",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24192",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability where an attacker could cause an incorrect conversion between numeric types, leading to a heap buffer overflow. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:38.107",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24191",
+    "description": "NVIDIA Display Driver for Windows contains a vulnerability where an attacker could cause a time-of-check time-of-use issue. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:37.980",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24190",
+    "description": "NVIDIA Display Driver for Windows and Linux contains a vulnerability in the kernel mode layer, where a user could cause improper access to GPU resources. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:37.847",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24187",
+    "description": "NVIDIA Display Driver for Linux contains a vulnerability where an attacker could cause a use-after-free. A successful exploit of this vulnerability might lead to denial of service, escalation of privileges, information disclosure, data tampering, and code execution.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:37.710",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24182",
+    "description": "NVIDIA Display Driver for Windows and Linux contains a vulnerability where an attacker could leak held driver locks. A successful exploit of this vulnerability might lead to denial of service.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:37.557",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-33221",
+    "description": "NVIDIA Display Driver for Windows and Linux contains a vulnerability in the kernel driver, where a user could cause an incorrect permission assignment for a critical resource. A successful exploit of this vulnerability might lead to data tampering and denial of service.",
+    "severity": "medium",
+    "cvss_score": 4.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T18:16:36.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-05-26T18:17:30Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-9565",
     "description": "A vulnerability was determined in haojing8312 WorkClaw up to 0.6.4. This affects the function is_dangerous of the file apps/runtime/src-tauri/src/agent/tools/bash.rs of the component Blacklist Handler. Executing a manipulation can lead to os command injection. The attack can be executed remotely. The exploit has been publicly disclosed and may be utilized. The project was informed of the problem early through an issue report but has not responded yet.",
     "severity": "medium",

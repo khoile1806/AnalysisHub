@@ -101,6 +101,19 @@ func NewRouter(
 		protected.GET("/jobs/:id/artifact/download", handlers.DownloadArtifact)
 		protected.GET("/jobs/:id/artifact/content", handlers.GetArtifactContent)
 
+		// Hunting Scenarios
+		protected.GET("/hunting/scenarios", handlers.ListScenarios)
+		protected.POST("/hunting/scenarios", handlers.CreateScenario)
+		protected.GET("/hunting/scenarios/:id", handlers.GetScenario)
+		protected.PUT("/hunting/scenarios/:id", handlers.UpdateScenario)
+		protected.DELETE("/hunting/scenarios/:id", handlers.DeleteScenario)
+		protected.POST("/hunting/scenarios/:id/tools", handlers.AddScenarioTool)
+		protected.DELETE("/hunting/scenarios/:id/tools/:toolId", handlers.RemoveScenarioTool)
+		protected.POST("/hunting/scenarios/:id/deploy", handlers.DeployScenario)
+		protected.GET("/hunting/deployments", handlers.ListDeployments)
+		protected.GET("/hunting/deployments/:id", handlers.GetDeployment)
+		protected.DELETE("/hunting/deployments/:id", handlers.DeleteDeployment)
+
 		// CVE Intel
 		protected.GET("/cve/search", handlers.SearchCVE)
 		protected.GET("/cve/:id", handlers.GetCVE)

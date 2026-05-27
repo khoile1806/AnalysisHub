@@ -651,45 +651,73 @@ func (c *Client) handlePing() {
 func (c *Client) handleCleanup() {
 	log.Println("[cleanup] received cleanup command — removing agent")
 
-	// 1. Remove entire work directory (tools, logs, etc.)
 	workDir := c.cfg.WorkDir
-	if workDir != "" {
-		log.Printf("[cleanup] removing work directory: %s", workDir)
-		if err := os.RemoveAll(workDir); err != nil {
-			log.Printf("[cleanup] remove workdir error: %v", err)
-		}
-	}
-
-	// 2. Remove config file (next to binary).
 	exePath, _ := os.Executable()
+
+	// 1. Remove config file (next to binary). Small file, not held open by us,
+	//    safe to remove immediately on every OS.
 	if exePath != "" {
 		confFile := filepath.Join(filepath.Dir(exePath), "forensichub-agent.conf")
 		log.Printf("[cleanup] removing config: %s", confFile)
 		os.Remove(confFile)
 	}
 
-	// 3. Self-delete the binary and cleanup installation directory.
-	if exePath != "" && runtime.GOOS == "windows" {
-		// On Windows a running binary cannot delete itself directly.
-		// Spawn a detached cmd.exe that waits 3 seconds (to ensure agent process exits),
-		// deletes the binary, deletes all files in the install dir, and finally 
-		// tries to remove the directory itself.
-		installDir := filepath.Dir(exePath)
-		// /f: force, /q: quiet. rd /s /q: remove directory and subdirectories.
-		script := fmt.Sprintf(
-			`ping -n 5 127.0.0.1 >nul & del /f /q "%s" & del /f /q "%s\*" & rd /s /q "%s"`,
-			exePath, installDir, installDir,
-		)
-		cmd := osExec.Command("cmd.exe", "/c", script)
+	// 2. Schedule full removal of workdir + install dir.
+	//    On Windows the agent holds open handles — agent.log under WorkDir
+	//    (default ~/Desktop/ForensicHub_Tools) and the binary itself under
+	//    installDir — so deletion MUST happen from a detached process that
+	//    waits for this agent to exit and Windows to release the locks.
+	//    Linux can unlink open files directly, so we do it in-process there.
+	if runtime.GOOS == "windows" {
+		installDir := ""
+		if exePath != "" {
+			installDir = filepath.Dir(exePath)
+		}
+
+		// Batch script: wait for agent exit, then retry rd /s /q a few times
+		// (AV / Explorer windows occasionally hold transient locks). Removes
+		// BOTH workDir and installDir, then deletes itself.
+		var lines []string
+		lines = append(lines, "@echo off")
+		lines = append(lines, "ping -n 6 127.0.0.1 >nul")
+		for i := 0; i < 3; i++ {
+			if workDir != "" {
+				lines = append(lines, fmt.Sprintf(`rd /s /q "%s" 2>nul`, workDir))
+			}
+			if installDir != "" {
+				lines = append(lines, fmt.Sprintf(`rd /s /q "%s" 2>nul`, installDir))
+			}
+			lines = append(lines, "ping -n 2 127.0.0.1 >nul")
+		}
+		lines = append(lines, `del "%~f0"`)
+		batContent := strings.Join(lines, "\r\n") + "\r\n"
+
+		batPath := filepath.Join(os.TempDir(), "forensichub_cleanup.bat")
+		if err := os.WriteFile(batPath, []byte(batContent), 0755); err != nil {
+			log.Printf("[cleanup] write cleanup bat: %v", err)
+		}
+		log.Printf("[cleanup] scheduled removal of workdir=%q and installDir=%q via %s", workDir, installDir, batPath)
+
+		// Detach via hidden cmd.exe so it survives this process exit.
+		script := fmt.Sprintf(`Start-Process cmd.exe -WindowStyle Hidden -ArgumentList '/c "%s"'`, batPath)
+		cmd := osExec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script)
+		cmd.Dir = os.TempDir()
 		if err := cmd.Start(); err != nil {
 			log.Printf("[cleanup] schedule self-delete error: %v", err)
 		}
-	} else if exePath != "" {
-		// Linux: unlink works on a running binary.
-		installDir := filepath.Dir(exePath)
-		log.Printf("[cleanup] removing binary and install dir: %s", installDir)
-		_ = os.Remove(exePath)
-		_ = os.RemoveAll(installDir)
+	} else {
+		if workDir != "" {
+			log.Printf("[cleanup] removing work directory: %s", workDir)
+			if err := os.RemoveAll(workDir); err != nil {
+				log.Printf("[cleanup] remove workdir error: %v", err)
+			}
+		}
+		if exePath != "" {
+			installDir := filepath.Dir(exePath)
+			log.Printf("[cleanup] removing binary and install dir: %s", installDir)
+			_ = os.Remove(exePath)
+			_ = os.RemoveAll(installDir)
+		}
 	}
 
 	log.Println("[cleanup] cleanup complete — exiting")

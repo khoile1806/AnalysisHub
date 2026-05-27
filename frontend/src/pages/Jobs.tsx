@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, ClipboardList, Eye } from 'lucide-react'
+import { Plus, ClipboardList, Eye, Wrench, Crosshair, Rocket } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import { jobsApi, type JobStatus } from '@/api/jobs'
 import { agentsApi } from '@/api/agents'
 import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
+import { huntingApi } from '@/api/hunting'
 import { JobStatusBadge } from '@/components/StatusBadge'
 import { formatDuration, getErrorMessage } from '@/lib/utils'
 import {
@@ -43,9 +44,11 @@ interface NewJobModalProps {
 
 function NewJobModal({ open, onClose }: NewJobModalProps) {
   const qc = useQueryClient()
+  const [mode, setMode] = useState<'tool' | 'scenario'>('tool')
   const [agentId, setAgentId] = useState('')
   const [toolId, setToolId] = useState('')
   const [args, setArgs] = useState('')
+  const [scenarioId, setScenarioId] = useState('')
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
@@ -59,6 +62,16 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
     enabled: open,
   })
 
+  const { data: scenarios = [] } = useQuery({
+    queryKey: ['hunting-scenarios'],
+    queryFn: () => huntingApi.listScenarios(),
+    enabled: open,
+  })
+
+  const resetState = () => {
+    setMode('tool'); setAgentId(''); setToolId(''); setArgs(''); setScenarioId('')
+  }
+
   // Auto-fill args when tool changes
   const handleToolChange = (id: string) => {
     setToolId(id)
@@ -71,17 +84,44 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
     onSuccess: (job) => {
       qc.invalidateQueries({ queryKey: ['jobs'] })
       toast.success(`Job created: ${job.id.slice(0, 8)}…`)
+      resetState()
       onClose()
-      setAgentId(''); setToolId(''); setArgs('')
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   })
 
+  const deployMutation = useMutation({
+    mutationFn: () => huntingApi.deploy(scenarioId, agentId),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['jobs'] })
+      qc.invalidateQueries({ queryKey: ['hunting-deployments'] })
+      const errs = res.dispatch_errors ?? []
+      if (errs.length > 0) {
+        toast.error(`Deployed with ${errs.length} dispatch error(s)`)
+      } else {
+        toast.success(`Deployed scenario — ${res.jobs.length} job(s) created`)
+      }
+      resetState()
+      onClose()
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  const selectedScenario = scenarios.find((s) => s.id === scenarioId)
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!agentId) { toast.error('Select an agent'); return }
-    if (!toolId)  { toast.error('Select a tool');  return }
-    createMutation.mutate({ agent_id: agentId, tool_id: toolId, args: args || undefined })
+    if (mode === 'tool') {
+      if (!toolId) { toast.error('Select a tool'); return }
+      createMutation.mutate({ agent_id: agentId, tool_id: toolId, args: args || undefined })
+    } else {
+      if (!scenarioId) { toast.error('Select a scenario'); return }
+      if (!selectedScenario || (selectedScenario.tools ?? []).length === 0) {
+        toast.error('Scenario has no tools attached'); return
+      }
+      deployMutation.mutate()
+    }
   }
 
   // Group tools by category for the dropdown
@@ -94,16 +134,48 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
   const onlineAgents = agents.filter((a) => a.status === 'online')
   const offlineAgents = agents.filter((a) => a.status === 'offline')
 
+  const isPending = createMutation.isPending || deployMutation.isPending
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { setAgentId(''); setToolId(''); setArgs(''); onClose() } }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { resetState(); onClose() } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Job</DialogTitle>
-          <DialogDescription>Dispatch a forensic tool to a remote agent</DialogDescription>
+          <DialogDescription>
+            {mode === 'tool'
+              ? 'Dispatch a single forensic tool to a remote agent.'
+              : 'Deploy every tool in a hunting scenario at once.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
-            {/* Agent select */}
+            {/* Mode tabs */}
+            <div className="flex items-center gap-1 p-1 bg-gray-900/60 rounded-lg border border-gray-800">
+              <button
+                type="button"
+                onClick={() => setMode('tool')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition ${
+                  mode === 'tool'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                    : 'text-gray-400 hover:text-gray-200 border border-transparent'
+                }`}
+              >
+                <Wrench className="h-3.5 w-3.5" /> Single Tool
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('scenario')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition ${
+                  mode === 'scenario'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                    : 'text-gray-400 hover:text-gray-200 border border-transparent'
+                }`}
+              >
+                <Crosshair className="h-3.5 w-3.5" /> Scenario
+              </button>
+            </div>
+
+            {/* Agent select (shared) */}
             <div>
               <label className="label">Target Agent *</label>
               <Select value={agentId} onValueChange={setAgentId}>
@@ -145,67 +217,128 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
               </Select>
             </div>
 
-            {/* Tool select */}
-            <div>
-              <label className="label">Tool *</label>
-              <Select value={toolId} onValueChange={handleToolChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a tool…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(toolsByCategory).map(([cat, catTools]) => (
-                    <SelectGroup key={cat}>
-                      <SelectLabel>{cat}</SelectLabel>
-                      {catTools.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                          <span className="text-gray-500 text-xs ml-1">v{t.version}</span>
-                        </SelectItem>
+            {mode === 'tool' ? (
+              <>
+                {/* Tool select */}
+                <div>
+                  <label className="label">Tool *</label>
+                  <Select value={toolId} onValueChange={handleToolChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a tool…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(toolsByCategory).map(([cat, catTools]) => (
+                        <SelectGroup key={cat}>
+                          <SelectLabel>{cat}</SelectLabel>
+                          {catTools.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                              <span className="text-gray-500 text-xs ml-1">v{t.version}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
-                    </SelectGroup>
-                  ))}
-                  {tools.length === 0 && (
-                    <SelectItem value="__none__" disabled>No tools available</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+                      {tools.length === 0 && (
+                        <SelectItem value="__none__" disabled>No tools available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Args */}
-            <div>
-              <label className="label">
-                Arguments
-                <span className="ml-1 text-xs text-gray-500">(optional — overrides tool defaults)</span>
-              </label>
-              <input
-                className="input font-mono text-xs"
-                value={args}
-                onChange={(e) => setArgs(e.target.value)}
-                placeholder="e.g. -f evidence.raw imageinfo"
-              />
-            </div>
+                {/* Args */}
+                <div>
+                  <label className="label">
+                    Arguments
+                    <span className="ml-1 text-xs text-gray-500">(optional — overrides tool defaults)</span>
+                  </label>
+                  <input
+                    className="input font-mono text-xs"
+                    value={args}
+                    onChange={(e) => setArgs(e.target.value)}
+                    placeholder="e.g. -f evidence.raw imageinfo"
+                  />
+                </div>
 
-            {/* Preview */}
-            {toolId && agentId && (
-              <div className="bg-gray-950 rounded-lg border border-gray-800 p-3">
-                <p className="text-xs text-gray-500 mb-1.5 font-mono">PREVIEW</p>
-                <code className="text-xs text-emerald-400 font-mono">
-                  {tools.find((t) => t.id === toolId)?.name ?? toolId}
-                  {args && <span className="text-amber-400"> {args}</span>}
-                </code>
-                <p className="text-xs text-gray-600 mt-1">→ {agents.find((a) => a.id === agentId)?.name ?? agentId}</p>
-              </div>
+                {/* Preview */}
+                {toolId && agentId && (
+                  <div className="bg-gray-950 rounded-lg border border-gray-800 p-3">
+                    <p className="text-xs text-gray-500 mb-1.5 font-mono">PREVIEW</p>
+                    <code className="text-xs text-emerald-400 font-mono">
+                      {tools.find((t) => t.id === toolId)?.name ?? toolId}
+                      {args && <span className="text-amber-400"> {args}</span>}
+                    </code>
+                    <p className="text-xs text-gray-600 mt-1">→ {agents.find((a) => a.id === agentId)?.name ?? agentId}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Scenario select */}
+                <div>
+                  <label className="label">Scenario *</label>
+                  <Select value={scenarioId} onValueChange={setScenarioId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={scenarios.length === 0 ? 'No scenarios available' : 'Select a scenario…'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {scenarios.map((sc) => {
+                        const count = sc.tools?.length ?? 0
+                        return (
+                          <SelectItem key={sc.id} value={sc.id} disabled={count === 0}>
+                            {sc.name}
+                            <span className="text-gray-500 text-xs ml-1">— {count} tool{count === 1 ? '' : 's'}</span>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    Manage scenarios in <Link to="/hunting" className="text-emerald-400 hover:underline">Scenario Hunting</Link>.
+                  </p>
+                </div>
+
+                {/* Tools preview */}
+                {selectedScenario && (
+                  <div className="bg-gray-950 rounded-lg border border-gray-800 p-3 space-y-1.5">
+                    <p className="text-xs text-gray-500 font-mono">
+                      WILL DEPLOY {(selectedScenario.tools ?? []).length} TOOL(S)
+                    </p>
+                    {(selectedScenario.tools ?? []).length === 0 ? (
+                      <p className="text-xs text-amber-400">This scenario has no tools — attach some first.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {selectedScenario.tools!.map((link) => (
+                          <li key={link.id} className="text-xs text-gray-300 flex items-center gap-2">
+                            <span className="text-emerald-400">›</span>
+                            <span className="truncate">{link.tool?.name ?? '—'}</span>
+                            {link.tool?.args && (
+                              <code className="text-[10px] text-amber-400/70 font-mono truncate">{link.tool.args}</code>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {agentId && (
+                      <p className="text-xs text-gray-600 pt-1 border-t border-gray-800/60 mt-2">
+                        → {agents.find((a) => a.id === agentId)?.name ?? agentId}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </DialogBody>
           <DialogFooter>
-            <button type="button" className="btn-secondary" onClick={() => { setAgentId(''); setToolId(''); setArgs(''); onClose() }}>
+            <button type="button" className="btn-secondary" onClick={() => { resetState(); onClose() }}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary" disabled={createMutation.isPending}>
-              {createMutation.isPending ? (
+            <button type="submit" className="btn-primary" disabled={isPending}>
+              {isPending ? (
                 <><span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Dispatching…</>
-              ) : (
+              ) : mode === 'tool' ? (
                 <><Plus className="h-4 w-4" /> Create Job</>
+              ) : (
+                <><Rocket className="h-4 w-4" /> Deploy Scenario</>
               )}
             </button>
           </DialogFooter>

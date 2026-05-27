@@ -84,6 +84,9 @@ func main() {
 	if err := seedTools(db, store); err != nil {
 		log.Printf("[main] seed tools warning: %v", err)
 	}
+	if err := seedScenarios(db); err != nil {
+		log.Printf("[main] seed scenarios warning: %v", err)
+	}
 
 	// ------------------------------------------------------------------ //
 	// 7. Create and start the WebSocket hub
@@ -291,5 +294,32 @@ func seedTools(db *gorm.DB, store *storage.LocalStorage) error {
 	}
 
 	log.Printf("[main] integrated tool %s registered successfully", tool.Name)
+	return nil
+}
+
+// seedScenarios inserts default Hunting scenarios if they don't already exist.
+// Each scenario is created empty (no tools attached) — the operator picks
+// which tools to attach via the UI. Scenarios remain fully editable.
+func seedScenarios(db *gorm.DB) error {
+	defaults := []models.HuntingScenario{
+		{Name: "Webshell Hunt", Slug: "webshell-hunt", Description: "Detect webshells on compromised web servers.", Icon: "Shield", Color: "emerald"},
+		{Name: "Ransomware Hunt", Slug: "ransomware-hunt", Description: "Identify ransomware artifacts, encrypted files, and persistence.", Icon: "Lock", Color: "rose"},
+		{Name: "Lateral Movement", Slug: "lateral-movement", Description: "Hunt for RDP, SMB, WMI, and PsExec lateral movement evidence.", Icon: "Network", Color: "sky"},
+		{Name: "Persistence", Slug: "persistence", Description: "Find scheduled tasks, services, registry run keys, and startup hooks.", Icon: "RefreshCw", Color: "amber"},
+		{Name: "Memory Triage", Slug: "memory-triage", Description: "Live memory acquisition + volatile artifact collection.", Icon: "Cpu", Color: "violet"},
+	}
+
+	for _, sc := range defaults {
+		var count int64
+		db.Model(&models.HuntingScenario{}).Where("slug = ?", sc.Slug).Count(&count)
+		if count > 0 {
+			continue
+		}
+		if err := db.Create(&sc).Error; err != nil {
+			log.Printf("[main] seed scenario %s: %v", sc.Slug, err)
+			continue
+		}
+		log.Printf("[main] seeded hunting scenario %q", sc.Name)
+	}
 	return nil
 }
