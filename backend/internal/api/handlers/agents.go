@@ -623,16 +623,38 @@ chmod +x "$INSTALL_DIR/forensichub-agent"
 echo "[+] Binary saved to $INSTALL_DIR/forensichub-agent"
 
 # 3. Write configuration
-cat > "$INSTALL_DIR/forensichub-agent.conf" << 'CONF'
+cat > "$INSTALL_DIR/forensichub-agent.conf" << CONF
 SERVER_URL={{.ServerURL}}
 AGENT_TOKEN={{.Token}}
 AGENT_NAME={{.AgentName}}
 CONF
 echo "[+] Configuration written to $INSTALL_DIR/forensichub-agent.conf"
 
-# 4. Start agent in background
+# 4. Start agent — prefer systemd (auto-restart on crash/reboot), fall back to nohup
 echo "[*] Starting agent..."
-nohup "$INSTALL_DIR/forensichub-agent" > "$INSTALL_DIR/agent.log" 2>&1 &
+if command -v systemctl &>/dev/null && [ "$(id -u)" -eq 0 ]; then
+    cat > /etc/systemd/system/forensichub-agent.service << SERVICE
+[Unit]
+Description=ForensicHub Agent
+After=network.target
+
+[Service]
+ExecStart=$INSTALL_DIR/forensichub-agent
+WorkingDirectory=$INSTALL_DIR
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+    systemctl daemon-reload
+    systemctl enable --now forensichub-agent.service
+    echo "[+] Agent installed as systemd service (auto-restart enabled)"
+else
+    nohup "$INSTALL_DIR/forensichub-agent" > "$INSTALL_DIR/agent.log" 2>&1 &
+    echo "[+] Agent started via nohup (PID $!)"
+    echo "    Note: run as root for systemd auto-restart support"
+fi
 echo ""
 echo "[+] Done! Agent '{{.AgentName}}' should appear online in the dashboard shortly."
 `

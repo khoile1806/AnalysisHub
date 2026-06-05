@@ -1,5 +1,583 @@
 [
   {
+    "id": "CVE-2026-46493",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Versions prior to 26.0.1 use `uniqid` for generating salts, which is unsuitable. Version 26.0.1 fixes the issue.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:34.490",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:29:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46401",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Versions prior to 26.0.0 suffer from an improper session termination vulnerability where authentication tokens remain valid after user logout. This allows attackers who obtain valid tokens to maintain persistent access to authenticated CMS functionality, bypassing the intended session termination mechanism and enabling unauthorized access to CMS metadata and administrative functions. Version 26.0.0 fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:34.247",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:29:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46400",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Starting in version 11.0.6 and prior to version 25.0.0, the file upload functionality in HAXCMS PHP only validates file extensions using a regex pattern without checking the actual file content or MIME type. This allows attackers to upload malicious files (e.g., PHP webshells) disguised as legitimate image files, potentially leading to remote code execution. Version 25.0.0 contains a fix for the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:34.073",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:29:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46398",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Starting in version 25.0.0 and prior to version 26.0.0, the haxcms_refresh_token cookie is set without the Secure flag. This allows it to be transmitted over unencrypted HTTP, making it vulnerable to theft via packet sniffing on the network. Version 26.0.0 fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:33.910",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46397",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Prior to version 26.0.0, an Authenticated Local File Inclusion (LFI) vulnerability in the HAXCMS saveOutline endpoint allows a low-privileged user to read arbitrary files on the server by manipulating the location field written into site.json. This enables attackers to exfiltrate sensitive system files such as /etc/passwd, application secrets, or configuration files accessible to the web server (www-data). Version 26.0.0 patches the issue.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:33.747",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46357",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Prior to version 26.0.0, the HAX CMS NodeJS application crashes when an authenticated attacker sends a specially crafted site creation request to the createSite endpoint. A single request is sufficient to take the entire application offline, requiring a manual server restart to restore service. Version 26.0.0 fixes the issue.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:33.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45779",
+    "description": "OpenXDMoD is an open framework for collecting and analyzing HPC metrics. An SQL injection vulnerability exists in Open XDMoD versions prior to 10.0.3 that allows an unauthenticated remote attacker to execute arbitrary SQL statements. Exploitation requires no authentication or user interaction and can result in complete compromise of the underlying database. All deployments of Open XDMoD prior to 10.0.3 are impacted. This issue was discovered on 2023-08-03 and patched on 2023-08-04. At this time there is no evidence that this vulnerability has been exploited in the wild. The vulnerability was patched in Open XDMoD 10.0.3 on 2023-08-04. As a workaround, apply the patch manually.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:33.023",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45778",
+    "description": "OpenXDMoD is an open framework for collecting and analyzing HPC metrics. Prior to version 11.0.3, an authenticated attacker can inject malicious JavaScript into their Open XDMoD user profile and abuse the password reset functionality to email a link to an HTML page, which when visited by the victim, reflects and executes the unsanitized payload in the victim's browser, potentially leading to credential capture and Open XDMoD account takeover. All deployments of Open XDMoD prior to 11.0.3 are impacted. This issue was reported privately on 2026-04-06, and at this time there is no evidence that this vulnerability has been exploited in the wild. The vulnerability was patched in Open XDMoD 11.0.3 on 2026-05-12. As a workaround, apply the patch manually.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:32.857",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45777",
+    "description": "OpenXDMoD is an open framework for collecting and analyzing HPC metrics. Starting in version 9.5.0 and prior to version 11.0.3, an attacker can remotely execute arbitrary system commands on the web server hosting Open XDMoD with the privileges of the web server process. This could allow an attacker to read or modify application data, alter system configuration, or disrupt service availability. All deployments of Open XDMoD versions 9.5.0 through 11.0.2 (inclusive) are impacted. This issue was reported privately on 2026-04-06, and at this time there is no evidence that this vulnerability has been exploited in the wild. The vulnerability was patched in Open XDMoD 11.0.3 on 2026-05-12. As a workaround, apply the patch manually.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:32.687",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45776",
+    "description": "OpenXDMoD is an open framework for collecting and analyzing HPC metrics. Prior to version 11.0.3, a flaw in Open XDMoD's access control logic allows an attacker to submit a crafted HTTPS POST request that sets a session variable used for authorization decisions. If an installation of Open XDMoD includes the optional Job Performance (SUPReMM) module, an attacker could bypass intended data access restrictions and view other users' compute job efficiency metrics. All deployments of Open XDMoD prior to version 11.0.3 that contain the optional Job Performance (SUPReMM) module are impacted. This issue was reported privately on 2026-04-06, and at this time there is no evidence that this vulnerability has been exploited in the wild. The vulnerability was patched in Open XDMoD 11.0.3 on 2026-05-12. As a workaround, apply the patch manually.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:32.513",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45758",
+    "description": "Guardrails AI is a Python framework that helps build AI applications. On May 11, 2026 at approximately 6:00 PM Pacific, an attacker published a malicious version of `guardrails-ai` (0.10.1) to PyPI. Aany user who installed `guardrails-ai==0.10.1` from PyPI on May 11, 2026 may be affected. Security researchers identified the malicious package within approximately 2 hours of publication, and PyPI quarantined the repository. Based on our telemetry, Guardrails AI maintainers have observed no requests to Guardrails AI infrastructure originating from the malicious 0.10.1 version, and a review of system and access logs has produced no evidence of user data exfiltration through their systems. Users should upgrade to version 0.10.2 or downgrade to version 0.10.0, both of which are unaffected. Those who installed version 0.10.1 should rotate any credentials accessible from their machine (GitHub PATs, cloud provider keys, package registry tokens, API keys) and audit their GitHub account for unauthorized workflows or repositories.",
+    "severity": "critical",
+    "cvss_score": 9.6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:32.357",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45300",
+    "description": "The AsyncHttpClient (AHC) library allows Java applications to easily execute HTTP requests and asynchronously process HTTP responses. Versions on the 2.x branch prior to 2.15.0 and the 3.x branch prior to 3.0.10 leak `Cookie` headers to cross-origin redirect targets. When following a redirect to a different origin, the `propagatedHeaders()` method in `Redirect30xInterceptor.java` strips `Authorization` and `Proxy-Authorization` headers but does not strip the `Cookie` header, causing session cookies and other sensitive cookie values to be sent to attacker-controlled servers. Versions 2.15.0 and 3.0.10 patch the issue.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:31.893",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25624",
+    "description": "An administrative cross-site scripting (XSS) vulnerability exists in the web user interface dashboard layout of Arista Edge Threat Management - Arista Next Generation Firewall (NGFW). Unvalidated user-supplied variables are echoed back to administrative profiles, facilitating vector payload processing behavior controls.",
+    "severity": "medium",
+    "cvss_score": 5.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:31.160",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25623",
+    "description": "An input validation command execution vulnerability exists in the browser management pipeline of Arista Edge Threat Management - Arista Next Generation Firewall (NGFW). Authenticated administrators can leverage this exposure to obtain underlying terminal script code processing execution permissions.",
+    "severity": "medium",
+    "cvss_score": 6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:30.980",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25622",
+    "description": "A Captive Portal Custom Handler command injection vulnerability exists in Arista Edge Threat Management - Arista Next Generation Firewall (NGFW). On affected platforms, an administrative account logged into the user interface can exploit this input handling behavior to execute arbitrary platform shell commands.",
+    "severity": "medium",
+    "cvss_score": 6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:30.820",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25621",
+    "description": "A Reports application infrastructure vulnerability exists in Arista Edge Threat Management - Arista Next Generation Firewall (NGFW) due to insecure input validation. This issue uniquely affects version 17.4.0; earlier software releases are not exposed.",
+    "severity": "medium",
+    "cvss_score": 6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:30.637",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25620",
+    "description": "An encrypted password command injection vulnerability exists in the Captive Portal application framework of Arista Edge Threat Management - Arista Next Generation Firewall (NGFW). This issue uniquely affects version 17.4.0; earlier software releases are not exposed.",
+    "severity": "medium",
+    "cvss_score": 6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:30.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11420",
+    "description": "Two path traversal vulnerabilities in the Network Installation Service (NIS) of Altium Enterprise Server allow an unauthenticated network attacker to write arbitrary files to any writable location on the server filesystem and to read package archive files from the server. No authentication, session, or credentials are required.\n\n\n\n\nBecause content-controlled files can be written to web-accessible directories, or used to overwrite application binaries or configuration files, exploitation can be escalated to remote code execution in the context of the service account, and can disclose deployment package contents. Altium 365 cloud deployments are not affected, as the Network Installation Service is not part of the cloud offering.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:29.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11419",
+    "description": "A path traversal vulnerability exists in the Altium Enterprise Server Vault Service UploadController due to improper validation of a user-controlled path component in image upload requests. An authenticated user can supply a crafted absolute path so that the configured storage root is discarded, allowing arbitrary files to be written to any location on the server filesystem writable by the service account.\n\n\n\n\nBecause content-controlled files can be written to web-accessible directories, or used to overwrite application binaries or configuration files, this can be escalated to remote code execution, service takeover, or denial of service. Altium 365 cloud deployments are not affected, as the affected endpoint is not reachable and the cloud storage architecture mitigates the file-write primitive.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:29.183",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:28:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11414",
+    "description": "A hard-coded cryptographic key is used by Altium Enterprise Server to sign file download URLs in the Vault service. Because the key is identical across all installations, an unauthenticated network attacker who can reach the server can forge valid download signatures and retrieve files from the Vault storage area without any authentication, session, or credentials.\n\n\nA separate path traversal vulnerability in the same download endpoint allows the configured storage root to be escaped, enabling reads of arbitrary files on the server filesystem. Combined, these issues allow an unauthenticated attacker to obtain sensitive server configuration and key material, which can lead to full server compromise. The vulnerability can be chained with CVE-2026-9152 to enumerate and bulk-download stored content. Altium 365 cloud deployments are not impacted in practice, as file storage uses object storage rather than the local filesystem.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:29.033",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:27:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11401",
+    "description": "An untrusted search path issue in the GlobalDatabasePlugin in the AWS Advanced Go Wrapper for Amazon Aurora PostgreSQL will allow a remote authenticated low-privilege actor to escalate privileges to those of another Amazon RDS user, including rds_superuser, via a crafted function created by the actor that runs when that user connects to the cluster through the affected wrapper.\n\n\n\nTo remediate this issue, users should upgrade to the AWS Advanced Go Wrapper release 2026-05-26",
+    "severity": "high",
+    "cvss_score": 8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:28.883",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:27:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11400",
+    "description": "An untrusted search path issue in the GlobalDatabasePlugin in the AWS Advanced JDBC Wrapper for Amazon Aurora PostgreSQL will allow a remote authenticated low-privilege actor to escalate privileges to those of another Amazon RDS user, including rds_superuser, via a crafted function created by the actor that runs when that user connects to the cluster through an affected wrapper.\n\n\n\nTo remediate this issue, users should upgrade to AWS Advanced JDBC Wrapper version 4.0.1.",
+    "severity": "high",
+    "cvss_score": 8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T20:17:28.733",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T20:27:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-5415",
+    "description": "The WP Captcha PRO (the premium version of the Advanced Google reCAPTCHA plugin, both have the same slug) plugin for WordPress is vulnerable to Authentication Bypass in all versions up to, and including, 5.38. This is due to the ajax_run_tool() AJAX handler relying solely on a nonce check (check_ajax_referer) for security without performing any capability check, combined with the create_temporary_link tool allowing the generation of passwordless login links for arbitrary users, and the handle_temporary_links() function authenticating visitors via these links without any additional authorization validation. The required nonce is exposed to all authenticated backend users (including Subscribers) via wp_localize_script() on all non-settings admin pages when the plugin's welcome pointer has not been dismissed. This makes it possible for authenticated attackers, with Subscriber-level access and above, to bypass normal authentication and log in as any user, including Administrators, resulting in complete account takeover.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:35.070",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:39:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-5411",
+    "description": "The WP Captcha PRO (the premium version of the Advanced Google reCAPTCHA plugin, both have the same slug) plugin for WordPress is vulnerable to arbitrary file upload in all versions up to, and including, 5.38. This is due to a capability check in the save_ajax() function of the licensing module, combined with unrestricted file extraction in sync_cloud_protection(). This makes it possible for authenticated attackers, with Subscriber-level access and above, to upload arbitrary files including PHP webshells to the server by injecting a malicious cloud_protection_url into the license meta, which the plugin then downloads and extracts without file type validation into a web-accessible uploads directory. This can be used for remote code execution. Note: The vulnerability can only be exploited with a remote URL if \"allow_url_fopen\" is enabled in the php.ini config.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:34.860",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:39:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46511",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Prior to version 26.0.0, an attack chain utilizing Stored XSS alongside dynamic token exposure in the `/system/api/connectionSettings` endpoint allows an authenticated attacker to perform a complete cross-tenant account takeover. The API dynamically leaks the active session's authentication tokens (including the `jwt`, `user_token`, `site_token`, and `appstore_token`) into a global JavaScript variable (`window.appSettings`). An attacker can exploit the XSS vulnerability to force a victim's browser to silently fetch their specific connection settings, extract the tokens, and exfiltrate them to an attacker-controlled webhook. Version 26.0.0 patches the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:34.267",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:39:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46496",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. A stored cross-site scripting (XSS) vulnerability exists in versions prior to 26.0.0 due to improper sanitization of the `\u003cvideo-player\u003e` component. The component allows `javascript:` URIs in the `source` attribute, which are executed when the page is viewed. This enables attackers to execute arbitrary JavaScript in the context of the victim’s browser and access sensitive data such as JWT tokens and more. Version 26.0.0 fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:34.113",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:39:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46399",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. The PHP version of HAX CMS prior to version 26.0.0 has an authenticated file overwrite vulnerability. An attacker can exploit this vulnerability to configure malicious Git filter commands and achieve code execution on the HAX CMS server. Version 26.0.0 patches the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.960",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46396",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. A stored cross-site scripting (XSS) vulnerability exists in versions prior to 26.0.0 due to improper sanitization of `\u003ciframe\u003e` elements. The application allows `javascript:` URIs in the `src` attribute, which are executed when a malicious page is viewed. This enables attackers to execute arbitrary JavaScript in the context of the victim’s browser and access sensitive data exposed to client-side scripts. Version 26.0.0 fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.750",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46395",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Prior to version 26.0.0, the `hmacBase64()` function in the HAXcms Node.js backend contains two critical cryptographic implementation errors that together allow any unauthenticated attacker to extract the system’s private signing key and forge arbitrary admin-level JSON Web Tokens (JWTs) allowing them to get full admin access with a single HTTP request. First, the function passes the literal string \"0\" as the HMAC signing key instead of the key parameter, making every HAXcms instance compute identical HMACs for the same input. Then, after computing the HMAC, the function concatenates the real key parameter which is \"this.privateKey + this.salt\", the system’s master signing secret is directly onto the output. The combined buffer is base64-encoded and returned as the token. Every base64url token produced has the same structure: 32 bytes HMAC keyed with \"0\" and N bytes of `privateKey+salt`. An attacker base64-decodes any token, discards the first 32 bytes, and reads the private key directly. The `/system/api/connectionSettings` endpoint is unauthenticated and returns multiple tokens generated by this function. A single GET request to this endpoint exposes the private key. The PHP backend implements this function correctly with the actual key and returns only the hash. The PHP version produces 44-character tokens whereas the broken Node.js version produces 139+ character tokens. Version 26.0.0 fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.593",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46394",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Prior to version 26.0.0, an OS command injection vulnerability exists in the Git.php library of the HAXcms PHP backend. The application constructs shell command strings using unsanitized input and executes them via proc_open(). An attacker who can control parameters passed into Git operations can execute arbitrary OS commands with the privileges of the web server. Out of 17 functions that invoke shell commands only 1 function (`commit()`) correctly uses `escapeshellarg()`. When combined with another vulnerability that allows configuration manipulation, this issue can lead to full remote code execution and complete system compromise. Version 26.0.0 patches the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46393",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. An authenticated Server-Side Request Forgery (SSRF) vulnerability in versions prior to 26.0.0 allows authenticated users to fetch arbitrary internal or local resources and write the responses to a web-accessible directory, enabling arbitrary file read and internal network access. Version 26.0.0 contains a fix.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.303",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46392",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Prior to version 26.0.0 of HAX CMS PHP, the `saveFile` endpoint validates upload extensions case-insensitively and writes the filename to disk verbatim, but the `.htaccess` rule that forces `Content-Disposition: attachment` on HTML files is case-sensitive. An HTML file uploaded with an uppercase extension (`.HTML`, `.Html`, `.HTM`) is still served as `text/html` but the forced-download header never applies, so the browser renders it inline and executes any embedded JavaScript in the HAXcms origin. This bypasses the mitigation shipped for CVE-2026-22704. Version 26.0.0 contains a fix.",
+    "severity": "high",
+    "cvss_score": 8.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.160",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46391",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Starting in version 9.0.1 and prior to version 26.0.0 of @haxtheweb/open-apis, multiple functions conduct substring-only matching to validate hostnames to which basic authorization should be sent. An attacker can append the matched substrings to an attacker-controlled endpoint and capture authentication. Version 26.0.0 fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:33.007",
+    "poc_links": [
+      "https://github.com/bradyjmcl/cve-2026-46391"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46390",
+    "description": "HAX CMS helps manage microsite universe with PHP or NodeJs backends. Starting in version 2.0.0 and prior to version 26.0.0, the gitlist plugin is exposed to unauthenticated users, allowing unauthenticated browsing of git repositories and git history. Version 26.0.0 patches the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:32.863",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46389",
+    "description": "UDS Identity Config builds the Keycloak configuration image (realm, plugins, theme, truststore, JARs) consumed by UDS Core's Identity deployment. In versions 0.11.0 through 0.26.0, a logic error in the `client-kubernetes-secret` Keycloak client authenticator (shipped by `uds-identity-config` and consumed by UDS Core) causes the submitted `client_secret` to be overwritten with the mounted Kubernetes secret before comparison. An attacker who can reach the Keycloak token endpoint and knows a `client_id` using this authenticator can authenticate as that client with any `client_secret` value and obtain OAuth2 tokens scoped to the client's service account. In the case of the `uds-operator` client this token can be used to registry/modify other clients. Version 0.26.1 patches the issue.",
+    "severity": "critical",
+    "cvss_score": 10,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:32.703",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-10580",
+    "description": "The Hippoo Mobile App for WooCommerce plugin for WordPress is vulnerable to Authentication Bypass leading to Administrator Account Takeover in all versions up to and including 1.9.4. This is due to a logic conflation in HippooPermissions::get_user_permissions(), which returns the same null sentinel for both administrators and unauthenticated visitors — a value that HippooPermissions::has_role_access() unconditionally interprets as full administrator access — causing override_extension_permission_callback() to assign __return_true as the permission callback for every WordPress and WooCommerce REST route cloned under /wc-hippoo/v1/ext/ by HippooControllerWithAuth::re_register_external_routes(), while the block_unauthorized_access() pre-dispatch guard fails to block unauthenticated users for the same reason. This makes it possible for unauthenticated attackers to invoke any core REST endpoint without credentials — most critically, sending a POST request to /wc-hippoo/v1/ext/wp/v2/users/\u003cid\u003e with a {\"password\":\"\u003cnew_password\u003e\"} body to reset the password of any WordPress user, including the site administrator, and gain full administrative control of the site.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T19:16:28.830",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T19:38:28Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-10591",
     "description": "",
     "severity": "none",

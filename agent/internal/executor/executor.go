@@ -2,19 +2,16 @@ package executor
 
 import (
 	"archive/zip"
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync"
 	"sort"
+	"strings"
 )
 
 // JobRequest describes a forensics job to be executed on this agent.
@@ -152,99 +149,9 @@ func ExecuteJob(ctx context.Context, req JobRequest, workDir string, outputCh ch
 		}
 	}
 
-	if runtime.GOOS != "windows" {
-		if err := os.Chmod(execPath, 0o755); err != nil {
-			return fmt.Errorf("executor: chmod %s: %w", execPath, err)
-		}
-	}
-
 	send(ctx, outputCh, fmt.Sprintf("[+] Running: %s %s", filepath.Base(execPath), req.Args))
 
-	args := shellSplit(req.Args)
-	cmd := buildCommand(ctx, execPath, args)
-	cmd.Dir = toolDir
-
-	// Use io.Pipe so we can stream output to the dashboard.
-	pr, pw := io.Pipe()
-
-	if runtime.GOOS == "windows" {
-		// On Windows, the command uses 'start /wait' which spawns a new visible
-		// console window. We DO NOT redirect stdout/stderr to the pipe,
-		// otherwise 'start' itself would just pipe nothing, and the web UI
-		// would hang. Instead we just send a notification to the dashboard.
-		go func() {
-			fmt.Fprintln(pw, "[!] Tool is running in a NEW console window on the Agent.")
-			fmt.Fprintln(pw, "[!] Output will be displayed on the Agent's screen, not here.")
-		}()
-	} else {
-		// On Linux/macOS, use MultiWriter to tee the output to the agent's console
-		// and the dashboard simultaneously.
-		cmd.Stdout = io.MultiWriter(os.Stdout, pw)
-		cmd.Stderr = io.MultiWriter(os.Stderr, pw)
-	}
-
-	if err := cmd.Start(); err != nil {
-		pw.Close()
-		return fmt.Errorf("executor: start %s: %w", execPath, err)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer pr.Close() // ALWAYS close reader when exiting to avoid writer deadlock
-
-		scanner := bufio.NewScanner(pr)
-		// Increase buffer size to 1MB to avoid ErrTooLong for tools that output large JSON lines
-		buf := make([]byte, 64*1024)
-		scanner.Buffer(buf, 1024*1024)
-
-		dropped := 0
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			// If we previously dropped lines, try to send a warning first
-			if dropped > 0 {
-				select {
-				case outputCh <- fmt.Sprintf("[Agent] ... %d lines dropped due to high volume ...", dropped):
-					dropped = 0
-				default:
-				}
-			}
-
-			select {
-			case outputCh <- line:
-			case <-ctx.Done():
-				return
-			default:
-				// Buffer is full. Drop the line so we don't block the tool's stdout pipe!
-				dropped++
-			}
-		}
-
-		if dropped > 0 {
-			select {
-			case outputCh <- fmt.Sprintf("[Agent] ... %d lines dropped due to high volume ...", dropped):
-			default:
-			}
-		}
-	}()
-
-	// Wait for process to exit.
-	err = cmd.Wait()
-	pw.Close() // Signal EOF to the scanner goroutine
-	wg.Wait()
-	pr.Close()
-
-	if err != nil {
-		// If ctx was cancelled (stop command), surface that explicitly.
-		if ctx.Err() != nil {
-			return fmt.Errorf("executor: tool stopped by operator")
-		}
-		return fmt.Errorf("executor: tool exited with error: %w", err)
-	}
-
-	return nil
+	return runToolProcess(ctx, execPath, shellSplit(req.Args), req, toolDir, outputCh)
 }
 
 // prepareToolDir resolves and ensures the shared tool directory exists.
@@ -387,36 +294,6 @@ func listTree(ctx context.Context, root, dir, skipName string, outputCh chan<- s
 			listTree(ctx, root, filepath.Join(dir, e.Name()), skipName, outputCh, count)
 		}
 	}
-}
-
-// buildCommand creates an exec.Cmd that runs the tool.
-// On Windows, it handles .ps1 and .bat/.cmd explicitly, and falls back to
-// direct execution for .exe files to avoid PowerShell escaping bugs and
-// support standard redirection.
-//
-// On Linux, falls back to direct execution (chmod +x is handled by the caller).
-func buildCommand(ctx context.Context, execPath string, args []string) *exec.Cmd {
-	if runtime.GOOS == "windows" {
-		ext := strings.ToLower(filepath.Ext(execPath))
-		// We use `cmd.exe /c start /wait "ForensicHub Tool" ...`
-		// This forces Windows to pop up a fresh console window with its own
-		// standard handles, so the user can see the native rendering (colors, etc).
-		switch ext {
-		case ".ps1":
-			psArgs := append([]string{"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", execPath}, args...)
-			startArgs := append([]string{"/c", "start", "/wait", "ForensicHub Tool", "powershell.exe"}, psArgs...)
-			return exec.CommandContext(ctx, "cmd.exe", startArgs...)
-		case ".bat", ".cmd":
-			cmdArgs := append([]string{"/c", execPath}, args...)
-			startArgs := append([]string{"/c", "start", "/wait", "ForensicHub Tool", "cmd.exe"}, cmdArgs...)
-			return exec.CommandContext(ctx, "cmd.exe", startArgs...)
-		default:
-			startArgs := append([]string{"/c", "start", "/wait", "ForensicHub Tool", execPath}, args...)
-			return exec.CommandContext(ctx, "cmd.exe", startArgs...)
-		}
-	}
-	// Linux / other: direct execution.
-	return exec.CommandContext(ctx, execPath, args...)
 }
 
 // send is a helper to write a line to outputCh without blocking on context cancel.

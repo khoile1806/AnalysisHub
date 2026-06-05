@@ -754,38 +754,59 @@ func (c *Client) handleCleanup() {
 			installDir = filepath.Dir(exePath)
 		}
 
-		// Batch script: wait for agent exit, then retry rd /s /q a few times
-		// (AV / Explorer windows occasionally hold transient locks). Removes
-		// BOTH workDir and installDir, then deletes itself.
-		var lines []string
-		lines = append(lines, "@echo off")
-		lines = append(lines, "ping -n 6 127.0.0.1 >nul")
-		for i := 0; i < 3; i++ {
-			if workDir != "" {
-				lines = append(lines, fmt.Sprintf(`rd /s /q "%s" 2>nul`, workDir))
-			}
-			if installDir != "" {
-				lines = append(lines, fmt.Sprintf(`rd /s /q "%s" 2>nul`, installDir))
-			}
-			lines = append(lines, "ping -n 2 127.0.0.1 >nul")
+		// PS1 cleanup script — pure ASCII content, paths injected via env vars so
+		// Unicode usernames/paths (e.g. Vietnamese) are handled correctly.
+		// Using a PS1 file avoids the ANSI-vs-UTF-8 encoding issue that causes
+		// cmd.exe batch scripts to garble non-ASCII paths and silently fail.
+		const ps1Body = `
+$workDir    = $env:FH_WORK_DIR
+$installDir = $env:FH_INSTALL_DIR
+Start-Sleep -Seconds 5
+# Kill ForensicHub tool windows before deletion so their files are not locked.
+Get-Process | Where-Object { $_.MainWindowTitle -like 'ForensicHub - *' } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+# Retry removal up to 5 times; AV or Explorer may briefly hold transient locks.
+1..5 | ForEach-Object {
+    if ($workDir    -and (Test-Path $workDir))    { Remove-Item -Recurse -Force -Path $workDir    -ErrorAction SilentlyContinue }
+    if ($installDir -and (Test-Path $installDir)) { Remove-Item -Recurse -Force -Path $installDir -ErrorAction SilentlyContinue }
+    $anyLeft = ($workDir -and (Test-Path $workDir)) -or ($installDir -and (Test-Path $installDir))
+    if (-not $anyLeft) { break }
+    Start-Sleep -Seconds 2
+}
+Remove-Item -Force -Path $MyInvocation.MyCommand.Path -ErrorAction SilentlyContinue
+`
+		// Write UTF-8 BOM so PowerShell 5.1 reads the file correctly.
+		bom := []byte{0xEF, 0xBB, 0xBF}
+		ps1Content := append(bom, []byte(ps1Body)...)
+		ps1Path := filepath.Join(os.TempDir(), "forensichub_cleanup.ps1")
+		if err := os.WriteFile(ps1Path, ps1Content, 0o600); err != nil {
+			log.Printf("[cleanup] write PS1: %v", err)
 		}
-		lines = append(lines, `del "%~f0"`)
-		batContent := strings.Join(lines, "\r\n") + "\r\n"
+		log.Printf("[cleanup] scheduled removal of workDir=%q and installDir=%q via %s", workDir, installDir, ps1Path)
 
-		batPath := filepath.Join(os.TempDir(), "forensichub_cleanup.bat")
-		if err := os.WriteFile(batPath, []byte(batContent), 0755); err != nil {
-			log.Printf("[cleanup] write cleanup bat: %v", err)
-		}
-		log.Printf("[cleanup] scheduled removal of workdir=%q and installDir=%q via %s", workDir, installDir, batPath)
-
-		// Detach via hidden cmd.exe so it survives this process exit.
-		script := fmt.Sprintf(`Start-Process cmd.exe -WindowStyle Hidden -ArgumentList '/c "%s"'`, batPath)
-		cmd := osExec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script)
+		cmd := osExec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", ps1Path)
+		cmd.Env = append(os.Environ(), "FH_WORK_DIR="+workDir, "FH_INSTALL_DIR="+installDir)
 		cmd.Dir = os.TempDir()
+		// Detach from the agent's console so the window closes immediately on
+		// os.Exit — without CREATE_NEW_CONSOLE the child inherits our console
+		// handle and the window stays open until the script finishes.
+		setCleanupCmd(cmd)
 		if err := cmd.Start(); err != nil {
 			log.Printf("[cleanup] schedule self-delete error: %v", err)
 		}
 	} else {
+		// On Linux: disable and remove systemd service if present, then remove files.
+		// The service must be stopped/disabled before removing the binary so systemd
+		// doesn't attempt a restart while we're deleting files.
+		const serviceFile = "/etc/systemd/system/forensichub-agent.service"
+		if _, err := os.Stat(serviceFile); err == nil {
+			log.Println("[cleanup] disabling systemd service")
+			_ = osExec.Command("systemctl", "disable", "--now", "forensichub-agent.service").Run()
+			_ = os.Remove(serviceFile)
+			_ = osExec.Command("systemctl", "daemon-reload").Run()
+		}
+
 		if workDir != "" {
 			log.Printf("[cleanup] removing work directory: %s", workDir)
 			if err := os.RemoveAll(workDir); err != nil {

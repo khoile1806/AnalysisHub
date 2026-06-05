@@ -96,20 +96,3 @@ func (p *Pool) Lock(token string) {
 	log.Printf("[wpscan-pool] token %s quota exhausted â€” locked until %s UTC", suffix, next.Format(time.RFC3339))
 }
 
-// NextUnlocked returns the first token in priority order that isn't
-// currently locked. Returns "" when every configured token is locked or
-// none are configured â€” callers should treat this as "WPScan unavailable
-// right now" and degrade gracefully.
-//
-// Used by the recon engine, which can only pass one --api-token to the
-// wpscan CLI per invocation. The CVE Intel handler iterates the full
-// list (with IsLocked + Lock) instead so it can retry within a single
-// request when the first choice 429s.
-func (p *Pool) NextUnlocked() string {
-	for _, t := range p.tokens {
-		if !p.IsLocked(t) {
-			return t
-		}
-	}
-	return ""
-}
