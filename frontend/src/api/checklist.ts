@@ -78,4 +78,11 @@ export const checklistApi = {
     const baseURL = (apiClient.defaults.baseURL ?? '').replace(/\/$/, '')
     return new EventSource(`${baseURL}/checklist/batches/${batchId}/output?token=${encodeURIComponent(token)}`)
   },
+
+  downloadBatchOutput: async (batchId: string): Promise<string> => {
+    const { data } = await apiClient.get<string>(`/checklist/batches/${batchId}/download`, {
+      responseType: 'text',
+    })
+    return data
+  },
 }

@@ -18,6 +18,7 @@ export interface Agent {
 export interface CreateAgentData {
   name: string
   description: string
+  case_id?: string | null
 }
 
 export interface AgentInstallerConfig {

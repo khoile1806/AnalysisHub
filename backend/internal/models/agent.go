@@ -17,6 +17,8 @@ type Agent struct {
 	Status      string     `gorm:"default:'offline'"                              json:"status"` // online | offline
 	LastSeen    *time.Time `                                                      json:"last_seen"`
 	Description string     `                                                      json:"description"`
+	CaseID      *uuid.UUID `gorm:"type:uuid;index"                                json:"case_id,omitempty"`
+	Case        *Case      `gorm:"foreignKey:CaseID"                              json:"case,omitempty"`
 	CreatedAt   time.Time  `                                                      json:"created_at"`
 	UpdatedAt   time.Time  `                                                      json:"updated_at"`
 }

@@ -30,9 +30,10 @@ type Job struct {
 	Status       JobStatus  `gorm:"default:'pending'"                              json:"status"`
 	Output       string     `gorm:"type:text"                                      json:"output,omitempty"`
 	ArtifactPath string     `                                                      json:"artifact_path,omitempty"` // path to uploaded artifact
-	StartedAt    *time.Time `                                                      json:"started_at"`
-	FinishedAt   *time.Time `                                                      json:"finished_at"`
-	CreatedBy    uuid.UUID  `gorm:"type:uuid"                                      json:"created_by"`
-	CreatedAt    time.Time  `                                                      json:"created_at"`
-	UpdatedAt    time.Time  `                                                      json:"updated_at"`
+	StartedAt     *time.Time `                                                      json:"started_at"`
+	FinishedAt    *time.Time `                                                      json:"finished_at"`
+	CreatedBy     uuid.UUID  `gorm:"type:uuid"                                      json:"created_by"`
+	CreatedByUser *User      `gorm:"foreignKey:CreatedBy"                           json:"created_by_user,omitempty"`
+	CreatedAt     time.Time  `                                                      json:"created_at"`
+	UpdatedAt     time.Time  `                                                      json:"updated_at"`
 }

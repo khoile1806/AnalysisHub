@@ -1,0 +1,750 @@
+2026-06-05 06:29:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 868.576µs
+2026-06-05 06:29:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 452.718µs
+2026-06-05 06:29:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 258.201µs
+2026-06-05 06:29:37 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 6.975507ms | Payload: {"name":"IR-test","description":""}
+2026-06-05 06:29:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 256.437µs
+2026-06-05 06:29:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 6.607958ms | Payload: {"name":"test","description":"","case_id":"1ea82f23-9ccd-4286-8b95-86d8e73b8626"}
+2026-06-05 06:29:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 269.472µs
+2026-06-05 06:29:50 | Agent-abc085a0-1879-4c9f-8bf1-689242ec5073 | 172.19.0.1 | GET /api/v1/agent/binary/windows | OK | 2.917155ms
+2026-06-05 06:30:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 288.831µs
+2026-06-05 06:30:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 289.569µs
+2026-06-05 06:30:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 285.184µs
+2026-06-05 06:30:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 279.397µs
+2026-06-05 06:30:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 473.489µs
+2026-06-05 06:30:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 745.93µs
+2026-06-05 06:30:35 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.288693ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Thu thập thông tin hệ thống (OS version, patch level, hostna","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Thu thập thông tin hệ thống (OS version, patch level, hostname)","item_ids":["p1w-1.1-1"],"command":"systeminfo & hostname & whoami /all"}]}
+2026-06-05 06:30:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.150265ms
+2026-06-05 06:30:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 8.190249ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.1: System Information","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"System Information","item_ids":["p1w-1.1-1","p1w-1.1-2","p1w-1.1-3","p1w-1.1-4"],"command":"systeminfo & hostname & whoami /all & date /t && time /t & powershell -c \"Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'\" & w32tm /query /status 2>NUL & w32tm /query /configuration 2>NUL & net statistics workstation | findstr \"since\" & set"}]}
+2026-06-05 06:30:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.265572ms
+2026-06-05 06:30:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/e667480a-e4e8-4553-bc0c-3f71f431cb92/output | OK | 3.10868031s
+2026-06-05 06:30:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/575d87c5-c584-488a-8f4a-7bc6f2d0c736/output | OK | 3.257795642s
+2026-06-05 06:30:40 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.139103ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.2: Network State","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Network State","item_ids":["p1w-1.2-1","p1w-1.2-2","p1w-1.2-3","p1w-1.2-4","p1w-1.2-5","p1w-1.2-6","p1w-1.2-7","p1w-1.2-8"],"command":"netstat -anob & arp -a & ipconfig /all & route print & ipconfig /displaydns & net use & net share & netsh wlan show profiles & mkdir evidence 2>NUL & copy C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log evidence\\ 2>NUL & netsh advfirewall show allprofiles state"}]}
+2026-06-05 06:30:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.024684ms
+2026-06-05 06:30:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/aa920a4b-ad93-42fe-9207-1d063a25cb7f/output | OK | 441.212076ms
+2026-06-05 06:30:44 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.377149ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 06:30:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.051551ms
+2026-06-05 06:30:47 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.010915ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 06:30:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.342556ms
+2026-06-05 06:30:50 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.602325ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 06:30:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.863797ms
+2026-06-05 06:30:55 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.793477ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.4: Users & Sessions","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Users & Sessions","item_ids":["p1w-1.4-1","p1w-1.4-2","p1w-1.4-3","p1w-1.4-4"],"command":"query user & query session & net user & powershell -c \"Get-LocalUser | Select-Object Name,SID,Enabled,LastLogon,Description | Format-Table -AutoSize\" & net localgroup Administrators & net localgroup & powershell -c \"Get-Clipboard\""}]}
+2026-06-05 06:30:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.6975ms
+2026-06-05 06:30:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/570fd07c-9506-4a65-9a8f-56535c732f48/output | OK | 792.406865ms
+2026-06-05 06:31:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.081881ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.5: Scheduled Tasks & Services","case_id":"","analyst":"","batches":[{"batch_key":"1.5","batch_label":"Scheduled Tasks & Services","item_ids":["p1w-1.5-1","p1w-1.5-2"],"command":"schtasks /query /fo csv /v & sc query type= all state= all & powershell -c \"Get-Service | Select-Object Name,DisplayName,Status,StartType | Sort-Object Status | Format-Table -AutoSize\" & powershell -c \"Get-CimInstance Win32_Service | Select-Object Name,PathName,StartMode,State | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 06:31:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.061334ms
+2026-06-05 06:30:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/6333b113-5e84-4459-be90-a8253321f371/output | OK | 17.512144549s
+2026-06-05 06:30:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/708e787b-69cc-4be8-88fd-c6015f97b3d4/output | OK | 14.171686443s
+2026-06-05 06:31:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/03680727-e381-442c-b307-096f06abde73/output | OK | 1.209353794s
+2026-06-05 06:30:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/34cec20c-6dd3-4607-a312-940eac99294f/output | OK | 11.555056342s
+2026-06-05 06:31:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 995.793µs
+2026-06-05 06:31:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 503.368µs
+2026-06-05 06:31:07 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 8.48566ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.1: System Information","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"System Information","item_ids":["p1w-1.1-1","p1w-1.1-2","p1w-1.1-3","p1w-1.1-4"],"command":"systeminfo & hostname & whoami /all & date /t && time /t & powershell -c \"Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'\" & w32tm /query /status 2>NUL & w32tm /query /configuration 2>NUL & net statistics workstation | findstr \"since\" & set"}]}
+2026-06-05 06:31:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.314978ms
+2026-06-05 06:31:10 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.675561ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.2: Network State","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Network State","item_ids":["p1w-1.2-1","p1w-1.2-2","p1w-1.2-3","p1w-1.2-4","p1w-1.2-5","p1w-1.2-6","p1w-1.2-7","p1w-1.2-8"],"command":"netstat -anob & arp -a & ipconfig /all & route print & ipconfig /displaydns & net use & net share & netsh wlan show profiles & mkdir evidence 2>NUL & copy C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log evidence\\ 2>NUL & netsh advfirewall show allprofiles state"}]}
+2026-06-05 06:31:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.152371ms
+2026-06-05 06:31:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/550e69a8-c6a3-47b2-9f26-084cf6486bdd/output | OK | 1.115731228s
+2026-06-05 06:31:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/425ac42d-7a62-43fe-bb8b-75205ebb7f79/output | OK | 4.253122173s
+2026-06-05 06:31:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.220541ms | Payload: {"agent_id":"abc085a0-1879-4c9f-8bf1-689242ec5073","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 06:31:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.729065ms
+2026-06-05 06:31:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/139ada7f-7792-4828-b657-5621d29a2b65/output | OK | 2.390605908s
+2026-06-05 06:31:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 700.575µs
+2026-06-05 06:31:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/1ea82f23-9ccd-4286-8b95-86d8e73b8626/summary | OK | 1.450169ms
+2026-06-05 06:31:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.551492ms
+2026-06-05 06:31:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.036283ms
+2026-06-05 06:31:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 289.442µs
+2026-06-05 06:31:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.049458ms
+2026-06-05 06:31:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 260.215µs
+2026-06-05 06:31:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 618.238µs
+2026-06-05 06:39:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 806.923µs
+2026-06-05 06:39:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 961.446µs
+2026-06-05 06:39:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 231.122µs
+2026-06-05 06:39:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 968.403µs
+2026-06-05 06:39:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 615.158µs
+2026-06-05 06:39:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 62.574952ms
+2026-06-05 06:39:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 646.669µs
+2026-06-05 06:39:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 369.309µs
+2026-06-05 06:39:40 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 7.191733ms | Payload: {"name":"IR-test","description":""}
+2026-06-05 06:39:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 333.711µs
+2026-06-05 06:39:44 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 5.827822ms | Payload: {"name":"test","description":"","case_id":"da910d60-f640-49bc-bd3b-0db62fd3d97d"}
+2026-06-05 06:39:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 283.973µs
+2026-06-05 06:39:48 | Agent-779b0f53-26c0-4aaf-8275-e3987a021a86 | 172.19.0.1 | GET /api/v1/agent/binary/windows | OK | 55.015517ms
+2026-06-05 06:40:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 370.077µs
+2026-06-05 06:40:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 294.864µs
+2026-06-05 06:40:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 505.056µs
+2026-06-05 06:40:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 307.228µs
+2026-06-05 06:40:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 1.588067ms
+2026-06-05 06:40:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 888.78µs
+2026-06-05 06:40:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 681.899µs
+2026-06-05 06:40:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 365.707µs
+2026-06-05 06:40:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 287.369µs
+2026-06-05 06:40:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.125273ms
+2026-06-05 06:40:44 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.484335ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.1: System Information","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"System Information","item_ids":["p1w-1.1-1","p1w-1.1-2","p1w-1.1-3","p1w-1.1-4"],"command":"systeminfo & hostname & whoami /all & date /t && time /t & powershell -c \"Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'\" & w32tm /query /status 2>NUL & w32tm /query /configuration 2>NUL & net statistics workstation | findstr \"since\" & set"}]}
+2026-06-05 06:40:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 865.653µs
+2026-06-05 06:40:47 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.651946ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.2: Network State","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Network State","item_ids":["p1w-1.2-1","p1w-1.2-2","p1w-1.2-3","p1w-1.2-4","p1w-1.2-5","p1w-1.2-6","p1w-1.2-7","p1w-1.2-8"],"command":"netstat -anob & arp -a & ipconfig /all & route print & ipconfig /displaydns & net use & net share & netsh wlan show profiles & mkdir evidence 2>NUL & copy C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log evidence\\ 2>NUL & netsh advfirewall show allprofiles state"}]}
+2026-06-05 06:40:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 977.533µs
+2026-06-05 06:40:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/96b1c19f-d1cf-4fcd-9287-008aee2a5ba1/output | OK | 768.408613ms
+2026-06-05 06:40:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/50ddb40f-6f10-4a05-886d-b976a22bd11e/output | OK | 3.791228463s
+2026-06-05 06:40:50 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.929004ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 06:40:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.463054ms
+2026-06-05 06:40:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.831404ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.4: Users & Sessions","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Users & Sessions","item_ids":["p1w-1.4-1","p1w-1.4-2","p1w-1.4-3","p1w-1.4-4"],"command":"query user & query session & net user & powershell -c \"Get-LocalUser | Select-Object Name,SID,Enabled,LastLogon,Description | Format-Table -AutoSize\" & net localgroup Administrators & net localgroup & powershell -c \"Get-Clipboard\""}]}
+2026-06-05 06:40:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.137559ms
+2026-06-05 06:40:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/738338e6-5fca-4097-af31-f18cc4f57fbc/output | OK | 676.264491ms
+2026-06-05 06:41:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.8186ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.4: Users & Sessions","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Users & Sessions","item_ids":["p1w-1.4-1","p1w-1.4-2","p1w-1.4-3","p1w-1.4-4"],"command":"query user & query session & net user & powershell -c \"Get-LocalUser | Select-Object Name,SID,Enabled,LastLogon,Description | Format-Table -AutoSize\" & net localgroup Administrators & net localgroup & powershell -c \"Get-Clipboard\""}]}
+2026-06-05 06:41:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.13417ms
+2026-06-05 06:41:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/8255b961-89b1-4916-a178-25475d1ec5ad/output | OK | 756.57395ms
+2026-06-05 06:41:09 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.667883ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.5: Scheduled Tasks & Services","case_id":"","analyst":"","batches":[{"batch_key":"1.5","batch_label":"Scheduled Tasks & Services","item_ids":["p1w-1.5-1","p1w-1.5-2"],"command":"schtasks /query /fo csv /v & sc query type= all state= all & powershell -c \"Get-Service | Select-Object Name,DisplayName,Status,StartType | Sort-Object Status | Format-Table -AutoSize\" & powershell -c \"Get-CimInstance Win32_Service | Select-Object Name,PathName,StartMode,State | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 06:41:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.385912ms
+2026-06-05 06:40:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/91cc21b1-cb77-4865-9157-1fef15a33dd7/output | OK | 21.377867474s
+2026-06-05 06:41:13 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.729958ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Section 1.6: Persistence / Autorun","case_id":"","analyst":"","batches":[{"batch_key":"1.6","batch_label":"Persistence / Autorun","item_ids":["p1w-1.6-1","p1w-1.6-2"],"command":"reg query HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run & reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run & reg query \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\" & reg query HKLM\\SYSTEM\\CurrentControlSet\\Services & autorunsc.exe -a * -c -h -s"}]}
+2026-06-05 06:41:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.182568ms
+2026-06-05 06:41:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/ebd3ce6a-4975-4b98-b66a-4a3b7498e49c/output | OK | 793.556492ms
+2026-06-05 06:41:19 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.026254ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Security.evtx — logon, process creation, account management","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Security.evtx — logon, process creation, account management","item_ids":["p1w-1.7-1"],"command":"mkdir evidence 2>NUL & wevtutil epl Security evidence\\Security.evtx"}]}
+2026-06-05 06:41:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.830225ms
+2026-06-05 06:41:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/abf0d87e-ed78-4655-b206-dda502e7b075/output | OK | 313.061068ms
+2026-06-05 06:41:19 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.807228ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"System.evtx — service install, boot/shutdown","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"System.evtx — service install, boot/shutdown","item_ids":["p1w-1.7-2"],"command":"mkdir evidence 2>NUL & wevtutil epl System evidence\\System.evtx"}]}
+2026-06-05 06:41:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.539558ms
+2026-06-05 06:41:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/6f7825ac-61b8-4e5a-90cf-270dfa2eb36d/output | OK | 85.464928ms
+2026-06-05 06:41:20 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.627245ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"PowerShell/Operational.evtx — script block logging","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"PowerShell/Operational.evtx — script block logging","item_ids":["p1w-1.7-3"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-PowerShell/Operational\" evidence\\PS_Operational.evtx"}]}
+2026-06-05 06:41:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.223657ms
+2026-06-05 06:41:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/7a8f0433-ee3b-4850-95d4-c946b5e297b6/output | OK | 86.916971ms
+2026-06-05 06:41:20 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.492915ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"TaskScheduler/Operational.evtx","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"TaskScheduler/Operational.evtx","item_ids":["p1w-1.7-4"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-TaskScheduler/Operational\" evidence\\TaskSched.evtx"}]}
+2026-06-05 06:41:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.082596ms
+2026-06-05 06:41:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/21210f4e-44b0-47e8-bb19-5b05dd93fcbf/output | OK | 46.234281ms
+2026-06-05 06:41:21 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.086047ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Sysmon/Operational.evtx (nếu Sysmon đang chạy)","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Sysmon/Operational.evtx (nếu Sysmon đang chạy)","item_ids":["p1w-1.7-5"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-Sysmon/Operational\" evidence\\Sysmon.evtx 2>NUL || echo Sysmon not installed - skipping"}]}
+2026-06-05 06:41:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.572938ms
+2026-06-05 06:41:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/3051eb82-1e60-427c-b5c9-691e32a778ec/output | OK | 49.771812ms
+2026-06-05 06:41:22 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.466251ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Application.evtx + copy toàn bộ thư mục logs","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Application.evtx + copy toàn bộ thư mục logs","item_ids":["p1w-1.7-6"],"command":"mkdir evidence 2>NUL & wevtutil epl Application evidence\\Application.evtx & xcopy /E /I /Y C:\\Windows\\System32\\winevt\\Logs\\ evidence\\evtx_all\\"}]}
+2026-06-05 06:41:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.512247ms
+2026-06-05 06:41:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d99b8862-3025-4b95-bb86-7d6867035529/output | OK | 486.654362ms
+2026-06-05 06:41:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.709234ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"PowerShell command history","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"PowerShell command history","item_ids":["p1w-1.8-1"],"command":"mkdir evidence 2>NUL & copy \"%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt\" evidence\\ps_history.txt 2>NUL & powershell -c \"Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 200\""}]}
+2026-06-05 06:41:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 6.319575ms
+2026-06-05 06:41:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/35a517d7-c91b-47e8-b326-c1290d58a5c3/output | OK | 343.317549ms
+2026-06-05 06:41:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.41925ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Prefetch files (chứng minh chương trình đã từng chạy)","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Prefetch files (chứng minh chương trình đã từng chạy)","item_ids":["p1w-1.8-2"],"command":"mkdir evidence 2>NUL & mkdir evidence\\prefetch 2>NUL & xcopy /Y C:\\Windows\\Prefetch\\*.pf evidence\\prefetch\\ 2>NUL || echo Prefetch disabled or access denied"}]}
+2026-06-05 06:41:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.774706ms
+2026-06-05 06:41:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/c7499592-91dc-4418-bab1-964d9c538fcd/output | OK | 429.261389ms
+2026-06-05 06:41:24 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.806012ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Recent files & Jump Lists","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Recent files & Jump Lists","item_ids":["p1w-1.8-3"],"command":"mkdir evidence 2>NUL & mkdir evidence\\recent 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\\" evidence\\recent\\ 2>NUL"}]}
+2026-06-05 06:41:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 6.094728ms
+2026-06-05 06:41:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/f6f4aa69-0433-4f47-86f5-eda4771ae1c2/output | OK | 46.378678ms
+2026-06-05 06:41:24 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.504819ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Browser history — Chrome","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Browser history — Chrome","item_ids":["p1w-1.8-4"],"command":"mkdir evidence 2>NUL & mkdir evidence\\chrome 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\\" evidence\\chrome\\ 2>NUL || echo Chrome not found"}]}
+2026-06-05 06:41:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 6.508107ms
+2026-06-05 06:41:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/15a04fc7-55ec-4eb2-b4d1-bed665e15c18/output | OK | 39.827204ms
+2026-06-05 06:41:26 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.830944ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Browser history — Firefox","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Browser history — Firefox","item_ids":["p1w-1.8-5"],"command":"mkdir evidence 2>NUL & mkdir evidence\\firefox 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\\" evidence\\firefox\\ 2>NUL || echo Firefox not found"}]}
+2026-06-05 06:41:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 6.908515ms
+2026-06-05 06:41:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/953c9502-8a7b-4721-8db4-adbb05443e4a/output | OK | 59.260148ms
+2026-06-05 06:41:26 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.423412ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Tìm file mới tạo/modified trong khoảng thời gian sự cố","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Tìm file mới tạo/modified trong khoảng thời gian sự cố","item_ids":["p1w-1.8-6"],"command":"powershell -c \"Get-ChildItem -Path C:\\Users -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-30)} | Select-Object FullName,LastWriteTime,Length | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 06:41:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.140537ms
+2026-06-05 06:41:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/199aed3a-c665-4c7a-9697-4696c422299a/output | OK | 259.681148ms
+2026-06-05 06:41:27 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.485852ms | Payload: {"agent_id":"779b0f53-26c0-4aaf-8275-e3987a021a86","platform":"win","label":"Kiểm tra thư mục temp/staging hay dùng bởi attacker","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Kiểm tra thư mục temp/staging hay dùng bởi attacker","item_ids":["p1w-1.8-7"],"command":"dir /a C:\\Windows\\Temp\\ & dir /a C:\\Users\\Public\\ & dir /a C:\\ProgramData\\ & dir /a \"%TEMP%\""}]}
+2026-06-05 06:41:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 6.241015ms
+2026-06-05 06:41:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/ec3dfb11-f49c-4877-8a23-bf24989dd346/output | OK | 60.493522ms
+2026-06-05 06:41:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/dd8a7f7f-adf7-4558-8b0f-8ee85db0ac76/output | OK | 21.12672463s
+2026-06-05 06:41:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 876.457µs
+2026-06-05 06:41:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 922.866µs
+2026-06-05 06:41:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 317.859µs
+2026-06-05 06:41:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 600µs
+2026-06-05 06:41:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 849.164µs
+2026-06-05 06:41:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 2.192622ms
+2026-06-05 06:41:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 1.025868ms
+2026-06-05 06:41:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 931.81µs
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 14.553618ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 8.119855ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 17.437776ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 66.787718ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 7.735737ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 9.237924ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 23.401513ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:54 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 6.430336ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:55 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 170.552682ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:55 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 15.648124ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:41:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 575.296µs
+2026-06-05 06:41:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 418.588µs
+2026-06-05 06:41:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 15.817366ms
+2026-06-05 06:42:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.701575ms
+2026-06-05 06:42:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 838.949µs
+2026-06-05 06:42:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 554.078µs
+2026-06-05 06:42:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.013293ms
+2026-06-05 06:42:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 7.492243ms
+2026-06-05 06:42:17 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 791.239µs
+2026-06-05 06:42:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 647.111µs
+2026-06-05 06:42:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 1.697468ms
+2026-06-05 06:42:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/da910d60-f640-49bc-bd3b-0db62fd3d97d/summary | OK | 876.557µs
+2026-06-05 06:42:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 349.17µs
+2026-06-05 06:42:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 424.034µs
+2026-06-05 06:42:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.129821ms
+2026-06-05 06:43:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 286.318µs
+2026-06-05 06:43:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 892.008µs
+2026-06-05 06:43:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 941.354µs
+2026-06-05 06:46:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.445165ms
+2026-06-05 06:46:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 679.408µs
+2026-06-05 06:46:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 555.973µs
+2026-06-05 06:46:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 1.062815ms
+2026-06-05 06:46:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 52.435085ms
+2026-06-05 06:46:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 590.977µs
+2026-06-05 06:46:09 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 3.775772ms | Payload: {"name":"IR-test","description":""}
+2026-06-05 06:46:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 237.711µs
+2026-06-05 06:46:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 675.642µs
+2026-06-05 06:46:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 3.219087ms | Payload: {"name":"test","description":"","case_id":"ec368baf-a994-4482-a6fe-d0e07c7e32c9"}
+2026-06-05 06:46:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 459.975µs
+2026-06-05 06:46:19 | Agent-01359e6b-52b3-4983-b798-d8f28850e923 | 172.19.0.1 | GET /api/v1/agent/binary/windows | OK | 2.717324ms
+2026-06-05 06:46:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 487.424µs
+2026-06-05 06:46:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 297.389µs
+2026-06-05 06:46:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 302.88µs
+2026-06-05 06:47:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.646237ms
+2026-06-05 06:47:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 347.196µs
+2026-06-05 06:47:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 265.522µs
+2026-06-05 06:47:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 377.233µs
+2026-06-05 06:47:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 829.005µs
+2026-06-05 06:47:02 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.037825ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Thu thập thông tin hệ thống (OS version, patch level, hostna","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Thu thập thông tin hệ thống (OS version, patch level, hostname)","item_ids":["p1w-1.1-1"],"command":"systeminfo & hostname & whoami /all"}]}
+2026-06-05 06:47:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.307723ms
+2026-06-05 06:47:03 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.754633ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Ghi lại system time + tính time offset so với UTC","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Ghi lại system time + tính time offset so với UTC","item_ids":["p1w-1.1-2"],"command":"date /t && time /t & powershell -c \"Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'\" & w32tm /query /status 2>NUL & w32tm /query /configuration 2>NUL"}]}
+2026-06-05 06:47:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 819.371µs
+2026-06-05 06:47:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/f9aec34b-5480-4d0f-b51d-6338b2a2d687/output | OK | 345.371569ms
+2026-06-05 06:47:03 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.062842ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Ghi lại uptime hệ thống","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Ghi lại uptime hệ thống","item_ids":["p1w-1.1-3"],"command":"net statistics workstation | findstr \"since\""}]}
+2026-06-05 06:47:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.034263ms
+2026-06-05 06:47:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a64e857c-42a6-4992-b010-a0999012e89b/output | OK | 67.646318ms
+2026-06-05 06:47:04 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.29817ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Thu thập environment variables","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Thu thập environment variables","item_ids":["p1w-1.1-4"],"command":"set"}]}
+2026-06-05 06:47:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 812.393µs
+2026-06-05 06:47:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/ccff3205-fea3-4ed3-a4fe-62f5188522f6/output | OK | 25.489887ms
+2026-06-05 06:47:05 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.179621ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Tất cả kết nối mạng đang hoạt động (kèm PID + executable)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Tất cả kết nối mạng đang hoạt động (kèm PID + executable)","item_ids":["p1w-1.2-1"],"command":"netstat -anob"}]}
+2026-06-05 06:47:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.554267ms
+2026-06-05 06:47:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/6c0e6d4e-a568-4cae-a8f8-cea46d069003/output | OK | 168.153928ms
+2026-06-05 06:47:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/6aed54a1-df5b-4235-85bd-33c792bcb9e5/output | OK | 3.075608645s
+2026-06-05 06:47:06 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.088425ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"ARP cache (phát hiện lateral movement nội bộ)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"ARP cache (phát hiện lateral movement nội bộ)","item_ids":["p1w-1.2-2"],"command":"arp -a"}]}
+2026-06-05 06:47:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.000518ms
+2026-06-05 06:47:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/298afaf1-bc09-4e7a-8c13-366d1a61d565/output | OK | 48.64782ms
+2026-06-05 06:47:06 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.833636ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Cấu hình network interfaces","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Cấu hình network interfaces","item_ids":["p1w-1.2-3"],"command":"ipconfig /all"}]}
+2026-06-05 06:47:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.179144ms
+2026-06-05 06:47:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/2c7c91b4-1e2e-4d90-9480-90229d16527b/output | OK | 64.732873ms
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.066891ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Routing table","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Routing table","item_ids":["p1w-1.2-4"],"command":"route print"}]}
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.015064ms
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/4a464068-3ceb-4fa3-b2a1-272199a34d1b/output | OK | 57.278568ms
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.736688ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"DNS cache (phát hiện C2 domains đã resolve)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"DNS cache (phát hiện C2 domains đã resolve)","item_ids":["p1w-1.2-5"],"command":"ipconfig /displaydns"}]}
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.171958ms
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/77be7054-2e1e-41f1-80ff-189230390a40/output | OK | 33.949181ms
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.037672ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Network shares đang mount","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Network shares đang mount","item_ids":["p1w-1.2-6"],"command":"net use & net share"}]}
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.132626ms
+2026-06-05 06:47:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/696e47bd-40ab-4a22-94b5-29a7da25ce2a/output | OK | 84.630147ms
+2026-06-05 06:47:09 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.345794ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"WiFi profiles đã lưu (có thể chứa credentials)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"WiFi profiles đã lưu (có thể chứa credentials)","item_ids":["p1w-1.2-7"],"command":"netsh wlan show profiles"}]}
+2026-06-05 06:47:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 997.297µs
+2026-06-05 06:47:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/7c14c6a6-4c77-42d0-86a9-e9624d701ee4/output | OK | 90.236615ms
+2026-06-05 06:47:09 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 2.897143ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Windows Firewall logs","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Windows Firewall logs","item_ids":["p1w-1.2-8"],"command":"mkdir evidence 2>NUL & copy C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log evidence\\ 2>NUL & netsh advfirewall show allprofiles state"}]}
+2026-06-05 06:47:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.171209ms
+2026-06-05 06:47:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d849ddf4-ee58-46c6-991e-2b43b6d5480e/output | OK | 100.768849ms
+2026-06-05 06:47:10 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.245544ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Danh sách processes kèm command line đầy đủ","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Danh sách processes kèm command line đầy đủ","item_ids":["p1w-1.3-1"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 06:47:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.103891ms
+2026-06-05 06:47:11 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.071911ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"DLLs được load bởi từng process (tìm DLL injection)","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"DLLs được load bởi từng process (tìm DLL injection)","item_ids":["p1w-1.3-2"],"command":"tasklist /m"}]}
+2026-06-05 06:47:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.167034ms
+2026-06-05 06:47:11 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.081313ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Open file handles của mỗi process","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Open file handles của mỗi process","item_ids":["p1w-1.3-3"],"command":"handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\""}]}
+2026-06-05 06:47:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.165236ms
+2026-06-05 06:47:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/b55c67a1-b246-493b-8264-519ca6bfea33/output | OK | 294.328508ms
+2026-06-05 06:47:12 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 2.860614ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Loaded drivers (tìm rootkit kernel-mode)","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Loaded drivers (tìm rootkit kernel-mode)","item_ids":["p1w-1.3-4"],"command":"driverquery /fo csv /v"}]}
+2026-06-05 06:47:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.040566ms
+2026-06-05 06:47:12 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.361712ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Users đang đăng nhập và active sessions","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Users đang đăng nhập và active sessions","item_ids":["p1w-1.4-1"],"command":"query user & query session"}]}
+2026-06-05 06:47:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.099957ms
+2026-06-05 06:47:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/8e860b4d-7e86-4acc-93a9-3fb2b423cd0f/output | OK | 137.205825ms
+2026-06-05 06:47:13 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.854021ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Danh sách tất cả local accounts","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Danh sách tất cả local accounts","item_ids":["p1w-1.4-2"],"command":"net user & powershell -c \"Get-LocalUser | Select-Object Name,SID,Enabled,LastLogon,Description | Format-Table -AutoSize\""}]}
+2026-06-05 06:47:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.108638ms
+2026-06-05 06:47:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/91fc5860-c242-4fae-b9fd-21612f80f5cd/output | OK | 330.569148ms
+2026-06-05 06:47:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 11.718233ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Danh sách local groups (đặc biệt Administrators)","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Danh sách local groups (đặc biệt Administrators)","item_ids":["p1w-1.4-3"],"command":"net localgroup Administrators & net localgroup"}]}
+2026-06-05 06:47:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.127445ms
+2026-06-05 06:47:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d0c95b97-42ed-4512-810f-b94259daa5fb/output | OK | 158.18005ms
+2026-06-05 06:47:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 2.873194ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Clipboard content (có thể chứa credentials)","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Clipboard content (có thể chứa credentials)","item_ids":["p1w-1.4-4"],"command":"powershell -c \"Get-Clipboard\""}]}
+2026-06-05 06:47:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.004403ms
+2026-06-05 06:47:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/aaca8af6-f0d7-4c3f-8f9b-9ae330de5fb3/output | OK | 308.780098ms
+2026-06-05 06:47:15 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 2.929083ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Tất cả Scheduled Tasks (tìm persistence)","case_id":"","analyst":"","batches":[{"batch_key":"1.5","batch_label":"Tất cả Scheduled Tasks (tìm persistence)","item_ids":["p1w-1.5-1"],"command":"schtasks /query /fo csv /v"}]}
+2026-06-05 06:47:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a849c011-48e7-47e4-936d-04a45daf75f7/output | OK | 5.035627884s
+2026-06-05 06:47:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.128256ms
+2026-06-05 06:47:15 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.257112ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Tất cả services và trạng thái hiện tại","case_id":"","analyst":"","batches":[{"batch_key":"1.5","batch_label":"Tất cả services và trạng thái hiện tại","item_ids":["p1w-1.5-2"],"command":"sc query type= all state= all & powershell -c \"Get-Service | Select-Object Name,DisplayName,Status,StartType | Sort-Object Status | Format-Table -AutoSize\" & powershell -c \"Get-CimInstance Win32_Service | Select-Object Name,PathName,StartMode,State | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 06:47:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.236272ms
+2026-06-05 06:47:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/4144c4e4-2dd5-4b8d-af08-775342b2da4d/output | OK | 1.133220649s
+2026-06-05 06:47:19 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.282783ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Registry Run keys (HKLM & HKCU)","case_id":"","analyst":"","batches":[{"batch_key":"1.6","batch_label":"Registry Run keys (HKLM & HKCU)","item_ids":["p1w-1.6-1"],"command":"reg query HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run & reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run & reg query \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\" & reg query HKLM\\SYSTEM\\CurrentControlSet\\Services"}]}
+2026-06-05 06:47:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.255065ms
+2026-06-05 06:47:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/33c24c55-fca6-4af7-808a-918c6c284250/output | OK | 693.91107ms
+2026-06-05 06:47:21 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.417781ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Chạy Autoruns — tổng hợp tất cả persistence points","case_id":"","analyst":"","batches":[{"batch_key":"1.6","batch_label":"Chạy Autoruns — tổng hợp tất cả persistence points","item_ids":["p1w-1.6-2"],"command":"autorunsc.exe -a * -c -h -s"}]}
+2026-06-05 06:47:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.033242ms
+2026-06-05 06:47:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/b964fe5d-9d14-47ac-9890-19a2132f1e5f/output | OK | 35.758849ms
+2026-06-05 06:47:21 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.858732ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Security.evtx — logon, process creation, account management","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Security.evtx — logon, process creation, account management","item_ids":["p1w-1.7-1"],"command":"mkdir evidence 2>NUL & wevtutil epl Security evidence\\Security.evtx"}]}
+2026-06-05 06:47:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.205433ms
+2026-06-05 06:47:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/9a99b917-ff1a-4640-a066-5de5b17f38da/output | OK | 364.14645ms
+2026-06-05 06:47:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.043232ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"System.evtx — service install, boot/shutdown","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"System.evtx — service install, boot/shutdown","item_ids":["p1w-1.7-2"],"command":"mkdir evidence 2>NUL & wevtutil epl System evidence\\System.evtx"}]}
+2026-06-05 06:47:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.72344ms
+2026-06-05 06:47:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/b39c3786-d83b-4f32-a756-1d25c783610b/output | OK | 76.284079ms
+2026-06-05 06:47:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.345627ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"PowerShell/Operational.evtx — script block logging","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"PowerShell/Operational.evtx — script block logging","item_ids":["p1w-1.7-3"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-PowerShell/Operational\" evidence\\PS_Operational.evtx"}]}
+2026-06-05 06:47:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.947129ms
+2026-06-05 06:47:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/7c8b4969-61fb-4278-9ba5-1eeb0560de2b/output | OK | 56.469006ms
+2026-06-05 06:47:24 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 2.970682ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"TaskScheduler/Operational.evtx","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"TaskScheduler/Operational.evtx","item_ids":["p1w-1.7-4"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-TaskScheduler/Operational\" evidence\\TaskSched.evtx"}]}
+2026-06-05 06:47:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.678892ms
+2026-06-05 06:47:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/1a807f3e-c370-4a85-ac1b-a77843629bd8/output | OK | 49.292002ms
+2026-06-05 06:47:24 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.256808ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Sysmon/Operational.evtx (nếu Sysmon đang chạy)","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Sysmon/Operational.evtx (nếu Sysmon đang chạy)","item_ids":["p1w-1.7-5"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-Sysmon/Operational\" evidence\\Sysmon.evtx 2>NUL || echo Sysmon not installed - skipping"}]}
+2026-06-05 06:47:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.722491ms
+2026-06-05 06:47:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/3b41a8f5-568c-4246-abb3-38c1a7d01e66/output | OK | 51.560428ms
+2026-06-05 06:47:25 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.263404ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Application.evtx + copy toàn bộ thư mục logs","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Application.evtx + copy toàn bộ thư mục logs","item_ids":["p1w-1.7-6"],"command":"mkdir evidence 2>NUL & wevtutil epl Application evidence\\Application.evtx & xcopy /E /I /Y C:\\Windows\\System32\\winevt\\Logs\\ evidence\\evtx_all\\"}]}
+2026-06-05 06:47:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.659539ms
+2026-06-05 06:47:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/b1bf2a78-b445-4787-9d33-5ada19019723/output | OK | 424.637415ms
+2026-06-05 06:47:26 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.034463ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"PowerShell command history","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"PowerShell command history","item_ids":["p1w-1.8-1"],"command":"mkdir evidence 2>NUL & copy \"%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt\" evidence\\ps_history.txt 2>NUL & powershell -c \"Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 200\""}]}
+2026-06-05 06:47:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 3.446688ms
+2026-06-05 06:47:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/7c1a16fa-6bd4-48c7-acdf-088be3f3c72b/output | OK | 409.04389ms
+2026-06-05 06:47:27 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.766536ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Prefetch files (chứng minh chương trình đã từng chạy)","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Prefetch files (chứng minh chương trình đã từng chạy)","item_ids":["p1w-1.8-2"],"command":"mkdir evidence 2>NUL & mkdir evidence\\prefetch 2>NUL & xcopy /Y C:\\Windows\\Prefetch\\*.pf evidence\\prefetch\\ 2>NUL || echo Prefetch disabled or access denied"}]}
+2026-06-05 06:47:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.506274ms
+2026-06-05 06:47:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/c626e92b-afcd-46b3-bd37-cb963af12a41/output | OK | 363.350867ms
+2026-06-05 06:47:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 2.898408ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Recent files & Jump Lists","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Recent files & Jump Lists","item_ids":["p1w-1.8-3"],"command":"mkdir evidence 2>NUL & mkdir evidence\\recent 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\\" evidence\\recent\\ 2>NUL"}]}
+2026-06-05 06:47:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 4.571261ms
+2026-06-05 06:47:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d6b4df44-926e-4ed0-a396-c15b4d5932e4/output | OK | 48.427836ms
+2026-06-05 06:47:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 4.239833ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Browser history — Chrome","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Browser history — Chrome","item_ids":["p1w-1.8-4"],"command":"mkdir evidence 2>NUL & mkdir evidence\\chrome 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\\" evidence\\chrome\\ 2>NUL || echo Chrome not found"}]}
+2026-06-05 06:47:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.976561ms
+2026-06-05 06:47:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/3703ca7b-bb10-4d24-abb7-70d83c16415c/output | OK | 44.684282ms
+2026-06-05 06:47:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d6d43abc-7f91-40bb-9835-70ef929b121b/output | OK | 18.589868814s
+2026-06-05 06:47:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.191738ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Tìm file mới tạo/modified trong khoảng thời gian sự cố","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Tìm file mới tạo/modified trong khoảng thời gian sự cố","item_ids":["p1w-1.8-6"],"command":"powershell -c \"Get-ChildItem -Path C:\\Users -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-30)} | Select-Object FullName,LastWriteTime,Length | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 06:47:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 6.318229ms
+2026-06-05 06:47:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/47e74779-a6f2-4ac8-9ef7-cdaba6d1647a/output | OK | 233.321777ms
+2026-06-05 06:47:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/0f281d3e-0684-4d1e-9e36-52f3d81f13e5/output | OK | 18.029635646s
+2026-06-05 06:47:37 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 3.649704ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923","platform":"win","label":"Kiểm tra thư mục temp/staging hay dùng bởi attacker","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Kiểm tra thư mục temp/staging hay dùng bởi attacker","item_ids":["p1w-1.8-7"],"command":"dir /a C:\\Windows\\Temp\\ & dir /a C:\\Users\\Public\\ & dir /a C:\\ProgramData\\ & dir /a \"%TEMP%\""}]}
+2026-06-05 06:47:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 10.656634ms
+2026-06-05 06:47:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/e3e4bf9f-4978-4f6d-b96a-d7500e6bb1e1/output | OK | 52.035467ms
+2026-06-05 06:47:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/bec6e59f-3491-48af-8433-f5c822c340d1/output | OK | 23.535653734s
+2026-06-05 06:47:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 718.648µs
+2026-06-05 06:47:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.157327ms
+2026-06-05 06:47:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 316.075µs
+2026-06-05 06:47:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 749.77µs
+2026-06-05 06:47:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 711.365µs
+2026-06-05 06:47:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.495769ms
+2026-06-05 06:47:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 887.117µs
+2026-06-05 06:47:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.060438ms
+2026-06-05 06:48:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.014397ms
+2026-06-05 06:48:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/01359e6b-52b3-4983-b798-d8f28850e923 | OK | 384.774µs
+2026-06-05 06:48:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 603.727µs
+2026-06-05 06:48:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/01359e6b-52b3-4983-b798-d8f28850e923/monitor | Bad Request | 16.512µs
+2026-06-05 06:48:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/01359e6b-52b3-4983-b798-d8f28850e923/monitor | OK | 432.177772ms
+2026-06-05 06:48:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/01359e6b-52b3-4983-b798-d8f28850e923/monitor | OK | 404.589471ms
+2026-06-05 06:48:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/01359e6b-52b3-4983-b798-d8f28850e923/fs | OK | 6.016341ms
+2026-06-05 06:48:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 333.419µs
+2026-06-05 06:48:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/01359e6b-52b3-4983-b798-d8f28850e923/installer | OK | 427.201µs
+2026-06-05 06:48:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.870512ms
+2026-06-05 06:48:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 308.798µs
+2026-06-05 06:48:24 | admin@forensichub.local | 172.19.0.1 | PUT /api/v1/hunting/scenarios/1cd02ce6-6fc2-4032-bf88-6d98b7dd00da | OK | 6.192498ms | Payload: {"name":"Webshell Hunt","description":"Detect webshells on compromised web servers.","icon":"Shield","color":"emerald"}
+2026-06-05 06:48:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 706.266µs
+2026-06-05 06:48:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 10.643483ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 6.784222ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 14.047926ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 81.248633ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 9.775874ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 10.295501ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 62.549875ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 25.489812ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:29 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 164.24531ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 18.477313ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 999.346µs
+2026-06-05 06:48:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 367.586µs
+2026-06-05 06:48:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 565.116µs
+2026-06-05 06:48:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 8.540764ms
+2026-06-05 06:48:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 954.49µs
+2026-06-05 06:48:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.592786ms
+2026-06-05 06:48:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 485.365µs
+2026-06-05 06:48:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 425.45µs
+2026-06-05 06:48:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 415.915µs
+2026-06-05 06:48:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 394.598µs
+2026-06-05 06:48:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 314.378µs
+2026-06-05 06:48:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 433.539µs
+2026-06-05 06:48:55 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios/1cd02ce6-6fc2-4032-bf88-6d98b7dd00da/tools | Created | 10.818361ms | Payload: [File Upload / Ignored Body]
+2026-06-05 06:48:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.368505ms
+2026-06-05 06:48:57 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios/1cd02ce6-6fc2-4032-bf88-6d98b7dd00da/deploy | Created | 10.377471ms | Payload: {"agent_id":"01359e6b-52b3-4983-b798-d8f28850e923"}
+2026-06-05 06:48:57 | Agent-01359e6b-52b3-4983-b798-d8f28850e923 | 172.19.0.1 | GET /api/v1/agent/tools/0d856389-8153-4265-bf4c-f1927aeb023c/download | OK | 204.566707ms
+2026-06-05 06:49:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 3.46037ms
+2026-06-05 06:49:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs/d4c8945f-7acc-49ac-b258-1b024b6f4166 | OK | 1.377002ms
+2026-06-05 06:49:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 2.005993ms
+2026-06-05 06:49:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.667294ms
+2026-06-05 06:49:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 510.806µs
+2026-06-05 06:49:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.018139ms
+2026-06-05 06:49:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 3.059713ms
+2026-06-05 06:49:17 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/jobs/d4c8945f-7acc-49ac-b258-1b024b6f4166/run | OK | 10.253865ms
+2026-06-05 06:49:17 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.625112ms
+2026-06-05 06:49:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.796334ms
+2026-06-05 06:49:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 748.478µs
+2026-06-05 06:49:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.77417ms
+2026-06-05 06:49:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 2.010865ms
+2026-06-05 06:49:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.664003ms
+2026-06-05 06:49:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.517796ms
+2026-06-05 06:49:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.603567ms
+2026-06-05 06:49:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.532328ms
+2026-06-05 06:50:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.431501ms
+2026-06-05 06:50:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.495358ms
+2026-06-05 06:50:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.660228ms
+2026-06-05 06:50:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.402375ms
+2026-06-05 06:50:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.540819ms
+2026-06-05 06:50:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.748661ms
+2026-06-05 06:50:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.429013ms
+2026-06-05 06:50:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.460306ms
+2026-06-05 06:50:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.576098ms
+2026-06-05 06:50:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.587161ms
+2026-06-05 06:50:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.346469ms
+2026-06-05 06:50:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.516736ms
+2026-06-05 06:51:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.410627ms
+2026-06-05 06:51:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.212028ms
+2026-06-05 06:51:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.303987ms
+2026-06-05 06:51:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.422303ms
+2026-06-05 06:51:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.4327ms
+2026-06-05 06:51:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.446206ms
+2026-06-05 06:51:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.318124ms
+2026-06-05 06:51:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.396813ms
+2026-06-05 06:51:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.445312ms
+2026-06-05 06:51:46 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.409704ms
+2026-06-05 06:51:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.370713ms
+2026-06-05 06:51:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.540928ms
+2026-06-05 06:52:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.447288ms
+2026-06-05 06:52:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.504606ms
+2026-06-05 06:52:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.547353ms
+2026-06-05 06:52:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 3.944257ms
+2026-06-05 06:52:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.498757ms
+2026-06-05 06:52:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.860882ms
+2026-06-05 06:52:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.538765ms
+2026-06-05 06:52:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.59226ms
+2026-06-05 06:52:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.513424ms
+2026-06-05 06:52:46 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.515572ms
+2026-06-05 06:52:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.559966ms
+2026-06-05 06:52:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.436069ms
+2026-06-05 06:53:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.433038ms
+2026-06-05 06:53:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.527484ms
+2026-06-05 06:53:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.472073ms
+2026-06-05 06:53:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.458727ms
+2026-06-05 06:53:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.45894ms
+2026-06-05 06:53:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.481645ms
+2026-06-05 06:53:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.460648ms
+2026-06-05 06:53:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.452562ms
+2026-06-05 06:53:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.478574ms
+2026-06-05 06:53:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.570732ms
+2026-06-05 06:53:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.433939ms
+2026-06-05 06:53:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.673477ms
+2026-06-05 06:54:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.469342ms
+2026-06-05 06:54:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.45629ms
+2026-06-05 06:54:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.466222ms
+2026-06-05 06:54:17 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.497513ms
+2026-06-05 06:54:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.478056ms
+2026-06-05 06:54:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.425554ms
+2026-06-05 06:54:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.417017ms
+2026-06-05 06:54:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.860889ms
+2026-06-05 06:54:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.469088ms
+2026-06-05 06:54:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.586313ms
+2026-06-05 06:54:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.471788ms
+2026-06-05 06:54:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.522559ms
+2026-06-05 06:55:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.668814ms
+2026-06-05 06:55:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.505881ms
+2026-06-05 06:55:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.511602ms
+2026-06-05 06:55:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.477148ms
+2026-06-05 06:55:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.353703ms
+2026-06-05 06:55:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.578728ms
+2026-06-05 06:55:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.483444ms
+2026-06-05 06:55:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.498312ms
+2026-06-05 06:55:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.660075ms
+2026-06-05 06:55:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.613176ms
+2026-06-05 06:55:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.589972ms
+2026-06-05 06:55:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.803508ms
+2026-06-05 06:56:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.353484ms
+2026-06-05 06:56:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.450796ms
+2026-06-05 06:56:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.432039ms
+2026-06-05 06:56:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.446578ms
+2026-06-05 06:56:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.390785ms
+2026-06-05 06:56:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.398612ms
+2026-06-05 06:56:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.549807ms
+2026-06-05 06:56:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.379178ms
+2026-06-05 06:56:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.531053ms
+2026-06-05 06:56:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.381883ms
+2026-06-05 06:56:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.523306ms
+2026-06-05 06:56:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.505646ms
+2026-06-05 06:57:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.328601ms
+2026-06-05 06:57:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.349215ms
+2026-06-05 06:57:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.42447ms
+2026-06-05 06:57:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 4.915691ms
+2026-06-05 06:57:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.571357ms
+2026-06-05 06:57:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.611723ms
+2026-06-05 06:57:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.4753ms
+2026-06-05 06:57:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.620472ms
+2026-06-05 06:57:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.514634ms
+2026-06-05 06:57:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.561627ms
+2026-06-05 06:57:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.721489ms
+2026-06-05 06:57:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.624953ms
+2026-06-05 06:58:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.537646ms
+2026-06-05 06:58:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.963097ms
+2026-06-05 06:58:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.604789ms
+2026-06-05 06:58:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.56905ms
+2026-06-05 06:58:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.700073ms
+2026-06-05 06:58:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.657523ms
+2026-06-05 06:58:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.625832ms
+2026-06-05 06:58:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.485866ms
+2026-06-05 06:58:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.498508ms
+2026-06-05 06:58:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.379365ms
+2026-06-05 06:58:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.412449ms
+2026-06-05 06:58:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.406268ms
+2026-06-05 06:59:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.431046ms
+2026-06-05 06:59:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 1.509268ms
+2026-06-05 06:59:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 643.753µs
+2026-06-05 06:59:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 528.187µs
+2026-06-05 06:59:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 33.293397ms
+2026-06-05 07:00:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 861.515µs
+2026-06-05 07:00:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.451862ms
+2026-06-05 07:00:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 949.588µs
+2026-06-05 07:00:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.105431ms
+2026-06-05 07:00:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 933.094µs
+2026-06-05 07:00:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.226415ms
+2026-06-05 07:00:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.067316ms
+2026-06-05 07:00:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 788.152µs
+2026-06-05 07:00:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 941.971µs
+2026-06-05 07:00:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 836.738µs
+2026-06-05 07:00:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 752.517µs
+2026-06-05 07:00:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 883.988µs
+2026-06-05 07:00:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 710.374µs
+2026-06-05 07:00:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 770.944µs
+2026-06-05 07:00:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 751.953µs
+2026-06-05 07:00:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 811.834µs
+2026-06-05 07:01:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 722.978µs
+2026-06-05 07:01:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 887.427µs
+2026-06-05 07:01:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 715.34µs
+2026-06-05 07:01:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 665.838µs
+2026-06-05 07:01:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 809.233µs
+2026-06-05 07:01:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 739.997µs
+2026-06-05 07:01:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 732.486µs
+2026-06-05 07:01:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 850.535µs
+2026-06-05 07:01:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 735.73µs
+2026-06-05 07:01:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 724.902µs
+2026-06-05 07:01:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 669.063µs
+2026-06-05 07:01:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 741.342µs
+2026-06-05 07:01:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 706.804µs
+2026-06-05 07:01:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 746.562µs
+2026-06-05 07:01:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 847.664µs
+2026-06-05 07:01:46 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 897.656µs
+2026-06-05 07:01:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 819.098µs
+2026-06-05 07:01:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 742.152µs
+2026-06-05 07:01:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 711.205µs
+2026-06-05 07:01:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 756.941µs
+2026-06-05 07:02:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 730.511µs
+2026-06-05 07:02:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 816.589µs
+2026-06-05 07:02:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 822.312µs
+2026-06-05 07:02:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 801.309µs
+2026-06-05 07:02:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 819.314µs
+2026-06-05 07:02:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 727.547µs
+2026-06-05 07:02:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.815642ms
+2026-06-05 07:02:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 831.258µs
+2026-06-05 07:02:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 819.634µs
+2026-06-05 07:02:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 805.916µs
+2026-06-05 07:02:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 977.653µs
+2026-06-05 07:02:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 844.252µs
+2026-06-05 07:02:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 874.709µs
+2026-06-05 07:02:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 700.403µs
+2026-06-05 07:02:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 814.948µs
+2026-06-05 07:02:46 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 718.024µs
+2026-06-05 07:02:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 797.26µs
+2026-06-05 07:02:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 673.655µs
+2026-06-05 07:02:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 741.476µs
+2026-06-05 07:02:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 789.595µs
+2026-06-05 07:03:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 932.691µs
+2026-06-05 07:03:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 900.431µs
+2026-06-05 07:03:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 790.574µs
+2026-06-05 07:03:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 732.955µs
+2026-06-05 07:03:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 779.556µs
+2026-06-05 07:03:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 851.706µs
+2026-06-05 07:03:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 842.808µs
+2026-06-05 07:03:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 759.437µs
+2026-06-05 07:03:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 848.813µs
+2026-06-05 07:03:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 809.673µs
+2026-06-05 07:03:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 829.605µs
+2026-06-05 07:03:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 945.18µs
+2026-06-05 07:03:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 829.372µs
+2026-06-05 07:03:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 903.768µs
+2026-06-05 07:03:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 810.415µs
+2026-06-05 07:03:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 960.059µs
+2026-06-05 07:03:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 703.307µs
+2026-06-05 07:03:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 762.914µs
+2026-06-05 07:03:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 889.861µs
+2026-06-05 07:03:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 869.767µs
+2026-06-05 07:04:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 783.74µs
+2026-06-05 07:04:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 751.15µs
+2026-06-05 07:04:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 717.582µs
+2026-06-05 07:04:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 737.73µs
+2026-06-05 07:04:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 719.055µs
+2026-06-05 07:04:17 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 729.038µs
+2026-06-05 07:04:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 734.89µs
+2026-06-05 07:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 697.085µs
+2026-06-05 07:04:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 872.424µs
+2026-06-05 07:04:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 790.053µs
+2026-06-05 07:04:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 829.886µs
+2026-06-05 07:04:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 694.933µs
+2026-06-05 07:04:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 803.443µs
+2026-06-05 07:04:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 748.411µs
+2026-06-05 07:04:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.098211ms
+2026-06-05 07:04:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 873.408µs
+2026-06-05 07:04:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 939.4µs
+2026-06-05 07:04:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 985.863µs
+2026-06-05 07:04:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 583.617µs
+2026-06-05 07:04:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 799.728µs
+2026-06-05 07:05:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.497888ms
+2026-06-05 07:05:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.415681ms
+2026-06-05 07:05:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 864.102µs
+2026-06-05 07:05:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 2.406542ms
+2026-06-05 07:05:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 1.401394ms
+2026-06-05 07:05:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 995.926µs
+2026-06-05 07:05:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 862.258µs
+2026-06-05 07:05:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 681.541µs
+2026-06-05 07:05:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 731.794µs
+2026-06-05 07:05:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 712.867µs
+2026-06-05 07:05:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 755.655µs
+2026-06-05 07:05:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 739.889µs
+2026-06-05 07:05:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 803.032µs
+2026-06-05 07:05:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 762.15µs
+2026-06-05 07:05:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 710.83µs
+2026-06-05 07:05:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | OK | 719.8µs
+2026-06-05 07:06:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | Not Found | 845.745µs
+2026-06-05 07:06:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | Not Found | 281.848µs
+2026-06-05 07:06:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | Not Found | 294.26µs
+2026-06-05 07:06:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/ec368baf-a994-4482-a6fe-d0e07c7e32c9/summary | Not Found | 295.148µs
+2026-06-05 07:06:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 888.975µs
+2026-06-05 07:06:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 537.673µs
+2026-06-05 07:06:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 524.701µs
+2026-06-05 07:06:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 61.293442ms
+2026-06-05 07:06:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 428.226µs
+2026-06-05 07:06:46 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 244.865µs
+2026-06-05 07:06:47 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 5.877094ms | Payload: {"name":"IR-test","description":""}
+2026-06-05 07:06:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 240.187µs
+2026-06-05 07:06:53 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 5.497666ms | Payload: {"name":"test","description":"","case_id":"cff2bf59-6dd8-431b-8580-40faf2b2a205"}
+2026-06-05 07:06:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 264.414µs
+2026-06-05 07:07:01 | Agent-1a18c6b5-b294-4b43-bd62-d247f7b57a34 | 172.19.0.1 | GET /api/v1/agent/binary/windows | OK | 50.678121ms
+2026-06-05 07:07:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 300.093µs
+2026-06-05 07:07:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 298.075µs
+2026-06-05 07:07:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 299.663µs
+2026-06-05 07:07:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 274.989µs
+2026-06-05 07:07:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 473.405µs
+2026-06-05 07:07:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 704.009µs
+2026-06-05 07:07:49 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.221071ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Thu thập thông tin hệ thống (OS version, patch level, hostna","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Thu thập thông tin hệ thống (OS version, patch level, hostname)","item_ids":["p1w-1.1-1"],"command":"systeminfo & hostname & whoami /all"}]}
+2026-06-05 07:07:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 829.903µs
+2026-06-05 07:07:49 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.832143ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Ghi lại system time + tính time offset so với UTC","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Ghi lại system time + tính time offset so với UTC","item_ids":["p1w-1.1-2"],"command":"date /t && time /t & powershell -c \"Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'\" & w32tm /query /status 2>NUL & w32tm /query /configuration 2>NUL"}]}
+2026-06-05 07:07:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.157351ms
+2026-06-05 07:07:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/fb161f13-7f6c-40df-8d27-c165f07cf490/output | OK | 333.293865ms
+2026-06-05 07:07:50 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.127221ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Ghi lại uptime hệ thống","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Ghi lại uptime hệ thống","item_ids":["p1w-1.1-3"],"command":"net statistics workstation | findstr \"since\""}]}
+2026-06-05 07:07:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 785.6µs
+2026-06-05 07:07:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a10a3d91-0149-4408-b1a4-b28da87b35df/output | OK | 85.481116ms
+2026-06-05 07:07:50 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.010232ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Thu thập environment variables","case_id":"","analyst":"","batches":[{"batch_key":"1.1","batch_label":"Thu thập environment variables","item_ids":["p1w-1.1-4"],"command":"set"}]}
+2026-06-05 07:07:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 783.333µs
+2026-06-05 07:07:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/7fc7e196-0426-42fe-879a-5c92e9a5a90c/output | OK | 22.029129ms
+2026-06-05 07:07:51 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.359921ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Tất cả kết nối mạng đang hoạt động (kèm PID + executable)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Tất cả kết nối mạng đang hoạt động (kèm PID + executable)","item_ids":["p1w-1.2-1"],"command":"netstat -anob"}]}
+2026-06-05 07:07:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.559934ms
+2026-06-05 07:07:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/2b429691-fda9-45ad-95b2-12008a80adee/output | OK | 166.430013ms
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.805991ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"ARP cache (phát hiện lateral movement nội bộ)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"ARP cache (phát hiện lateral movement nội bộ)","item_ids":["p1w-1.2-2"],"command":"arp -a"}]}
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.289217ms
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/97e70a2e-0085-41b5-8696-a23d8ed7149c/output | OK | 48.285702ms
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.881949ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Cấu hình network interfaces","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Cấu hình network interfaces","item_ids":["p1w-1.2-3"],"command":"ipconfig /all"}]}
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.58548ms
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/684fd4ae-efba-4d2d-a1b4-3a74a4881693/output | OK | 68.131993ms
+2026-06-05 07:07:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/9a281981-01fb-4e0e-8b92-ad5e4973f5cc/output | OK | 3.286796355s
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.80825ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Routing table","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Routing table","item_ids":["p1w-1.2-4"],"command":"route print"}]}
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 878.426µs
+2026-06-05 07:07:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a1944df5-b8e0-47b0-9f6d-6affde2e4248/output | OK | 61.947166ms
+2026-06-05 07:07:53 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.431955ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"DNS cache (phát hiện C2 domains đã resolve)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"DNS cache (phát hiện C2 domains đã resolve)","item_ids":["p1w-1.2-5"],"command":"ipconfig /displaydns"}]}
+2026-06-05 07:07:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.646302ms
+2026-06-05 07:07:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/bbd4a5bd-4a91-48bc-be7c-6143a14aff5b/output | OK | 29.029393ms
+2026-06-05 07:07:53 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.104174ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Network shares đang mount","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Network shares đang mount","item_ids":["p1w-1.2-6"],"command":"net use & net share"}]}
+2026-06-05 07:07:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.027282ms
+2026-06-05 07:07:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/8bbcce7a-ae29-4555-97a4-9c9ee3f23602/output | OK | 81.42495ms
+2026-06-05 07:07:57 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.861597ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"WiFi profiles đã lưu (có thể chứa credentials)","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"WiFi profiles đã lưu (có thể chứa credentials)","item_ids":["p1w-1.2-7"],"command":"netsh wlan show profiles"}]}
+2026-06-05 07:07:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.036797ms
+2026-06-05 07:07:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/4c385ff2-c2c9-475f-a8b0-207062741ef2/output | OK | 193.190458ms
+2026-06-05 07:07:57 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.371486ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Windows Firewall logs","case_id":"","analyst":"","batches":[{"batch_key":"1.2","batch_label":"Windows Firewall logs","item_ids":["p1w-1.2-8"],"command":"mkdir evidence 2>NUL & copy C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log evidence\\ 2>NUL & netsh advfirewall show allprofiles state"}]}
+2026-06-05 07:07:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 959.662µs
+2026-06-05 07:07:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/263ed86f-9a11-452b-bc60-0f949bc5aa11/output | OK | 127.813339ms
+2026-06-05 07:07:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.756611ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Danh sách processes kèm command line đầy đủ","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Danh sách processes kèm command line đầy đủ","item_ids":["p1w-1.3-1"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 07:07:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.172771ms
+2026-06-05 07:07:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.505212ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"DLLs được load bởi từng process (tìm DLL injection)","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"DLLs được load bởi từng process (tìm DLL injection)","item_ids":["p1w-1.3-2"],"command":"tasklist /m"}]}
+2026-06-05 07:07:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.077998ms
+2026-06-05 07:08:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.915328ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Open file handles của mỗi process","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Open file handles của mỗi process","item_ids":["p1w-1.3-3"],"command":"handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\""}]}
+2026-06-05 07:08:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.012227ms
+2026-06-05 07:08:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a93c017d-f8f4-4eed-8ac7-4a5028ce5e46/output | OK | 398.994458ms
+2026-06-05 07:08:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.114939ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Loaded drivers (tìm rootkit kernel-mode)","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Loaded drivers (tìm rootkit kernel-mode)","item_ids":["p1w-1.3-4"],"command":"driverquery /fo csv /v"}]}
+2026-06-05 07:08:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.222199ms
+2026-06-05 07:08:01 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.520773ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Users đang đăng nhập và active sessions","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Users đang đăng nhập và active sessions","item_ids":["p1w-1.4-1"],"command":"query user & query session"}]}
+2026-06-05 07:08:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.109319ms
+2026-06-05 07:08:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/c16f626a-35c0-4565-a198-bc51505280dc/output | OK | 158.047694ms
+2026-06-05 07:08:02 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.408559ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Danh sách tất cả local accounts","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Danh sách tất cả local accounts","item_ids":["p1w-1.4-2"],"command":"net user & powershell -c \"Get-LocalUser | Select-Object Name,SID,Enabled,LastLogon,Description | Format-Table -AutoSize\""}]}
+2026-06-05 07:08:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.202774ms
+2026-06-05 07:08:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/14e3a4e1-9625-4c59-ac34-2da0e3834db8/output | OK | 326.607974ms
+2026-06-05 07:08:02 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.157061ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Danh sách local groups (đặc biệt Administrators)","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Danh sách local groups (đặc biệt Administrators)","item_ids":["p1w-1.4-3"],"command":"net localgroup Administrators & net localgroup"}]}
+2026-06-05 07:08:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.108145ms
+2026-06-05 07:08:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/639205e7-4e82-4f9d-9301-8130b2f08338/output | OK | 121.757306ms
+2026-06-05 07:08:04 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.396231ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Clipboard content (có thể chứa credentials)","case_id":"","analyst":"","batches":[{"batch_key":"1.4","batch_label":"Clipboard content (có thể chứa credentials)","item_ids":["p1w-1.4-4"],"command":"powershell -c \"Get-Clipboard\""}]}
+2026-06-05 07:08:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.120239ms
+2026-06-05 07:08:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/2d49163c-908e-4f52-bc9b-1017a2243ed1/output | OK | 265.507732ms
+2026-06-05 07:08:04 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.900157ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Tất cả Scheduled Tasks (tìm persistence)","case_id":"","analyst":"","batches":[{"batch_key":"1.5","batch_label":"Tất cả Scheduled Tasks (tìm persistence)","item_ids":["p1w-1.5-1"],"command":"schtasks /query /fo csv /v"}]}
+2026-06-05 07:08:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.146561ms
+2026-06-05 07:07:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d5bfd392-19ba-451e-b241-c6e96c4172e5/output | OK | 5.414210359s
+2026-06-05 07:08:05 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.282348ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Tất cả services và trạng thái hiện tại","case_id":"","analyst":"","batches":[{"batch_key":"1.5","batch_label":"Tất cả services và trạng thái hiện tại","item_ids":["p1w-1.5-2"],"command":"sc query type= all state= all & powershell -c \"Get-Service | Select-Object Name,DisplayName,Status,StartType | Sort-Object Status | Format-Table -AutoSize\" & powershell -c \"Get-CimInstance Win32_Service | Select-Object Name,PathName,StartMode,State | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 07:08:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.087626ms
+2026-06-05 07:08:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/66c468cf-efbf-4d6d-b2cc-7aed318f5200/output | OK | 943.480081ms
+2026-06-05 07:08:08 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 8.644337ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Registry Run keys (HKLM & HKCU)","case_id":"","analyst":"","batches":[{"batch_key":"1.6","batch_label":"Registry Run keys (HKLM & HKCU)","item_ids":["p1w-1.6-1"],"command":"reg query HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run & reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run & reg query \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\" & reg query HKLM\\SYSTEM\\CurrentControlSet\\Services"}]}
+2026-06-05 07:08:08 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.448145ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Chạy Autoruns — tổng hợp tất cả persistence points","case_id":"","analyst":"","batches":[{"batch_key":"1.6","batch_label":"Chạy Autoruns — tổng hợp tất cả persistence points","item_ids":["p1w-1.6-2"],"command":"autorunsc.exe -a * -c -h -s"}]}
+2026-06-05 07:08:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 2.015504ms
+2026-06-05 07:08:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 869.411µs
+2026-06-05 07:08:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/9bf4429c-ade7-4410-a7f1-d0758e86447d/output | OK | 43.771187ms
+2026-06-05 07:08:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/d8271103-3746-4be5-a6fc-c9fc8a8dd111/output | OK | 954.595184ms
+2026-06-05 07:08:10 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.712659ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Security.evtx — logon, process creation, account management","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Security.evtx — logon, process creation, account management","item_ids":["p1w-1.7-1"],"command":"mkdir evidence 2>NUL & wevtutil epl Security evidence\\Security.evtx"}]}
+2026-06-05 07:08:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.100541ms
+2026-06-05 07:08:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/c91e28ec-5284-44e9-9fa0-5898d898d5f8/output | OK | 322.796371ms
+2026-06-05 07:08:10 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.962327ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"System.evtx — service install, boot/shutdown","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"System.evtx — service install, boot/shutdown","item_ids":["p1w-1.7-2"],"command":"mkdir evidence 2>NUL & wevtutil epl System evidence\\System.evtx"}]}
+2026-06-05 07:08:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.058774ms
+2026-06-05 07:08:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/471ec012-53cf-42c0-8cdc-ae410015655e/output | OK | 78.224689ms
+2026-06-05 07:08:11 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.371567ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"PowerShell/Operational.evtx — script block logging","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"PowerShell/Operational.evtx — script block logging","item_ids":["p1w-1.7-3"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-PowerShell/Operational\" evidence\\PS_Operational.evtx"}]}
+2026-06-05 07:08:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.78072ms
+2026-06-05 07:08:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/dc06c55c-4055-403f-bb36-463cff55c4b2/output | OK | 60.520132ms
+2026-06-05 07:08:11 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.117848ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"TaskScheduler/Operational.evtx","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"TaskScheduler/Operational.evtx","item_ids":["p1w-1.7-4"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-TaskScheduler/Operational\" evidence\\TaskSched.evtx"}]}
+2026-06-05 07:08:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.567227ms
+2026-06-05 07:08:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/e9aea542-9258-45eb-934a-ed75f4b5d97a/output | OK | 51.153987ms
+2026-06-05 07:08:12 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 7.410019ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Sysmon/Operational.evtx (nếu Sysmon đang chạy)","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Sysmon/Operational.evtx (nếu Sysmon đang chạy)","item_ids":["p1w-1.7-5"],"command":"mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-Sysmon/Operational\" evidence\\Sysmon.evtx 2>NUL || echo Sysmon not installed - skipping"}]}
+2026-06-05 07:08:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.257665ms
+2026-06-05 07:08:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/565fde98-24d7-4257-9bd6-21f9aec26b35/output | OK | 57.432896ms
+2026-06-05 07:08:13 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.231454ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Application.evtx + copy toàn bộ thư mục logs","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Application.evtx + copy toàn bộ thư mục logs","item_ids":["p1w-1.7-6"],"command":"mkdir evidence 2>NUL & wevtutil epl Application evidence\\Application.evtx & xcopy /E /I /Y C:\\Windows\\System32\\winevt\\Logs\\ evidence\\evtx_all\\"}]}
+2026-06-05 07:08:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.220955ms
+2026-06-05 07:08:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/eb369131-c850-4344-9659-085d299735af/output | OK | 628.74901ms
+2026-06-05 07:08:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.070125ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"PowerShell command history","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"PowerShell command history","item_ids":["p1w-1.8-1"],"command":"mkdir evidence 2>NUL & copy \"%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt\" evidence\\ps_history.txt 2>NUL & powershell -c \"Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 200\""}]}
+2026-06-05 07:08:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.580113ms
+2026-06-05 07:08:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/4e123fb4-74ca-4208-9878-684421fd7270/output | OK | 341.345422ms
+2026-06-05 07:08:15 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.28889ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Prefetch files (chứng minh chương trình đã từng chạy)","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Prefetch files (chứng minh chương trình đã từng chạy)","item_ids":["p1w-1.8-2"],"command":"mkdir evidence 2>NUL & mkdir evidence\\prefetch 2>NUL & xcopy /Y C:\\Windows\\Prefetch\\*.pf evidence\\prefetch\\ 2>NUL || echo Prefetch disabled or access denied"}]}
+2026-06-05 07:08:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.134038ms
+2026-06-05 07:08:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/76df4f09-be37-4b57-a33a-b752d5c1676f/output | OK | 432.394965ms
+2026-06-05 07:08:16 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.54665ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Recent files & Jump Lists","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Recent files & Jump Lists","item_ids":["p1w-1.8-3"],"command":"mkdir evidence 2>NUL & mkdir evidence\\recent 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\\" evidence\\recent\\ 2>NUL"}]}
+2026-06-05 07:08:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.751828ms
+2026-06-05 07:08:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/7152a684-1fb0-4e59-8dd7-8e03054d78fb/output | OK | 49.923035ms
+2026-06-05 07:08:16 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.422417ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Browser history — Chrome","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Browser history — Chrome","item_ids":["p1w-1.8-4"],"command":"mkdir evidence 2>NUL & mkdir evidence\\chrome 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\\" evidence\\chrome\\ 2>NUL || echo Chrome not found"}]}
+2026-06-05 07:08:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.20811ms
+2026-06-05 07:08:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/365353c3-d78a-4b15-92da-8099d557c46c/output | OK | 55.126335ms
+2026-06-05 07:08:17 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 6.813459ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Browser history — Firefox","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Browser history — Firefox","item_ids":["p1w-1.8-5"],"command":"mkdir evidence 2>NUL & mkdir evidence\\firefox 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\\" evidence\\firefox\\ 2>NUL || echo Firefox not found"}]}
+2026-06-05 07:08:17 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.197605ms
+2026-06-05 07:08:17 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/da866a31-123b-42e9-838b-0118daa7a18c/output | OK | 58.704229ms
+2026-06-05 07:08:18 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.694775ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Tìm file mới tạo/modified trong khoảng thời gian sự cố","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Tìm file mới tạo/modified trong khoảng thời gian sự cố","item_ids":["p1w-1.8-6"],"command":"powershell -c \"Get-ChildItem -Path C:\\Users -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-30)} | Select-Object FullName,LastWriteTime,Length | ConvertTo-Csv -NoTypeInformation\""}]}
+2026-06-05 07:08:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.921553ms
+2026-06-05 07:08:18 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 5.452346ms | Payload: {"agent_id":"1a18c6b5-b294-4b43-bd62-d247f7b57a34","platform":"win","label":"Kiểm tra thư mục temp/staging hay dùng bởi attacker","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"Kiểm tra thư mục temp/staging hay dùng bởi attacker","item_ids":["p1w-1.8-7"],"command":"dir /a C:\\Windows\\Temp\\ & dir /a C:\\Users\\Public\\ & dir /a C:\\ProgramData\\ & dir /a \"%TEMP%\""}]}
+2026-06-05 07:08:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.315025ms
+2026-06-05 07:08:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/68329f0c-f894-4f4d-968d-125027ad5158/output | OK | 48.078126ms
+2026-06-05 07:08:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/426caff3-f308-4a9b-996d-c66ab9afe2a8/output | OK | 515.154446ms
+2026-06-05 07:07:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a0d16beb-ced9-4b69-b3c8-46db905889a2/output | OK | 19.054843908s
+2026-06-05 07:08:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/28aa00e4-9607-440d-b20c-9906d69410ca/output | OK | 19.190678166s
+2026-06-05 07:08:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/a3a5288d-ddfb-4d12-9bc3-af45146dfaf2/output | OK | 19.211380679s
+2026-06-05 07:08:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 747.239µs
+2026-06-05 07:08:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 847.579µs
+2026-06-05 07:08:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/cff2bf59-6dd8-431b-8580-40faf2b2a205/summary | OK | 1.418432ms
+2026-06-05 07:08:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 542.398µs
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 9.186443ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 7.207071ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 16.347228ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 73.00036ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 8.717532ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 8.68562ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 32.835802ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 7.391591ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:30 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 156.110363ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:31 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 20.195794ms | Payload: [File Upload / Ignored Body]
+2026-06-05 07:08:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 569.011µs
+2026-06-05 07:08:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 1.08218ms
+2026-06-05 07:08:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 72.381554ms
+2026-06-05 07:08:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 775.558µs
+2026-06-05 07:08:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.472584ms
+2026-06-05 07:08:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 452.629µs
+2026-06-05 07:08:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 769.887µs
+2026-06-05 07:08:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.273118ms
+2026-06-05 07:08:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/68329f0c-f894-4f4d-968d-125027ad5158/download | OK | 479.993µs
+2026-06-05 07:08:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/68329f0c-f894-4f4d-968d-125027ad5158/download | Not Modified | 408.982µs
+2026-06-05 07:08:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/68329f0c-f894-4f4d-968d-125027ad5158/download | Not Modified | 443.35µs

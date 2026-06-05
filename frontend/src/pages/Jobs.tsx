@@ -446,11 +446,12 @@ export default function JobsPage() {
                   <th className="table-header text-left px-5 py-3">Status</th>
                   <th className="table-header text-left px-5 py-3 hidden md:table-cell">Duration</th>
                   <th className="table-header text-left px-5 py-3 hidden lg:table-cell">Created</th>
+                  <th className="table-header text-left px-5 py-3 hidden lg:table-cell">Analyst</th>
                   <th className="table-header text-right px-5 py-3">View</th>
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((job) => (
+                {sorted.map((job: any) => (
                   <tr key={job.id} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
                     <td className="px-5 py-3">
                       <span className="font-mono text-xs text-gray-400">{job.id.slice(0, 8)}…</span>
@@ -476,6 +477,9 @@ export default function JobsPage() {
                     </td>
                     <td className="px-5 py-3 hidden lg:table-cell text-xs text-gray-500">
                       {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                    </td>
+                    <td className="px-5 py-3 hidden lg:table-cell text-xs text-gray-400">
+                      {job.created_by_user?.name || job.created_by_user?.email || '—'}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Link

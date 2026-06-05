@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   LibraryBig,
   ArrowUp,
+  Briefcase,
   Menu,
   X,
   Crosshair,
@@ -27,6 +28,7 @@ const NAV_GROUPS = [
     label: 'Overview',
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/cases',     icon: Briefcase,       label: 'Case Manager' },
     ]
   },
   {
@@ -51,6 +53,7 @@ const NAV_GROUPS = [
 
 const BREADCRUMB_MAP: Record<string, string> = {
   dashboard: 'Dashboard',
+  cases:     'Case Manager',
   tools:     'Tool Library',
   agents:    'Agent Management',
   jobs:      'Jobs',

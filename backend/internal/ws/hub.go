@@ -287,6 +287,20 @@ func (h *Hub) handleAgentMessage(msg agentInbound) {
 			go h.OnJobStatus(am.JobID, am.Status)
 		}
 
+		if am.Status == "stopped" || am.Status == "done" {
+			h.mu.RLock()
+			subs := make([]chan string, len(h.subscribers[am.JobID]))
+			copy(subs, h.subscribers[am.JobID])
+			h.mu.RUnlock()
+
+			for _, ch := range subs {
+				select {
+				case ch <- "__DONE__":
+				default:
+				}
+			}
+		}
+
 	case "shell_output":
 		if am.SessionID == "" {
 			return

@@ -54,18 +54,18 @@ func NewRouter(
 
 	// WebSocket — agents + interactive admin terminal.
 	router.GET("/ws/agent", middleware.AgentAuthMiddleware(db), handlers.AgentWebSocket)
-	router.GET("/ws/terminal", middleware.AuthMiddleware(jwtSecret), handlers.TerminalWebSocket)
+	router.GET("/ws/terminal", middleware.AuthMiddleware(jwtSecret, db), handlers.TerminalWebSocket)
 
 	v1 := router.Group("/api/v1")
 
 	auth := v1.Group("/auth")
 	{
 		auth.POST("/login", handlers.Login)
-		auth.GET("/me", middleware.AuthMiddleware(jwtSecret), handlers.Me)
+		auth.GET("/me", middleware.AuthMiddleware(jwtSecret, db), handlers.Me)
 	}
 
 	protected := v1.Group("/")
-	protected.Use(middleware.AuthMiddleware(jwtSecret))
+	protected.Use(middleware.AuthMiddleware(jwtSecret, db), middleware.AuditMiddleware())
 	{
 		// Tools
 		protected.GET("/tools", handlers.ListTools)
@@ -157,20 +157,26 @@ func NewRouter(
 		protected.GET("/news/categories", handlers.GetNewsCategories)
 		protected.GET("/news/stream", handlers.StreamNews)
 
+		// Cases
+		casesHandler := handlers.NewCasesHandler(db)
+		protected.GET("/cases", casesHandler.ListCases)
+		protected.POST("/cases", casesHandler.CreateCase)
+		protected.GET("/cases/:id/summary", casesHandler.GetCaseSummary)
+
 		// Evidence Collection Checklist
 		protected.POST("/checklist/run", handlers.RunChecklist)
 		protected.GET("/checklist/runs", handlers.ListChecklistRuns)
 		protected.GET("/checklist/runs/:id", handlers.GetChecklistRun)
 		protected.GET("/checklist/batches/:id/output", handlers.StreamBatchOutput)
+		protected.GET("/checklist/batches/:id/download", handlers.DownloadBatchOutput)
 	}
 
 	// Install scripts — handler validates the agent token inline.
 	v1.GET("/agents/:id/install.ps1", handlers.GetAgentInstallScript)
 	v1.GET("/agents/:id/install.sh", handlers.GetAgentInstallScript)
 
-	// Agent-authenticated endpoints
 	agentProtected := v1.Group("/")
-	agentProtected.Use(middleware.AgentAuthMiddleware(db))
+	agentProtected.Use(middleware.AgentAuthMiddleware(db), middleware.AuditMiddleware())
 	{
 		agentProtected.POST("/jobs/:id/artifact", handlers.UploadArtifact)
 		agentProtected.GET("/agent/tools/:id/download", handlers.DownloadTool)

@@ -29,7 +29,7 @@ type Claims struct {
 // For SSE endpoints that cannot set custom headers, it also accepts the token
 // via the ?token= query parameter.
 // On success it stores userID and role in the Gin context.
-func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
+func AuthMiddleware(jwtSecret string, db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var tokenStr string
 
@@ -62,9 +62,15 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-
+		// Verify user exists in the database
+		var user models.User
+		if err := db.First(&user, "id = ?", claims.UserID).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "error": "user no longer exists, please login again"})
+			return
+		}
 
 		c.Set(ContextUserID, claims.UserID)
+		c.Set("userEmail", user.Email)
 		c.Set(ContextRole, claims.Role)
 		c.Next()
 	}

@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -76,11 +79,16 @@ func RunChecklist(c *gin.Context) {
 		return
 	}
 
+	caseID := req.CaseID
+	if caseID == "" && agent.CaseID != nil {
+		caseID = agent.CaseID.String()
+	}
+
 	run := models.ChecklistRun{
 		AgentID:   agentID,
 		Label:     req.Label,
 		Platform:  req.Platform,
-		CaseID:    req.CaseID,
+		CaseID:    caseID,
 		Analyst:   req.Analyst,
 		Status:    "running",
 		CreatedBy: userID,
@@ -135,19 +143,34 @@ func RunChecklist(c *gin.Context) {
 				"started_at": now,
 			})
 
-			var outputBuf strings.Builder
+			storagePath := os.Getenv("STORAGE_PATH")
+			if storagePath == "" {
+				storagePath = "/app/storage"
+			}
+			outDir := filepath.Join(storagePath, "checklists")
+			os.MkdirAll(outDir, 0755)
+
+			outFilePath := filepath.Join(outDir, b.ID.String()+".txt")
+			file, err := os.OpenFile(outFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+			if err != nil {
+				log.Printf("[checklist] failed to open output file: %v", err)
+			} else {
+				defer file.Close()
+			}
+
 			for line := range ch {
 				if line == "__DONE__" {
 					break
 				}
-				outputBuf.WriteString(line)
-				outputBuf.WriteString("\n")
+				if file != nil {
+					file.WriteString(line + "\n")
+				}
 			}
 
 			finishedAt := time.Now()
 			db.Model(&b).Updates(map[string]interface{}{
 				"status":      "done",
-				"output":      outputBuf.String(),
+				"output":      "[Output saved to file]",
 				"finished_at": finishedAt,
 			})
 
@@ -202,7 +225,7 @@ func ListChecklistRuns(c *gin.Context) {
 	}
 
 	var runs []models.ChecklistRun
-	if err := query.Order("created_at desc").Find(&runs).Error; err != nil {
+	if err := query.Preload("Batches").Order("created_at desc").Find(&runs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "db error"})
 		return
 	}
@@ -272,9 +295,23 @@ func StreamBatchOutput(c *gin.Context) {
 	c.Header("X-Accel-Buffering", "no")
 
 	if batch.Status == "done" || batch.Status == "failed" || batch.Status == "stopped" {
-		for _, line := range strings.Split(batch.Output, "\n") {
-			if line != "" {
-				fmt.Fprintf(c.Writer, "data: %s\n\n", line)
+		storagePath := os.Getenv("STORAGE_PATH")
+		if storagePath == "" {
+			storagePath = "/app/storage"
+		}
+		filePath := filepath.Join(storagePath, "checklists", batch.ID.String()+".txt")
+		file, err := os.Open(filePath)
+		if err == nil {
+			defer file.Close()
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				fmt.Fprintf(c.Writer, "data: %s\n\n", scanner.Text())
+			}
+		} else {
+			for _, line := range strings.Split(batch.Output, "\n") {
+				if line != "" {
+					fmt.Fprintf(c.Writer, "data: %s\n\n", line)
+				}
 			}
 		}
 		fmt.Fprintf(c.Writer, "data: __DONE__\n\n")
@@ -322,9 +359,23 @@ func StreamBatchOutput(c *gin.Context) {
 				continue
 			}
 			if batch.Status == "done" || batch.Status == "failed" || batch.Status == "stopped" {
-				for _, line := range strings.Split(batch.Output, "\n") {
-					if line != "" {
-						fmt.Fprintf(c.Writer, "data: %s\n\n", line)
+				storagePath := os.Getenv("STORAGE_PATH")
+				if storagePath == "" {
+					storagePath = "/app/storage"
+				}
+				filePath := filepath.Join(storagePath, "checklists", batch.ID.String()+".txt")
+				file, err := os.Open(filePath)
+				if err == nil {
+					defer file.Close()
+					scanner := bufio.NewScanner(file)
+					for scanner.Scan() {
+						fmt.Fprintf(c.Writer, "data: %s\n\n", scanner.Text())
+					}
+				} else {
+					for _, line := range strings.Split(batch.Output, "\n") {
+						if line != "" {
+							fmt.Fprintf(c.Writer, "data: %s\n\n", line)
+						}
 					}
 				}
 				fmt.Fprintf(c.Writer, "data: __DONE__\n\n")
@@ -333,4 +384,37 @@ func StreamBatchOutput(c *gin.Context) {
 			}
 		}
 	}
+}
+
+// DownloadBatchOutput returns the raw text output of a batch.
+// GET /api/v1/checklist/batches/:id/download
+func DownloadBatchOutput(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var batch models.ChecklistBatch
+	if err := db.First(&batch, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	storagePath := os.Getenv("STORAGE_PATH")
+	if storagePath == "" {
+		storagePath = "/app/storage"
+	}
+	filePath := filepath.Join(storagePath, "checklists", batch.ID.String()+".txt")
+
+	if _, err := os.Stat(filePath); err == nil {
+		c.File(filePath)
+		return
+	}
+
+	// Fallback to database output
+	c.String(http.StatusOK, batch.Output)
 }

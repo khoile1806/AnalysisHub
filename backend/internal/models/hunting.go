@@ -44,8 +44,9 @@ type HuntingDeployment struct {
 	Scenario   HuntingScenario `gorm:"foreignKey:ScenarioID"                          json:"scenario,omitempty"`
 	AgentID    uuid.UUID       `gorm:"type:uuid;not null"                             json:"agent_id"`
 	Agent      Agent           `gorm:"foreignKey:AgentID"                             json:"agent,omitempty"`
-	CreatedBy  uuid.UUID       `gorm:"type:uuid"                                      json:"created_by"`
-	CreatedAt  time.Time       `                                                      json:"created_at"`
+	CreatedBy     uuid.UUID       `gorm:"type:uuid"                                      json:"created_by"`
+	CreatedByUser *User           `gorm:"foreignKey:CreatedBy"                           json:"created_by_user,omitempty"`
+	CreatedAt     time.Time       `                                                      json:"created_at"`
 
 	Jobs []Job `gorm:"foreignKey:DeploymentID" json:"jobs,omitempty"`
 }

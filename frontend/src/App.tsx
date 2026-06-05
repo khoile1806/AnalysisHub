@@ -9,6 +9,8 @@ import React, { Suspense, lazy } from 'react'
 // the download/parse cost for the page they actually open. Login + Dashboard
 // stay eager because they're the entry points after auth.
 const ToolsPage = lazy(() => import('@/pages/Tools'))
+const CasesPage = lazy(() => import('@/pages/CaseManager'))
+const CaseDetailPage = lazy(() => import('@/pages/CaseDetail'))
 const AgentsPage = lazy(() => import('@/pages/Agents'))
 const AgentDetailPage = lazy(() => import('@/pages/AgentDetail'))
 const JobsPage = lazy(() => import('@/pages/Jobs'))
@@ -96,6 +98,26 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <ToolsPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/cases"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <CasesPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/cases/:id"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <CaseDetailPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

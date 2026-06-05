@@ -40,11 +40,20 @@ function NewAgentModal({ open, onClose }: NewAgentModalProps) {
   const qc = useQueryClient()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [caseId, setCaseId] = useState<string>('')
   const [newAgent, setNewAgent] = useState<Agent | null>(null)
   const [installPlatform, setInstallPlatform] = useState<'windows' | 'linux'>('windows')
 
+  const { data: cases = [] } = useQuery({
+    queryKey: ['cases'],
+    queryFn: async () => {
+      const { data } = await import('@/api/client').then(m => m.default.get('/cases'));
+      return data;
+    },
+  })
+
   const createMutation = useMutation({
-    mutationFn: agentsApi.create,
+    mutationFn: (payload: any) => agentsApi.create(payload),
     onSuccess: (agent) => {
       qc.invalidateQueries({ queryKey: ['agents'] })
       setNewAgent(agent)
@@ -56,11 +65,11 @@ function NewAgentModal({ open, onClose }: NewAgentModalProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) { toast.error('Agent name is required'); return }
-    createMutation.mutate({ name: name.trim(), description })
+    createMutation.mutate({ name: name.trim(), description, case_id: caseId || null })
   }
 
   const handleClose = () => {
-    setName(''); setDescription(''); setNewAgent(null)
+    setName(''); setDescription(''); setCaseId(''); setNewAgent(null)
     onClose()
   }
 
@@ -184,6 +193,24 @@ function NewAgentModal({ open, onClose }: NewAgentModalProps) {
                 placeholder="e.g. workstation-01"
                 required
               />
+            </div>
+            <div>
+              <label className="label">Assign to Case (Optional)</label>
+              <select
+                className="input"
+                value={caseId}
+                onChange={(e) => setCaseId(e.target.value)}
+              >
+                <option value="">-- No Case --</option>
+                {cases.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-500 mt-1">
+                Link this agent to an investigation case to track hunting actions. Create new cases in the Case Manager tab.
+              </p>
             </div>
             <div>
               <label className="label">Description</label>

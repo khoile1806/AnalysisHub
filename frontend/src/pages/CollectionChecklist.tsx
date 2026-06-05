@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CheckSquare, Square, ChevronDown, ChevronRight, Play,
   RotateCcw, Download, AlertTriangle, Terminal, Loader2,
@@ -11,8 +12,8 @@ import { jobsApi } from '@/api/jobs'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Platform = 'win' | 'linux'
 type Priority = 'critical' | 'high' | 'medium'
+
 
 interface ChecklistItem {
   id: string
@@ -32,18 +33,8 @@ interface ChecklistSection {
   items: { win: ChecklistItem[]; linux: ChecklistItem[] }
 }
 
-interface ToolResult {
-  jobId: string
-  itemId: string
-  toolName: string
-  liveOutput: string
-  liveStatus: 'pending' | 'downloading' | 'running' | 'done' | 'failed'
-}
+import { useChecklistStore, type Platform, type ItemStatus, type ToolResult } from '@/store/checklist'
 
-interface ToolPick {
-  toolId: string
-  args: string
-}
 
 // ─── Checklist Data ───────────────────────────────────────────────────────────
 
@@ -465,20 +456,33 @@ const STATUS_ICON: Record<string, JSX.Element> = {
 
 function BatchResultCard({ batch }: { batch: ChecklistBatch & { liveOutput?: string; liveStatus?: string } }) {
   const status = batch.liveStatus ?? batch.status
-  const output = batch.liveOutput ?? batch.output ?? ''
-  const lineCount = output.split('\n').filter(Boolean).length
+  const rawOutput = batch.liveOutput ?? batch.output ?? ''
+  const isSavedToFile = rawOutput === '[Output saved to file]'
   const [expanded, setExpanded] = useState(true)
   const outputRef = useRef<HTMLPreElement>(null)
+  const [fetchedOutput, setFetchedOutput] = useState<string | null>(null)
+
+  const displayOutput = fetchedOutput !== null ? fetchedOutput : rawOutput
+  const lineCount = displayOutput.split('\n').filter(Boolean).length
 
   useEffect(() => {
     if (status === 'running') setExpanded(true)
   }, [status])
 
   useEffect(() => {
+    if (expanded && isSavedToFile && fetchedOutput === null) {
+      setFetchedOutput('Loading output from file...\n')
+      checklistApi.downloadBatchOutput(batch.id)
+        .then(data => setFetchedOutput(data))
+        .catch(err => setFetchedOutput(`Failed to load output: ${err.message}`))
+    }
+  }, [expanded, isSavedToFile, fetchedOutput, batch.id])
+
+  useEffect(() => {
     if (status === 'running' && outputRef.current) {
       outputRef.current.scrollTop = outputRef.current.scrollHeight
     }
-  }, [output, status])
+  }, [displayOutput, status])
 
   const statusBar = {
     pending: 'bg-gray-500/20 border-gray-500/30 text-gray-400',
@@ -527,8 +531,8 @@ function BatchResultCard({ batch }: { batch: ChecklistBatch & { liveOutput?: str
           ref={outputRef}
           className="font-mono text-[11px] leading-relaxed text-[#a8c8a0] bg-[#060810] p-4 max-h-80 overflow-auto whitespace-pre-wrap break-all"
         >
-          {output
-            ? output
+          {displayOutput
+            ? displayOutput
             : status === 'pending'
               ? <span className="text-[#5a6488]">Waiting for dispatch…</span>
               : status === 'running'
@@ -544,7 +548,6 @@ function BatchResultCard({ batch }: { batch: ChecklistBatch & { liveOutput?: str
 
 // ─── ItemRunButton ────────────────────────────────────────────────────────────
 
-type ItemStatus = 'idle' | 'running' | 'done' | 'failed'
 
 function ItemRunButton({ status, onClick, disabled }: {
   status: ItemStatus
@@ -654,29 +657,29 @@ function ToolResultCard({ result }: { result: ToolResult }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CollectionChecklist() {
-  const [platform, setPlatform] = useState<Platform>('win')
+  const {
+    platform, setPlatform,
+    selectedAgent, setSelectedAgent,
+    collapsed, setCollapsed,
+    checked, setChecked,
+    tab, setTab,
+    running, setRunning,
+    caseID, setCaseID,
+    analyst, setAnalyst,
+    itemStatus, setItemStatus,
+    runIDs, setRunIDs,
+    batchResults, setBatchResults,
+    toolResults, setToolResults,
+    openPickerFor, setOpenPickerFor,
+    itemToolPick, setItemToolPick,
+    itemToolRunning, setItemToolRunning,
+    resetAgentState
+  } = useChecklistStore()
+
   const [agents, setAgents] = useState<Agent[]>([])
-  const [selectedAgent, setSelectedAgent] = useState('')
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [checked, setChecked] = useState<Set<string>>(new Set())
-  const [tab, setTab] = useState<'checklist' | 'results'>('checklist')
-  const [running, setRunning] = useState(false)
-  const [caseID, setCaseID] = useState('')
-  const [analyst, setAnalyst] = useState('')
-
-  // Per-item cmd run status
-  const [itemStatus, setItemStatus] = useState<Record<string, ItemStatus>>({})
-
-  // Accumulated CMD results
-  const [runIDs, setRunIDs] = useState<string[]>([])
-  const [batchResults, setBatchResults] = useState<(ChecklistBatch & { liveOutput?: string; liveStatus?: string })[]>([])
-
-  // Tool results (side-by-side with CMD results)
+  const queryClient = useQueryClient()
   const [tools, setTools] = useState<Tool[]>([])
-  const [toolResults, setToolResults] = useState<ToolResult[]>([])
-  const [openPickerFor, setOpenPickerFor] = useState<string | null>(null)
-  const [itemToolPick, setItemToolPick] = useState<Record<string, ToolPick>>({})
-  const [itemToolRunning, setItemToolRunning] = useState<Record<string, boolean>>({})
+  
   const pollTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({})
 
   const esRefs = useRef<EventSource[]>([])
@@ -685,6 +688,49 @@ export default function CollectionChecklist() {
     agentsApi.list().then(setAgents).catch(() => {})
     toolsApi.list().then(setTools).catch(() => {})
   }, [])
+
+  const { data: runs } = useQuery({
+    queryKey: ['checklist-runs', selectedAgent],
+    queryFn: () => checklistApi.listRuns(selectedAgent),
+    enabled: !!selectedAgent,
+  })
+
+  // Auto-load latest run if batchResults is empty
+  useEffect(() => {
+    if (runs && runs.length > 0 && batchResults.length === 0 && !running && runIDs.length === 0) {
+      const latest = runs[0]
+      setRunIDs([latest.id])
+      if (latest.batches) {
+        setBatchResults(latest.batches.map((b: ChecklistBatch) => ({
+          ...b,
+          liveOutput: b.output,
+          liveStatus: b.status
+        })))
+        
+        // Restore itemStatus
+        const newStatus: Record<string, ItemStatus> = {}
+        latest.batches.forEach((b: ChecklistBatch) => {
+          try {
+            const ids: string[] = JSON.parse(b.item_ids || '[]')
+            ids.forEach(id => {
+              newStatus[id] = b.status === 'done' ? 'done' : b.status === 'failed' ? 'failed' : b.status === 'stopped' ? 'failed' : b.status === 'running' ? 'running' : 'idle'
+            })
+          } catch {}
+        })
+        setItemStatus(newStatus)
+        setTab('results')
+      }
+    }
+  }, [runs, batchResults.length, running, runIDs.length])
+
+  // Track previous agent to reset state
+  const prevAgentRef = useRef(selectedAgent)
+  useEffect(() => {
+    if (prevAgentRef.current !== selectedAgent) {
+      resetAgentState(selectedAgent)
+      prevAgentRef.current = selectedAgent
+    }
+  }, [selectedAgent, resetAgentState])
 
   useEffect(() => {
     if (!selectedAgent && agents.length > 0) {
@@ -792,6 +838,7 @@ export default function CollectionChecklist() {
         ...result.batches.map(b => ({ ...b, liveOutput: '', liveStatus: 'pending' as const })),
       ])
 
+      queryClient.invalidateQueries({ queryKey: ['checklist-runs', selectedAgent] })
       attachSSE(result.batches, [item.id])
     } catch {
       setItemStatus(prev => ({ ...prev, [item.id]: 'failed' }))
@@ -834,6 +881,7 @@ export default function CollectionChecklist() {
       ])
       setTab('results')
 
+      queryClient.invalidateQueries({ queryKey: ['checklist-runs', selectedAgent] })
       attachSSE(result.batches, itemIds)
     } catch {
       setItemStatus(prev => {
@@ -879,6 +927,7 @@ export default function CollectionChecklist() {
       ])
       setTab('results')
 
+      queryClient.invalidateQueries({ queryKey: ['checklist-runs', selectedAgent] })
       attachSSE(result.batches, allItemIds)
     } catch (err: any) {
       setItemStatus(prev => {

@@ -45,6 +45,7 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	// AutoMigrate all models in dependency order
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.Case{},
 		&models.Agent{},
 		&models.Tool{},
 		&models.HuntingScenario{},
