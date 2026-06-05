@@ -23,6 +23,8 @@ const HuntingPage = lazy(() => import('@/pages/Hunting'))
 const CollectionChecklistPage = lazy(() => import('@/pages/CollectionChecklist'))
 const AIAnalysisPage = lazy(() => import('@/pages/AIAnalysis'))
 const AIProviderSettingsPage = lazy(() => import('@/pages/AIProviderSettings'))
+const TestCasesPage = lazy(() => import('@/pages/TestCases'))
+const SystemHealthPage = lazy(() => import('@/pages/SystemHealth'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -45,23 +47,58 @@ function PageFallback() {
 // rejects. We show a recoverable message instead.
 class ChunkErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; errorMsg: string; errorStack: string }
 > {
-  state = { hasError: false }
-  static getDerivedStateFromError() {
-    return { hasError: true }
+  state = { hasError: false, errorMsg: '', errorStack: '' }
+
+  static getDerivedStateFromError(err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    const stack = err instanceof Error ? (err.stack ?? '') : ''
+    return { hasError: true, errorMsg: msg, errorStack: stack }
   }
-  componentDidCatch(err: unknown) {
-    console.error('[lazy-route] chunk load failed:', err)
+
+  componentDidCatch(err: unknown, info: React.ErrorInfo) {
+    console.error('[page-render-error]', err, info.componentStack)
   }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, errorMsg: '', errorStack: '' })
+  }
+
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-10 text-center space-y-3">
-          <p className="text-gray-300">Failed to load this page.</p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Reload
-          </button>
+        <div className="flex flex-col items-center justify-center p-10 space-y-4 text-center min-h-[200px]">
+          <div className="h-10 w-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+            <span className="text-red-400 text-lg">!</span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-gray-200 font-medium text-sm">Trang gặp lỗi khi hiển thị</p>
+            <p className="text-gray-500 text-xs max-w-sm">
+              Thử bấm "Thử lại" để phục hồi, hoặc "Tải lại trang" nếu lỗi vẫn tiếp tục.
+            </p>
+          </div>
+          {/* Show error details in dev */}
+          {import.meta.env.DEV && this.state.errorMsg && (
+            <pre className="text-xs text-left text-red-400 bg-red-900/10 border border-red-500/20 rounded-lg p-3 max-w-lg w-full overflow-auto max-h-36 font-mono">
+              {this.state.errorMsg}
+              {this.state.errorStack && '\n\n' + this.state.errorStack.slice(0, 600)}
+            </pre>
+          )}
+          <div className="flex gap-3">
+            <button
+              className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg border border-gray-700 transition"
+              onClick={this.handleRetry}
+            >
+              Thử lại
+            </button>
+            <button
+              className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition"
+              onClick={() => window.location.reload()}
+            >
+              Tải lại trang
+            </button>
+          </div>
         </div>
       )
     }
@@ -240,6 +277,26 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <AIProviderSettingsPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/test-cases"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <TestCasesPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/system-health"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <SystemHealthPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

@@ -1,7 +1,6 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Download, Trash2, Wrench, Upload, Pencil } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
   toolsApi,
@@ -12,7 +11,7 @@ import {
   TOOL_PLATFORMS,
 } from '@/api/tools'
 import { CategoryBadge, PlatformBadge } from '@/components/StatusBadge'
-import { formatBytes, getErrorMessage } from '@/lib/utils'
+import { formatBytes, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -486,7 +485,7 @@ export default function ToolsPage() {
                       )}
                     </td>
                     <td className="px-5 py-3 hidden md:table-cell text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(tool.created_at), { addSuffix: true })}
+                      {safeDistanceToNow(tool.created_at, { addSuffix: true })}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">

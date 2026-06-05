@@ -25,6 +25,13 @@ func NewRouter(
 	wpscanPool *wpscan.Pool,
 ) *gin.Engine {
 	router := gin.New()
+	// Allow large multipart uploads (memory dumps, disk images) to be streamed
+	// to OS temp files rather than buffered in RAM. The default 32 MB causes
+	// Go's multipart parser to try to hold the whole file in memory once the
+	// threshold is crossed — on a 4 GB .mem file that OOMs the process.
+	// Setting this to 8 GB means files up to 8 GB stay on disk (temp) during
+	// the upload; the handler only reads what it needs.
+	router.MaxMultipartMemory = 8 << 30 // 8 GB
 
 	handlers.SetAllowedOrigins(cfg.AllowedOrigins)
 
@@ -187,6 +194,11 @@ func NewRouter(
 		protected.GET("/ai/sessions/:id", aiHandler.GetSession)
 		protected.GET("/ai/sessions/:id/stream", aiHandler.StreamSession)
 		protected.DELETE("/ai/sessions/:id", aiHandler.DeleteSession)
+
+		// System — health check and usage statistics
+		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)
+		protected.GET("/system/health", sysHandler.GetHealth)
+		protected.GET("/system/token-stats", sysHandler.GetTokenStats)
 	}
 
 	// Install scripts — handler validates the agent token inline.

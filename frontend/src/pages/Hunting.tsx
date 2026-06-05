@@ -21,7 +21,7 @@ import {
   Activity,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
+import { safeDistanceToNow } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   huntingApi,
@@ -211,7 +211,7 @@ function ScenarioDetailModal({
   const qc = useQueryClient()
   const [pendingToolId, setPendingToolId] = useState<string>('')
   const [deployAgentId, setDeployAgentId] = useState<string>('')
-  const [deployCaseId, setDeployCaseId] = useState<string>('')
+  const [deployCaseId, setDeployCaseId] = useState<string>('__none__')
 
   const { data: allTools = [] } = useQuery({
     queryKey: ['tools'],
@@ -251,7 +251,7 @@ function ScenarioDetailModal({
   })
 
   const deployMutation = useMutation({
-    mutationFn: () => huntingApi.deploy(scenario!.id, deployAgentId, deployCaseId || undefined),
+    mutationFn: () => huntingApi.deploy(scenario!.id, deployAgentId, deployCaseId === '__none__' ? undefined : deployCaseId || undefined),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['hunting-deployments'] })
       qc.invalidateQueries({ queryKey: ['jobs'] })
@@ -263,7 +263,7 @@ function ScenarioDetailModal({
         toast.success(`Deployed ${res.jobs.length} tool(s) — switch to Deployments tab`)
       }
       setDeployAgentId('')
-      setDeployCaseId('')
+      setDeployCaseId('__none__')
       onClose()
     },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -367,7 +367,7 @@ function ScenarioDetailModal({
                   <SelectValue placeholder="Link to case (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No case</SelectItem>
+                  <SelectItem value="__none__">No case</SelectItem>
                   {cases.filter((ca) => ca.status === 'open').map((ca) => (
                     <SelectItem key={ca.id} value={ca.id}>{ca.name}</SelectItem>
                   ))}
@@ -612,7 +612,7 @@ function DeploymentsTab() {
                     Agent: <span className="text-gray-300">{dep.agent?.name ?? '—'}</span>
                     {dep.agent && <span className="ml-2">{<AgentStatusBadge status={dep.agent.status} />}</span>}
                     <span className="mx-2">·</span>
-                    {formatDistanceToNow(new Date(dep.created_at), { addSuffix: true })}
+                    {safeDistanceToNow(dep.created_at, { addSuffix: true })}
                   </div>
                 </div>
               </div>

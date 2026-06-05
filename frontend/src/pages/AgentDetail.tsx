@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
 import { casesApi } from '@/api/cases'
@@ -11,7 +10,7 @@ import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { AgentTerminal } from '@/components/AgentTerminal'
 import { FileBrowser } from '@/components/FileBrowser'
-import { formatDuration, getErrorMessage } from '@/lib/utils'
+import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter, DialogBody,
@@ -228,7 +227,7 @@ function JobsTab({ agent }: { agent: Agent }) {
                       {job.started_at ? formatDuration(job.started_at, job.finished_at) : '—'}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                      {safeDistanceToNow(job.created_at, { addSuffix: true })}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -296,7 +295,7 @@ function SysInfoTab({ agent }: { agent: Agent }) {
     { label: 'OS',          value: agent.os         || '—' },
     { label: 'IP Address',  value: agent.ip_address || '—' },
     { label: 'Status',      value: agent.status },
-    { label: 'Last Seen',   value: agent.last_seen ? formatDistanceToNow(new Date(agent.last_seen), { addSuffix: true }) : 'Never' },
+    { label: 'Last Seen',   value: agent.last_seen ? safeDistanceToNow(agent.last_seen, { addSuffix: true }) : 'Never' },
     { label: 'Agent ID',    value: agent.id },
   ]
 
@@ -576,7 +575,7 @@ export default function AgentDetailPage() {
   const [activeTab, setActiveTab] = useState<TabId>('jobs')
   const [cleanupOpen, setCleanupOpen] = useState(false)
   const [linkCaseOpen, setLinkCaseOpen] = useState(false)
-  const [selectedCaseId, setSelectedCaseId] = useState('')
+  const [selectedCaseId, setSelectedCaseId] = useState('__none__')
 
   const { data: cases = [] } = useQuery({
     queryKey: ['cases'],
@@ -585,12 +584,12 @@ export default function AgentDetailPage() {
   })
 
   const linkCaseMutation = useMutation({
-    mutationFn: (caseId: string) => agentsApi.update(id!, { case_id: caseId || '' }),
+    mutationFn: (caseId: string) => agentsApi.update(id!, { case_id: caseId === '__none__' ? '' : caseId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['agents', id] })
       qc.invalidateQueries({ queryKey: ['cases'] })
       setLinkCaseOpen(false)
-      toast.success(selectedCaseId ? 'Agent linked to case' : 'Agent unlinked from case')
+      toast.success(selectedCaseId !== '__none__' ? 'Agent linked to case' : 'Agent unlinked from case')
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err)),
   })
@@ -654,7 +653,7 @@ export default function AgentDetailPage() {
           </div>
         </div>
         <button
-          onClick={() => { setSelectedCaseId(agent.case_id ?? ''); setLinkCaseOpen(true) }}
+          onClick={() => { setSelectedCaseId(agent.case_id ?? '__none__'); setLinkCaseOpen(true) }}
           className="btn-secondary text-xs flex items-center gap-1.5"
           title="Link or unlink this agent from a case"
         >
@@ -688,7 +687,7 @@ export default function AgentDetailPage() {
                 <SelectValue placeholder="No case (unlink)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No case (unlink)</SelectItem>
+                <SelectItem value="__none__">No case (unlink)</SelectItem>
                 {cases.filter(c => c.status === 'open').map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}

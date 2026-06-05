@@ -1340,3 +1340,551 @@
 2026-06-05 13:49:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/7b66b543-dce1-4e71-984d-60d40c0bef11 | Not Found | 341.725µs
 2026-06-05 13:49:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 244.776µs
 2026-06-05 13:49:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 275.848µs
+2026-06-05 13:52:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.024105ms
+2026-06-05 13:53:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.033282ms
+2026-06-05 14:04:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 984.232µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 668.342µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 5.528943ms | Payload: {"name":"__test_agent_1780668263731","description":"Automated test agent — safe to delete"}
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/agents/6aba885a-da1d-4ee8-8a89-b2a0e5dd2fbf | OK | 7.090259ms
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 207.755µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 219.82µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 258.007µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 527.919µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 487.909µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 453.523µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 371.952µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools/f6afbb4d-27dc-4713-ba47-2e60fee21e2c | OK | 459.192µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 405.69µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 442.342µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 202.966µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 303.551µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.092231ms
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios | Created | 5.109326ms | Payload: {"name":"__test_scenario_1780668263862","description":"Automated test scenario — safe to delete"}
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/hunting/scenarios/3df7a059-3cf5-40a5-bfcc-10726566ce0e | OK | 5.074171ms
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 227.789µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios | Created | 4.77043ms | Payload: {"name":"__test_sc_attach_1780668263905","description":"Tool attachment test"}
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios/a93bf893-27c8-4852-99ef-969ca935cec6/tools | Created | 6.829487ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios/a93bf893-27c8-4852-99ef-969ca935cec6 | OK | 961.251µs
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/hunting/scenarios/a93bf893-27c8-4852-99ef-969ca935cec6 | OK | 4.966696ms
+2026-06-05 14:04:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 471.427µs
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 591.102µs
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 4.89135ms | Payload: {"name":"__test_case_1780668264009","description":"Automated test case — created by test runner"}
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 270.419µs
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | PATCH /api/v1/cases/f283ee2a-c6fb-4527-843c-af66c39b33e7 | OK | 3.534127ms
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | PATCH /api/v1/cases/f283ee2a-c6fb-4527-843c-af66c39b33e7 | OK | 2.832457ms
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 282.358µs
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/f283ee2a-c6fb-4527-843c-af66c39b33e7/summary | OK | 2.117642ms
+2026-06-05 14:04:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve/search | OK | 2.111132606s
+2026-06-05 14:04:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve/CVE-2021-44228 | OK | 1.575776026s
+2026-06-05 14:04:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve/CVE-2021-44228/pocs | OK | 823.315724ms
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 59.679519ms
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/config | OK | 1.174072ms
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/configs | OK | 486.908µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/elk/iocs/parse | Bad Request | 35.609µs | Payload: {"content":"1.2.3.4\n192.168.100.1\nevil.example.com\nhttps://malware.test/payload.exe\nd41d8cd98f00b204e9800998ecf8427e\naabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"}
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/hunt/results | OK | 603.082µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/elk/configs | Created | 5.62466ms | Payload: {"name":"__test_elk_1780668268704","url":"http://localhost:9200","username":"elastic","password":"test","index_pattern":"logs-*"}
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/opencti/config | OK | 878.502µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/opencti/configs | OK | 410.903µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 543.583µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/iocs | Created | 3.178813ms | Payload: {"type":"domain","value":"test-ioc-1780668268731.evil.example","source":"manual_test"}
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 377.661µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 221.281µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 211.509µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 218.48µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 732.16µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/providers | Created | 2.983734ms | Payload: {"name":"__test_provider_1780668268770","provider_type":"openai","base_url":"https://api.groq.com/openai/v1","api_key":"gsk_test_key_do_not_use","model":"llama-3.3-70b-versatile","max_tokens":4096,"is_active":false}
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/ai/providers/3495a229-9827-4f97-ae7c-24935b880baf | OK | 2.831818ms
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 227.549µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 316.665µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 309.583µs
+2026-06-05 14:04:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news | OK | 239.002906ms
+2026-06-05 14:04:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news/categories | OK | 59.206µs
+2026-06-05 14:04:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news/categories | OK | 20.12µs
+2026-06-05 14:04:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news | OK | 233.707169ms
+2026-06-05 14:05:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 329.199µs
+2026-06-05 14:05:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 294.773µs
+2026-06-05 14:05:44 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 9.007365ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:44 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 7.44261ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:44 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 11.42193ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 57.714511ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 9.781731ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 8.811134ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 34.13676ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 7.570008ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 196.51233ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:45 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 19.09616ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:05:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 654.093µs
+2026-06-05 14:05:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 420.383µs
+2026-06-05 14:05:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 322.198µs
+2026-06-05 14:06:07 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/providers | Created | 4.28511ms | Payload: {"name":"Groq","provider_type":"openai","base_url":"https://api.groq.com/openai/v1","model":"qwen/qwen3-32b","max_tokens":0,"api_key":"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"}
+2026-06-05 14:06:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 307.618µs
+2026-06-05 14:06:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 311.788µs
+2026-06-05 14:06:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 424.847µs
+2026-06-05 14:06:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 373.799µs
+2026-06-05 14:06:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 349.992µs
+2026-06-05 14:06:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 320.845µs
+2026-06-05 14:06:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 342.928µs
+2026-06-05 14:06:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 307.388µs
+2026-06-05 14:06:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 334.453µs
+2026-06-05 14:06:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 320.555µs
+2026-06-05 14:06:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 324.141µs
+2026-06-05 14:06:59 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 328.059µs
+2026-06-05 14:07:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 430.858µs
+2026-06-05 14:07:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 326.824µs
+2026-06-05 14:07:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 267.655µs
+2026-06-05 14:07:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 307.722µs
+2026-06-05 14:07:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 618.027µs
+2026-06-05 14:08:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.01345ms
+2026-06-05 14:15:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.175642ms
+2026-06-05 14:15:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 759.351µs
+2026-06-05 14:15:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 405.702µs
+2026-06-05 14:15:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 380.453µs
+2026-06-05 14:15:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 405.734µs
+2026-06-05 14:15:34 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 2.543332ms
+2026-06-05 14:15:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 380.821µs
+2026-06-05 14:15:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 318.2µs
+2026-06-05 14:15:49 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 970.881µs
+2026-06-05 14:15:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 301.977µs
+2026-06-05 14:16:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 299.822µs
+2026-06-05 14:16:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 264.906µs
+2026-06-05 14:16:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 348.938µs
+2026-06-05 14:16:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 281.613µs
+2026-06-05 14:16:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 284.414µs
+2026-06-05 14:16:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 335.834µs
+2026-06-05 14:16:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 291.934µs
+2026-06-05 14:16:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 336.805µs
+2026-06-05 14:16:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 326.756µs
+2026-06-05 14:16:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 321.962µs
+2026-06-05 14:16:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 313.986µs
+2026-06-05 14:16:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 325.604µs
+2026-06-05 14:17:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 500.865µs
+2026-06-05 14:17:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 305.323µs
+2026-06-05 14:17:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 343.459µs
+2026-06-05 14:17:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 321.225µs
+2026-06-05 14:17:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 325.393µs
+2026-06-05 14:17:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 304.746µs
+2026-06-05 14:17:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 339.743µs
+2026-06-05 14:17:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 301.387µs
+2026-06-05 14:17:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 344.105µs
+2026-06-05 14:17:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 283.527µs
+2026-06-05 14:17:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 352.665µs
+2026-06-05 14:17:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 340.305µs
+2026-06-05 14:18:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 331.736µs
+2026-06-05 14:22:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.315001ms
+2026-06-05 14:22:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 711.556µs
+2026-06-05 14:22:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/providers | Created | 1.809169ms | Payload: {"name":"Groq","provider_type":"openai","base_url":"https://api.groq.com/openai/v1","model":"qwen/qwen3-32b","max_tokens":0,"api_key":"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"}
+2026-06-05 14:22:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 264.134µs
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 15.570004ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 11.05519ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 27.029451ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 173.630843ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 19.768039ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 23.151225ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:22:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 80.736562ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:23:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 9.083971ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:23:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 302.075604ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:23:00 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 74.991813ms | Payload: [File Upload / Ignored Body]
+2026-06-05 14:23:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 964.737µs
+2026-06-05 14:23:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 1.309265ms
+2026-06-05 14:23:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 739.128µs
+2026-06-05 14:23:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 350.563µs
+2026-06-05 14:23:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 341.125µs
+2026-06-05 14:23:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 363.879µs
+2026-06-05 14:23:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 587.816µs
+2026-06-05 14:23:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 412.226µs
+2026-06-05 14:23:33 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/sessions | Bad Request | 1m15.11186194s | Payload: ------geckoformboundary64915f91a2a35b3834f13ef44959d496 Content-Disposition: form-data; name="provider_id"  210926f9-4304-47ac-983b-7f0f28419558 ------geckoformboundary64915f91a2a35b3834f13ef44959d496 Content-Disposition: form-data; name="source_type"  upload ------geckoformboundary64915f91a2a35b3834f13ef44959d496 Content-Disposition: form-data; name="file"; filename="Adam Ferrante - Triage-Memory.mem" Content-Type: application/octet-stream                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ...(truncated)
+2026-06-05 14:24:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.582994ms
+2026-06-05 14:24:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 359.769µs
+2026-06-05 14:24:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 10.489683ms
+2026-06-05 14:25:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 2.046759ms
+2026-06-05 14:25:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.260577ms
+2026-06-05 14:25:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.682769ms
+2026-06-05 14:25:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 787.244µs
+2026-06-05 14:25:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 1.998249ms
+2026-06-05 14:25:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 949.887µs
+2026-06-05 14:25:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 103.707781ms
+2026-06-05 14:25:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 1.787481ms
+2026-06-05 14:25:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 560.07µs
+2026-06-05 14:25:08 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 30.142248ms | Payload: {"name":"IR-test","description":""}
+2026-06-05 14:25:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 291.378µs
+2026-06-05 14:25:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 378.344µs
+2026-06-05 14:25:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 6.419915ms
+2026-06-05 14:25:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 289.917µs
+2026-06-05 14:25:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.147019ms
+2026-06-05 14:25:20 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 10.716441ms | Payload: {"name":"test","description":"","case_id":"065a97fb-1e05-48f8-a1c4-d26183dec704"}
+2026-06-05 14:25:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 867.601µs
+2026-06-05 14:25:26 | Agent-a7a6059b-6b60-497a-9968-ff7a6e0ce485 | 172.19.0.1 | GET /api/v1/agent/binary/windows | OK | 155.140825ms
+2026-06-05 14:25:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 283.409µs
+2026-06-05 14:26:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 332.197µs
+2026-06-05 14:26:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 658.765µs
+2026-06-05 14:26:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.639267ms
+2026-06-05 14:26:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 765.659µs
+2026-06-05 14:26:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 583.277µs
+2026-06-05 14:26:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.474095ms
+2026-06-05 14:26:31 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Not Found | 887.113µs | Payload: {"agent_id":"7b66b543-dce1-4e71-984d-60d40c0bef11","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 14:26:33 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Not Found | 482.558µs | Payload: {"agent_id":"7b66b543-dce1-4e71-984d-60d40c0bef11","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 14:26:34 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Not Found | 469.736µs | Payload: {"agent_id":"7b66b543-dce1-4e71-984d-60d40c0bef11","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 14:26:34 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Not Found | 405.459µs | Payload: {"agent_id":"7b66b543-dce1-4e71-984d-60d40c0bef11","platform":"win","label":"Section 1.3: Running Processes","case_id":"","analyst":"","batches":[{"batch_key":"1.3","batch_label":"Running Processes","item_ids":["p1w-1.3-1","p1w-1.3-2","p1w-1.3-3","p1w-1.3-4"],"command":"tasklist /v /fo csv & powershell -c \"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation\" & tasklist /m & handle.exe -a 2>NUL & powershell -c \"Get-Process | Select-Object Id,Name,HandleCount,@{N='Path';E={try{$_.MainModule.FileName}catch{''}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize\" & driverquery /fo csv /v"}]}
+2026-06-05 14:26:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 394.969µs
+2026-06-05 14:26:51 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 8.462682ms | Payload: {"agent_id":"a7a6059b-6b60-497a-9968-ff7a6e0ce485","platform":"win","label":"Section 1.7: Windows Event Logs","case_id":"","analyst":"","batches":[{"batch_key":"1.7","batch_label":"Windows Event Logs","item_ids":["p1w-1.7-1","p1w-1.7-2","p1w-1.7-3","p1w-1.7-4","p1w-1.7-5","p1w-1.7-6"],"command":"mkdir evidence 2>NUL & wevtutil epl Security evidence\\Security.evtx & mkdir evidence 2>NUL & wevtutil epl System evidence\\System.evtx & mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-PowerShell/Operational\" evidence\\PS_Operational.evtx & mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-TaskScheduler/Operational\" evidence\\TaskSched.evtx & mkdir evidence 2>NUL & wevtutil epl \"Microsoft-Windows-Sysmon/Operational\" evidence\\Sysmon.evtx 2>NUL || echo Sysmon not installed - skipping & mkdir evidence 2>NUL & wevtutil epl Application evidence\\Application.evtx & xcopy /E /I /Y C:\\Windows\\System32\\winevt\\Logs\\ evidence\\evtx_all\\"}]}
+2026-06-05 14:26:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.340962ms
+2026-06-05 14:26:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/43cabe04-36d7-48e2-8f64-8503781f8625/output | OK | 1.48713083s
+2026-06-05 14:27:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.669187ms
+2026-06-05 14:27:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 542.459µs
+2026-06-05 14:27:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.840944ms
+2026-06-05 14:27:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/sessions | Created | 3.542693ms | Payload: ------geckoformboundary2f1c1c356ee1ce42dfe6f4f14fb2f58a Content-Disposition: form-data; name="provider_id"  210926f9-4304-47ac-983b-7f0f28419558 ------geckoformboundary2f1c1c356ee1ce42dfe6f4f14fb2f58a Content-Disposition: form-data; name="source_type"  checklist_run ------geckoformboundary2f1c1c356ee1ce42dfe6f4f14fb2f58a Content-Disposition: form-data; name="source_id"  0635da08-d5ac-4cc4-872a-59ad0d4de10b ------geckoformboundary2f1c1c356ee1ce42dfe6f4f14fb2f58a-- 
+2026-06-05 14:27:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 822.853µs
+2026-06-05 14:27:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 692.718µs
+2026-06-05 14:27:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions/36875b05-51c3-42db-aec7-75b4a3580716/stream | OK | 5.835707855s
+2026-06-05 14:27:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 692.021µs
+2026-06-05 14:27:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 862.495µs
+2026-06-05 14:27:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 763.638µs
+2026-06-05 14:27:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 932.357µs
+2026-06-05 14:27:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 786.572µs
+2026-06-05 14:27:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 737.859µs
+2026-06-05 14:27:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 743.047µs
+2026-06-05 14:27:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 707.268µs
+2026-06-05 14:28:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 748.006µs
+2026-06-05 14:28:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 730.905µs
+2026-06-05 14:28:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 768.092µs
+2026-06-05 14:28:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 431.555µs
+2026-06-05 14:28:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 312.545µs
+2026-06-05 14:28:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/a7a6059b-6b60-497a-9968-ff7a6e0ce485 | OK | 298.909µs
+2026-06-05 14:28:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 905.736µs
+2026-06-05 14:28:16 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents/a7a6059b-6b60-497a-9968-ff7a6e0ce485/cleanup | OK | 9.235633ms | Payload: {}
+2026-06-05 14:28:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/a7a6059b-6b60-497a-9968-ff7a6e0ce485 | Not Found | 360.107µs
+2026-06-05 14:28:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 679.345µs
+2026-06-05 16:49:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.667124ms
+2026-06-05 16:49:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 3.764291ms
+2026-06-05 16:50:07 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 8.832824ms
+2026-06-05 16:50:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.880169ms
+2026-06-05 16:50:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 780.899µs
+2026-06-05 16:50:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.971816ms
+2026-06-05 16:50:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 793.669µs
+2026-06-05 17:02:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 3.48477ms
+2026-06-05 17:02:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 2.428828ms
+2026-06-05 17:02:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.757851ms
+2026-06-05 17:02:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 709.735µs
+2026-06-05 17:02:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.073276ms
+2026-06-05 17:02:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 483.75µs
+2026-06-05 17:02:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 1.106832ms
+2026-06-05 17:02:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 69.853807ms
+2026-06-05 17:02:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 686.839µs
+2026-06-05 17:02:46 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 815.144µs
+2026-06-05 17:03:06 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/providers | Created | 6.381827ms | Payload: {"name":"Groq","provider_type":"openai","base_url":"https://api.groq.com/openai/v1","model":"llama-3.3-70b-versatile","max_tokens":0,"api_key":"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"}
+2026-06-05 17:03:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 318.91µs
+2026-06-05 17:03:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 298.723µs
+2026-06-05 17:03:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 319.491µs
+2026-06-05 17:03:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 937.752µs
+2026-06-05 17:03:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 72.825053ms
+2026-06-05 17:03:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 1.180429ms
+2026-06-05 17:03:14 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 6.464238ms | Payload: {"name":"test","description":""}
+2026-06-05 17:03:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 301.21µs
+2026-06-05 17:03:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 889.963µs
+2026-06-05 17:03:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 631.076µs
+2026-06-05 17:03:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.673042ms
+2026-06-05 17:03:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 837.08µs
+2026-06-05 17:03:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 394.728µs
+2026-06-05 17:03:32 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/sessions | Created | 7.641836ms | Payload: ------geckoformboundary794fec3ac86f656747f62f86a6304643 Content-Disposition: form-data; name="provider_id"  185a6c93-668c-431c-98b8-a3160995c867 ------geckoformboundary794fec3ac86f656747f62f86a6304643 Content-Disposition: form-data; name="source_type"  upload ------geckoformboundary794fec3ac86f656747f62f86a6304643 Content-Disposition: form-data; name="file"; filename="Evidence Hashes.txt" Content-Type: text/plain  Evidence Hashes (MD5):  Laptop-Deadbox.zip = 5e35e01cfb14bd3762e7e3e5228cbb37 Triage-VM.7z = bbe242e1ba3bb1dc9d67c087b3eb8517 Triage-Memory.mem = c0c80a06ad336a6e20d42c895a0e067f ------geckoformboundary794fec3ac86f656747f62f86a6304643-- 
+2026-06-05 17:03:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 991.479µs
+2026-06-05 17:03:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions/b9936d34-5b99-4a16-9e3c-71d3cc7f1f28/stream | OK | 2.634194047s
+2026-06-05 17:03:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 731.239µs
+2026-06-05 17:03:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 852.495µs
+2026-06-05 17:03:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 805.764µs
+2026-06-05 17:03:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 687.355µs
+2026-06-05 17:03:56 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 3.233802ms
+2026-06-05 17:04:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 2.832491ms
+2026-06-05 17:12:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 911.288µs
+2026-06-05 17:12:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.336034ms
+2026-06-05 17:12:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 1.35415ms
+2026-06-05 17:12:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 80.215838ms
+2026-06-05 17:12:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 774.151µs
+2026-06-05 17:12:28 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 9.915131ms | Payload: {"name":"test","description":"","case_id":"ca7ffec3-920f-48c9-bb3a-fc017eed609d"}
+2026-06-05 17:12:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 291.717µs
+2026-06-05 17:12:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 299.742µs
+2026-06-05 17:12:53 | Agent-76900b44-06c8-4c96-9c47-b78ab75edac7 | 172.19.0.1 | GET /api/v1/agent/binary/windows | OK | 49.787507ms
+2026-06-05 17:13:54 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 689.951µs
+2026-06-05 17:13:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 4.30551ms
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 25.926473ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 15.605321ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 31.73812ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 202.59124ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 31.294847ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 26.131255ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 95.811853ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 13.117668ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:58 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 412.849351ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:13:59 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/tools | Created | 126.454114ms | Payload: [File Upload / Ignored Body]
+2026-06-05 17:14:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 6.383908ms
+2026-06-05 17:14:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.867284ms
+2026-06-05 17:14:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.874236ms
+2026-06-05 17:14:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.66196ms
+2026-06-05 17:14:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.698456ms
+2026-06-05 17:14:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.634129ms
+2026-06-05 17:14:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.491404ms
+2026-06-05 17:14:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 722.19µs
+2026-06-05 17:14:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 234.4µs
+2026-06-05 17:14:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 265.894µs
+2026-06-05 17:14:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 221.074µs
+2026-06-05 17:14:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 287.843µs
+2026-06-05 17:14:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 263.341µs
+2026-06-05 17:14:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 268.902µs
+2026-06-05 17:14:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 199.677µs
+2026-06-05 17:14:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 271.353µs
+2026-06-05 17:14:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 523.436µs
+2026-06-05 17:14:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 279.45µs
+2026-06-05 17:14:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 246.529µs
+2026-06-05 17:14:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.731835ms
+2026-06-05 17:15:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 840.849µs
+2026-06-05 17:15:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 310.013µs
+2026-06-05 17:15:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 1.00832ms
+2026-06-05 17:15:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 286.272µs
+2026-06-05 17:15:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 360.741µs
+2026-06-05 17:15:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 715.706µs
+2026-06-05 17:15:06 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 352.964µs
+2026-06-05 17:15:24 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Created | 8.782407ms | Payload: {"agent_id":"76900b44-06c8-4c96-9c47-b78ab75edac7","platform":"win","label":"Section 1.8: User Artifacts & Activity","case_id":"","analyst":"","batches":[{"batch_key":"1.8","batch_label":"User Artifacts & Activity","item_ids":["p1w-1.8-1","p1w-1.8-2","p1w-1.8-3","p1w-1.8-4","p1w-1.8-5","p1w-1.8-6","p1w-1.8-7"],"command":"mkdir evidence 2>NUL & copy \"%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt\" evidence\\ps_history.txt 2>NUL & powershell -c \"Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 200\" & mkdir evidence 2>NUL & mkdir evidence\\prefetch 2>NUL & xcopy /Y C:\\Windows\\Prefetch\\*.pf evidence\\prefetch\\ 2>NUL || echo Prefetch disabled or access denied & mkdir evidence 2>NUL & mkdir evidence\\recent 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\\" evidence\\recent\\ 2>NUL & mkdir evidence 2>NUL & mkdir evidence\\chrome 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\\" evidence\\chrome\\ 2>NUL || echo Chrome not found & mkdir evidence 2>NUL & mkdir evidence\\firefox 2>NUL & xcopy /E /I /Y \"C:\\Users\\*\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\\" evidence\\firefox\\ 2>NUL || echo Firefox not found & powershell -c \"Get-ChildItem -Path C:\\Users -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-30)} | Select-Object FullName,LastWriteTime,Length | ConvertTo-Csv -NoTypeInformation\" & dir /a C:\\Windows\\Temp\\ & dir /a C:\\Users\\Public\\ & dir /a C:\\ProgramData\\ & dir /a \"%TEMP%\""}]}
+2026-06-05 17:15:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.260127ms
+2026-06-05 17:15:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/batches/5208784e-3292-415a-9ccc-12854dbe3141/output | OK | 1.114392017s
+2026-06-05 17:15:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 843.479µs
+2026-06-05 17:15:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.384195ms
+2026-06-05 17:15:32 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/sessions | Created | 5.070514ms | Payload: ------geckoformboundary3ffd45a55e6400ab13cf960a69c0d48 Content-Disposition: form-data; name="provider_id"  185a6c93-668c-431c-98b8-a3160995c867 ------geckoformboundary3ffd45a55e6400ab13cf960a69c0d48 Content-Disposition: form-data; name="source_type"  checklist_run ------geckoformboundary3ffd45a55e6400ab13cf960a69c0d48 Content-Disposition: form-data; name="source_id"  46cf44ad-e09c-40c4-a62d-c51f578b788b ------geckoformboundary3ffd45a55e6400ab13cf960a69c0d48-- 
+2026-06-05 17:15:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 1.261271ms
+2026-06-05 17:15:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 707.635µs
+2026-06-05 17:15:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions/1d6cc2e0-ea8d-4dd8-a11f-657225c462f4/stream | OK | 3.076665556s
+2026-06-05 17:15:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 748.164µs
+2026-06-05 17:15:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 816.296µs
+2026-06-05 17:15:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 928.453µs
+2026-06-05 17:15:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 904.876µs
+2026-06-05 17:15:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 814.061µs
+2026-06-05 17:16:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 883.481µs
+2026-06-05 17:16:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.709361ms
+2026-06-05 17:16:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 1.579801ms
+2026-06-05 17:16:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 421.033µs
+2026-06-05 17:16:02 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 722.523µs
+2026-06-05 17:16:03 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.418305ms
+2026-06-05 17:16:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 710.069µs
+2026-06-05 17:16:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 833.279µs
+2026-06-05 17:16:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.302215ms
+2026-06-05 17:16:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.709976ms
+2026-06-05 17:16:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 755.385µs
+2026-06-05 17:16:14 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 680.364µs
+2026-06-05 17:16:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 269.596µs
+2026-06-05 17:16:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 310.064µs
+2026-06-05 17:16:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 336.846µs
+2026-06-05 17:16:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 692.816µs
+2026-06-05 17:16:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 269.27µs
+2026-06-05 17:16:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 660.109µs
+2026-06-05 17:16:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 935.026µs
+2026-06-05 17:16:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 449.453µs
+2026-06-05 17:16:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 819.76µs
+2026-06-05 17:16:24 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 702.686µs
+2026-06-05 17:16:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 533.255µs
+2026-06-05 17:16:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 615.877µs
+2026-06-05 17:16:25 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 77.116639ms
+2026-06-05 17:16:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 656.105µs
+2026-06-05 17:16:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 550.27µs
+2026-06-05 17:16:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7/monitor | Bad Request | 17.364µs
+2026-06-05 17:16:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7/monitor | OK | 618.866215ms
+2026-06-05 17:16:31 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.443718ms
+2026-06-05 17:16:33 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 732.965µs
+2026-06-05 17:16:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 313.78µs
+2026-06-05 17:16:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 778.574µs
+2026-06-05 17:16:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 253.853µs
+2026-06-05 17:16:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 872.376µs
+2026-06-05 17:16:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 522.426µs
+2026-06-05 17:16:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 556.542µs
+2026-06-05 17:16:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 906.042µs
+2026-06-05 17:16:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 283.828µs
+2026-06-05 17:16:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 477.848µs
+2026-06-05 17:16:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 793.111µs
+2026-06-05 17:16:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 580.521µs
+2026-06-05 17:16:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 57.851547ms
+2026-06-05 17:16:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news | OK | 228.190357ms
+2026-06-05 17:16:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection/stream | OK | 2.049634073s
+2026-06-05 17:16:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 3.214752ms
+2026-06-05 17:16:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 292.844µs
+2026-06-05 17:16:51 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 686.368µs
+2026-06-05 17:16:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 707.953µs
+2026-06-05 17:16:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 570.196µs
+2026-06-05 17:17:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 381.581µs
+2026-06-05 17:17:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 434.894µs
+2026-06-05 17:17:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 329.214µs
+2026-06-05 17:17:10 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 369.924µs
+2026-06-05 17:17:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 442.87µs
+2026-06-05 17:17:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 338.495µs
+2026-06-05 17:17:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 685.005µs
+2026-06-05 17:17:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 415.485µs
+2026-06-05 17:17:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 374.147µs
+2026-06-05 17:17:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 248.171µs
+2026-06-05 17:17:44 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 332.486µs
+2026-06-05 17:17:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 415.517µs
+2026-06-05 17:17:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 388.114µs
+2026-06-05 17:17:47 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 318.288µs
+2026-06-05 17:17:52 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 561.292µs
+2026-06-05 17:17:57 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/jobs | Created | 9.916012ms | Payload: {"agent_id":"76900b44-06c8-4c96-9c47-b78ab75edac7","tool_id":"7445dd3e-d38c-40be-ac63-f05b2f826ea1"}
+2026-06-05 17:17:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 1.596039ms
+2026-06-05 17:17:57 | Agent-76900b44-06c8-4c96-9c47-b78ab75edac7 | 172.19.0.1 | GET /api/v1/agent/tools/7445dd3e-d38c-40be-ac63-f05b2f826ea1/download | OK | 111.500824ms
+2026-06-05 17:17:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 727.674µs
+2026-06-05 17:18:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 2.101362ms
+2026-06-05 17:18:15 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/jobs/51d5b90f-a428-470d-9bb1-4f4f26d7f18f/run | OK | 9.652626ms
+2026-06-05 17:18:15 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 842.166µs
+2026-06-05 17:18:18 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 517.085µs
+2026-06-05 17:18:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 913.813µs
+2026-06-05 17:18:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs/51d5b90f-a428-470d-9bb1-4f4f26d7f18f | OK | 1.253631ms
+2026-06-05 17:18:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 684.692µs
+2026-06-05 17:18:40 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 1.590862ms
+2026-06-05 17:18:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 410.076µs
+2026-06-05 17:18:41 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.072864ms
+2026-06-05 17:18:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 982.126µs
+2026-06-05 17:18:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 969.448µs
+2026-06-05 17:18:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 886.655µs
+2026-06-05 17:19:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 946.492µs
+2026-06-05 17:19:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 845.016µs
+2026-06-05 17:19:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 915.708µs
+2026-06-05 17:19:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 317.11µs
+2026-06-05 17:19:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/iocs | OK | 308.319µs
+2026-06-05 17:19:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 25.867838ms
+2026-06-05 17:19:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 297.507µs
+2026-06-05 17:19:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 406.296µs
+2026-06-05 17:19:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 420.706µs
+2026-06-05 17:19:30 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 1.175497ms
+2026-06-05 17:19:32 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7/cleanup | OK | 10.180928ms | Payload: {}
+2026-06-05 17:19:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 388.604µs
+2026-06-05 17:19:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 264.262µs
+2026-06-05 17:19:38 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/jobs/51d5b90f-a428-470d-9bb1-4f4f26d7f18f | OK | 7.07922ms
+2026-06-05 17:19:38 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 323.812µs
+2026-06-05 17:19:40 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7/cleanup | Conflict | 467.077µs | Payload: {}
+2026-06-05 17:19:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 408.743µs
+2026-06-05 17:19:45 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/agents/76900b44-06c8-4c96-9c47-b78ab75edac7 | OK | 5.889995ms
+2026-06-05 17:19:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 269.394µs
+2026-06-05 17:37:43 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.427186ms
+2026-06-05 17:37:58 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 261.436µs
+2026-06-05 17:38:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 243.252µs
+2026-06-05 17:38:28 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 250.002µs
+2026-06-05 17:38:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 305.254µs
+2026-06-05 17:39:00 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 287.879µs
+2026-06-05 17:39:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 298.148µs
+2026-06-05 17:39:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 320.982µs
+2026-06-05 17:39:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 229.246µs
+2026-06-05 17:40:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 392.439µs
+2026-06-05 17:40:21 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 310.313µs
+2026-06-05 17:40:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 379.797µs
+2026-06-05 17:40:53 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 294.631µs
+2026-06-05 17:41:08 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 235.056µs
+2026-06-05 17:41:23 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 251.343µs
+2026-06-05 17:41:39 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 285.002µs
+2026-06-05 17:41:55 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 268.43µs
+2026-06-05 17:42:12 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 241.087µs
+2026-06-05 17:42:27 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.033104ms
+2026-06-05 17:42:42 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 266.605µs
+2026-06-05 17:42:57 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 233.553µs
+2026-06-05 17:43:13 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 227.541µs
+2026-06-05 17:43:29 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 342.99µs
+2026-06-05 17:43:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 292.727µs
+2026-06-05 17:44:01 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 329.258µs
+2026-06-05 17:44:16 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 330.069µs
+2026-06-05 17:44:32 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 437.402µs
+2026-06-05 17:44:48 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 273.421µs
+2026-06-05 17:45:04 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 282.067µs
+2026-06-05 17:45:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 302.607µs
+2026-06-05 17:45:35 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 272.909µs
+2026-06-05 17:45:50 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 358.761µs
+2026-06-05 17:46:05 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 297.577µs
+2026-06-05 17:46:20 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 300.433µs
+2026-06-05 18:34:09 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 2.551084ms
+2026-06-05 18:34:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 76.351616ms
+2026-06-05 18:34:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news | OK | 257.7957ms
+2026-06-05 18:34:11 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection/stream | OK | 1m0.00024094s
+2026-06-05 18:47:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection | OK | 67.770811ms
+2026-06-05 18:47:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/news | OK | 245.297484ms
+2026-06-05 18:47:19 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cve-collection/stream | OK | 1.355462881s
+2026-06-05 18:47:22 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 3.355408ms
+2026-06-05 18:52:45 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 3.77104ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 1.106671ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Created | 5.735478ms | Payload: {"name":"__test_agent_1780686756012","description":"Automated test agent — safe to delete"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/agents/ab9f401a-f1f9-42eb-85dc-1dff2599a129 | OK | 6.573672ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 217.681µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 246.005µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 202.858µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/agents | Bad Request | 40.359µs | Payload: {"name":"","description":"validation test"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/00000000-0000-0000-0000-000000000000 | Not Found | 309.845µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 223.708µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | OK | 2.903572ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 620.183µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 538.261µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 500.153µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 283.9µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools/eb940904-2bfa-432c-acd3-b69854440531 | OK | 581.716µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools/00000000-0000-0000-0000-000000000000 | Not Found | 362.502µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 117.73µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | OK | 28.483356ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 2.000938ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 748.214µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 493.659µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 317.232µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 296.332µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | PUT /api/v1/tools/eb940904-2bfa-432c-acd3-b69854440531 | OK | 6.82422ms | Payload: {"name":"Webshell Scanner","description":"[Test] Updated at 2026-06-05T19:12:36.544Z","category":"triage","platform":"both"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 238.823µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 140.194µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 150.694µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 815.809µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents/binary/windows | Partial Content | 98.823µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools/eb940904-2bfa-432c-acd3-b69854440531 | OK | 508.383µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 674.577µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 587.678µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 237.293µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 271.256µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/agents | OK | 731.112µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs/00000000-0000-0000-0000-000000000000 | Not Found | 459.813µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/jobs | OK | 325.681µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 788.324µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 223.027µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 517.49µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs/00000000-0000-0000-0000-000000000000 | Not Found | 485.628µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/checklist/runs | OK | 227.459µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/checklist/run | Bad Request | 89.064µs | Payload: {"agent_id":"00000000-0000-0000-0000-000000000000","platform":"win","label":"Test invalid agent","analyst":"tester"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 1.342452ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios | Created | 6.334053ms | Payload: {"name":"__test_scenario_1780686756691","description":"Automated test scenario — safe to delete"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/hunting/scenarios/a49c37ca-6fb7-4c99-b3b5-9aa53cd98814 | OK | 5.232715ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/tools | OK | 272.923µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios | Created | 5.299653ms | Payload: {"name":"__test_sc_attach_1780686756719","description":"Tool attachment test"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios/4c09dfdc-53f3-4d50-940f-1e45141fbc16/tools | Created | 6.714777ms | Payload: [File Upload / Ignored Body]
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios/4c09dfdc-53f3-4d50-940f-1e45141fbc16 | OK | 892.05µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/hunting/scenarios/4c09dfdc-53f3-4d50-940f-1e45141fbc16 | OK | 5.001289ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 466.381µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios | OK | 562.499µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | PUT /api/v1/hunting/scenarios/22749b96-b9c6-4c61-a443-1b8ca34a32f8 | OK | 5.824696ms | Payload: {"name":"Webshell Hunt","description":"Updated at 2026-06-05T19:12:36.774Z"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/scenarios/00000000-0000-0000-0000-000000000000 | Not Found | 286.73µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/hunting/scenarios | Bad Request | 37.984µs | Payload: {"name":"","description":"test"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/hunting/deployments | OK | 239.558µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 570.528µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 4.838892ms | Payload: {"name":"__test_case_1780686756808","description":"Automated test case — created by test runner"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 225.776µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | PATCH /api/v1/cases/7d40f278-926a-4a6c-b908-064e72f35975 | OK | 3.595453ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | PATCH /api/v1/cases/7d40f278-926a-4a6c-b908-064e72f35975 | OK | 2.935603ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 267.274µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/7d40f278-926a-4a6c-b908-064e72f35975/summary | OK | 1.8594ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases/00000000-0000-0000-0000-000000000000/summary | Not Found | 331.447µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 4.636796ms | Payload: {"name":"Sự cố APT 1780686756859","description":"UTF-8 test"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/cases | Created | 4.845739ms | Payload: {"name":"__test_list_1780686756869","description":"list verify"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/cases | OK | 280.157µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/config | OK | 1.427088ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/configs | OK | 525.965µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/elk/iocs/parse | Bad Request | 29.347µs | Payload: {"content":"1.2.3.4\n192.168.100.1\nevil.example.com\nhttps://malware.test/payload.exe\nd41d8cd98f00b204e9800998ecf8427e\naabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/hunt/results | OK | 819.903µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/elk/configs | Created | 5.77269ms | Payload: {"name":"__test_elk_1780686756911","url":"http://localhost:9200","username":"elastic","password":"test","index_pattern":"logs-*"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/hunt/results | OK | 219.719µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/elk/hunt/results/00000000-0000-0000-0000-000000000000 | Not Found | 667.604µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 624.762µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/providers | Created | 3.086378ms | Payload: {"name":"__test_provider_1780686756941","provider_type":"openai","base_url":"https://api.groq.com/openai/v1","api_key":"gsk_test_key_do_not_use","model":"llama-3.3-70b-versatile","max_tokens":4096,"is_active":false}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | DELETE /api/v1/ai/providers/d4296820-1585-49bc-9996-a59ccb67924c | OK | 2.991982ms
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/providers | OK | 228.759µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 539.313µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions | OK | 463.335µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/ai/sessions/00000000-0000-0000-0000-000000000000 | Not Found | 488.414µs
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | POST /api/v1/ai/providers | Created | 2.612603ms | Payload: {"name":"__test_invalid_type","provider_type":"unsupported_ai_xyz","api_key":"test","model":"test-model"}
+2026-06-05 19:12:36 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 2.598675ms
+2026-06-05 19:12:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.584677ms
+2026-06-05 19:12:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.409458ms
+2026-06-05 19:12:37 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/token-stats | OK | 2.013492ms
+2026-06-05 19:13:26 | admin@forensichub.local | 172.19.0.1 | GET /api/v1/system/health | OK | 1.740936ms

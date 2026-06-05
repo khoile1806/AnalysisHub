@@ -1,10 +1,9 @@
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Search, ExternalLink, Star, Bug, AlertTriangle, GitBranch, ShieldAlert, FilterX } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import { cveApi, type CveSummary, type Severity } from '@/api/cve'
 import { SeverityBadge } from '@/components/StatusBadge'
-import { getErrorMessage } from '@/lib/utils'
+import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -348,7 +347,7 @@ function CveRow({ cve, onClick }: CveRowProps) {
       </td>
       <td className="px-4 py-3 table-cell text-gray-400 text-xs">
         {cve.published_date
-          ? formatDistanceToNow(new Date(cve.published_date), { addSuffix: true })
+          ? safeDistanceToNow(cve.published_date, { addSuffix: true })
           : '—'}
       </td>
       <td className="px-4 py-3 table-cell">

@@ -2,14 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Plus, ClipboardList, Eye, Wrench, Crosshair, Rocket } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import { jobsApi, type JobStatus } from '@/api/jobs'
 import { agentsApi } from '@/api/agents'
 import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
 import { huntingApi } from '@/api/hunting'
 import { JobStatusBadge } from '@/components/StatusBadge'
-import { formatDuration, getErrorMessage } from '@/lib/utils'
+import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -476,7 +475,7 @@ export default function JobsPage() {
                         : '—'}
                     </td>
                     <td className="px-5 py-3 hidden lg:table-cell text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                      {safeDistanceToNow(job.created_at, { addSuffix: true })}
                     </td>
                     <td className="px-5 py-3 hidden lg:table-cell text-xs text-gray-400">
                       {job.created_by_user?.name || job.created_by_user?.email || '—'}

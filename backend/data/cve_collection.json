@@ -1,5 +1,1804 @@
 [
   {
+    "id": "CVE-2026-10591",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00073,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-02T16:16:34.647",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:51:44Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-31455",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-04-22T14:16:40.013",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:51:44Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q3mw-pvr8-9ggc",
+    "description": "Apache Tomcat Open Redirect vulnerability",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2023-08-25T21:30:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:51:44Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-67rw-2x62-mqqm",
+    "description": "Copyparty ftp/sftp: Sharing a single file did not fully restrict source-folder access",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-03-12T14:22:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:51:43Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rcp6-88mm-9vgf",
+    "description": "Copyparty has unexpected JavaScript execution via crafted URL to folder with `.prologue.html`",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-03-12T14:22:53Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:51:42Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m959-cc7f-wv43",
+    "description": "cryptography has incomplete DNS name constraint enforcement on peer names",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-03-27T19:56:21Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:51:42Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-933h-hp56-hf7m",
+    "description": "Django: SGI requests with a missing or understated `Content-Length` header could bypass the `DATA_UPLOAD_MAX_MEMORY_SIZE` limit",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-04-07T15:30:51Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:16Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5mf9-h53q-7mhq",
+    "description": "Django has potential DoS via MultiPartParser through crafted multipart uploads",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-04-07T15:30:51Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:15Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-mvfq-ggxm-9mc5",
+    "description": "Django vulnerable to ASGI header spoofing via underscore/hyphen conflation",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-04-07T15:30:52Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:15Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-p423-j2cm-9vmq",
+    "description": "Cryptography vulnerable to buffer overflow if non-contiguous buffers were passed to APIs",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-04-08T19:23:08Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:14Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j7w6-vpvq-j3gm",
+    "description": "Diffusers has a `trust_remote_code` bypass via `custom_pipeline` and local custom components",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-07T02:24:22Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:13Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-98h9-4798-4q5v",
+    "description": "Diffusers has a `trust_remote_code` bypass via `custom_pipeline` and local custom components",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-07T05:31:17Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:13Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7h2m-m8vj-598h",
+    "description": "Django Uses Persistent Cookies Containing Sensitive Information ",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-05T18:33:24Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:12Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-vqgp-4jgj-5j64",
+    "description": "Py-EVM is vulnerable to arbitrary bytecode injection",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2018-11-21T22:23:04Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:11Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-53wm-97p6-582f",
+    "description": "instack-undercloud vulnerable to symlink attack on tmp files",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2022-05-13T01:07:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:10Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-c8w9-83vg-r8vv",
+    "description": "OpenStack Glance is vulnerable to Exposure of Sensitive Information",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2022-05-17T01:36:25Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-mcgx-2gcr-p3hp",
+    "description": "LTI JupyterHub Authenticator does not properly validate JWT Signature",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-02-25T17:48:34Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:08Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-84pr-m4jr-85g5",
+    "description": "flask-cors vulnerable to log injection when the log level is set to debug",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-04-19T21:31:08Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:07Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9v2f-6vcg-3hgv",
+    "description": "Withdrawn Advisory: Gradio was discovered to contain a code injection vulnerability via the component /gradio/component_meta.py",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-07-01T21:31:15Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:06Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rhm9-gp5p-5248",
+    "description": "Gradio vulnerable to arbitrary file read with File and UploadButton components",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-11-06T16:29:57Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:05Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j2jg-fq62-7c3h",
+    "description": "Gradio Blocked Path ACL Bypass Vulnerability",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-01-14T16:32:22Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:04Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-8jw3-6x8j-v96g",
+    "description": "Gradio Allows Unauthorized File Copy via Path Manipulation",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-05-29T22:36:59Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:03Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qh7q-6qm3-653w",
+    "description": "Jupyter Server has an open redirection vulnerability in `next` query parameter",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-05T16:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:02Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r7v6-mfhq-g3m2",
+    "description": "Fickling has Code Injection vulnerability via pty.spawn()",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-12-15T23:37:28Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:01Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6497-prx7-gpmq",
+    "description": "geopandas SQL Injection Vulnerability in to_postgis() Allows Information Disclosure",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-01-30T21:30:22Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:01Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-h3h8-3v2v-rg7m",
+    "description": "Gradio: Mocked OAuth Login Exposes Server Credentials and Uses Hardcoded Session Secret",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-03-01T01:00:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T18:49:00Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-50733",
+    "description": "Markdown Preview Enhanced before 0.8.28 parses WaveDrom diagrams by evaluating untrusted markdown content with eval(), allowing arbitrary JavaScript execution. The flaw affects every render path - the live preview (window.eval) and presentation mode plus HTML export (the bundled WaveDrom.ProcessAll()/eva() helpers) - and can also be triggered through a \u003cscript type=\"WaveDrom\"\u003e element injected via raw HTML in markdown. When a victim previews or exports a crafted markdown document, an attacker can execute arbitrary code, leading to arbitrary file write. Fixed in 0.8.28 by parsing with JSON5.parse() and sanitizing WaveDrom data scripts to inert strict JSON.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:34.050",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49493",
+    "description": "Markdown Preview Enhanced before 0.8.28 parses Bitfield fenced code blocks with interpretJS(), which evaluates the block content as code via vm.runInNewContext(), allowing arbitrary code execution. A crafted markdown document containing a malicious bitfield code block executes attacker-controlled code on the server side when the document is rendered or exported. Fixed in 0.8.28 by parsing bitfield register definitions with JSON5.parse(), since they are purely data.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:33.723",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49492",
+    "description": "Markdown Preview Enhanced before 0.8.28 opens external files and links from the preview through a shell and does not validate untrusted inputs taken from the markdown document - the diagram filename attribute, imported file paths, and the latex_engine code-chunk attribute. On Windows, a crafted markdown document can inject operating system commands that execute when the document is previewed. Fixed in 0.8.28 by passing these inputs as literal arguments instead of through a shell and validating them before use.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:33.377",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45750",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. Prior to version 2.3.2, the GET /ssh/file_manager/ssh/resolvePath endpoint in the Termix File Manager component unsafely processes the path parameter and embeds it into a shell command executed over the active SSH session. Because the user-controlled value is placed inside double quotes and only double quotes are escaped, shell command substitution syntax such as $(...) is still interpreted by the remote shell. Version 2.3.2 fixes the issue.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:32.463",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45749",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. The `POST /users/totp/disable` and `POST /users/totp/backup-codes` endpoints in Termix prior to version 2.3.2 accept the account password as a sole authentication factor for MFA-critical operations. An attacker who obtains a user's password (phishing, credential stuffing, the passwordHash leak in GHSA-xxxx) can disable TOTP entirely or regenerate backup codes, without ever possessing the TOTP device or knowing a valid TOTP code. This renders two-factor authentication ineffective. Version 2.3.2 patches the issue.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:31.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45748",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. The `POST /ssh/tunnel/connect` endpoint in Termix prior to version 2.3.2 builds an SSH tunnel command by interpolating user-controlled host record fields (`endpointIP`, `endpointUsername`, `password`) directly into a shell command without escaping, allowing persistent OS command injection on the source SSH host. Version 2.3.2 patches the issue.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:31.000",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45746",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. Prior to version 2.3.2, the File Manager functionality in Termix contains a critical Broken Access Control vulnerability due to improper validation of the sessionId parameter. The backend trusts a client-controlled identifier without verifying that it belongs to the authenticated user. This allows an attacker to manipulate the value and access active File Manager sessions belonging to other users. Since these sessions are tied to SSH connections to remote VPS instances, exploitation allows unauthorized interaction with another user's remote filesystem. Because the File Manager exposes functionality such as file reading, writing, uploading, and execution, this vulnerability enables direct command execution on another user's VPS (RCE). Version 2.3.2 patches the issue.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:30.587",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:48:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45745",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. Starting in version 1.7.0, Termix Desktop (Electron) disables TLS certificate validation, allowing a machine-in-the-middle attacker to intercept and modify HTTPS traffic to the configured Termix server. This can lead to credential theft and JWT/session theft during login and normal use. As of time of publication, no known patched versions are available.",
+    "severity": "high",
+    "cvss_score": 8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:30.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45744",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. Prior to version 2.3.2, the GET /ssh/file_manager/ssh/resolvePath endpoint in Termix is vulnerable to OS command injection. The endpoint uses double-quote escaping for shell command construction, which does not prevent $(...) and backtick command substitution. Any authenticated user with an active File Manager SSH session can execute arbitrary commands on the connected remote host. Version 2.3.2 patches the issue.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:29.510",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45743",
+    "description": "Termix is a web-based server management platform with SSH terminal, tunneling, and file editing capabilities. 16 file-manager endpoints in Termix prior to version 2.3.2 do not verify that the requesting user owns the SSH session identified by `sessionId`. An authenticated attacker who knows or guesses another user's active `sessionId` can read, write, delete, download, and execute files on the victim's connected SSH host. Version 2.3.2 patches the issue.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:28.793",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45327",
+    "description": "TinyIce is a streaming server for audio and video. In versions 0.8.95 through 2.4.1, missing authentication on WebRTC ingest endpoint allows unauthenticated stream injection. Version 2.5.0 fixes the issue by requiring either HTTP Basic auth or a `?password=` query parameter, comparing the supplied password against the per-mount source password (or the `default_source_password` fallback) using bcrypt, hooking into the existing brute-force IP rate-limiter (5 failed attempts per IP within 15 minutes triggers a lockout), and rejecting requests for mounts in `disabled_mounts`. The same release also tightens an adjacent endpoint, `POST /admin/golive/chunk`, which previously required session authentication but did not verify the session user's per-mount access nor check the CSRF token.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:27.220",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45291",
+    "description": "Cloudburst Network provides network components used within Cloudburst projects. A vulnerability in versions prior to `1.0.0.CR3-20260418.124334-32` impacts publicly accessible software depending on the affected versions of Network and allows an attacker to exploit a bug in Network to close the parent netty channel, rendering it inoperable. All consumers of the library should upgrade to at least version `1.0.0.CR3-20260418.124334-32`. There are no known workarounds beyond updating the library.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:26.797",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45290",
+    "description": "Cloudburst Network provides network components used within Cloudburst projects. A vulnerability in versions prior to `1.0.0.CR3-20260417.085727-30` impacts publicly accessible software depending on the affected versions of Network and allows an attacker to exploit a vulnerability in Network to stall the netty event loop, rendering it inoperable. All consumers of the library should upgrade to at least version `1.0.0.CR3-20260417.085727-30`. There are no known workarounds beyond updating the library.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:26.343",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-36501",
+    "description": "An issue in the Externalizable.readExternal() component of Controller v12.0.5 allows attackers to cause a Denial of Service (DoS) via a crafted input.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:16.927",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-36500",
+    "description": "An issue in the cluster-admin:backup-datastore component of Controller v12.0.5 allows attackers to execute a directory traversal via a crafted request.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:16.777",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-2379",
+    "description": "On affected platforms with hardware IPSec support running Arista EOS with certain IPsec features enabled, EOS may exhibit unexpected behavior in specific cases. Physical interface flaps and certain agent restarts can cause IPsec tunnel re-establishment with existing Security Associations, resulting in sequence number mismatches between tunnel endpoints potentially causing unstable communication.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:05.750",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11344",
+    "description": "A vulnerability was found in code-projects Vehicle Management System 1.0. This impacts an unknown function of the file newdriver.php of the component New Driver Registration Form. Performing a manipulation of the argument photo results in unrestricted upload. The attack may be initiated remotely. The exploit has been made public and could be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:04.927",
+    "poc_links": [
+      "https://github.com/Xmyronn/CVE-2026-11344-RCE"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11342",
+    "description": "A vulnerability has been found in code-projects Hotel and Tourism Reservation System 1.0. This affects an unknown function of the file /details.php. Such manipulation of the argument room leads to sql injection. The attack can be launched remotely. The exploit has been disclosed to the public and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:04.733",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11341",
+    "description": "A flaw has been found in D-Link DWR-M920 up to 1.1.50. The impacted element is the function sub_412DA0 of the file /boafrm/formIMEISetup. This manipulation of the argument IMEI_value causes os command injection. The attack can be initiated remotely. The exploit has been published and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:17:04.513",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71318",
+    "description": "NetMan 204 fails to enforce authentication on its administrative pages and command endpoints. A remote, unauthenticated attacker can directly request administrative pages (such as administration.html, administration-commands.html, and configuration.html) to disclose sensitive information including LDAP configuration and active user details, and can invoke privileged UPS control commands — including shutdown, reboot, switch-on-bypass, and battery test — without supplying any credentials.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:16:54.910",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71317",
+    "description": "NetMan 204 contains a hard-coded backdoor account with the username and password 'eurek' that grants administrative access. A remote, unauthenticated attacker can authenticate through the cgi-bin/login.cgi endpoint (for example /cgi-bin/login.cgi?username=eurek\u0026password=eurek, which due to lax parameter validation can be shortened to /cgi-bin/login.cgi?username=eurek%20eurek) to obtain administrator privileges, allowing them to alter device configuration, enable the telnet/SSH services, and reset local user credentials.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T18:16:54.737",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T18:47:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-h535-j5hr-mv56",
+    "description": "DbGate: Zip Slip in archive/unzip allows arbitrary file write leading to RCE",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:26:01Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:38:01Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7p8g-6c6g-h9w7",
+    "description": "praisonai-platform: Agent endpoints accept any agent_id without workspace ownership check, cross-workspace read/update/delete IDOR",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:28:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:38:00Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-8714",
+    "description": "A denial-of-service\nvulnerability exists in the RTSP server component of TP-Link Tapo C520WS v2 due to improper handling of\nsyntactically invalid input.  Crafted inputs\ncan trigger a processing error, causing the RTSP service to enter non-responsive\nstate.\n\n\n\n\n\nSuccessful\nexploitation may cause the RTSP in a denial-of-service condition.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:17:04.097",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7473",
+    "description": "On affected platforms running Arista EOS where a tunnel decapsulation configuration—such as VXLAN (Virtual Extensible LAN), decap-groups, or a GRE (Generic Routing Encapsulation) tunnel interface—is present, the switch will incorrectly decapsulate and forward other unexpected tunneled packet with a destination IP matching its configured decapsulation IP. This occurs because the switch does not verify the tunnel protocol type, potentially leading to the unexpected processing of non-configured tunnel traffic.\n\n\n\nThis issue has been reported as being exploited in the wild.",
+    "severity": "medium",
+    "cvss_score": 5.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:17:02.850",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48112",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.18 through 26.00 contain a heap out-of-bounds read in 7-Zip Ar handler BSD SYMDEF parser. A 4-byte heap out-of-bounds read exists in the Unix ar archive parser in 7-Zip. When parsing a BSD-style __.SYMDEF symbol table, the ParseLibSymbols function reads a 32-bit namesSize field via Get32 at a position that can equal the buffer size, reading 4 bytes past the end of the heap allocation. This reads uninitialized heap data under the default allocator. Version 26.01 patches the issue.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:49.353",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48111",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.21 through 26.00 contain an off-by-one out-of-bounds read vulnerability in the ParseDepedencyExpression function of the UEFI firmware image parser(CPP/7zip/Archive/UefiHandler.cpp). The function validates an attacker-controlled opcode byte using \u003e instead of \u003e= against the element count of the 10-entry kExpressionCommands static array, allowing an opcode value of 10 to read one pointer slot (8 bytes on x64) past the end of the array in .rodata. The out-of-bounds value is then dereferenced as a const char * and passed through strlen and memcpy into the archive's Characts property, which may cause either a denial of service (access violation when the adjacent bytes do not form a valid readable pointer) or a minor information disclosure of an adjacent .rdata string literal into archive metadata. The vulnerability is reached automatically during IInArchive::Open() via the call path OpenFv/OpenCapsule → ParseVolume → ParseSections when processing a SECTION_DXE_DEPEX (0x13) or SECTION_PEI_DEPEX (0x1B) section whose first body byte is 0x0A, and the UEFI handler is enabled by default in stock 7z.dll with signature-based detection for both UEFIc and UEFIf formats. The outcome (crash vs. silent leak) is deterministic per build but linker-layout dependent, with no write primitive and no disclosure of heap data, secrets, or ASLR base addresses. Version 26.01 fixes the issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:48.937",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48104",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.18 through 26.00 contain an uninitialized heap read in the SquashFS archive handler caused by a sparsely populated index array. In the SquashFS handler, _blockToNode is allocated with capacity for every metadata block but populated only when an inode crosses a block boundary, so a crafted image with few inodes spanning many blocks leaves most slots holding raw heap contents (the underlying allocator does not zero-initialize POD storage). When OpenDir looks up an attacker-influenced blockIndex (derived from the RootInode superblock field), it reads two of these uninitialized slots and passes them as the left/right bounds of a binary search over _nodesPos, which dereferences the midpoint without bounds checking; if the resulting value happens to match the search key, the returned index is used to read a full node struct from _nodes whose fields feed further directory parsing, forming a chained OOB read primitive that is heap-layout-dependent and not reliably triggerable. The SquashFS handler is enabled by default in stock 7z.dll and the issue triggers during Open() with no interaction beyond opening the file; impact is denial of service from wild-pointer dereference and potential heap information disclosure, with no write primitive. Version 26.01 fixes the issue.",
+    "severity": "medium",
+    "cvss_score": 4.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:48.547",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48103",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.34 through 26.00 contain an off-by-one heap out-of-bounds read in the WIM (Windows Imaging) archive handler's security descriptor lookup. In CHandler::GetSecurity (CPP/7zip/Archive/Wim/WimHandler.cpp), the per-image SecurOffsets table holds numEntries + 1 cumulative offsets, but the check securityId \u003e= SecurOffsets.Size() admits securityId == numEntries, and the function then reads SecurOffsets[securityId + 1], fetching one UInt32 past the end of the heap-allocated CRecordVector (which performs no bounds checking on operator[]). The securityId is attacker-controlled at offset +0xC of any directory entry in WIM metadata, and the handler is registered for .wim, .swm, .esd, and .ppkg and enabled by default in stock 7z.dll; the OOB triggers zero-click in the GUI because 7zFM.exe's ListView calls GetRawProp(kpidNtSecure) for every item during listing (ASan-confirmed), and is also reachable via CLI listing with 7zz l -slt. Impact is limited to denial of service under hardened allocators and minor information disclosure, since the OOB value is only consumed arithmetically as a length and is not surfaced to the attacker; there is no write primitive.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:48.133",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11339",
+    "description": "A vulnerability was detected in D-Link DWR-M920 up to 1.1.50. The affected element is the function sub_41CF20 of the file /boafrm/formUSSDSetup. The manipulation of the argument ussdValue results in command injection. It is possible to launch the attack remotely. The exploit is now public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:46.193",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11338",
+    "description": "A security vulnerability has been detected in SourceCodester Ship Ferry Ticket Reservation System 1.0. Impacted is an unknown function of the file /admin/?page=user/manage_user. The manipulation of the argument Username leads to cross site scripting. It is possible to initiate the attack remotely. The exploit has been disclosed publicly and may be used.",
+    "severity": "low",
+    "cvss_score": 2.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:44.160",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11337",
+    "description": "A vulnerability was found in tittuvarghese CollegeManagementSystem 3e476335cfbfb9a049e09f474c7ec885f69a9df3/a38852979f7e27ae67b610dce5979500ef8ebe01. Affected by this vulnerability is an unknown functionality of the file /dashboard_page/forms/fetch.php. The manipulation of the argument department_name results in cross site scripting. The attack may be launched remotely. The exploit has been made public and could be used. This product operates on a rolling release basis, ensuring continuous delivery. Consequently, there are no version details for either affected or updated releases. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:42.260",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-5090",
+    "description": "CVX is not resilient to unexpected messages from a connected switch. This leads to agent crashes on CVX causing instability in the CVX cluster. An attacker could use this behavior to create a denial of service (DoS) scenario. Note that this would require the attacker to have a high privilege access to the connected switch to be able to send custom TCP packets to the CVX.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:30.347",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-5089",
+    "description": "In a CVX cluster, an EOS switch connected to a CVX server is not resilient to certain malformed messages received from the connected CVX server. Similarly, the CVX server is not resilient to certain malformed messages received from the connected EOS switch. This leads to either a Sysdb agent crash on the EOS device causing a soft reset of the switch or agent crashes on the CVX server causing instability of the CVX cluster. An attacker could use this behavior to create a denial of service (DoS) scenario. Note that this would require the attacker to already have a high privilege access to the connected device to be able to send custom TCP packets. EOS switches that are not connected to a CVX server are not impacted.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:30.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-5088",
+    "description": "An authenticated Redis session could be used to obtain full root access to all servers in the CVX cluster. Note that this would require an attacker to have both network access to the Redis service on a CVX server and the Redis password. Please note that all Redis communication, including authentication, occurs over plaintext in the present day. TLS support is tracked under RFE1294850.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T17:16:29.097",
+    "poc_links": [
+      "https://github.com/0xdeadbit/CVE-2025-50881"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T17:37:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-wm5r-5qp3-5vxf",
+    "description": "Authenticated Remote Code Execution via loadReader functionName code injection in DbGate",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:30:59Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:29Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jjrm-hr5f-673x",
+    "description": "Source controller: Improper path handling allows traversal",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:32:51Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:28Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q4x5-8cj6-52wg",
+    "description": "Sync-in Server: SSRF protection bypass via IPv4-mapped IPv6 addresses in regExpPrivateIP",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:34:59Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:27Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-524w-vq63-2xhf",
+    "description": "Apache Airflow CNCF Kubernetes provider: JWT Token Exposure in KubernetesExecutor Command-Line Arguments",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-19T21:32:03Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-g9qc-qf28-hhqx",
+    "description": "Apache Airflow Amazon provider: Prevent unauthorized access to team-scoped secrets in AWS Secrets Manager and SSM Parameter Store backends",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-19T21:32:03Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-hv83-ggc4-v385",
+    "description": "DbGate: Remote Code Execution via functionName injection in loadReader endpoint",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:39:38Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:25Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-fw38-pc54-jvx9",
+    "description": "Klever-Go KVM: Throttler slot leak in trie account-data sync causes epoch bootstrap / state sync DoS",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:40:40Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-hf2g-6j7h-98wg",
+    "description": "klever-go: Unbounded goroutine spawn on direct-message ingress enables peer-driven DoS",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:41:23Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w4c6-7r69-w7j9",
+    "description": "klever-go: REST API slow-header connection exhaustion via Gin Engine.Run",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:41:58Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rm5c-5x2p-48wr",
+    "description": "Klever-Go KVM: Unauthenticated remote node crash (nil-pointer DoS) in klever-go P2P transaction interceptor (txVersionChecker nil RawData) - potential chain halt",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:42:38Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:21Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-g72g-r7m4-9x4g",
+    "description": "NocoDB: OAuth Tokens Persist Through Security Events",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:43:09Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-fgmc-2hqj-86v4",
+    "description": "Vantage6: Set admin user and password from environment or configuration",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:45:22Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-x9f6-9rvm-mmrg",
+    "description": "Improper Access Control in vantage6 node",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:45:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T17:02:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-2hj8-vpq3-ppqc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:25Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:57Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-3765-5f6w-7p86",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:56Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-978c-95pr-x896",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:55Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q66c-6wwq-qf8f",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:54Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qgpw-6v3f-gh8q",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:25Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qpxh-62pf-qh76",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:52Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qvf5-p4rv-885c",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:32:25Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:52Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6mx4-4h42-r8vh",
+    "description": "MCP Server Kubernetes: kubectl-generic flag injection enables Kubernetes bearer token exfiltration",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:40:00Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T16:48:51Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-9270",
+    "description": "DataDog::DogStatsd versions through 0.07 for Perl allow metric injections.\n\nDataDog::DogStatsd does not properly sanitise input, allowing metric injections of data from untrusted sources.\n\nThe send_stats method does not remove newlines from metric names ($stat variable), allowing attackers to change the metric name prefix.\n\nThe send_stats method does not validate the content of the value ($delta variable), allowing attackers to inject metrics, especially from methods that do not restrict the data type for the value, such as set, gauge, count and histogram.\n\nThe send_stats method does not validate the content of the tags, which may contain newlines, pipes and colons that allow metric injections.\n\nNote that the SYNOPSIS shows an example of passing a website form \"loginName\" parameter as a tag, which is unsafe.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:16:41.780",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48102",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.11 through 26.00 contain a heap out-of-bounds read of up to 3 bytes in the UDF disc image handler's File Identifier Descriptor parser. In CFileId::Parse (CPP/7zip/Archive/Udf/UdfIn.cpp), after validating size \u003c 38 + idLen + impLen and advancing processed to 38 + impLen + idLen, the alignment-padding loop reads p[processed] while incrementing up to 3 times to reach a 4-byte boundary, and the processed \u003c= size bounds check only runs after the loop. When (38 + impLen + idLen) % 4 != 0 and 38 + impLen + idLen == size, the loop reads 1 to 3 bytes past the end of the exact-size heap buffer allocated via buf.Alloc((size_t)item.Size). The UDF handler is registered for .iso and .udf files and auto-detected by signature, and the OOB read triggers during Open() when listing or extracting a crafted UDF image. Impact is limited to information disclosure (a 1-bit oracle per OOB byte via open/fail behavior) and denial of service (crash under hardened allocators); there is no write primitive. Version 26.01 fixes the issue.",
+    "severity": "low",
+    "cvss_score": 3.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:16:41.593",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48101",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.21 through 26.00 contain an An uninitialized memory disclosure vulnerability in the UEFI capsule (.scap) parser in 7-Zip. The OpenCapsule function allocates a heap buffer of attacker-declared CapsuleImageSize (up to 1 GiB) without zero-initialization, then reads the file contents into it with ReadStream_FALSE whose return value is silently discarded. If the file is truncated, the unread tail of the buffer retains uninitialized heap memory, which is then exposed as extracted file content via GetStream. Version 26.0.1 fixes the issue.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:16:41.423",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11362",
+    "description": "DataDog::DogStatsd versions through 0.07 for Perl allow metric injections from event tags.\n\nDataDog::DogStatsd does not properly sanitise input, allowing metric injections of data from untrusted sources.\n\nThe format_event method (used by the event method) does not validate the content of the tags, which may contain commas (allowing tags to be injected) or newlines, pipes and colons that allow metric injections.  (There is an ineffective s/|//g to remove pipes, but because the pipe is not escaped, it is interpreted as a regular expression metacharacter and has no effect.)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:16:41.277",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11336",
+    "description": "A vulnerability has been found in tittuvarghese CollegeManagementSystem 3e476335cfbfb9a049e09f474c7ec885f69a9df3/a38852979f7e27ae67b610dce5979500ef8ebe01. Affected is an unknown function of the file dashboard_page/admin_page.php of the component Admin Interface. The manipulation of the argument UserAuthData leads to improper authorization. The attack may be initiated remotely. The exploit has been disclosed to the public and may be used. This product uses a rolling release model to deliver continuous updates. As a result, specific version information for affected or updated releases is not available. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T16:16:41.077",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6209",
+    "description": "Improper Access Control, Missing Authorization vulnerability in HAVELSAN Inc. Geographic Tracking System allows Accessing Functionality Not Properly Constrained by ACLs.\n\nThis issue affects Geographic Tracking System: before v0.0.2.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:53.977",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6208",
+    "description": "Authorization bypass through User-Controlled key vulnerability in HAVELSAN Inc. Geographic Tracking System allows Exploitation of Trusted Identifiers.\n\nThis issue affects Geographic Tracking System: before v0.0.2.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:53.857",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6207",
+    "description": "Observable response discrepancy vulnerability in HAVELSAN Inc. Geographic Tracking System allows System Footprinting.\n\nThis issue affects Geographic Tracking System: before v0.0.2.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:53.730",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48095",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 26.00 and prior contain a heap buffer overflow vulnerability caused by an under-allocation in the NTFS compressed stream buffer (GetCuSize shift UB), potentially allowing attackers to cause arbitrary code execution or application crashes. CInStream::GetCuSize() in the NTFS handler computes the compression-unit buffer size as (UInt32)1 \u003c\u003c (BlockSizeLog + CompressionUnit), and a crafted image with ClusterSizeLog \u003e= 28 and CompressionUnit == 4 drives the exponent to 32, which is undefined behavior and collapses on x86/x64 so _inBuf is allocated as 1 byte. ReadStream_FALSE then writes up to 256 MB of attacker-controlled data into that 1-byte buffer in 64 KB iterations, and because the CInStream object sits only 304 bytes after _inBuf, its vtable pointer is overwritten and the next dispatched call achieves a vtable hijack. On 32-bit builds the overflow is unconditionally reached; on 64-bit it requires the parallel 8 GB _outBuf allocation to succeed, otherwise failing closed to denial of service. The NTFS handler is enabled by default in stock 7z.dll and, via signature-based fallback matching \"NTFS    \" at offset 3, will open a crafted image regardless of file extension during extraction or testing. Version 26.01 fixes the issue.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:53.520",
+    "poc_links": [
+      "https://github.com/HORKimhab/CVE-2026-48095"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48092",
+    "description": "7-Zip is a file archiver with a high compression ratio. Versions 9.34 through 26.00 contain a heap memory disclosure via SquashFS fragment offset integer overflow on 32-bit builds. 32-bit integer overflow in the SquashFS ReadBlock function allows an attacker-controlled node.Offset value to bypass the fragment bounds check, causing memcpy to read heap memory preceding the cache buffer into the extracted file. The vulnerability is exploitable only on 32-bit builds of 7-Zip where size_t is 32 bits, allowing the addition offsetInBlock + blockSize to wrap modulo 2³². On 64-bit builds the addition is promoted to 64 bits and the check correctly rejects the input. Version 26.01 patches the issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:53.380",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-38579",
+    "description": "Multiple reflected Cross-Site Scripting (XSS) vulnerabilities in damasac thaipalliative_lte through version 3.0 allow remote attackers to inject arbitrary web script or HTML via the idFormMain parameter (line 24), the id parameter (lines 25, 75), and the ptid_key parameter (lines 26, 42) in /substudy/ezform.php. User input is echoed into HTML attributes and JavaScript contexts without encoding.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:52.850",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-37737",
+    "description": "sanic-cors version 2.2.0 and prior contains an improper regular expression in the try_match() function in sanic_cors/core.py that uses re.match without end-anchoring. This allows an attacker to bypass CORS origin allowlists by registering a domain that begins with a trusted origin string, to gain unauthorized access to cross-origin requests for authenticated resources.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:51.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11335",
+    "description": "A flaw has been found in tittuvarghese CollegeManagementSystem 3e476335cfbfb9a049e09f474c7ec885f69a9df3/a38852979f7e27ae67b610dce5979500ef8ebe01. This impacts the function session_start of the file /login-form.php. Executing a manipulation of the argument UserAuthData can lead to session fixiation. The attack can be launched remotely. The exploit has been published and may be used. This product does not use versioning. This is why information about affected and unaffected releases are unavailable. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:51.540",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11334",
+    "description": "A vulnerability was detected in tittuvarghese CollegeManagementSystem 3e476335cfbfb9a049e09f474c7ec885f69a9df3/a38852979f7e27ae67b610dce5979500ef8ebe01. This affects an unknown function of the file dashboard_page/forms/fetch.php. Performing a manipulation of the argument department_code results in sql injection. The attack can be initiated remotely. The exploit is now public and may be used. Continious delivery with rolling releases is used by this product. Therefore, no version details of affected nor updated releases are available. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:51.360",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11333",
+    "description": "A security vulnerability has been detected in tittuvarghese CollegeManagementSystem 3e476335cfbfb9a049e09f474c7ec885f69a9df3/a38852979f7e27ae67b610dce5979500ef8ebe01. The impacted element is an unknown function of the file dashboard_page/forms/upload_student_data.php of the component Student Data Upload Endpoint. Such manipulation of the argument Student-Data-CSV leads to unrestricted upload. It is possible to launch the attack remotely. The exploit has been disclosed publicly and may be used. This product takes the approach of rolling releases to provide continious delivery. Therefore, version details for affected and updated releases are not available. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:51.147",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:48:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-10879",
+    "description": "DBI versions before 1.648 for Perl have a heap overflow when preparsing SQL statements with more than 9 binders.\n\nThe preparse method expands SQL placeholder characters to numbered binders of the form :pN, but only allocates three characters per binder in the buffer.  Placeholders 10-99 require four characters, 100-999 require five characters, et cetera.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:46.817",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:47:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-59174",
+    "description": "Ericsson Packet Core Controller (PCC) versions prior to 1.39 contain a vulnerability where an attacker sending a large volume of specially crafted messages may cause service degradation.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:40.560",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:47:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2020-25900",
+    "description": "HelloTalk through 3.4.1 stores full-precision GPS coordinates even when the user had intended to share only a country or city. Furthermore, these coordinates are placed into a database on the client of other users. (The client side was changed in 2019 to encrypt that database.)",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T15:16:39.230",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T16:47:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50235",
+    "description": "Lyrion Music Server 9.2.0 contains a reflected cross-site scripting vulnerability in advanced search parameters that fail to properly sanitize user input before displaying it in search forms. Attackers can inject malicious scripts through unfiltered search parameters to execute arbitrary JavaScript in users' browsers and steal session information.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:36.880",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50234",
+    "description": "Lyrion Music Server 9.2.0 contains a path traversal vulnerability that allows unauthenticated attackers to read arbitrary files by exploiting directory traversal in the web server context. Attackers can manipulate file path parameters to access sensitive files outside the intended directory structure.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:36.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50233",
+    "description": "Lyrion Music Server 9.2.0 contains an arbitrary directory listing vulnerability in its readdirectory query, exposed through both the CLI service (TCP port 9090) and the HTTP JSON-RPC endpoint (/jsonrpc.js). The query accepts a folder parameter and lists its contents with no restriction to the configured media directories and no authentication in the default configuration, allowing a remote, unauthenticated attacker to enumerate arbitrary locations on the host filesystem.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:36.550",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50232",
+    "description": "Lyrion Music Server 9.2.0 contains a stored cross-site scripting vulnerability that allows attackers to inject malicious scripts through media file metadata tags like GENRE, ARTIST, and ALBUM. Attackers can craft files with XSS payloads in metadata tags that execute in the web interface when users view track information or play files, enabling access to management functions and settings disclosure.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:36.363",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50231",
+    "description": "Lyrion Music Server 9.2.0 contains an unauthenticated stored cross-site scripting vulnerability in the log viewer that allows attackers to inject malicious scripts by exploiting unescaped template variables. Attackers can inject XSS payloads through search, lines, and path query parameters or by crafting values that get logged such as URLs, User-Agent headers, stream titles, or player names to execute arbitrary scripts in users' browsers.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:36.187",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50230",
+    "description": "Lyrion Music Server 9.2.0 contains an unauthenticated reflected cross-site scripting vulnerability in the server.log endpoint that allows attackers to inject arbitrary HTML and JavaScript code through the search parameter. Attackers can craft malicious URLs with JavaScript payloads in the search parameter to execute code in users' browsers within the context of the affected application.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:36.010",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-38500",
+    "description": "Rejected reason: DO NOT USE THIS CANDIDATE NUMBER. ConsultIDs: none. Reason: This candidate was withdrawn by its CNA. Further investigation showed that it was not a security issue. Notes: none.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:35.827",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11369",
+    "description": "The Comment API (GET /api/Comment and POST /api/Comment) in the affected application fails to perform authorization checks to verify that the requesting user has access to the object identified by the relatedObjectId. This Insecure Direct Object Reference (IDOR) vulnerability allows any authenticated user to read and write comments on any process across all business units by supplying an arbitrary object GUID.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:35.657",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11330",
+    "description": "A weakness has been identified in thedotmack claude-mem up to 11.0.1. The affected element is the function computeObservationContentHash of the file src/services/sqlite/observations/store.ts of the component Observation Content Hash Handler. This manipulation causes use of weak hash. The attack can only be executed locally. The attack's complexity is rated as high. The exploitability is described as difficult. Upgrading to version 12.0.0 is sufficient to fix this issue. Patch name: f32fda8b35e9fe9329f87da65c31149362a03f97. It is suggested to upgrade the affected component.",
+    "severity": "low",
+    "cvss_score": 3.6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T14:16:35.457",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T14:22:14Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-11329",
     "description": "A vulnerability has been found in onnx onnx-mlir up to 0.5.0.0. Affected by this issue is the function generate_hash_key of the file src/Runtime/python/torch_onnxmlir/src/torch_onnxmlir/backend.py of the component Placeholder Node Cache Handler. Such manipulation leads to use of weak hash. An attack has to be approached locally. A high complexity level is associated with this attack. The exploitation is known to be difficult. The name of the patch is 72c5187ff6d13c2c2b3d3789b8f5faf99f08a5b4. Applying a patch is advised to resolve this issue.",
     "severity": "low",

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import {
   Server, ClipboardList, ShieldAlert, Bug, ArrowRight,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { safeDistanceToNow } from '@/lib/utils'
 import { agentsApi } from '@/api/agents'
 import { jobsApi } from '@/api/jobs'
 import { cveCollectionApi } from '@/api/cve_collection'
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3 shrink-0">
                       <JobStatusBadge status={j.status} />
                       <span className="text-[10px] text-gray-500">
-                        {j.created_at && formatDistanceToNow(new Date(j.created_at), { addSuffix: true })}
+                        {j.created_at && safeDistanceToNow(j.created_at, { addSuffix: true })}
                       </span>
                     </div>
                   </Link>

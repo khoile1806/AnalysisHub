@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { formatDistanceToNow, format } from 'date-fns'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -42,6 +43,37 @@ export function getErrorMessage(error: unknown): string {
   }
   return String(error)
 }
+// ──────────────────────────────────────────────────────────────────────────────
+// Safe date helpers — prevent RangeError / "Invalid time value" crashes
+// Use these instead of new Date(x) when x could be null/undefined/invalid.
+// ──────────────────────────────────────────────────────────────────────────────
+
+export function safeDate(val: string | number | Date | null | undefined): Date | null {
+  if (val == null || val === '') return null
+  const d = new Date(val)
+  return isNaN(d.getTime()) ? null : d
+}
+
+export function safeDistanceToNow(
+  val: string | number | Date | null | undefined,
+  opts?: { addSuffix?: boolean; includeSeconds?: boolean }
+): string {
+  const d = safeDate(val)
+  if (!d) return '—'
+  try { return formatDistanceToNow(d, opts) }
+  catch { return '—' }
+}
+
+export function safeFormat(
+  val: string | number | Date | null | undefined,
+  fmt: string
+): string {
+  const d = safeDate(val)
+  if (!d) return '—'
+  try { return format(d, fmt) }
+  catch { return '—' }
+}
+
 export async function copyToClipboard(text: string): Promise<boolean> {
   // Use modern API if available
   if (navigator.clipboard) {

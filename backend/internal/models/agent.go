@@ -17,6 +17,13 @@ type Agent struct {
 	Status      string     `gorm:"default:'offline'"                              json:"status"` // online | offline
 	LastSeen    *time.Time `                                                      json:"last_seen"`
 	Description string     `                                                      json:"description"`
+
+	// Resource telemetry — updated via resource_report WebSocket messages
+	CPUPercent  float64 `gorm:"default:0" json:"cpu_percent"`
+	MemUsedMB   int64   `gorm:"default:0" json:"mem_used_mb"`
+	MemTotalMB  int64   `gorm:"default:0" json:"mem_total_mb"`
+	DiskUsedGB  float64 `gorm:"default:0" json:"disk_used_gb"`
+	DiskTotalGB float64 `gorm:"default:0" json:"disk_total_gb"`
 	CaseID      *uuid.UUID `gorm:"type:uuid;index"                                json:"case_id,omitempty"`
 	Case        *Case      `gorm:"foreignKey:CaseID"                              json:"case,omitempty"`
 	CreatedAt   time.Time  `                                                      json:"created_at"`

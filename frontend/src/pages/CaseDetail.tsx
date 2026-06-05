@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { casesApi } from '@/api/cases'
-import { format } from 'date-fns'
 import { Briefcase, Activity, Server, ChevronRight, User, Wrench, ClipboardList, Lock, Unlock } from 'lucide-react'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import toast from 'react-hot-toast'
-import { getErrorMessage } from '@/lib/utils'
+import { getErrorMessage, safeFormat } from '@/lib/utils'
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -149,7 +148,7 @@ export default function CaseDetailPage() {
                       </div>
                       <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] card p-4 group-odd:text-right group-odd:items-end flex flex-col hover:border-emerald-500/30 transition-colors">
                         <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mb-1">
-                          <span>{format(new Date(act.created_at), 'MMM dd, HH:mm:ss')}</span>
+                          <span>{safeFormat(act.created_at, 'MMM dd, HH:mm:ss')}</span>
                         </div>
                         <h4 className="font-semibold text-sm text-gray-200 mb-1">
                           {act._type === 'deployment' ? `Deployed ${act.scenario?.name || 'Scenario'}` : act._type === 'job' ? (
@@ -206,7 +205,7 @@ export default function CaseDetailPage() {
                           </td>
                           <td className="py-3 px-4"><JobStatusBadge status={j.status} /></td>
                           <td className="py-3 px-4 text-xs text-gray-500 font-mono">
-                            {format(new Date(j.created_at), 'MMM dd, HH:mm')}
+                            {safeFormat(j.created_at, 'MMM dd, HH:mm')}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <Link

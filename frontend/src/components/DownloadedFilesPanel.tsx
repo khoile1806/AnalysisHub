@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Trash2, History, RefreshCw, Loader2 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { safeDistanceToNow } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   downloadHistory,
@@ -145,7 +145,7 @@ export function DownloadedFilesPanel({ agentId, agentName, agentOnline }: Props)
                       {formatBytes(e.size)}
                     </td>
                     <td className="px-3 py-1.5 text-xs text-gray-500 hidden lg:table-cell" title={new Date(e.downloaded_at).toLocaleString()}>
-                      {formatDistanceToNow(new Date(e.downloaded_at), { addSuffix: true })}
+                      {safeDistanceToNow(e.downloaded_at, { addSuffix: true })}
                     </td>
                     <td className="px-3 py-1.5 text-right">
                       <div className="flex items-center justify-end gap-1">

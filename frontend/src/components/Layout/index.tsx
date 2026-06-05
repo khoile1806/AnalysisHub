@@ -19,6 +19,8 @@ import {
   ClipboardList,
   BrainCircuit,
   Settings2,
+  FlaskConical,
+  Activity,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
@@ -53,6 +55,13 @@ const NAV_GROUPS = [
       { to: '/opencti',   icon: ShieldAlert,     label: 'ELK Threat Hunting' },
     ]
   },
+  {
+    label: 'Quality Assurance',
+    items: [
+      { to: '/system-health', icon: Activity,     label: 'System Health' },
+      { to: '/test-cases',    icon: FlaskConical, label: 'Test Cases' },
+    ]
+  },
 ]
 
 const BREADCRUMB_MAP: Record<string, string> = {
@@ -69,6 +78,8 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'collection-checklist': 'Evidence Checklist',
   'ai-analysis': 'AI Analysis',
   'ai-providers': 'AI Providers',
+  'test-cases':     'Test Cases',
+  'system-health':  'System Health',
 }
 
 function Breadcrumbs() {

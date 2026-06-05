@@ -38,6 +38,10 @@ type Client struct {
 
 	// OnArtifact is called when the agent signals an artifact upload.
 	OnArtifact func(jobID, filename string, size int64)
+
+	// OnResourceReport is called when the agent sends a resource_report message
+	// containing CPU/RAM/Disk telemetry.
+	OnResourceReport func(cpu float64, memUsed, memTotal int64, diskUsed, diskTotal float64)
 }
 
 // NewClient creates a Client bound to the given hub and WebSocket connection.
@@ -110,6 +114,12 @@ func (c *Client) readPump() {
 				var art AgentMessage
 				if jsonErr2 := json.Unmarshal(data, &art); jsonErr2 == nil && c.OnArtifact != nil {
 					c.OnArtifact(art.JobID, art.Filename, art.Size)
+					continue
+				}
+			} else if probe.Type == "resource_report" {
+				var res AgentMessage
+				if jsonErr2 := json.Unmarshal(data, &res); jsonErr2 == nil && c.OnResourceReport != nil {
+					c.OnResourceReport(res.CPUPercent, res.MemUsedMB, res.MemTotalMB, res.DiskUsedGB, res.DiskTotalGB)
 					continue
 				}
 			}

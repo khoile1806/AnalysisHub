@@ -1,10 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, FolderOpen, Briefcase, Calendar, Pencil } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import { casesApi, type Case } from '@/api/cases'
-import { getErrorMessage } from '@/lib/utils'
+import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -209,7 +208,7 @@ export default function CaseManagerPage() {
               <div className="flex items-center justify-between text-[11px] text-gray-500 mt-auto pt-3 border-t border-gray-800/60">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
-                  {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                  {safeDistanceToNow(c.created_at, { addSuffix: true })}
                 </div>
               </div>
             </div>

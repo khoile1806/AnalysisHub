@@ -5,7 +5,6 @@ import {
   Newspaper, Shield, Building, Eye, Star, Globe, Target,
   type LucideIcon,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import CVENewsTab from '@/components/CVENewsTab'
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -17,7 +16,7 @@ import { newsApi, type NewsArticle, type NewsCategory } from '@/api/news'
 import { cveCollectionApi, CollectedCVE } from '@/api/cve_collection'
 import { cveApi } from '@/api/cve'
 import { SeverityBadge } from '@/components/StatusBadge'
-import { getErrorMessage } from '@/lib/utils'
+import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
 import {
   Dialog,
@@ -268,7 +267,7 @@ export default function CVECollectionPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500">
-                          {cve.added_at ? formatDistanceToNow(new Date(cve.added_at), { addSuffix: true }) : ''}
+                          {cve.added_at ? safeDistanceToNow(cve.added_at, { addSuffix: true }) : ''}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button

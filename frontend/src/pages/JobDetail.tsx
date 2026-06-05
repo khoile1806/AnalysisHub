@@ -2,11 +2,10 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Download, Clock, Server, Wrench, Calendar, RefreshCw, BrainCircuit } from 'lucide-react'
-import { format, formatDistanceToNow } from 'date-fns'
 import { jobsApi } from '@/api/jobs'
 import { JobStatusBadge } from '@/components/StatusBadge'
 import TerminalOutput from '@/components/Terminal'
-import { formatDuration } from '@/lib/utils'
+import { formatDuration, safeDistanceToNow, safeFormat } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
 import { useNavigate } from 'react-router-dom'
 
@@ -154,7 +153,7 @@ export default function JobDetailPage() {
               <span className="text-emerald-400">{job.id.slice(0, 8)}…</span>
             </h1>
             <p className="text-sm text-gray-400 mt-0.5">
-              Created {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+              Created {safeDistanceToNow(job.created_at, { addSuffix: true })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -216,20 +215,20 @@ export default function JobDetailPage() {
               <InfoRow
                 icon={Calendar}
                 label="Created"
-                value={format(new Date(job.created_at), 'PPpp')}
+                value={safeFormat(job.created_at, 'PPpp')}
               />
               {job.started_at && (
                 <InfoRow
                   icon={Clock}
                   label="Started"
-                  value={format(new Date(job.started_at), 'PPpp')}
+                  value={safeFormat(job.started_at, 'PPpp')}
                 />
               )}
               {job.finished_at && (
                 <InfoRow
                   icon={Clock}
                   label="Finished"
-                  value={format(new Date(job.finished_at), 'PPpp')}
+                  value={safeFormat(job.finished_at, 'PPpp')}
                 />
               )}
               {job.started_at && (

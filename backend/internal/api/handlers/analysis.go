@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -520,11 +521,17 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 		saveIdx := h.stepIndex(steps, "save")
 		setStep(saveIdx, "running", "")
 		h.sendLog(c, "info", "Lưu báo cáo vào database...")
-		wordCount := len(strings.Fields(resultBuilder.String()))
+		// Strip <think>/<thinking> blocks before persisting — reasoning models
+		// (DeepSeek-R1, Qwen-thinking, etc.) interleave internal chain-of-thought
+		// inside the token stream using these tags. We keep them in liveTokens for
+		// the Live Activity panel, but the stored report should contain only the
+		// final formatted output.
+		cleanResult := stripThinkBlocks(resultBuilder.String())
+		wordCount := len(strings.Fields(cleanResult))
 		now := time.Now()
 		h.db.Model(&session).Updates(map[string]interface{}{
 			"status":      "done",
-			"result":      resultBuilder.String(),
+			"result":      cleanResult,
 			"finished_at": now,
 		})
 		setStep(saveIdx, "done", fmt.Sprintf("%d words", wordCount))
@@ -541,6 +548,16 @@ clientGone:
 // ──────────────────────────────────────────────────────────────
 // Internal helpers
 // ──────────────────────────────────────────────────────────────
+
+// thinkBlockRe matches <think>…</think> and <thinking>…</thinking> blocks
+// produced by reasoning models such as DeepSeek-R1 and Qwen-thinking.
+var thinkBlockRe = regexp.MustCompile(`(?si)<think(?:ing)?>[\s\S]*?</think(?:ing)?>`)
+
+// stripThinkBlocks removes reasoning-model chain-of-thought sections so that
+// only the final formatted answer is stored and displayed to the user.
+func stripThinkBlocks(s string) string {
+	return strings.TrimSpace(thinkBlockRe.ReplaceAllString(s, ""))
+}
 
 func (h *AIHandler) sendSSE(c *gin.Context, event string, data interface{}) {
 	payload, _ := json.Marshal(data)
@@ -736,20 +753,79 @@ func (h *AIHandler) collectELKResult(resultIDStr string) (string, error) {
 	return sb.String(), nil
 }
 
+// collectUpload reads a sampled portion of the uploaded file without loading
+// the whole thing into memory.  Memory dumps and disk images can be multiple
+// gigabytes; os.ReadFile on such a file OOMs the server.  Instead we read:
+//   - up to 1 MB from the beginning (process lists, PE headers, registry hives)
+//   - up to 512 KB from the middle (heap allocations, stack frames)
+//   - up to 512 KB from the end (recent activity, logs)
+//
+// Total in-memory footprint: ≤ 2 MB regardless of file size.
+// The extractStrings step that follows will reduce this to ≤ 512 KB of
+// printable ASCII, and buildPrompt caps to 24 KB before sending to the AI.
 func (h *AIHandler) collectUpload(uploadPath string) (string, error) {
 	if uploadPath == "" {
 		return "", fmt.Errorf("no upload file associated with this session")
 	}
 	fullPath := h.store.GetAnalysisUploadPath(uploadPath)
-	data, err := os.ReadFile(fullPath)
+
+	f, err := os.Open(fullPath)
 	if err != nil {
-		return "", fmt.Errorf("read upload file: %w", err)
+		return "", fmt.Errorf("open upload file: %w", err)
 	}
-	// Cap at 20KB to stay within free-tier token limits
-	if len(data) > 20*1024 {
-		return string(data[:20*1024]) + "\n... [truncated]", nil
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return "", fmt.Errorf("stat upload file: %w", err)
 	}
-	return string(data), nil
+	size := info.Size()
+
+	const (
+		headBytes   = 1 * 1024 * 1024 // 1 MB from start
+		middleBytes = 512 * 1024       // 512 KB from middle
+		tailBytes   = 512 * 1024       // 512 KB from end
+	)
+
+	// Small file: read entirely
+	if size <= int64(headBytes+middleBytes+tailBytes) {
+		data, rerr := io.ReadAll(io.LimitReader(f, int64(headBytes+middleBytes+tailBytes)))
+		if rerr != nil {
+			return "", fmt.Errorf("read upload file: %w", rerr)
+		}
+		return string(data), nil
+	}
+
+	var sb strings.Builder
+	sb.Grow(headBytes + middleBytes + tailBytes + 64)
+
+	// Head
+	head := make([]byte, headBytes)
+	n, _ := io.ReadFull(f, head)
+	sb.Write(head[:n])
+
+	// Middle
+	midOffset := (size / 2) - int64(middleBytes/2)
+	if _, seekErr := f.Seek(midOffset, io.SeekStart); seekErr == nil {
+		mid := make([]byte, middleBytes)
+		n, _ = io.ReadFull(f, mid)
+		sb.WriteString("\n\n[... middle sample ...]\n\n")
+		sb.Write(mid[:n])
+	}
+
+	// Tail
+	tailOffset := size - int64(tailBytes)
+	if tailOffset < 0 {
+		tailOffset = 0
+	}
+	if _, seekErr := f.Seek(tailOffset, io.SeekStart); seekErr == nil {
+		tail := make([]byte, tailBytes)
+		n, _ = io.ReadFull(f, tail)
+		sb.WriteString("\n\n[... tail sample ...]\n\n")
+		sb.Write(tail[:n])
+	}
+
+	return sb.String(), nil
 }
 
 // buildPrompt constructs the forensic analysis prompt.
@@ -858,5 +934,3 @@ func (h *AIHandler) newDecryptedClient(p *models.AIProvider) (ai.Client, error) 
 	return client, nil
 }
 
-// Ensure unused import (io) compiles — used in upload size check indirectly.
-var _ = io.EOF

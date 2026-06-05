@@ -2,11 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Copy, Server, Trash2, Settings, CheckCircle, Terminal } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
 import { AgentStatusBadge } from '@/components/StatusBadge'
-import { getErrorMessage, copyToClipboard } from '@/lib/utils'
+import { getErrorMessage, copyToClipboard, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -515,7 +514,7 @@ export default function AgentsPage() {
                     </td>
                     <td className="px-5 py-3 hidden md:table-cell text-xs text-gray-500">
                       {agent.last_seen
-                        ? formatDistanceToNow(new Date(agent.last_seen), { addSuffix: true })
+                        ? safeDistanceToNow(agent.last_seen, { addSuffix: true })
                         : 'Never'}
                     </td>
                     <td className="px-5 py-3">

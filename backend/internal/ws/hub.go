@@ -75,6 +75,13 @@ type AgentMessage struct {
 	FsDone      bool      `json:"fs_done,omitempty"`
 	FsError     string    `json:"fs_error,omitempty"`
 	FsSize      int64     `json:"fs_size,omitempty"` // total bytes (file size) sent in first chunk
+
+	// Resource telemetry fields (type="resource_report").
+	CPUPercent  float64 `json:"cpu_percent,omitempty"`
+	MemUsedMB   int64   `json:"mem_used_mb,omitempty"`
+	MemTotalMB  int64   `json:"mem_total_mb,omitempty"`
+	DiskUsedGB  float64 `json:"disk_used_gb,omitempty"`
+	DiskTotalGB float64 `json:"disk_total_gb,omitempty"`
 }
 
 // OutputPersistFunc is a callback invoked for every output chunk received from
@@ -431,6 +438,13 @@ func (h *Hub) IsAgentOnline(agentID string) bool {
 	_, ok := h.clients[agentID]
 	h.mu.RUnlock()
 	return ok
+}
+
+// ConnectedAgentCount returns the number of agent WebSocket connections currently active.
+func (h *Hub) ConnectedAgentCount() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.clients)
 }
 
 // receiveFromAgent is called by Client to forward a raw message to the hub.

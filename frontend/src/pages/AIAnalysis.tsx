@@ -6,7 +6,6 @@ import {
   FileText, Server, ClipboardList, Search, Settings2,
   Activity,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
   analysisApi, elkResultsApi,
@@ -14,7 +13,7 @@ import {
 } from '@/api/analysis'
 import { jobsApi } from '@/api/jobs'
 import { checklistApi } from '@/api/checklist'
-import { getErrorMessage } from '@/lib/utils'
+import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import AnalysisChain from '@/components/analysis/AnalysisChain'
 import AnalysisStream from '@/components/analysis/AnalysisStream'
 import {
@@ -66,6 +65,9 @@ function NewAnalysisModal({
   const [file, setFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const fileSizeMB = file ? file.size / (1024 * 1024) : 0
+  const isLargeFile = fileSizeMB > 100
 
   const { data: providers = [] } = useQuery({ queryKey: ['ai-providers'], queryFn: analysisApi.listProviders, enabled: open })
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => jobsApi.list(), enabled: open && sourceType === 'job' })
@@ -208,12 +210,25 @@ function NewAnalysisModal({
               >
                 <Upload className="h-6 w-6 mx-auto text-gray-500 mb-2" />
                 {file ? (
-                  <p className="text-sm text-emerald-400 font-medium">{file.name}</p>
+                  <div>
+                    <p className="text-sm text-emerald-400 font-medium">{file.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{fileSizeMB.toFixed(1)} MB</p>
+                  </div>
                 ) : (
                   <>
                     <p className="text-sm text-gray-400">Drop file here or click to browse</p>
-                    <p className="text-xs text-gray-600 mt-1">.txt .csv .json .xml .html .log .man · .raw .dmp .vmem (strings extracted)</p>
+                    <p className="text-xs text-gray-600 mt-1">.txt .csv .json .xml .html .log .man · .raw .dmp .vmem .mem (strings extracted)</p>
                   </>
+                )}
+                {isLargeFile && (
+                  <div className="mt-3 rounded-md bg-amber-900/20 border border-amber-500/30 px-3 py-2 text-left">
+                    <p className="text-xs text-amber-300 font-medium">File lớn — {fileSizeMB.toFixed(0)} MB</p>
+                    <p className="text-[11px] text-amber-400/70 mt-0.5">
+                      File sẽ được lưu đầy đủ lên server. Khi phân tích, hệ thống tự động lấy mẫu 2 MB
+                      (đầu + giữa + cuối) để trích xuất strings — không load toàn bộ vào RAM.
+                      Upload có thể mất vài phút.
+                    </p>
+                  </div>
                 )}
                 <input ref={fileRef} type="file" className="hidden"
                   accept=".txt,.csv,.json,.xml,.html,.htm,.log,.man,.raw,.dmp,.vmem,.mem,.bin"
@@ -343,10 +358,17 @@ function LiveActivityPanel({ logs, liveTokens, isStreaming }: {
 // ──────────────────────────────────────────────────────────────
 // Session Panel
 // ──────────────────────────────────────────────────────────────
+// Remove <think>/<thinking> blocks that reasoning models (DeepSeek-R1, Qwen)
+// insert inline. These appear in liveTokens (thinking panel) but must not
+// leak into the final Forensic Analysis Report.
+function filterThinkBlocks(text: string): string {
+  return text.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, '').trim()
+}
+
 function SessionPanel({ session, onDeleted }: { session: AnalysisSession; onDeleted: () => void }) {
   const qc = useQueryClient()
   const [steps, setSteps] = useState<ChainStep[]>(analysisApi.parseSteps(session.steps))
-  const [result, setResult] = useState(session.result ?? '')
+  const [result, setResult] = useState(filterThinkBlocks(session.result ?? ''))
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamError, setStreamError] = useState('')
   const [logs, setLogs] = useState<LogEntry[]>([])
@@ -400,6 +422,8 @@ function SessionPanel({ session, onDeleted }: { session: AnalysisSession; onDele
       es.close()
       setIsStreaming(false)
       setLiveTokens('')
+      // Strip any think blocks that accumulated during streaming before showing in report
+      setResult(prev => filterThinkBlocks(prev))
       qc.invalidateQueries({ queryKey: ['ai-sessions'] })
       qc.invalidateQueries({ queryKey: ['ai-session', session.id] })
     })
@@ -424,7 +448,7 @@ function SessionPanel({ session, onDeleted }: { session: AnalysisSession; onDele
     if (session.status === 'pending' || session.status === 'running') {
       startStream()
     } else if (session.result) {
-      setResult(session.result)
+      setResult(filterThinkBlocks(session.result))
       setSteps(analysisApi.parseSteps(session.steps))
     }
     return () => esRef.current?.close()
@@ -577,7 +601,7 @@ export default function AIAnalysisPage() {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className={`text-[10px] ${statusColor(s.status)}`}>{s.status}</span>
                         <span className="text-[10px] text-gray-600">·</span>
-                        <span className="text-[10px] text-gray-600">{formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}</span>
+                        <span className="text-[10px] text-gray-600">{safeDistanceToNow(s.created_at, { addSuffix: true })}</span>
                       </div>
                     </div>
                   </div>
