@@ -317,6 +317,7 @@ func RemoveScenarioTool(c *gin.Context) {
 
 type deployScenarioRequest struct {
 	AgentID string `json:"agent_id" binding:"required"`
+	CaseID  string `json:"case_id"`
 }
 
 // DeployScenario creates one Job per tool in the scenario and dispatches each
@@ -373,6 +374,11 @@ func DeployScenario(c *gin.Context) {
 		ScenarioID: scenarioID,
 		AgentID:    agentID,
 		CreatedBy:  userID,
+	}
+	if req.CaseID != "" {
+		if cid, err := uuid.Parse(req.CaseID); err == nil {
+			deployment.CaseID = &cid
+		}
 	}
 	if err := db.Create(&deployment).Error; err != nil {
 		log.Printf("[hunting] create deployment: %v", err)

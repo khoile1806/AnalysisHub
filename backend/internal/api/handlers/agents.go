@@ -32,6 +32,7 @@ var agentNameRe = regexp.MustCompile(`^[A-Za-z0-9 ._-]{1,64}$`)
 type createAgentRequest struct {
 	Name        string `json:"name"        binding:"required"`
 	Description string `json:"description"`
+	CaseID      string `json:"case_id"`
 }
 
 // ListAgents returns all registered agents with their current status.
@@ -98,6 +99,11 @@ func CreateAgent(c *gin.Context) {
 		Status:      "offline",
 		Description: req.Description,
 	}
+	if req.CaseID != "" {
+		if cid, err := uuid.Parse(req.CaseID); err == nil {
+			agent.CaseID = &cid
+		}
+	}
 
 	if err := db.Create(&agent).Error; err != nil {
 		log.Printf("[agents] db create: %v", err)
@@ -109,6 +115,64 @@ func CreateAgent(c *gin.Context) {
 
 	// Return the full agent including token (shown only once).
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": agent})
+}
+
+// UpdateAgent updates an agent's description and/or case association.
+//
+// PATCH /api/v1/agents/:id
+func UpdateAgent(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	var agent models.Agent
+	if err := db.First(&agent, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "agent not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "internal server error"})
+		return
+	}
+
+	var req struct {
+		Description *string `json:"description"`
+		CaseID      *string `json:"case_id"` // "" to unlink, UUID string to link
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	updates := map[string]interface{}{}
+	if req.Description != nil {
+		updates["description"] = *req.Description
+	}
+	if req.CaseID != nil {
+		if *req.CaseID == "" {
+			updates["case_id"] = nil
+		} else if cid, err := uuid.Parse(*req.CaseID); err == nil {
+			updates["case_id"] = cid
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid case_id"})
+			return
+		}
+	}
+
+	if len(updates) > 0 {
+		db.Model(&agent).Updates(updates)
+	}
+
+	db.First(&agent, "id = ?", id)
+	agent.Token = ""
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": agent})
 }
 
 // GetAgent returns a single agent by UUID.

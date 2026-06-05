@@ -30,6 +30,7 @@ export interface HuntingDeployment {
   scenario?: HuntingScenario
   agent_id: string
   agent?: Agent
+  case_id?: string
   created_at: string
   jobs?: Job[]
 }
@@ -89,10 +90,10 @@ export const huntingApi = {
     await apiClient.delete(`/hunting/scenarios/${scenarioId}/tools/${toolId}`)
   },
 
-  deploy: async (scenarioId: string, agentId: string): Promise<DeployResult> => {
+  deploy: async (scenarioId: string, agentId: string, caseId?: string): Promise<DeployResult> => {
     const { data } = await apiClient.post<ApiResponse<DeployResult>>(
       `/hunting/scenarios/${scenarioId}/deploy`,
-      { agent_id: agentId },
+      { agent_id: agentId, case_id: caseId ?? '' },
     )
     return data.data
   },

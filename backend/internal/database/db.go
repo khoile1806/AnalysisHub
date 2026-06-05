@@ -55,9 +55,12 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.AuditLog{},
 		&models.OpenCTIConfig{},
 		&models.ELKConfig{},
+		&models.ELKHuntResult{},
 		&models.IOC{},
 		&models.ChecklistRun{},
 		&models.ChecklistBatch{},
+		&models.AIProvider{},
+		&models.AnalysisSession{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

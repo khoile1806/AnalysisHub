@@ -288,6 +288,19 @@ func StreamELKFileHunt(c *gin.Context) {
 		return
 	}
 
+	// Create a persistent result record before streaming begins.
+	userID, _ := middleware.GetUserID(c)
+	var activeCfg models.ELKConfig
+	_ = db.Where("is_active = ?", true).First(&activeCfg).Error
+	huntResult := models.ELKHuntResult{
+		ConfigID:  activeCfg.ID,
+		Title:     fmt.Sprintf("File Hunt — %d IOCs (%s)", len(pseudoIOCs), time.Now().Format("2006-01-02 15:04")),
+		IOCsUsed:  len(pseudoIOCs),
+		Status:    "running",
+		CreatedBy: userID,
+	}
+	db.Create(&huntResult)
+
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
@@ -328,14 +341,18 @@ func StreamELKFileHunt(c *gin.Context) {
 		}
 	}
 
+	const maxStoredHits = 5000
 	totalBatches := len(plans)
 	seen := make(map[string]struct{})
 	totalHits := 0
 	startedAt := time.Now()
+	allHits := make([]map[string]interface{}, 0, 256)
 
 	for idx, plan := range plans {
 		select {
 		case <-clientGone:
+			now := time.Now()
+			db.Model(&huntResult).Updates(map[string]interface{}{"status": "failed", "finished_at": now})
 			return
 		default:
 		}
@@ -387,8 +404,19 @@ func StreamELKFileHunt(c *gin.Context) {
 		}
 		totalHits += len(fresh)
 
+		if len(allHits) < maxStoredHits {
+			remaining := maxStoredHits - len(allHits)
+			if len(fresh) <= remaining {
+				allHits = append(allHits, fresh...)
+			} else {
+				allHits = append(allHits, fresh[:remaining]...)
+			}
+		}
+
 		if len(fresh) > 0 {
 			if !sendEvent("hits", gin.H{"batch": idx + 1, "bucket": plan.bucket, "hits": fresh}) {
+				now := time.Now()
+				db.Model(&huntResult).Updates(map[string]interface{}{"status": "failed", "finished_at": now})
 				return
 			}
 		}
@@ -399,6 +427,8 @@ func StreamELKFileHunt(c *gin.Context) {
 			"batch_hits":    len(fresh),
 			"total_hits":    totalHits,
 		}) {
+			now := time.Now()
+			db.Model(&huntResult).Updates(map[string]interface{}{"status": "failed", "finished_at": now})
 			return
 		}
 
@@ -407,14 +437,29 @@ func StreamELKFileHunt(c *gin.Context) {
 		}
 	}
 
+	now := time.Now()
+	if hitsJSON, jerr := json.Marshal(allHits); jerr == nil {
+		db.Model(&huntResult).Updates(map[string]interface{}{
+			"status":      "done",
+			"total_hits":  totalHits,
+			"results":     string(hitsJSON),
+			"finished_at": now,
+		})
+	} else {
+		db.Model(&huntResult).Updates(map[string]interface{}{
+			"status":      "done",
+			"total_hits":  totalHits,
+			"finished_at": now,
+		})
+	}
+
 	sendEvent("done", gin.H{
 		"total_hits":    totalHits,
 		"total_batches": totalBatches,
 		"total_iocs":    len(pseudoIOCs),
 		"took_ms":       time.Since(startedAt).Milliseconds(),
+		"result_id":     huntResult.ID.String(),
 	})
 
-	if uid, ok := middleware.GetUserID(c); ok {
-		writeAudit(c, db, &uid, nil, "elk.hunt.file", "elk", fmt.Sprintf("file iocs=%d batches=%d hits=%d", len(pseudoIOCs), totalBatches, totalHits))
-	}
+	writeAudit(c, db, &userID, nil, "elk.hunt.file", "elk", fmt.Sprintf("file iocs=%d batches=%d hits=%d", len(pseudoIOCs), totalBatches, totalHits))
 }

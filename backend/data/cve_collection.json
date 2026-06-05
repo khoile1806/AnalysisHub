@@ -1,5 +1,1019 @@
 [
   {
+    "id": "CVE-2026-11329",
+    "description": "A vulnerability has been found in onnx onnx-mlir up to 0.5.0.0. Affected by this issue is the function generate_hash_key of the file src/Runtime/python/torch_onnxmlir/src/torch_onnxmlir/backend.py of the component Placeholder Node Cache Handler. Such manipulation leads to use of weak hash. An attack has to be approached locally. A high complexity level is associated with this attack. The exploitation is known to be difficult. The name of the patch is 72c5187ff6d13c2c2b3d3789b8f5faf99f08a5b4. Applying a patch is advised to resolve this issue.",
+    "severity": "low",
+    "cvss_score": 3.6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T13:16:38.343",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T13:24:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-4ph5-83mw-vm42",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:38Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-4r2h-m6wp-gxg9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:37Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-57x5-6c8x-j77q",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:36Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5p28-qfxx-wqm8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:35Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5p7p-jgvj-4v95",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-74fp-pmv2-rh3f",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7gx3-r5q9-6j33",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7j37-rf7v-jf5c",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7p37-7qj9-8qff",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7ww4-jpp4-x9fw",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-92v6-r4j5-9677",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-959m-qc75-jv6h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-c7cw-qcqw-c783",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-c83q-p66f-qr9p",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cwv2-jv9g-p6gp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jvw3-jcj6-6qc7",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jx39-26rr-cwqp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pg3r-xmvg-gj6m",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v3x7-4j5m-jrm2",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:33Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xj32-w24w-7c6q",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:31:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-05T12:59:33Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-50264",
+    "description": "An out-of-bounds write flaw was found in the X.Org X server and Xwayland in DRIGetBuffers/DRIGetBuffersWithFormat. A client that requests multiple DRI2BufferBackLeft attachments and one DRI2BufferFrontLeft can trigger an out-of-bounds heap write. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:40.080",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50263",
+    "description": "A use-after-free flaw was found in the X.Org X server and Xwayland in CreateSaverWindow(). A client can trigger a use-after-free read after changing window attributes and forcing the screen saver, leading to information disclosure.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:39.927",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50262",
+    "description": "An out-of-bounds read flaw was found in the X.Org X server and Xwayland in __glXDisp_ChangeDrawableAttributes(). A wrong size validation check can read a client-controlled number of bytes, exceeding the request buffer, leading to information disclosure. A write path also exists but requires byte-swapped clients which is disabled by default.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:39.770",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50261",
+    "description": "A use-after-free flaw was found in the X.Org X server and Xwayland in SyncChangeCounter(). A client that sets up multiple SyncCounters can trigger a use-after-free when destroying those counters via a second client connection while changing those counters. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:39.617",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50260",
+    "description": "A use-after-free flaw was found in the X.Org X server and Xwayland in FreeCounter(). A client that sets up multiple SyncCounters and awaits on those triggers can trigger a use-after-free when destroying those counters via a second client connection. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:39.430",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50259",
+    "description": "A stack-based buffer overflow flaw was found in the X.Org X server and Xwayland. _XkbSetMapChecks() declares a fixed-size stack buffer mapWidths[256] indexed by key type index. The helper function CheckKeyTypes() writes to this buffer at a client-controlled offset, allowing a stack buffer overflow. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:39.240",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50258",
+    "description": "A stack-based buffer overflow flaw was found in the X.Org X server and Xwayland. The X server has multiple stack buffers sized XkbMaxShiftLevel * XkbNumKbdGroups but CheckKeyTypes() does not verify or clamp non-canonical key types to XkbMaxShiftLevel. A client can change key types to excessive shift levels and trigger stack overflows. This is caused by an incomplete fix of CVE-2025-26597. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:39.070",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50257",
+    "description": "A use-after-free flaw was found in the X.Org X server and Xwayland in miSyncDestroyFence(). A client that sets up multiple fence triggers can trigger a use-after-free function pointer call. An attacker would connect to the X server to set up a fence and await that fence, then a second X connection destroys the fence, causing the use-after-free. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:38.907",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50256",
+    "description": "A stack-based buffer overflow flaw was found in the X.Org X server and Xwayland. A mismatch between the X server and the libXfont2 library's maximum font name length can cause a stack buffer overflow during font alias resolution. The server allocates a 256 byte stack buffer but libXfont2's alias target name length is 1024 bytes. A font alias name between 257 and 1023 bytes causes the X server to copy that name into the undersized stack buffer without further checks. This may be used to crash the server, or for privilege escalation if the X server runs as root.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:38.727",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25659",
+    "description": "Ericsson\nPacket Core Gateway (PCG) versions prior to 1.30 contain an Improper Handling\nof Missing Values (CWE-230) vulnerability where an attacker continuously\nsending a specially crafted message can cause service degradation. The impact continues as long the attack persists but the system recovers from the crashes when the attack stops.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:38.050",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25658",
+    "description": "Ericsson\nPacket Core Gateway (PCG) versions prior to 1.30 contain an Improper Handling\nof Missing Values (CWE-230) vulnerability where an attacker continuously\nsending a specially crafted message can cause service degradation. The impact continues as long the attack persists but the system recovers from the crashes when the attack stops.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:37.907",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25657",
+    "description": "Ericsson Packet Core Gateway (PCG) versions prior to 1.30 contain an Improper Handling of Syntactically Invalid Structure (CWE-228) vulnerability where an attacker continuously sending a specially crafted message can cause service degradation. The impact continues as long the attack persists but the system recovers from the crashes when the attack stops.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:37.750",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:58:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11346",
+    "description": "A Server-Side Request Forgery (SSRF) vulnerability in the custom process creation feature of linqi allows an authenticated attacker to probe internal network components. By crafting a specific process containing an HTTP Request component, an attacker can force the server to send arbitrary HTTP requests. By observing the varying application responses (Success, Failed, or 504 Gateway Time-out), the attacker can determine the status of internal ports, leading to internal network reconnaissance.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:37.597",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11345",
+    "description": "An Improper Authentication vulnerability in the /api/Cdn/GetFile endpoint of linqi allows unauthenticated, remote attackers to bypass file access controls. The ValidateAnonFileAccess function incorrectly grants access if an 'AnonFile' query parameter containing exactly 256 characters is provided. While this flaw allows bypassing the intended authorization check, the actual security impact is negligible; the exposed resources are strictly limited to minified JavaScript and CSS files that contain no sensitive data and are already publicly accessible via a standard CDN.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T12:16:37.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8914",
+    "description": "In Teltonika Networks RUTOS devices, running versions 7.22 through 7.23.2 and TSWOS devices running versions 1.09 through 1.09.1, due to unsafe calls to an eval function in rpc-profile, a vulnerability exists where a lower privileged user could perform command injection as the root user.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:37.043",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50265",
+    "description": "A flaw was found in libinput. A local attacker with access to /dev/uinput can inject arbitrary udev properties through the libinput-device-group helper. This injection can lead to root code execution, for example, by exploiting REMOVE_CMD properties that are executed when a device is removed. This vulnerability allows an attacker to gain elevated privileges on the system.",
+    "severity": "high",
+    "cvss_score": 7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:36.853",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21038",
+    "description": "Improper input validation in Samsung Android USB Driver for Windows prior to version 1.9.5.0 allows local attacker to access out-of-bounds memory.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:36.553",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21037",
+    "description": "Improper input validation in Samsung Members prior to version 5.8.01.5 allows local attackers to access arbitrary URL and launch arbitrary activity with Samsung Members privilege.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:36.440",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21036",
+    "description": "Improper authorization in Samsung Internet prior to version 30.0.0.39 allows local attackers to access sensitive information.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:36.310",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:57:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21035",
+    "description": "Improper input validation in Samsung Plus TV prior to version 1.0.28.6 allows remote attackers to access sensitive information.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:36.167",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21034",
+    "description": "Improper export of android application components in Samsung Auto prior to version 3.1.2.61 in Android 15 and 3.2.0.38 in Android 16 allows local attacker to change audio configuration.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:36.013",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21033",
+    "description": "Improper export of android application components in ExpressHomeWidgetReceiver of Samsung Assistant prior to version 9.3.14 allows local attacker to execute arbitrary script.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.897",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21032",
+    "description": "Improper export of android application components in SmartHomeWidgetReceiver of Samsung Assistant prior to version 9.3.14 allows local attacker to execute arbitrary script.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.787",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21031",
+    "description": "Improper authorization in AppBlock prior to SMR Jun-2026 Release 1 allows local attacker to launch arbitrary activity. User interaction is required for triggering this vulnerability.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.673",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21030",
+    "description": "Improper access control in MediaTek Audio HAL prior to SMR Jun-2026 Release 1 allows local attackers to trigger privileged functions.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.553",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21029",
+    "description": "Improper export of android application components in Galaxy Editing Service prior to SMR Jun-2026 Release 1 allows local attacker to execute privileged operations.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.440",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21028",
+    "description": "Improper access control in AuditLogService prior to SMR Jun-2026 Release 1 allows local attackers to access sensitive information.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.327",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21027",
+    "description": "Improper export of android application components in ImsSettings prior to SMR Jun-2026 Release 1 allows local attackers to trigger logging function.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.213",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21026",
+    "description": "Improper export of android application components in SpriteWallpaper prior to SMR Jun-2026 Release 1 allows local attackers to access to sensitive information.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:35.093",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21025",
+    "description": "Incorrect privilege assignment in Telephony prior to SMR Jun-2026 Release 1 allows local attackers to access sensitive information.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:34.983",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21017",
+    "description": "Improper handling of insufficient privileges in SecTelephonyProvider prior to SMR Jun-2026 Release 1 allows local attackers to access privileged files.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:34.863",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11347",
+    "description": "The linqi application contains hardcoded cryptographic keys. Additionally, the application uses a weak algorithm with a limited ASCII charset to dynamically generate Initialization Vectors (IVs) for AES/CBC encryption, making known-plaintext attacks feasible. An attacker with local access can leverage these vulnerabilities to decrypt sensitive obfuscated strings, including ConnectionString values containing database credentials from appsettings.json.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T11:16:34.627",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6274",
+    "description": "Improper Authentication, Missing authentication for critical function, Weak Authentication vulnerability in DTS Electronics Industry and Trade Ltd. Co. Redline WR3200 allows Accessing Functionality Not Properly Constrained by ACLs.\n\nThis issue affects Redline WR3200: from 7.1.3 before 7.1.8.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T09:16:26.373",
+    "poc_links": [
+      "https://github.com/bugresearch/CVE-2026-6274"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49777",
+    "description": "Improper Validation of Specified Quantity in Input vulnerability in ShapedPlugin, LLC Product Slider Pro for WooCommerce allows Malicious Software Implanted.\n\nThis issue affects Product Slider Pro for WooCommerce: from n/a before 3.5.3.\n\nNo patched version is available - the vendor has applied a fix to an existing release without publishing a new version. While the patch provided by the vendor is valid, releasing it under the existing version number leaves users unable to reliably determine whether they are running a patched or vulnerable installation. As a result, we treat this as an unpatched version.",
+    "severity": "critical",
+    "cvss_score": 10,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T09:16:26.220",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11332",
+    "description": "A flaw was found in ansible-core. The ansible-galaxy role install command processes dependency specifications from a role's meta/requirements.yml file. Due to improper neutralization of argument delimiters, a malicious role author can inject arbitrary git configuration flags through the src field. This allows arbitrary code execution on the machine of a user who installs the role via ansible-galaxy role install.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T09:16:26.070",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9088",
+    "description": "A flaw was found in org.keycloak.services. An administrator with delegated access to read group memberships and users can bypass user profile permissions by accessing the group members endpoint. This allows the administrator to view user attributes that are explicitly configured to be denied, leading to information disclosure.",
+    "severity": "low",
+    "cvss_score": 2.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T08:16:30.990",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48907",
+    "description": "A vulnerability in the JCE editor extension for Joomla allows the creation of new editor profiles for unauthenticated users, ultimately resulting in PHP code upload and execution.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T08:16:30.797",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:56:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21837",
+    "description": "HCL Digital Experience is affected by an OS command injection vulnerability in the Digital Asset Management API.  An attacker may execute arbitrary operating system commands, typically inheriting the privileges of the vulnerable application, which could possibly lead to a complete system takeover and data compromise.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T07:16:30.027",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:55:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21826",
+    "description": "HCL Digital Experience and HCL Digital Experience Compose could be susceptible to Host header injection.  An attacker can manipulate the Host header and cause the application to behave in unexpected ways.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T07:16:29.883",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:55:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21825",
+    "description": "HCL Digital Experience Compose is affected by a reflected cross-site scripting (XSS) vulnerability in the search center.  An attacker could execute arbitrary JavaScript in the victim's browser.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T07:16:29.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:55:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-10732",
+    "description": "All versions of the package decompress are vulnerable to Arbitrary File Write via Archive Extraction (Zip Slip) when extracting a ZIP archive containing two entries with the same path - the first being a symlink to an arbitrary target and the second being a regular file - the file content is written through the symlink to the target location outside the output directory. This is due to the microtask processing order that checks readlink for the second file before resolving symlink for the first file. An attacker can write arbitrary file on the host filesystem potentially leading to remote code execution by providing a specially crafted ZIP archive.\r\r**Note:**\r\rThis bypasses all existing path traversal protections including preventWritingThroughSymlink, added as a part of the fix for [CVE-2020-12265](https://security.snyk.io/vuln/SNYK-JS-DECOMPRESS-557358).",
+    "severity": "medium",
+    "cvss_score": 6.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-05T07:16:29.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-05T12:55:48Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-50593",
     "description": "Graphite before 1.3.15 has an integer underflow and resultant out-of-bounds write via Graphite actions, because slotat does not ensure that an offset is within the allowed slot-map range.",
     "severity": "high",

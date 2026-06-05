@@ -79,6 +79,7 @@ func NewRouter(
 		protected.GET("/agents", handlers.ListAgents)
 		protected.POST("/agents", handlers.CreateAgent)
 		protected.GET("/agents/:id", handlers.GetAgent)
+		protected.PATCH("/agents/:id", handlers.UpdateAgent)
 		protected.DELETE("/agents/:id", handlers.DeleteAgent)
 		protected.GET("/agents/:id/installer", handlers.GetAgentInstaller)
 		protected.GET("/agents/:id/monitor", handlers.GetAgentMonitor)
@@ -145,6 +146,9 @@ func NewRouter(
 		protected.POST("/elk/iocs/parse", handlers.ParseIOCFile)
 		protected.GET("/elk/hunt/file-stream", handlers.StreamELKFileHunt)
 		protected.POST("/elk/hunt/file-stream", handlers.StreamELKFileHunt)
+		protected.GET("/elk/hunt/results", handlers.ListELKHuntResults)
+		protected.GET("/elk/hunt/results/:id", handlers.GetELKHuntResult)
+		protected.DELETE("/elk/hunt/results/:id", handlers.DeleteELKHuntResult)
 
 		// CVE Collection
 		protected.GET("/cve-collection", handlers.GetCVECollection)
@@ -161,6 +165,7 @@ func NewRouter(
 		casesHandler := handlers.NewCasesHandler(db)
 		protected.GET("/cases", casesHandler.ListCases)
 		protected.POST("/cases", casesHandler.CreateCase)
+		protected.PATCH("/cases/:id", casesHandler.UpdateCase)
 		protected.GET("/cases/:id/summary", casesHandler.GetCaseSummary)
 
 		// Evidence Collection Checklist
@@ -169,6 +174,19 @@ func NewRouter(
 		protected.GET("/checklist/runs/:id", handlers.GetChecklistRun)
 		protected.GET("/checklist/batches/:id/output", handlers.StreamBatchOutput)
 		protected.GET("/checklist/batches/:id/download", handlers.DownloadBatchOutput)
+
+		// AI Analysis — provider management and analysis sessions
+		aiHandler := handlers.NewAIHandler(db, store, cfg)
+		protected.GET("/ai/providers", aiHandler.ListProviders)
+		protected.POST("/ai/providers", aiHandler.CreateProvider)
+		protected.PUT("/ai/providers/:id", aiHandler.UpdateProvider)
+		protected.DELETE("/ai/providers/:id", aiHandler.DeleteProvider)
+		protected.POST("/ai/providers/:id/test", aiHandler.TestProvider)
+		protected.GET("/ai/sessions", aiHandler.ListSessions)
+		protected.POST("/ai/sessions", aiHandler.CreateSession)
+		protected.GET("/ai/sessions/:id", aiHandler.GetSession)
+		protected.GET("/ai/sessions/:id/stream", aiHandler.StreamSession)
+		protected.DELETE("/ai/sessions/:id", aiHandler.DeleteSession)
 	}
 
 	// Install scripts — handler validates the agent token inline.

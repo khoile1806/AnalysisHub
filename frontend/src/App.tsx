@@ -21,6 +21,8 @@ const WebshellScannerPage = lazy(() => import('@/pages/WebshellScanner'))
 const CVECollectionPage = lazy(() => import('@/pages/CVECollection'))
 const HuntingPage = lazy(() => import('@/pages/Hunting'))
 const CollectionChecklistPage = lazy(() => import('@/pages/CollectionChecklist'))
+const AIAnalysisPage = lazy(() => import('@/pages/AIAnalysis'))
+const AIProviderSettingsPage = lazy(() => import('@/pages/AIProviderSettings'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -218,6 +220,26 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <CollectionChecklistPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/ai-analysis"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <AIAnalysisPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/ai-providers"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <AIProviderSettingsPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

@@ -18,6 +18,7 @@ func New(basePath string) (*LocalStorage, error) {
 	dirs := []string{
 		filepath.Join(basePath, "tools"),
 		filepath.Join(basePath, "artifacts"),
+		filepath.Join(basePath, "analysis-uploads"),
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {
@@ -62,6 +63,32 @@ func (s *LocalStorage) SaveArtifact(jobID string, filename string, reader io.Rea
 // GetArtifactPath returns the absolute filesystem path for a stored artifact.
 func (s *LocalStorage) GetArtifactPath(jobID string, filename string) string {
 	return filepath.Join(s.BasePath, "artifacts", jobID, filepath.Base(filename))
+}
+
+// SaveAnalysisUpload stores a user-uploaded file for AI analysis under
+// analysis-uploads/<sessionID>/<filename>. Returns the relative path.
+func (s *LocalStorage) SaveAnalysisUpload(sessionID string, filename string, reader io.Reader) (string, error) {
+	dir := filepath.Join(s.BasePath, "analysis-uploads", sessionID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("create upload dir for session %s: %w", sessionID, err)
+	}
+	safe := filepath.Base(filename)
+	dest := filepath.Join(dir, safe)
+	if err := s.writeFile(dest, reader); err != nil {
+		return "", fmt.Errorf("save upload %s: %w", filename, err)
+	}
+	return filepath.Join("analysis-uploads", sessionID, safe), nil
+}
+
+// GetAnalysisUploadPath returns the absolute path for a stored analysis upload.
+func (s *LocalStorage) GetAnalysisUploadPath(relPath string) string {
+	return filepath.Join(s.BasePath, relPath)
+}
+
+// GetArtifactByRelPath returns the absolute path given a relative artifact path
+// (as stored in Job.ArtifactPath).
+func (s *LocalStorage) GetArtifactByRelPath(relPath string) string {
+	return filepath.Join(s.BasePath, relPath)
 }
 
 // writeFile atomically creates or overwrites dest with data from reader.

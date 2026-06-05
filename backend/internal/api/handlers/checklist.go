@@ -158,10 +158,16 @@ func RunChecklist(c *gin.Context) {
 				defer file.Close()
 			}
 
+			// Accumulate output in memory so it can be saved to the DB column
+			// even when the file is unavailable (e.g. path issues on Windows dev).
+			var outputBuf strings.Builder
+
 			for line := range ch {
 				if line == "__DONE__" {
 					break
 				}
+				outputBuf.WriteString(line)
+				outputBuf.WriteString("\n")
 				if file != nil {
 					file.WriteString(line + "\n")
 				}
@@ -170,7 +176,7 @@ func RunChecklist(c *gin.Context) {
 			finishedAt := time.Now()
 			db.Model(&b).Updates(map[string]interface{}{
 				"status":      "done",
-				"output":      "[Output saved to file]",
+				"output":      outputBuf.String(), // always persist real output to DB
 				"finished_at": finishedAt,
 			})
 

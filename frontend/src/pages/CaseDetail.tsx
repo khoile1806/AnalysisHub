@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { casesApi } from '@/api/cases'
 import { format } from 'date-fns'
-import { Briefcase, Activity, Server, ChevronRight, User, Wrench, ClipboardList } from 'lucide-react'
+import { Briefcase, Activity, Server, ChevronRight, User, Wrench, ClipboardList, Lock, Unlock } from 'lucide-react'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
+import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/utils'
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const qc = useQueryClient()
   const [tab, setTab] = useState<'timeline' | 'jobs'>('timeline')
 
   const { data, isLoading } = useQuery({
@@ -15,6 +18,17 @@ export default function CaseDetailPage() {
     queryFn: () => casesApi.getSummary(id!),
     enabled: !!id,
     refetchInterval: 3000,
+  })
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: (newStatus: 'open' | 'closed') =>
+      casesApi.update(id!, { status: newStatus }),
+    onSuccess: (updated) => {
+      qc.invalidateQueries({ queryKey: ['case-summary', id] })
+      qc.invalidateQueries({ queryKey: ['cases'] })
+      toast.success(`Case ${updated.status === 'open' ? 'reopened' : 'closed'}`)
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
   })
 
   if (isLoading) {
@@ -36,12 +50,14 @@ export default function CaseDetailPage() {
   if (checklist_runs) {
     checklist_runs.forEach((r: any) => activities.push({ ...r, _type: 'checklist', _time: new Date(r.created_at).getTime() }))
   }
-  activities.sort((a, b) => b._time - a._time) // Descending
+  activities.sort((a, b) => b._time - a._time)
+
+  const isOpen = caseObj.status === 'open'
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
             <Link to="/cases" className="hover:text-emerald-400 flex items-center gap-1">
@@ -53,13 +69,28 @@ export default function CaseDetailPage() {
           <h1 className="text-2xl font-bold text-gray-100">{caseObj.name}</h1>
           <p className="text-sm text-gray-400 mt-1">{caseObj.description || 'No description'}</p>
         </div>
-        <span className={`text-xs uppercase font-bold px-3 py-1 rounded-full ${caseObj.status === 'open' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-300'}`}>
-          {caseObj.status}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-xs uppercase font-bold px-3 py-1 rounded-full ${isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-300'}`}>
+            {caseObj.status}
+          </span>
+          <button
+            onClick={() => toggleStatusMutation.mutate(isOpen ? 'closed' : 'open')}
+            disabled={toggleStatusMutation.isPending}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border transition disabled:opacity-50 ${
+              isOpen
+                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:text-red-400 hover:border-red-500/40'
+                : 'bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 border-emerald-500/30'
+            }`}
+            title={isOpen ? 'Close this case' : 'Reopen this case'}
+          >
+            {isOpen ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+            {isOpen ? 'Close Case' : 'Reopen'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* Agents List */}
         <div className="col-span-1 space-y-4">
           <h3 className="font-semibold text-gray-200 flex items-center gap-2">
@@ -194,7 +225,7 @@ export default function CaseDetailPage() {
                 <div className="card p-10 text-center flex flex-col items-center justify-center">
                   <Wrench className="h-10 w-10 text-gray-700 mb-3" />
                   <p className="text-gray-400 font-medium">No hunting jobs found</p>
-                  <p className="text-xs text-gray-500 mt-1">Deploy a scenario from the Hunting page to an agent in this case.</p>
+                  <p className="text-xs text-gray-500 mt-1">Deploy a scenario from the Hunting page and link it to this case.</p>
                 </div>
               )}
             </div>

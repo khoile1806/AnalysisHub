@@ -31,6 +31,7 @@ import {
 import { toolsApi } from '@/api/tools'
 import { agentsApi } from '@/api/agents'
 import { jobsApi } from '@/api/jobs'
+import { casesApi } from '@/api/cases'
 import { JobStatusBadge, AgentStatusBadge } from '@/components/StatusBadge'
 import { getErrorMessage } from '@/lib/utils'
 import {
@@ -210,6 +211,7 @@ function ScenarioDetailModal({
   const qc = useQueryClient()
   const [pendingToolId, setPendingToolId] = useState<string>('')
   const [deployAgentId, setDeployAgentId] = useState<string>('')
+  const [deployCaseId, setDeployCaseId] = useState<string>('')
 
   const { data: allTools = [] } = useQuery({
     queryKey: ['tools'],
@@ -219,6 +221,11 @@ function ScenarioDetailModal({
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
     queryFn: () => agentsApi.list(),
+    enabled: open,
+  })
+  const { data: cases = [] } = useQuery({
+    queryKey: ['cases'],
+    queryFn: () => casesApi.list(),
     enabled: open,
   })
 
@@ -244,10 +251,11 @@ function ScenarioDetailModal({
   })
 
   const deployMutation = useMutation({
-    mutationFn: () => huntingApi.deploy(scenario!.id, deployAgentId),
+    mutationFn: () => huntingApi.deploy(scenario!.id, deployAgentId, deployCaseId || undefined),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['hunting-deployments'] })
       qc.invalidateQueries({ queryKey: ['jobs'] })
+      if (deployCaseId) qc.invalidateQueries({ queryKey: ['case-summary', deployCaseId] })
       const errs = res.dispatch_errors
       if (errs && errs.length > 0) {
         toast.error(`Deployed with ${errs.length} dispatch error(s)`)
@@ -255,6 +263,7 @@ function ScenarioDetailModal({
         toast.success(`Deployed ${res.jobs.length} tool(s) — switch to Deployments tab`)
       }
       setDeployAgentId('')
+      setDeployCaseId('')
       onClose()
     },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -341,24 +350,33 @@ function ScenarioDetailModal({
 
           {/* Deploy */}
           <div className="border-t border-gray-800 pt-4">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Deploy to Agent</h4>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Select value={deployAgentId} onValueChange={setDeployAgentId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={onlineAgents.length === 0 ? 'No online agents' : 'Select an online agent…'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {onlineAgents.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name} <span className="text-gray-500">— {a.hostname}</span></SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Deploy to Agent</h4>
+            <div className="space-y-2">
+              <Select value={deployAgentId} onValueChange={setDeployAgentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={onlineAgents.length === 0 ? 'No online agents' : 'Select an online agent…'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {onlineAgents.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name} <span className="text-gray-500">— {a.hostname}</span></SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={deployCaseId} onValueChange={setDeployCaseId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Link to case (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No case</SelectItem>
+                  {cases.filter((ca) => ca.status === 'open').map((ca) => (
+                    <SelectItem key={ca.id} value={ca.id}>{ca.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <button
                 onClick={() => deployMutation.mutate()}
                 disabled={!deployAgentId || deployMutation.isPending || (scenario.tools ?? []).length === 0}
-                className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded disabled:opacity-40 flex items-center gap-1.5"
+                className="w-full px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded disabled:opacity-40 flex items-center justify-center gap-1.5"
               >
                 <Rocket className="h-3.5 w-3.5" />
                 {deployMutation.isPending ? 'Deploying…' : 'Deploy'}

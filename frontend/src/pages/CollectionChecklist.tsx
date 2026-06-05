@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import {
   CheckSquare, Square, ChevronDown, ChevronRight, Play,
   RotateCcw, Download, AlertTriangle, Terminal, Loader2,
-  CheckCircle2, XCircle, Clock, Trash2, Wrench,
+  CheckCircle2, XCircle, Clock, Trash2, Wrench, BrainCircuit,
 } from 'lucide-react'
 import { agentsApi, Agent } from '@/api/agents'
 import { checklistApi, ChecklistBatch } from '@/api/checklist'
@@ -657,6 +658,7 @@ function ToolResultCard({ result }: { result: ToolResult }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CollectionChecklist() {
+  const navigate = useNavigate()
   const {
     platform, setPlatform,
     selectedAgent, setSelectedAgent,
@@ -1507,6 +1509,14 @@ export default function CollectionChecklist() {
                     >
                       <Download className="w-3.5 h-3.5" /> Export Report
                     </button>
+                    {runIDs.length > 0 && (
+                      <button
+                        onClick={() => navigate(`/ai-analysis?source=checklist_run&id=${runIDs[runIDs.length - 1]}`)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-colors font-medium"
+                      >
+                        <BrainCircuit className="w-3.5 h-3.5" /> Analyze with AI
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -17,6 +17,8 @@ import {
   X,
   Crosshair,
   ClipboardList,
+  BrainCircuit,
+  Settings2,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
@@ -34,11 +36,13 @@ const NAV_GROUPS = [
   {
     label: 'Forensic & Hunting',
     items: [
-      { to: '/agents',    icon: Server,          label: 'Agents' },
-      { to: '/tools',     icon: Wrench,          label: 'Tools' },
+      { to: '/agents',               icon: Server,        label: 'Agents' },
+      { to: '/tools',                icon: Wrench,        label: 'Tools' },
       { to: '/hunting',              icon: Crosshair,     label: 'Scenario Hunting' },
-      { to: '/webshell-scanner',    icon: Shield,        label: 'Webshell Scanner' },
+      { to: '/webshell-scanner',     icon: Shield,        label: 'Webshell Scanner' },
       { to: '/collection-checklist', icon: ClipboardList, label: 'Evidence Checklist' },
+      { to: '/ai-analysis',          icon: BrainCircuit,  label: 'AI Analysis' },
+      { to: '/ai-providers',         icon: Settings2,     label: 'AI Providers' },
     ]
   },
   {
@@ -63,6 +67,8 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
   'collection-checklist': 'Evidence Checklist',
+  'ai-analysis': 'AI Analysis',
+  'ai-providers': 'AI Providers',
 }
 
 function Breadcrumbs() {

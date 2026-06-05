@@ -11,6 +11,7 @@ export interface Agent {
   status: AgentStatus
   last_seen: string
   description: string
+  case_id?: string
   token?: string
   created_at: string
 }
@@ -19,6 +20,11 @@ export interface CreateAgentData {
   name: string
   description: string
   case_id?: string | null
+}
+
+export interface UpdateAgentData {
+  description?: string
+  case_id?: string | null  // empty string to unlink, UUID to link
 }
 
 export interface AgentInstallerConfig {
@@ -47,6 +53,11 @@ export const agentsApi = {
 
   get: async (id: string): Promise<Agent> => {
     const { data } = await apiClient.get<ApiResponse<Agent>>(`/agents/${id}`)
+    return data.data
+  },
+
+  update: async (id: string, payload: UpdateAgentData): Promise<Agent> => {
+    const { data } = await apiClient.patch<ApiResponse<Agent>>(`/agents/${id}`, payload)
     return data.data
   },
 

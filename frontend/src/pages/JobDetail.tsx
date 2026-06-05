@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Download, Clock, Server, Wrench, Calendar, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Download, Clock, Server, Wrench, Calendar, RefreshCw, BrainCircuit } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { jobsApi } from '@/api/jobs'
 import { JobStatusBadge } from '@/components/StatusBadge'
 import TerminalOutput from '@/components/Terminal'
 import { formatDuration } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
+import { useNavigate } from 'react-router-dom'
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
@@ -25,6 +26,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [outputLines, setOutputLines] = useState<string[]>([])
   const [sseConnected, setSseConnected] = useState(false)
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -256,6 +258,21 @@ export default function JobDetailPage() {
               >
                 <Download className="h-4 w-4" /> Download Artifact
               </a>
+            </div>
+          )}
+
+          {/* AI Analysis */}
+          {isTerminal && (
+            <div className="card p-4">
+              <h2 className="text-sm font-semibold text-gray-200 mb-1">AI Analysis</h2>
+              <p className="text-xs text-gray-500 mb-3">Send this job's output and artifact to an AI provider for forensic analysis.</p>
+              <button
+                onClick={() => navigate(`/ai-analysis?source=job&id=${job.id}`)}
+                className="flex items-center gap-2 w-full justify-center px-3 py-2 text-sm bg-violet-900/30 hover:bg-violet-900/50 text-violet-300 border border-violet-500/30 rounded-lg transition"
+              >
+                <BrainCircuit className="h-4 w-4" />
+                Analyze with AI
+              </button>
             </div>
           )}
 

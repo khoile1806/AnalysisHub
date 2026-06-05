@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree } from 'lucide-react'
+import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
+import { casesApi } from '@/api/cases'
 import { jobsApi, type Job } from '@/api/jobs'
 import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
@@ -574,6 +575,25 @@ export default function AgentDetailPage() {
   const qc = useQueryClient()
   const [activeTab, setActiveTab] = useState<TabId>('jobs')
   const [cleanupOpen, setCleanupOpen] = useState(false)
+  const [linkCaseOpen, setLinkCaseOpen] = useState(false)
+  const [selectedCaseId, setSelectedCaseId] = useState('')
+
+  const { data: cases = [] } = useQuery({
+    queryKey: ['cases'],
+    queryFn: casesApi.list,
+    enabled: linkCaseOpen,
+  })
+
+  const linkCaseMutation = useMutation({
+    mutationFn: (caseId: string) => agentsApi.update(id!, { case_id: caseId || '' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agents', id] })
+      qc.invalidateQueries({ queryKey: ['cases'] })
+      setLinkCaseOpen(false)
+      toast.success(selectedCaseId ? 'Agent linked to case' : 'Agent unlinked from case')
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  })
 
   const { data: agent, isLoading, error } = useQuery({
     queryKey: ['agents', id],
@@ -634,6 +654,14 @@ export default function AgentDetailPage() {
           </div>
         </div>
         <button
+          onClick={() => { setSelectedCaseId(agent.case_id ?? ''); setLinkCaseOpen(true) }}
+          className="btn-secondary text-xs flex items-center gap-1.5"
+          title="Link or unlink this agent from a case"
+        >
+          <Briefcase className="h-3.5 w-3.5" />
+          {agent.case_id ? 'Change Case' : 'Link to Case'}
+        </button>
+        <button
           onClick={() => setCleanupOpen(true)}
           disabled={agent.status !== 'online'}
           className="btn-danger text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -643,6 +671,42 @@ export default function AgentDetailPage() {
           Cleanup & Uninstall
         </button>
       </div>
+
+      {/* Link to Case Dialog */}
+      <Dialog open={linkCaseOpen} onOpenChange={setLinkCaseOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Link Agent to Case</DialogTitle>
+            <DialogDescription>
+              Associating this agent with a case will include its jobs and checklist results in the case timeline.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <label className="label">Select Case</label>
+            <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+              <SelectTrigger>
+                <SelectValue placeholder="No case (unlink)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No case (unlink)</SelectItem>
+                {cases.filter(c => c.status === 'open').map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </DialogBody>
+          <DialogFooter>
+            <button className="btn-secondary text-xs" onClick={() => setLinkCaseOpen(false)}>Cancel</button>
+            <button
+              className="btn-primary text-xs"
+              onClick={() => linkCaseMutation.mutate(selectedCaseId)}
+              disabled={linkCaseMutation.isPending}
+            >
+              {linkCaseMutation.isPending ? 'Saving…' : 'Save'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
         <DialogContent className="max-w-md">

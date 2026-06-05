@@ -441,12 +441,13 @@ func RunELKHunt(c *gin.Context) {
 }
 
 // StreamELKAutoHunt streams a batched auto-hunt over all IOCs in the database
-// via Server-Sent Events. The client receives:
+// via Server-Sent Events. Results are persisted to ELKHuntResult for later AI
+// analysis. The client receives:
 //
 //	event: progress  data: {"batch":N,"total_batches":M,"batch_hits":X,"total_hits":Y}
 //	event: hits      data: {"batch":N,"hits":[...]}
 //	event: error     data: {"batch":N,"error":"..."}
-//	event: done      data: {"total_hits":Y,"total_batches":M,"took_ms":Z}
+//	event: done      data: {"total_hits":Y,"total_batches":M,"took_ms":Z,"result_id":"..."}
 //
 // JWT is supplied via ?token= (EventSource cannot set headers); the standard
 // AuthMiddleware handles that.
@@ -471,6 +472,17 @@ func StreamELKAutoHunt(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No IOCs in database to hunt"})
 		return
 	}
+
+	// Create a persistent result record before streaming begins.
+	userID, _ := middleware.GetUserID(c)
+	huntResult := models.ELKHuntResult{
+		ConfigID:  config.ID,
+		Title:     fmt.Sprintf("Auto Hunt — %d IOCs (%s)", len(iocs), time.Now().Format("2006-01-02 15:04")),
+		IOCsUsed:  len(iocs),
+		Status:    "running",
+		CreatedBy: userID,
+	}
+	db.Create(&huntResult)
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -514,14 +526,18 @@ func StreamELKAutoHunt(c *gin.Context) {
 		}
 	}
 
+	const maxStoredHits = 5000
 	totalBatches := len(plans)
 	seen := make(map[string]struct{})
 	totalHits := 0
 	startedAt := time.Now()
+	allHits := make([]map[string]interface{}, 0, 256) // accumulated for persistence
 
 	for idx, plan := range plans {
 		select {
 		case <-clientGone:
+			now := time.Now()
+			db.Model(&huntResult).Updates(map[string]interface{}{"status": "failed", "finished_at": now})
 			return
 		default:
 		}
@@ -568,8 +584,8 @@ func StreamELKAutoHunt(c *gin.Context) {
 		fresh := make([]map[string]interface{}, 0, len(parsed.Hits.Hits))
 		for _, h := range parsed.Hits.Hits {
 			id, _ := h["_id"].(string)
-			idx, _ := h["_index"].(string)
-			key := idx + "|" + id
+			ix, _ := h["_index"].(string)
+			key := ix + "|" + id
 			if _, dup := seen[key]; dup {
 				continue
 			}
@@ -578,8 +594,20 @@ func StreamELKAutoHunt(c *gin.Context) {
 		}
 		totalHits += len(fresh)
 
+		// Accumulate hits for persistence (cap to avoid unbounded memory usage).
+		if len(allHits) < maxStoredHits {
+			remaining := maxStoredHits - len(allHits)
+			if len(fresh) <= remaining {
+				allHits = append(allHits, fresh...)
+			} else {
+				allHits = append(allHits, fresh[:remaining]...)
+			}
+		}
+
 		if len(fresh) > 0 {
 			if !sendEvent("hits", gin.H{"batch": idx + 1, "bucket": plan.bucket, "hits": fresh}) {
+				now := time.Now()
+				db.Model(&huntResult).Updates(map[string]interface{}{"status": "failed", "finished_at": now})
 				return
 			}
 		}
@@ -590,6 +618,8 @@ func StreamELKAutoHunt(c *gin.Context) {
 			"batch_hits":    len(fresh),
 			"total_hits":    totalHits,
 		}) {
+			now := time.Now()
+			db.Model(&huntResult).Updates(map[string]interface{}{"status": "failed", "finished_at": now})
 			return
 		}
 
@@ -598,16 +628,32 @@ func StreamELKAutoHunt(c *gin.Context) {
 		}
 	}
 
+	// Persist all accumulated hits.
+	now := time.Now()
+	if hitsJSON, jerr := json.Marshal(allHits); jerr == nil {
+		db.Model(&huntResult).Updates(map[string]interface{}{
+			"status":      "done",
+			"total_hits":  totalHits,
+			"results":     string(hitsJSON),
+			"finished_at": now,
+		})
+	} else {
+		db.Model(&huntResult).Updates(map[string]interface{}{
+			"status":      "done",
+			"total_hits":  totalHits,
+			"finished_at": now,
+		})
+	}
+
 	sendEvent("done", gin.H{
 		"total_hits":    totalHits,
 		"total_batches": totalBatches,
 		"total_iocs":    len(iocs),
 		"took_ms":       time.Since(startedAt).Milliseconds(),
+		"result_id":     huntResult.ID.String(),
 	})
 
-	if uid, ok := middleware.GetUserID(c); ok {
-		writeAudit(c, db, &uid, nil, "elk.hunt.auto", "elk", fmt.Sprintf("iocs=%d batches=%d hits=%d", len(iocs), totalBatches, totalHits))
-	}
+	writeAudit(c, db, &userID, nil, "elk.hunt.auto", "elk", fmt.Sprintf("iocs=%d batches=%d hits=%d", len(iocs), totalBatches, totalHits))
 }
 
 // loadELKAuth fetches the saved ELK config and returns it together with a
