@@ -77,4 +77,10 @@ export const jobsApi = {
     const token = useAuthStore.getState().token ?? ''
     return `${base}/api/v1/jobs/${id}/artifact/content?token=${encodeURIComponent(token)}`
   },
+
+  streamOutput: (jobId: string): EventSource => {
+    const token = useAuthStore.getState().token ?? ''
+    const baseURL = (apiClient.defaults.baseURL ?? '').replace(/\/$/, '')
+    return new EventSource(`${baseURL}/jobs/${jobId}/output?token=${encodeURIComponent(token)}`)
+  },
 }

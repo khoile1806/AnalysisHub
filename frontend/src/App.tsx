@@ -18,6 +18,7 @@ const OpenCTIPage = lazy(() => import('@/pages/OpenCTI'))
 const WebshellScannerPage = lazy(() => import('@/pages/WebshellScanner'))
 const CVECollectionPage = lazy(() => import('@/pages/CVECollection'))
 const HuntingPage = lazy(() => import('@/pages/Hunting'))
+const CollectionChecklistPage = lazy(() => import('@/pages/CollectionChecklist'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -185,6 +186,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <CVECollectionPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/collection-checklist"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <CollectionChecklistPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

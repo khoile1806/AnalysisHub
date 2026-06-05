@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Crosshair,
+  ClipboardList,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
@@ -33,8 +34,9 @@ const NAV_GROUPS = [
     items: [
       { to: '/agents',    icon: Server,          label: 'Agents' },
       { to: '/tools',     icon: Wrench,          label: 'Tools' },
-      { to: '/hunting',   icon: Crosshair,       label: 'Scenario Hunting' },
-      { to: '/webshell-scanner', icon: Shield,      label: 'Webshell Scanner' },
+      { to: '/hunting',              icon: Crosshair,     label: 'Scenario Hunting' },
+      { to: '/webshell-scanner',    icon: Shield,        label: 'Webshell Scanner' },
+      { to: '/collection-checklist', icon: ClipboardList, label: 'Evidence Checklist' },
     ]
   },
   {
@@ -57,6 +59,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'webshell-scanner': 'Webshell Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
+  'collection-checklist': 'Evidence Checklist',
 }
 
 function Breadcrumbs() {

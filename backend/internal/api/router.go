@@ -156,6 +156,12 @@ func NewRouter(
 		protected.GET("/news", handlers.GetNews)
 		protected.GET("/news/categories", handlers.GetNewsCategories)
 		protected.GET("/news/stream", handlers.StreamNews)
+
+		// Evidence Collection Checklist
+		protected.POST("/checklist/run", handlers.RunChecklist)
+		protected.GET("/checklist/runs", handlers.ListChecklistRuns)
+		protected.GET("/checklist/runs/:id", handlers.GetChecklistRun)
+		protected.GET("/checklist/batches/:id/output", handlers.StreamBatchOutput)
 	}
 
 	// Install scripts — handler validates the agent token inline.

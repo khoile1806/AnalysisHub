@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -313,6 +314,8 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			c.handleJobRun(ctx, msg)
 		case "job_stop":
 			c.handleJobStop(msg)
+		case "cmd_exec":
+			c.handleCmdExec(ctx, msg)
 		case "shell_open":
 			c.handleShellOpen(ctx, msg)
 		case "shell_input":
@@ -504,6 +507,83 @@ func (c *Client) handleJobStop(msg inboundMsg) {
 
 	log.Printf("[job:%s] stop requested — cancelling context", msg.JobID)
 	cancel()
+}
+
+// handleCmdExec runs a raw shell command and streams its output back as "output"
+// messages, reusing the same job-output pipeline as handleJobRun. The command
+// is passed in msg.Args; msg.JobID is used as the correlation key. Cancellation
+// via "job_stop" works because the cancel func is registered in runningJobs.
+func (c *Client) handleCmdExec(parentCtx context.Context, msg inboundMsg) {
+	if msg.JobID == "" || msg.Args == "" {
+		log.Printf("[cmd_exec] missing job_id or args — ignoring")
+		return
+	}
+
+	runCtx, cancel := context.WithCancel(parentCtx)
+	c.runningJobsMu.Lock()
+	c.runningJobs[msg.JobID] = cancel
+	c.runningJobsMu.Unlock()
+
+	go func() {
+		defer func() {
+			c.runningJobsMu.Lock()
+			delete(c.runningJobs, msg.JobID)
+			c.runningJobsMu.Unlock()
+			cancel()
+		}()
+
+		var cmd *osExec.Cmd
+		if runtime.GOOS == "windows" {
+			cmd = osExec.CommandContext(runCtx, "cmd.exe", "/c", msg.Args)
+		} else {
+			cmd = osExec.CommandContext(runCtx, "/bin/bash", "-c", msg.Args)
+		}
+
+		pr, pw := io.Pipe()
+		cmd.Stdout = pw
+		cmd.Stderr = pw
+
+		if err := cmd.Start(); err != nil {
+			pw.Close()
+			pr.Close()
+			_ = c.sendOutput(msg.JobID, fmt.Sprintf("[cmd_exec error] %v", err), false)
+			_ = c.sendOutput(msg.JobID, "", true)
+			return
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer pr.Close()
+			scanner := bufio.NewScanner(pr)
+			buf := make([]byte, 64*1024)
+			scanner.Buffer(buf, 1024*1024)
+			for scanner.Scan() {
+				if err := c.sendOutput(msg.JobID, scanner.Text(), false); err != nil {
+					log.Printf("[cmd_exec:%s] send output error: %v", msg.JobID, err)
+				}
+			}
+		}()
+
+		cmdErr := cmd.Wait()
+		pw.Close()
+		wg.Wait()
+
+		if runCtx.Err() != nil {
+			_ = c.writeJSON(outboundMsg{Type: "job_status", JobID: msg.JobID, Status: "stopped"})
+			log.Printf("[cmd_exec:%s] stopped", msg.JobID)
+			return
+		}
+		if cmdErr != nil {
+			// Non-zero exit codes from forensic commands are expected (e.g. inactive
+			// services, missing features). The actual error text is already in the
+			// output via stderr; appending a duplicate [cmd_exec error] line adds noise.
+			log.Printf("[cmd_exec:%s] exited: %v", msg.JobID, cmdErr)
+		}
+		_ = c.sendOutput(msg.JobID, "", true)
+		log.Printf("[cmd_exec:%s] finished", msg.JobID)
+	}()
 }
 
 // handleShellOpen spawns a new PTY session running the requested shell and
