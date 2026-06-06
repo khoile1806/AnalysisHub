@@ -20,6 +20,7 @@ import (
 	"github.com/forensichub/backend/internal/api/handlers"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/database"
+	"github.com/forensichub/backend/internal/logger"
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
@@ -40,6 +41,12 @@ func main() {
 	// 2. Load application configuration
 	// ------------------------------------------------------------------ //
 	cfg := config.Load()
+
+	// ------------------------------------------------------------------ //
+	// 2.5 Initialise file-based logging
+	// ------------------------------------------------------------------ //
+	cleanupLogs := logger.Setup(cfg.LogPath)
+	defer cleanupLogs()
 
 	log.Printf("[main] starting ForensicHub (env=%s, port=%s)", cfg.AppEnv, cfg.ServerPort)
 

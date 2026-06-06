@@ -69,6 +69,11 @@ type Config struct {
 	AlienVaultKey string
 	// ShodanKey is the API key for https://www.shodan.io (internet-wide scanning DB).
 	ShodanKey string
+
+	// LogPath is the directory where date-stamped log files are written.
+	// Defaults to "data/logs" (relative to CWD) for local dev.
+	// In Docker set LOG_PATH=/app/data/logs via the compose environment block.
+	LogPath string
 }
 
 // Load reads configuration from environment variables, applying defaults where appropriate.
@@ -102,6 +107,8 @@ func Load() *Config {
 		AbuseIPDBKey:   getEnv("ABUSEIPDB", ""),
 		AlienVaultKey:  getEnv("ALIENVAULT", ""),
 		ShodanKey:      getEnv("SHODAN", ""),
+
+		LogPath: getEnv("LOG_PATH", "data/logs"),
 	}
 }
 
