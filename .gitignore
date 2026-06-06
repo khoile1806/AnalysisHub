@@ -15,6 +15,7 @@ tools/webshell-scanner/webshell_scanner.egg-info/
 tools/webshell-scanner/out/
 tools/webshell-scanner/report/
 tools/webshell-scanner/report_test/
+backend/data/
 
 # Python bytecode
 __pycache__/
