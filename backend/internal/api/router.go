@@ -9,6 +9,7 @@ import (
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/storage"
+	"github.com/forensichub/backend/internal/threatintel"
 	"github.com/forensichub/backend/internal/wpscan"
 	"github.com/forensichub/backend/internal/ws"
 )
@@ -23,6 +24,7 @@ func NewRouter(
 	rdb *redis.Client,
 	cfg *config.Config,
 	wpscanPool *wpscan.Pool,
+	enrich *threatintel.EnrichClient,
 ) *gin.Engine {
 	router := gin.New()
 	// Allow large multipart uploads (memory dumps, disk images) to be streamed
@@ -183,7 +185,7 @@ func NewRouter(
 		protected.GET("/checklist/batches/:id/download", handlers.DownloadBatchOutput)
 
 		// AI Analysis — provider management and analysis sessions
-		aiHandler := handlers.NewAIHandler(db, store, cfg)
+		aiHandler := handlers.NewAIHandler(db, store, cfg, enrich)
 		protected.GET("/ai/providers", aiHandler.ListProviders)
 		protected.POST("/ai/providers", aiHandler.CreateProvider)
 		protected.PUT("/ai/providers/:id", aiHandler.UpdateProvider)

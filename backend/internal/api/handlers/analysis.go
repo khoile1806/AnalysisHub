@@ -24,17 +24,19 @@ import (
 	"github.com/forensichub/backend/internal/crypto"
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/storage"
+	"github.com/forensichub/backend/internal/threatintel"
 )
 
 // AIHandler groups all AI analysis endpoints.
 type AIHandler struct {
-	db    *gorm.DB
-	store *storage.LocalStorage
-	cfg   *config.Config
+	db     *gorm.DB
+	store  *storage.LocalStorage
+	cfg    *config.Config
+	enrich *threatintel.EnrichClient // nil when no threat-intel keys are configured
 }
 
-func NewAIHandler(db *gorm.DB, store *storage.LocalStorage, cfg *config.Config) *AIHandler {
-	return &AIHandler{db: db, store: store, cfg: cfg}
+func NewAIHandler(db *gorm.DB, store *storage.LocalStorage, cfg *config.Config, enrich *threatintel.EnrichClient) *AIHandler {
+	return &AIHandler{db: db, store: store, cfg: cfg, enrich: enrich}
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -459,11 +461,49 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 		h.sendLog(c, "success", fmt.Sprintf("Trích xuất xong — %.1f KB strings", float64(len(content))/1024))
 	}
 
+	// ── Step: extract_iocs + enrich (threat intel) ────────────
+	var enrichSummary string
+	if h.enrich != nil && h.enrich.Configured() {
+		iocIdx := h.stepIndex(steps, "extract_iocs")
+		setStep(iocIdx, "running", "")
+		h.sendLog(c, "info", "Trích xuất IOC từ dữ liệu (IP, hash, domain)...")
+		iocs := threatintel.ExtractIOCs(content)
+		total := iocs.Total()
+		if total == 0 {
+			setStep(iocIdx, "done", "Không phát hiện IOC đáng ngờ")
+			h.sendLog(c, "info", "Không có IOC nào được trích xuất — bỏ qua bước tra cứu")
+			enrichIdx := h.stepIndex(steps, "enrich")
+			setStep(enrichIdx, "done", "Bỏ qua (không có IOC)")
+		} else {
+			detail := fmt.Sprintf("Tìm thấy %d IOC (%d IP, %d hash, %d domain)",
+				total, len(iocs.IPs), len(iocs.Hashes), len(iocs.Domains))
+			setStep(iocIdx, "done", detail)
+			h.sendLog(c, "success", detail)
+
+			enrichIdx := h.stepIndex(steps, "enrich")
+			setStep(enrichIdx, "running", fmt.Sprintf("đang tra cứu %d IOC...", total))
+			h.sendLog(c, "info", fmt.Sprintf("Tra cứu threat intel cho %d IOC (VT, AbuseIPDB, OTX, Shodan)...", total))
+
+			results := h.enrich.Enrich(ctx, iocs)
+			enrichSummary = threatintel.FormatSummary(results)
+
+			threats := 0
+			for _, r := range results {
+				if r.Threat {
+					threats++
+				}
+			}
+			enrichDetail := fmt.Sprintf("%d/%d IOC có dấu hiệu độc hại", threats, len(results))
+			setStep(enrichIdx, "done", enrichDetail)
+			h.sendLog(c, "success", "Tra cứu hoàn tất — "+enrichDetail)
+		}
+	}
+
 	// ── Step: context ──────────────────────────────────────────
 	contextIdx := h.stepIndex(steps, "context")
 	setStep(contextIdx, "running", "")
 	h.sendLog(c, "info", "Xây dựng DFIR forensic prompt...")
-	prompt := h.buildPrompt(&session, content)
+	prompt := h.buildPrompt(&session, content, enrichSummary)
 	promptKB := float64(len(prompt)) / 1024
 	setStep(contextIdx, "done", fmt.Sprintf("%.1f KB prompt", promptKB))
 	h.sendLog(c, "success", fmt.Sprintf("Prompt sẵn sàng — %.1f KB (~%d tokens)", promptKB, int(promptKB*250)))
@@ -620,6 +660,14 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 	// Aggregate step for checklist runs (many batches)
 	if sourceType == "checklist_run" {
 		steps = append(steps, models.ChainStep{ID: "aggregate", Label: "Gộp kết quả batches", Status: "pending"})
+	}
+
+	// Threat intel enrichment steps — only shown when keys are configured
+	if h.enrich != nil && h.enrich.Configured() {
+		steps = append(steps,
+			models.ChainStep{ID: "extract_iocs", Label: "Trích xuất IOC",       Status: "pending"},
+			models.ChainStep{ID: "enrich",        Label: "Tra cứu Threat Intel", Status: "pending"},
+		)
 	}
 
 	steps = append(steps,
@@ -829,7 +877,9 @@ func (h *AIHandler) collectUpload(uploadPath string) (string, error) {
 }
 
 // buildPrompt constructs the forensic analysis prompt.
-func (h *AIHandler) buildPrompt(session *models.AnalysisSession, content string) string {
+// enrichSummary is the optional threat-intel block injected between the raw
+// content and the analysis instructions; pass "" to omit it.
+func (h *AIHandler) buildPrompt(session *models.AnalysisSession, content, enrichSummary string) string {
 	sourceLabel := map[string]string{
 		"job":           "kết quả chạy tool",
 		"checklist_run": "kết quả thu thập bằng chứng (Evidence Checklist)",
@@ -857,37 +907,58 @@ func (h *AIHandler) buildPrompt(session *models.AnalysisSession, content string)
 		truncateNote = "\n\n⚠️ *Nội dung đã được cắt bớt do giới hạn token của API. Chỉ phần đầu được phân tích.*"
 	}
 
+	// Build the enrichment block and tailor analysis instructions accordingly.
+	enrichSection := ""
+	iocInstruction := "Liệt kê các IOC được phát hiện (IP, domain, hash, path, v.v.) nếu có."
+	enrichInstruction := ""
+	if enrichSummary != "" {
+		enrichSection = "\n\n---\n\n" + enrichSummary
+		iocInstruction = `Dựa trên kết quả Threat Intelligence ở trên, liệt kê từng IOC kèm đánh giá:
+- Với mỗi IOC: ghi rõ giá trị, loại (IP/hash/domain), điểm reputation và verdict (MALICIOUS / SUSPICIOUS / CLEAN)
+- Tham chiếu nguồn cụ thể: VirusTotal score, AbuseIPDB confidence, OTX pulses
+- Nếu IOC là CLEAN, ghi rõ để loại bỏ khỏi danh sách nghi vấn`
+		enrichInstruction = `
+⚠️ **Lưu ý quan trọng**: Kết quả Threat Intelligence thực tế đã được tra cứu tự động và đính kèm bên trên.
+Hãy:
+- Dựa HOÀN TOÀN vào dữ liệu reputation thực tế (VT score, AbuseIPDB score, OTX pulses) — không được phỏng đoán
+- Phân loại mức độ nguy hiểm dựa trên số liệu cụ thể, không phải nhận xét chung chung
+- Nêu rõ tên malware family / threat label khi VT cung cấp (ví dụ: "Emotet", "Cobalt Strike", "Mirai")
+- Phân biệt rõ IOC đã được xác nhận độc hại vs. chưa tìm thấy trong database
+
+`
+	}
+
 	return fmt.Sprintf(`Bạn là chuyên gia DFIR (Digital Forensics & Incident Response) với nhiều năm kinh nghiệm.
 
 Dưới đây là %s cần được phân tích:%s
 
 %s
-
+%s
 ---
 
-Hãy thực hiện phân tích toàn diện theo cấu trúc sau (dùng Markdown):
+%sHãy thực hiện phân tích toàn diện theo cấu trúc sau (dùng Markdown):
 
 ## Tóm tắt tổng quan
-Mô tả ngắn gọn về dữ liệu và những điểm đáng chú ý nhất.
+Mô tả ngắn gọn về dữ liệu và những điểm đáng chú ý nhất. Nêu số lượng IOC phát hiện được và mức độ nguy hiểm tổng thể dựa trên dữ liệu thực tế.
 
 ## Phát hiện chính
-Liệt kê các phát hiện quan trọng, phân loại theo mức độ nghiêm trọng:
-- 🔴 **Critical** — cần xử lý ngay
-- 🟠 **High** — nguy cơ cao
-- 🟡 **Medium** — cần theo dõi
-- 🟢 **Low/Info** — thông tin tham khảo
+Liệt kê các phát hiện quan trọng, phân loại theo mức độ nghiêm trọng (dựa trên dữ liệu threat intel thực tế nếu có):
+- 🔴 **Critical** — xác nhận là malicious, cần xử lý ngay
+- 🟠 **High** — suspicious hoặc có dấu hiệu rõ ràng
+- 🟡 **Medium** — cần điều tra thêm
+- 🟢 **Low/Info** — clean hoặc không đủ bằng chứng
 
 ## Phân tích chi tiết
-Giải thích từng phát hiện: nguyên nhân, tác động, bằng chứng cụ thể.
+Giải thích từng phát hiện: nguyên nhân, tác động, threat family (nếu có từ VT labels), bằng chứng cụ thể với số liệu reputation.
 
 ## Indicators of Compromise (IOC)
-Liệt kê các IOC được phát hiện (IP, domain, hash, path, v.v.) nếu có.
+%s
 
 ## Đề xuất hành động
-Các bước điều tra và khắc phục cụ thể, theo thứ tự ưu tiên.
+Các bước điều tra và khắc phục cụ thể, theo thứ tự ưu tiên. Bao gồm cách block/quarantine IOC đã được xác nhận độc hại.
 
 ## Kết luận
-Đánh giá tổng thể về mức độ rủi ro và tình trạng của hệ thống.`, sourceLabel, truncateNote, content)
+Đánh giá tổng thể mức độ rủi ro dựa trên kết quả threat intel. Nêu rõ: bao nhiêu IOC được xác nhận malicious, loại mối đe dọa, và mức độ khẩn cấp cần phản hồi.`, sourceLabel, truncateNote, content, enrichSection, enrichInstruction, iocInstruction)
 }
 
 // extractStrings extracts printable ASCII sequences (≥4 chars) from binary data.

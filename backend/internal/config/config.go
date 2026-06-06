@@ -54,6 +54,21 @@ type Config struct {
 	WPScanAPITokens []string
 	// AESEncryptionKey is a 32-byte key used for encrypting sensitive data like OpenCTI credentials.
 	AESEncryptionKey string
+
+	// ── Threat Intelligence API keys ─────────────────────────────────────
+	// Used by the AI analysis pipeline to automatically enrich extracted IOCs
+	// (IPs, hashes, domains) before passing context to the AI model.
+	//
+	// VirusTotalKeys holds up to 4 VT API keys loaded from VIRUSTOTAL_1 …
+	// VIRUSTOTAL_4 (or a single VIRUSTOTAL env var). Keys are rotated
+	// round-robin so free-tier quota (4 req/min per key) is shared.
+	VirusTotalKeys []string
+	// AbuseIPDBKey is the API key for https://www.abuseipdb.com (IP reputation).
+	AbuseIPDBKey string
+	// AlienVaultKey is the OTX API key for https://otx.alienvault.com.
+	AlienVaultKey string
+	// ShodanKey is the API key for https://www.shodan.io (internet-wide scanning DB).
+	ShodanKey string
 }
 
 // Load reads configuration from environment variables, applying defaults where appropriate.
@@ -79,9 +94,14 @@ func Load() *Config {
 		APIWebArchiveURL:  getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
 		APICrtShURL:       getEnv("API_CRTSH_URL", "https://crt.sh/"),
 		APICertSpotterURL: getEnv("API_CERTSPOTTER_URL", "https://api.certspotter.com/v1/issuances"),
-		GitHubToken:     getEnv("GITHUB_TOKEN", ""),
-		WPScanAPITokens: loadWPScanTokens(),
+		GitHubToken:      getEnv("GITHUB_TOKEN", ""),
+		WPScanAPITokens:  loadWPScanTokens(),
 		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "default-insecure-key-exct-32-byt"),
+
+		VirusTotalKeys: loadVirusTotalKeys(),
+		AbuseIPDBKey:   getEnv("ABUSEIPDB", ""),
+		AlienVaultKey:  getEnv("ALIENVAULT", ""),
+		ShodanKey:      getEnv("SHODAN", ""),
 	}
 }
 
@@ -98,6 +118,28 @@ func parseOrigins(raw string) []string {
 		if s := strings.TrimSpace(p); s != "" {
 			out = append(out, s)
 		}
+	}
+	return out
+}
+
+// loadVirusTotalKeys returns up to 4 VirusTotal API keys.
+// Accepts VIRUSTOTAL (single or comma-separated) plus VIRUSTOTAL_1…VIRUSTOTAL_4.
+func loadVirusTotalKeys() []string {
+	seen := make(map[string]bool)
+	out := make([]string, 0, 4)
+	add := func(raw string) {
+		for _, t := range strings.Split(raw, ",") {
+			s := strings.TrimSpace(t)
+			if s == "" || seen[s] {
+				continue
+			}
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	add(os.Getenv("VIRUSTOTAL"))
+	for i := 1; i <= 4; i++ {
+		add(os.Getenv(fmt.Sprintf("VIRUSTOTAL_%d", i)))
 	}
 	return out
 }
