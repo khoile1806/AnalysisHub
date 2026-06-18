@@ -330,6 +330,32 @@ func (h *AIHandler) CreateSession(c *gin.Context) {
 				"upload_name": fh.Filename,
 				"title":       session.Title,
 			})
+
+			// For offline_report: parse bundle JSON to generate a descriptive title.
+			if sourceType == "offline_report" {
+				fullPath := h.store.GetAnalysisUploadPath(relPath)
+				if rawJSON, rerr := os.ReadFile(fullPath); rerr == nil {
+					var meta struct {
+						BundleName string `json:"bundle_name"`
+						CaseName   string `json:"case_name"`
+						Hostname   string `json:"hostname"`
+					}
+					if json.Unmarshal(rawJSON, &meta) == nil && meta.BundleName != "" {
+						// Only override if title is still the raw filename
+						if session.Title == "" || session.Title == fh.Filename {
+							autoTitle := meta.BundleName
+							if meta.CaseName != "" {
+								autoTitle = "[" + meta.CaseName + "] " + autoTitle
+							}
+							if meta.Hostname != "" {
+								autoTitle += " @ " + meta.Hostname
+							}
+							session.Title = autoTitle
+							h.db.Model(&session).Update("title", autoTitle)
+						}
+					}
+				}
+			}
 		}
 	} else {
 		if createErr := h.db.Create(&session).Error; createErr != nil {
@@ -443,6 +469,15 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	sizeKB := float64(len(content)) / 1024
 	setStep(collectIdx, "done", fmt.Sprintf("%.1f KB", sizeKB))
 	h.sendLog(c, "success", fmt.Sprintf("Thu thập xong — %.1f KB dữ liệu", sizeKB))
+
+	// ── Step: parse_tools (offline reports) ───────────────────
+	if ptIdx := h.stepIndex(steps, "parse_tools"); ptIdx >= 0 {
+		setStep(ptIdx, "running", "đang phân tích tool outputs...")
+		h.sendLog(c, "info", "Phân tích từng tool trong báo cáo offline...")
+		toolCount := strings.Count(content, "\n--- [")
+		setStep(ptIdx, "done", fmt.Sprintf("%d tools", toolCount))
+		h.sendLog(c, "success", fmt.Sprintf("Phân tích xong %d tools", toolCount))
+	}
 
 	// ── Step: aggregate (checklist batches) ────────────────────
 	if aggIdx := h.stepIndex(steps, "aggregate"); aggIdx >= 0 {
@@ -635,10 +670,11 @@ func (h *AIHandler) stepIndex(steps []models.ChainStep, id string) int {
 
 func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.ChainStep {
 	collectLabel := map[string]string{
-		"job":           "Đọc output & artifact",
-		"checklist_run": "Tải batches từ DB",
-		"elk_result":    "Tải IOC hit results",
-		"upload":        "Nhận file upload",
+		"job":            "Đọc output & artifact",
+		"checklist_run":  "Tải batches từ DB",
+		"elk_result":     "Tải IOC hit results",
+		"upload":         "Nhận file upload",
+		"offline_report": "Đọc báo cáo offline agent",
 	}[sourceType]
 	if collectLabel == "" {
 		collectLabel = "Thu thập dữ liệu"
@@ -646,6 +682,11 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 
 	steps := []models.ChainStep{
 		{ID: "collect", Label: collectLabel, Status: "pending"},
+	}
+
+	// Offline report: parse tool-by-tool breakdown
+	if sourceType == "offline_report" {
+		steps = append(steps, models.ChainStep{ID: "parse_tools", Label: "Phân tích từng tool", Status: "pending"})
 	}
 
 	// Binary upload needs strings extraction
@@ -689,6 +730,8 @@ func (h *AIHandler) collectData(ctx context.Context, session *models.AnalysisSes
 		return h.collectELKResult(session.SourceID)
 	case "upload":
 		return h.collectUpload(session.UploadPath)
+	case "offline_report":
+		return h.collectOfflineReport(session.UploadPath)
 	default:
 		return "", fmt.Errorf("unknown source type: %q", session.SourceType)
 	}
@@ -801,6 +844,87 @@ func (h *AIHandler) collectELKResult(resultIDStr string) (string, error) {
 	return sb.String(), nil
 }
 
+// offlineReport mirrors the JSON structure emitted by the offline agent reporter.
+type offlineReport struct {
+	BundleName  string `json:"bundle_name"`
+	CaseID      string `json:"case_id"`
+	CaseName    string `json:"case_name"`
+	Hostname    string `json:"hostname"`
+	IP          string `json:"ip"`
+	OS          string `json:"os"`
+	Arch        string `json:"arch"`
+	GeneratedAt string `json:"generated_at"`
+	Jobs        []struct {
+		ToolName    string  `json:"tool_name"`
+		Args        string  `json:"args"`
+		Status      string  `json:"status"`
+		DurationSec float64 `json:"duration_seconds"`
+		OutputLines int     `json:"output_lines"`
+		Output      string  `json:"output"`
+		Error       string  `json:"error"`
+	} `json:"jobs"`
+	Summary struct {
+		TotalTools int `json:"total_tools"`
+		Done       int `json:"done"`
+		Failed     int `json:"failed"`
+		Stopped    int `json:"stopped"`
+	} `json:"summary"`
+}
+
+// collectOfflineReport reads and formats an offline-agent JSON report for AI analysis.
+// Each tool's output is included up to 4 KB; total is further capped by buildPrompt.
+func (h *AIHandler) collectOfflineReport(uploadPath string) (string, error) {
+	if uploadPath == "" {
+		return "", fmt.Errorf("no upload file associated with this session")
+	}
+	fullPath := h.store.GetAnalysisUploadPath(uploadPath)
+	raw, err := os.ReadFile(fullPath)
+	if err != nil {
+		return "", fmt.Errorf("read offline report: %w", err)
+	}
+
+	var rep offlineReport
+	if err := json.Unmarshal(raw, &rep); err != nil {
+		// Not a valid bundle JSON — treat as plain text
+		return string(raw), nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString("=== FORENSICHUB OFFLINE HUNTING REPORT ===\n")
+	fmt.Fprintf(&sb, "Bundle   : %s\n", rep.BundleName)
+	if rep.CaseName != "" {
+		fmt.Fprintf(&sb, "Case     : %s\n", rep.CaseName)
+	}
+	fmt.Fprintf(&sb, "Host     : %s\n", rep.Hostname)
+	fmt.Fprintf(&sb, "IP       : %s\n", rep.IP)
+	fmt.Fprintf(&sb, "OS/Arch  : %s / %s\n", rep.OS, rep.Arch)
+	if rep.GeneratedAt != "" {
+		fmt.Fprintf(&sb, "Generated: %s\n", rep.GeneratedAt)
+	}
+	fmt.Fprintf(&sb, "Summary  : %d tools — %d done, %d failed, %d stopped\n\n",
+		rep.Summary.TotalTools, rep.Summary.Done, rep.Summary.Failed, rep.Summary.Stopped)
+
+	const perToolCap = 4 * 1024
+	for i, job := range rep.Jobs {
+		dur := ""
+		if job.DurationSec > 0 {
+			dur = fmt.Sprintf(" (%.1fs)", job.DurationSec)
+		}
+		fmt.Fprintf(&sb, "--- [%d/%d] %s | %s%s | args: %s ---\n",
+			i+1, len(rep.Jobs), job.ToolName, job.Status, dur, job.Args)
+		if job.Error != "" {
+			fmt.Fprintf(&sb, "ERROR: %s\n", job.Error)
+		}
+		output := job.Output
+		if len(output) > perToolCap {
+			output = output[:perToolCap] + "\n... [truncated]"
+		}
+		sb.WriteString(output)
+		sb.WriteString("\n\n")
+	}
+	return sb.String(), nil
+}
+
 // collectUpload reads a sampled portion of the uploaded file without loading
 // the whole thing into memory.  Memory dumps and disk images can be multiple
 // gigabytes; os.ReadFile on such a file OOMs the server.  Instead we read:
@@ -881,10 +1005,11 @@ func (h *AIHandler) collectUpload(uploadPath string) (string, error) {
 // content and the analysis instructions; pass "" to omit it.
 func (h *AIHandler) buildPrompt(session *models.AnalysisSession, content, enrichSummary string) string {
 	sourceLabel := map[string]string{
-		"job":           "kết quả chạy tool",
-		"checklist_run": "kết quả thu thập bằng chứng (Evidence Checklist)",
-		"elk_result":    "kết quả ELK Threat Hunt",
-		"upload":        "file upload từ bên ngoài",
+		"job":            "kết quả chạy tool",
+		"checklist_run":  "kết quả thu thập bằng chứng (Evidence Checklist)",
+		"elk_result":     "kết quả ELK Threat Hunt",
+		"upload":         "file upload từ bên ngoài",
+		"offline_report": "báo cáo forensic hunting offline (chạy trên endpoint không có mạng)",
 	}[session.SourceType]
 	if sourceLabel == "" {
 		sourceLabel = "dữ liệu forensic"

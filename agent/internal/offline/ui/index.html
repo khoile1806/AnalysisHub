@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ForensicHub Offline Agent</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#64748b;--accent:#dc2626;--green:#22c55e;--yellow:#f59e0b;--blue:#3b82f6;--red:#ef4444;--purple:#8b5cf6}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+/* ── Header ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+header h1{font-size:16px;font-weight:700;color:#f8fafc}
+header .badge{background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:9999px;letter-spacing:.1em}
+.sysinfo{margin-left:auto;display:flex;gap:16px;font-size:12px;color:var(--muted)}
+.sysinfo span b{color:var(--text)}
+
+/* ── Layout ── */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ── Tool panel ── */
+.tool-panel{width:280px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface)}
+.panel-header{padding:12px 16px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)}
+.tools-list{flex:1;overflow-y:auto;padding:8px}
+.tool-card{border:1px solid var(--border);border-radius:6px;margin-bottom:6px;overflow:hidden;transition:border-color .15s}
+.tool-card:hover{border-color:#475569}
+.tool-card.selected{border-color:var(--accent)}
+.tool-info{padding:10px 12px;cursor:pointer}
+.tool-name{font-weight:600;font-size:13px;color:#f1f5f9}
+.tool-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.tool-cat{font-size:10px;background:#0f172a;color:var(--muted);padding:1px 6px;border-radius:4px;display:inline-block;margin-top:4px}
+.tool-actions{padding:8px 12px;border-top:1px solid var(--border);background:#0f172a;display:none}
+.tool-card.selected .tool-actions{display:block}
+.args-input{width:100%;background:#1e293b;border:1px solid var(--border);border-radius:4px;padding:5px 8px;color:var(--text);font-family:monospace;font-size:11px;margin-bottom:6px;outline:none}
+.args-input:focus{border-color:#475569}
+.btn{padding:5px 12px;border-radius:4px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-run{background:var(--green);color:#fff}
+.btn-stop{background:var(--red);color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px}
+
+/* ── Main panel ── */
+.main-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.jobs-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;flex-shrink:0;overflow-x:auto}
+.tab{padding:10px 14px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:color .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);border-color:var(--accent)}
+.tab .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tab-actions{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 0}
+.job-view{flex:1;overflow:hidden;display:flex;flex-direction:column;display:none}
+.job-view.active{display:flex}
+
+/* welcome screen */
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px}
+.welcome svg{opacity:.3}
+.welcome p{font-size:13px}
+
+/* output terminal */
+.output-term{flex:1;overflow-y:auto;background:#020617;padding:14px 16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-all;color:#a3e635}
+.output-term .line-err{color:#fca5a5}
+.output-term .line-warn{color:#fde68a}
+.output-term .line-ok{color:#86efac}
+.job-meta-bar{padding:8px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);flex-shrink:0}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-running{background:var(--blue);box-shadow:0 0 6px var(--blue);animation:pulse 1.5s infinite}
+.status-done{background:var(--green)}
+.status-failed{background:var(--red)}
+.status-stopped{background:var(--yellow)}
+.status-pending{background:var(--muted)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* report bar */
+.report-bar{background:var(--surface);border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.report-bar .info{font-size:12px;color:var(--muted);flex:1}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ForensicHub Offline Agent</h1>
+    <div id="bundle-name" style="font-size:11px;color:var(--muted);margin-top:1px">Loading bundle…</div>
+  </div>
+  <span class="badge">OFFLINE</span>
+  <div class="sysinfo">
+    <span><b id="si-host">—</b> <span style="color:var(--muted)">host</span></span>
+    <span><b id="si-ip">—</b> <span style="color:var(--muted)">IP</span></span>
+    <span><b id="si-os">—</b></span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Tool panel -->
+  <div class="tool-panel">
+    <div class="panel-header">Bundled Tools</div>
+    <div class="tools-list" id="tools-list">
+      <div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Main panel -->
+  <div class="main-panel">
+    <div class="jobs-tabs" id="jobs-tabs">
+      <div style="display:flex;align-items:center;padding:0 4px;color:var(--muted);font-size:12px" id="no-jobs-msg">
+        Select a tool and click Run ▶
+      </div>
+      <div class="tab-actions">
+        <button class="btn btn-sm" style="background:#1e293b;border:1px solid var(--border);color:var(--text)" onclick="refreshJobs()">↻ Refresh</button>
+        <button class="btn btn-sm" style="background:var(--purple);color:#fff" onclick="generateReport()">⬇ Report</button>
+      </div>
+    </div>
+
+    <div id="job-views">
+      <div class="job-view active" id="view-welcome">
+        <div class="welcome">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <p>Select a tool from the left panel and press <b style="color:var(--text)">Run ▶</b></p>
+          <p style="font-size:11px">Results will appear here and be saved to a report file</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="report-bar">
+      <span class="info" id="report-info">No jobs run yet</span>
+      <button class="btn" style="background:var(--purple);color:#fff" onclick="generateReport()">⬇ Generate Report</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+var tools = [];
+var jobs = {};        // jobID → { id, toolName, status, eventSource }
+var activeTab = null;
+var selectedTool = null;
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+window.onload = function() {
+  loadSysinfo();
+  loadTools();
+  setInterval(refreshJobs, 5000);
+};
+
+function loadSysinfo() {
+  fetch('/api/sysinfo').then(r => r.json()).then(d => {
+    document.getElementById('si-host').textContent = d.hostname || '—';
+    document.getElementById('si-ip').textContent   = d.ip      || '—';
+    document.getElementById('si-os').textContent   = (d.os || '') + ' ' + (d.arch || '');
+  }).catch(() => {});
+}
+
+function loadTools() {
+  fetch('/api/tools').then(r => r.json()).then(data => {
+    tools = data.tools || [];
+    document.getElementById('bundle-name').textContent = data.bundle_name || 'Offline Bundle';
+    renderTools();
+  }).catch(e => {
+    document.getElementById('tools-list').innerHTML =
+      '<div style="padding:16px;color:#ef4444;font-size:12px">Failed to load tools: ' + e + '</div>';
+  });
+}
+
+function renderTools() {
+  var list = document.getElementById('tools-list');
+  if (!tools.length) {
+    list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px">No tools in this bundle</div>';
+    return;
+  }
+  list.innerHTML = '';
+  tools.forEach(function(t) {
+    var card = document.createElement('div');
+    card.className = 'tool-card';
+    card.id = 'tool-' + t.id;
+    card.innerHTML =
+      '<div class="tool-info" onclick="selectTool(\'' + t.id + '\')">' +
+        '<div class="tool-name">' + esc(t.name) + '</div>' +
+        (t.description ? '<div class="tool-desc">' + esc(t.description) + '</div>' : '') +
+        (t.category    ? '<span class="tool-cat">' + esc(t.category) + '</span>' : '') +
+      '</div>' +
+      '<div class="tool-actions">' +
+        '<input class="args-input" id="args-' + t.id + '" placeholder="Arguments…" value="' + esc(t.default_args || '') + '">' +
+        '<div style="display:flex;gap:6px">' +
+          '<button class="btn btn-run" onclick="runTool(\'' + t.id + '\')">▶ Run</button>' +
+        '</div>' +
+      '</div>';
+    list.appendChild(card);
+  });
+}
+
+function selectTool(id) {
+  if (selectedTool === id) {
+    // toggle off
+    var card = document.getElementById('tool-' + selectedTool);
+    if (card) card.classList.remove('selected');
+    selectedTool = null;
+    return;
+  }
+  if (selectedTool) {
+    var prev = document.getElementById('tool-' + selectedTool);
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedTool = id;
+  var card = document.getElementById('tool-' + id);
+  if (card) {
+    card.classList.add('selected');
+    var inp = document.getElementById('args-' + id);
+    if (inp) inp.focus();
+  }
+}
+
+// ── Run tool ───────────────────────────────────────────────────────────────
+function runTool(toolId) {
+  var inp = document.getElementById('args-' + toolId);
+  var args = inp ? inp.value : '';
+  var btn = inp ? inp.parentElement.querySelector('.btn-run') : null;
+  if (btn) btn.disabled = true;
+
+  fetch('/api/jobs', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({tool_id: toolId, args: args})
+  })
+  .then(r => r.json())
+  .then(function(job) {
+    if (btn) btn.disabled = false;
+    if (job.error) { alert('Error: ' + job.error); return; }
+    addJobTab(job);
+    openTab(job.id);
+    streamJob(job.id);
+  })
+  .catch(function(e) {
+    if (btn) btn.disabled = false;
+    alert('Failed to start job: ' + e);
+  });
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function addJobTab(job) {
+  jobs[job.id] = { id: job.id, toolName: job.tool_name, status: job.status || 'running' };
+
+  document.getElementById('no-jobs-msg').style.display = 'none';
+
+  // Tab
+  var tabs = document.getElementById('jobs-tabs');
+  var tab = document.createElement('div');
+  tab.className = 'tab';
+  tab.id = 'tab-' + job.id;
+  tab.onclick = function() { openTab(job.id); };
+  tab.innerHTML =
+    '<span class="dot status-running" id="dot-' + job.id + '"></span>' +
+    '<span id="tab-label-' + job.id + '">' + esc(job.tool_name) + '</span>';
+  // Insert before tab-actions
+  var actions = tabs.querySelector('.tab-actions');
+  tabs.insertBefore(tab, actions);
+
+  // View
+  var views = document.getElementById('job-views');
+  var view = document.createElement('div');
+  view.className = 'job-view';
+  view.id = 'view-' + job.id;
+  view.innerHTML =
+    '<div class="output-term" id="output-' + job.id + '"></div>' +
+    '<div class="job-meta-bar">' +
+      '<span class="status-dot status-running" id="status-dot-' + job.id + '"></span>' +
+      '<span id="status-text-' + job.id + '">running…</span>' +
+      '<span style="margin-left:auto">' +
+        '<button class="btn btn-stop btn-sm" id="stop-btn-' + job.id + '" onclick="stopJob(\'' + job.id + '\')">■ Stop</button>' +
+      '</span>' +
+    '</div>';
+  views.appendChild(view);
+}
+
+function openTab(jobId) {
+  // deactivate all
+  document.querySelectorAll('.job-view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+
+  document.getElementById('view-welcome').style.display = 'none';
+  var view = document.getElementById('view-' + jobId);
+  if (view) view.classList.add('active');
+  var tab = document.getElementById('tab-' + jobId);
+  if (tab) tab.classList.add('active');
+  activeTab = jobId;
+}
+
+// ── SSE output streaming ───────────────────────────────────────────────────
+function streamJob(jobId) {
+  var term = document.getElementById('output-' + jobId);
+  if (!term) return;
+
+  var es = new EventSource('/api/jobs/' + jobId + '/stream');
+  if (jobs[jobId]) jobs[jobId].eventSource = es;
+
+  es.onmessage = function(e) {
+    if (e.data === '__DONE__') {
+      es.close();
+      return;
+    }
+    appendLine(term, e.data);
+  };
+
+  es.onerror = function() {
+    es.close();
+    // Fetch final status
+    refreshJobStatus(jobId);
+  };
+}
+
+function appendLine(term, text) {
+  var line = document.createElement('div');
+  // Simple coloring heuristic
+  var lower = text.toLowerCase();
+  if (lower.includes('[!]') || lower.includes('error') || lower.includes('fail')) {
+    line.className = 'line-err';
+  } else if (lower.includes('warn') || lower.includes('[?]')) {
+    line.className = 'line-warn';
+  } else if (lower.includes('[+]') || lower.includes('found') || lower.includes('done')) {
+    line.className = 'line-ok';
+  }
+  line.textContent = text;
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
+// ── Job status ─────────────────────────────────────────────────────────────
+function refreshJobStatus(jobId) {
+  fetch('/api/jobs/' + jobId)
+    .then(r => r.json())
+    .then(function(job) { updateJobStatus(job); })
+    .catch(() => {});
+}
+
+function refreshJobs() {
+  fetch('/api/jobs').then(r => r.json()).then(function(data) {
+    (data.jobs || []).forEach(function(job) { updateJobStatus(job); });
+    updateReportInfo(data.jobs || []);
+  }).catch(() => {});
+}
+
+function updateJobStatus(job) {
+  var dot = document.getElementById('dot-' + job.id);
+  var sdot = document.getElementById('status-dot-' + job.id);
+  var stxt = document.getElementById('status-text-' + job.id);
+  var stopBtn = document.getElementById('stop-btn-' + job.id);
+  var cls = 'status-' + job.status;
+
+  if (dot) { dot.className = 'dot ' + cls; }
+  if (sdot) { sdot.className = 'status-dot ' + cls; }
+  if (stxt) {
+    var dur = '';
+    if (job.duration_seconds > 0) {
+      dur = ' · ' + (job.duration_seconds < 60
+        ? job.duration_seconds.toFixed(1) + 's'
+        : Math.floor(job.duration_seconds/60) + 'm ' + (job.duration_seconds%60|0) + 's');
+    }
+    stxt.textContent = job.status + dur;
+  }
+  if (stopBtn && (job.status !== 'running')) {
+    stopBtn.style.display = 'none';
+  }
+
+  // If job finished and output is not yet fully shown, fetch and display
+  if (job.status === 'done' || job.status === 'failed' || job.status === 'stopped') {
+    var term = document.getElementById('output-' + job.id);
+    if (term && term.children.length === 0 && job.output) {
+      job.output.split('\n').forEach(function(l) { appendLine(term, l); });
+    }
+  }
+}
+
+function updateReportInfo(jobList) {
+  var done = jobList.filter(function(j){ return j.status === 'done'; }).length;
+  var total = jobList.length;
+  document.getElementById('report-info').textContent =
+    total === 0
+      ? 'No jobs run yet'
+      : done + ' of ' + total + ' tool(s) completed';
+}
+
+// ── Stop job ───────────────────────────────────────────────────────────────
+function stopJob(jobId) {
+  fetch('/api/jobs/' + jobId + '/stop', {method:'POST'})
+    .then(() => refreshJobStatus(jobId))
+    .catch(() => {});
+}
+
+// ── Report ─────────────────────────────────────────────────────────────────
+function generateReport() {
+  // Download HTML report
+  var a = document.createElement('a');
+  a.href = '/api/report?format=html';
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Also trigger JSON after short delay
+  setTimeout(function() {
+    var b = document.createElement('a');
+    b.href = '/api/report?format=json';
+    b.download = '';
+    document.body.appendChild(b);
+    b.click();
+    document.body.removeChild(b);
+  }, 500);
+}
+
+// ── Util ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

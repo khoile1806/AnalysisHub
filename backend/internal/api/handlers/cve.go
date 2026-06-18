@@ -24,7 +24,6 @@ import (
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/wpscan"
 )
 
 // cveHTTPClient is the shared client used for NVD + GitHub outbound calls.
@@ -48,11 +47,6 @@ const (
 	cveMaxLimit      = 500
 	cvePoCsPerPage   = 10
 )
-
-// wpSlugRegex matches WordPress plugin/theme slugs: lowercase alphanumerics
-// with optional hyphens. Used as a heuristic to decide whether to query
-// WPScan's /plugins/<slug> and /themes/<slug> endpoints for a search.
-var wpSlugRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$`)
 
 // CveSummary is the trimmed CVE shape returned in search results.
 //
@@ -163,7 +157,6 @@ func SearchCVE(c *gin.Context) {
 
 	var (
 		allNvdSummaries []CveSummary
-		allWpSummaries  []CveSummary
 		nvdFailures     int
 		mu              sync.Mutex
 		wg              sync.WaitGroup
@@ -174,18 +167,11 @@ func SearchCVE(c *gin.Context) {
 		if version != "" {
 			keyword = singleQ + " " + version
 		}
-		
+
 		wg.Add(1)
-		go func(kw, origQ string) {
+		go func(kw string) {
 			defer wg.Done()
-			
 			nvdRes, err := searchNVD(ctx, c, kw, limit)
-			
-			var wpRes []CveSummary
-			if shouldQueryWPScan(c, origQ) {
-				wpRes = searchWPScan(ctx, c, origQ, version)
-			}
-			
 			mu.Lock()
 			if err != nil {
 				log.Printf("[cve] nvd search error for %q: %v", kw, err)
@@ -193,19 +179,18 @@ func SearchCVE(c *gin.Context) {
 			} else {
 				allNvdSummaries = append(allNvdSummaries, nvdRes...)
 			}
-			allWpSummaries = append(allWpSummaries, wpRes...)
 			mu.Unlock()
-		}(keyword, singleQ)
+		}(keyword)
 	}
 
 	wg.Wait()
 
-	if nvdFailures > 0 && nvdFailures == len(queries) && len(allWpSummaries) == 0 {
+	if nvdFailures > 0 && nvdFailures == len(queries) {
 		c.JSON(http.StatusBadGateway, gin.H{"success": false, "error": "failed to fetch from NVD"})
 		return
 	}
 
-	summaries := mergeCveSummaries(allNvdSummaries, allWpSummaries)
+	summaries := mergeCveSummaries(allNvdSummaries)
 
 	// Risk enrichment happens before caching so cached responses already carry
 	// EPSS + KEV — the next cache hit doesn't re-spend FIRST.org calls.
@@ -432,145 +417,19 @@ func searchNVD(ctx context.Context, c *gin.Context, keyword string, limit int) (
 	return parseNVDSummaries(raw)
 }
 
-// shouldQueryWPScan returns true only when the query is explicitly tagged
-// as a WordPress lookup. Accepted forms:
-//
-//	"wordpress"                  → core CVE lookup (when version is set)
-//	"wordpress <slug>"           → core + plugin/theme slug
-//	"<slug> wordpress"           → same
-//	"wp-<slug>" / "wp:<slug>"    → plugin/theme slug
-//
-// The earlier "slug-shaped single token" heuristic was too greedy — it fired
-// WPScan calls on unrelated searches like "log4j" or "openssh" and burned
-// the free-tier quota. WPScan is now opt-in via the markers above.
-func shouldQueryWPScan(c *gin.Context, q string) bool {
-	pool := wpscanPoolFromCtx(c)
-	if pool == nil || !pool.Configured() {
-		return false
-	}
-	lower := strings.ToLower(strings.TrimSpace(q))
-	return strings.Contains(lower, "wordpress") ||
-		strings.HasPrefix(lower, "wp-") ||
-		strings.HasPrefix(lower, "wp:")
-}
-
-// wpscanPoolFromCtx returns the shared WPScan token pool injected by the
-// router middleware. Centralised so the type assertion lives in one place.
-func wpscanPoolFromCtx(c *gin.Context) *wpscan.Pool {
-	v, _ := c.Get("wpscanPool")
-	if pool, ok := v.(*wpscan.Pool); ok {
-		return pool
-	}
-	return nil
-}
-
-// extractWPSlug pulls a plugin/theme slug from a query that's already been
-// confirmed WP-related by shouldQueryWPScan. Returns "" when the query
-// names only WordPress core (and not a specific plugin/theme).
-func extractWPSlug(q string) string {
-	lower := strings.ToLower(strings.TrimSpace(q))
-	if strings.HasPrefix(lower, "wp:") {
-		return strings.TrimSpace(strings.TrimPrefix(lower, "wp:"))
-	}
-	if strings.HasPrefix(lower, "wp-") {
-		// "wp-foo" can be either a slug ("wp-rocket") or core meta-term
-		// ("wp-config"). We pass it through — invalid slugs just 404.
-		return lower
-	}
-	// "wordpress <slug>" or "<slug> wordpress" — pick the first non-"wordpress"
-	// token that looks like a slug.
-	for _, tok := range strings.Fields(lower) {
-		if tok != "wordpress" && wpSlugRegex.MatchString(tok) {
-			return tok
-		}
-	}
-	return ""
-}
-
-// searchWPScan fans out to /wordpresses/<version>, /plugins/<slug>, and
-// /themes/<slug> as appropriate and returns merged CveSummary entries. Errors
-// are logged and swallowed: WPScan is supplementary, never blocks NVD output.
-//
-// Precondition: shouldQueryWPScan has already confirmed this is a WordPress
-// query. We don't re-validate here.
-func searchWPScan(ctx context.Context, c *gin.Context, q, version string) []CveSummary {
-	lower := strings.ToLower(strings.TrimSpace(q))
-	slug := extractWPSlug(q)
-
-	var (
-		mu  sync.Mutex
-		out []CveSummary
-		wg  sync.WaitGroup
-	)
-	add := func(s []CveSummary) {
-		if len(s) == 0 {
-			return
-		}
-		mu.Lock()
-		out = append(out, s...)
-		mu.Unlock()
-	}
-
-	// WordPress core: only meaningful when "wordpress" is in the query AND
-	// a version is provided. WPScan expects the version with dots stripped
-	// (e.g. "541" for "5.4.1").
-	if strings.Contains(lower, "wordpress") && version != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			add(fetchWPScanCore(ctx, c, version))
-		}()
-	}
-
-	// Plugin / theme lookup — only when extractWPSlug returned a slug-shaped
-	// token. WPScan returns 404 for unknown slugs; that's a normal empty
-	// result, not an error.
-	if slug != "" && wpSlugRegex.MatchString(slug) {
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-			add(fetchWPScanByKind(ctx, c, "plugins", slug))
-		}()
-		go func() {
-			defer wg.Done()
-			add(fetchWPScanByKind(ctx, c, "themes", slug))
-		}()
-	}
-
-	wg.Wait()
-	return out
-}
-
-// mergeCveSummaries deduplicates by CVE-ID. NVD entries win on conflict
-// because they carry CPE-derived affected_products and authoritative CVSS
-// metrics; WPScan-only IDs (with no CVE assigned, prefixed "WPVDB-") pass
-// through untouched. Final order is published_date desc.
-func mergeCveSummaries(primary, supplementary []CveSummary) []CveSummary {
-	seen := make(map[string]int, len(primary)+len(supplementary))
-	out := make([]CveSummary, 0, len(primary)+len(supplementary))
-	for _, s := range primary {
+// mergeCveSummaries deduplicates by CVE-ID across multiple parallel NVD
+// query results and returns them sorted by published_date desc.
+func mergeCveSummaries(results []CveSummary) []CveSummary {
+	seen := make(map[string]struct{}, len(results))
+	out := make([]CveSummary, 0, len(results))
+	for _, s := range results {
 		if s.ID == "" {
 			continue
 		}
 		if _, dup := seen[s.ID]; dup {
 			continue
 		}
-		seen[s.ID] = len(out)
-		out = append(out, s)
-	}
-	for _, s := range supplementary {
-		if s.ID == "" {
-			continue
-		}
-		if idx, dup := seen[s.ID]; dup {
-			// Backfill missing fields on the primary entry — WPScan often
-			// has a fixed_in product hint where NVD has none.
-			if len(out[idx].AffectedProducts) == 0 && len(s.AffectedProducts) > 0 {
-				out[idx].AffectedProducts = s.AffectedProducts
-			}
-			continue
-		}
-		seen[s.ID] = len(out)
+		seen[s.ID] = struct{}{}
 		out = append(out, s)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
@@ -941,195 +800,3 @@ func enrichWithRiskData(ctx context.Context, summaries []CveSummary) {
 	}
 }
 
-// ───────────────────────── WPScan source ─────────────────────────
-
-// wpscanVuln is the trimmed WPScan vulnerability shape. WPScan returns a
-// `references.cve` array of bare CVE numbers (e.g. "2024-1234" without the
-// "CVE-" prefix); we re-attach the prefix when building summaries. When a
-// vulnerability has no CVE assigned, we synthesise an ID from the WPScan
-// UUID so it still appears in results — many WP plugin vulns are tracked
-// in WPVDB before MITRE assigns a CVE.
-type wpscanVuln struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	CreatedAt   string `json:"created_at"`
-	Published   string `json:"published_date"`
-	Description string `json:"description"`
-	FixedIn     string `json:"fixed_in"`
-	References  struct {
-		CVE []string `json:"cve"`
-	} `json:"references"`
-	CVSS struct {
-		Score    float64 `json:"score"`
-		Severity string  `json:"severity"`
-	} `json:"cvss"`
-}
-
-// fetchWPScanCore queries WPScan's WordPress core endpoint. The path is the
-// version with dots stripped — "5.4.1" becomes "541".
-func fetchWPScanCore(ctx context.Context, c *gin.Context, version string) []CveSummary {
-	cleaned := strings.ReplaceAll(strings.TrimSpace(version), ".", "")
-	if cleaned == "" {
-		return nil
-	}
-	wpscanURL := "https://wpscan.com/api/v3"
-	if c != nil {
-		if cfg, ok := c.Get("config"); ok {
-			wpscanURL = cfg.(*config.Config).APIWpscanURL
-		}
-	}
-	raw, status := callWPScan(ctx, c, wpscanURL+"/wordpresses/"+url.PathEscape(cleaned))
-	if status != http.StatusOK {
-		return nil
-	}
-	// Core response is keyed by version string. Walk every top-level key
-	// (in practice there's only one) to extract vulnerabilities without
-	// hard-coding the version key.
-	var doc map[string]struct {
-		Vulnerabilities []wpscanVuln `json:"vulnerabilities"`
-	}
-	if err := json.Unmarshal(raw, &doc); err != nil {
-		log.Printf("[cve] wpscan core parse: %v", err)
-		return nil
-	}
-	out := make([]CveSummary, 0)
-	for _, entry := range doc {
-		for _, v := range entry.Vulnerabilities {
-			out = append(out, summaryFromWPScan(v, "wordpress:core"))
-		}
-	}
-	return out
-}
-
-// fetchWPScanByKind queries /plugins/<slug> or /themes/<slug>. Returns nil
-// for 404 (unknown slug) — that's expected for arbitrary search terms and
-// not an error condition.
-func fetchWPScanByKind(ctx context.Context, c *gin.Context, kind, slug string) []CveSummary {
-	wpscanURL := "https://wpscan.com/api/v3"
-	if c != nil {
-		if cfg, ok := c.Get("config"); ok {
-			wpscanURL = cfg.(*config.Config).APIWpscanURL
-		}
-	}
-	raw, status := callWPScan(ctx, c, wpscanURL+"/"+kind+"/"+url.PathEscape(slug))
-	if status != http.StatusOK {
-		return nil
-	}
-	var doc map[string]struct {
-		Vulnerabilities []wpscanVuln `json:"vulnerabilities"`
-	}
-	if err := json.Unmarshal(raw, &doc); err != nil {
-		log.Printf("[cve] wpscan %s parse: %v", kind, err)
-		return nil
-	}
-	product := strings.TrimSuffix(kind, "s") + ":" + slug // "plugin:wpforms-lite"
-	out := make([]CveSummary, 0)
-	for _, entry := range doc {
-		for _, v := range entry.Vulnerabilities {
-			out = append(out, summaryFromWPScan(v, product))
-		}
-	}
-	return out
-}
-
-// callWPScan issues an authenticated GET, rotating through the configured
-// token pool in priority order. On 429 the current token is locked in the
-// shared pool (so the recon engine sees the same lock) and the next token
-// is tried; if every token is locked we return 429 without a round-trip
-// so callers fall back to NVD-only results gracefully. 404 from any token
-// is "not found" (unknown slug) and returned immediately — no point
-// retrying with a second token.
-func callWPScan(ctx context.Context, c *gin.Context, fullURL string) ([]byte, int) {
-	pool := wpscanPoolFromCtx(c)
-	if pool == nil || !pool.Configured() {
-		return nil, 0
-	}
-
-	lastStatus := http.StatusTooManyRequests
-	for _, token := range pool.Tokens() {
-		if pool.IsLocked(token) {
-			continue
-		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
-		if err != nil {
-			return nil, 0
-		}
-		req.Header.Set("Authorization", "Token token="+token)
-		req.Header.Set("Accept", "application/json")
-		resp, err := cveHTTPClient.Do(req)
-		if err != nil {
-			log.Printf("[cve] wpscan fetch error: %v", err)
-			return nil, 0
-		}
-
-		switch resp.StatusCode {
-		case http.StatusOK:
-			body, readErr := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			if readErr != nil {
-				return nil, resp.StatusCode
-			}
-			return body, resp.StatusCode
-		case http.StatusNotFound:
-			resp.Body.Close()
-			return nil, resp.StatusCode
-		case http.StatusTooManyRequests:
-			resp.Body.Close()
-			pool.Lock(token)
-			lastStatus = resp.StatusCode
-			// fall through to try the next token
-		default:
-			resp.Body.Close()
-			log.Printf("[cve] wpscan non-200 (%s): %d", fullURL, resp.StatusCode)
-			lastStatus = resp.StatusCode
-		}
-	}
-	return nil, lastStatus
-}
-
-// summaryFromWPScan adapts a WPScan vulnerability to our CveSummary shape.
-// Uses the first CVE from references.cve as the canonical ID so that the
-// entry merges with any matching NVD record; falls back to a synthetic
-// "WPVDB-<uuid>" ID when no CVE has been assigned yet.
-func summaryFromWPScan(v wpscanVuln, product string) CveSummary {
-	id := ""
-	for _, raw := range v.References.CVE {
-		raw = strings.TrimSpace(raw)
-		if raw == "" {
-			continue
-		}
-		if !strings.HasPrefix(strings.ToUpper(raw), "CVE-") {
-			raw = "CVE-" + raw
-		}
-		raw = strings.ToUpper(raw)
-		if cveIDRegex.MatchString(raw) {
-			id = raw
-			break
-		}
-	}
-	if id == "" {
-		id = "WPVDB-" + v.ID
-	}
-	desc := v.Title
-	if v.Description != "" {
-		desc = v.Description
-	}
-	if v.FixedIn != "" {
-		desc = strings.TrimSpace(desc) + "\n\nFixed in: " + v.FixedIn
-	}
-	sev := normalizeSeverity(v.CVSS.Severity, v.CVSS.Score)
-	pub := v.Published
-	if pub == "" {
-		pub = v.CreatedAt
-	}
-	products := []string{product}
-	return CveSummary{
-		ID:               id,
-		Description:      desc,
-		CVSSScore:        v.CVSS.Score,
-		Severity:         sev,
-		PublishedDate:    pub,
-		LastModified:     pub,
-		AffectedProducts: products,
-	}
-}

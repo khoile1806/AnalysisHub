@@ -31,27 +31,13 @@ type Config struct {
 	// NVDAPIKey is an optional API key for the NVD CVE API. When set it
 	// raises the rate limit from 5 to 50 requests per 30s window.
 	NVDAPIKey string
-	// API endpoint configurations for scanners
-	APINvdURL           string
-	APIWpscanURL        string
-	APINumVerifyURL     string
-	APIIpApiURL         string
-	APIWebArchiveURL    string
-	APICrtShURL         string
-	APICertSpotterURL   string
+	// APINvdURL is the NVD CVE API endpoint (overridable for testing/mirrors).
+	APINvdURL string
 
 	// GitHubToken is an optional Personal Access Token used when querying
 	// the GitHub Search API for PoC repositories. Without it the unauth
 	// rate limit (~10 req/min) applies.
 	GitHubToken string
-	// WPScanAPITokens is an ordered list of tokens for the WPScan
-	// Vulnerability DB. CVE search tries them in order on each request and
-	// rotates to the next when one returns 429 (quota exhausted) — so a
-	// pair of free-tier tokens effectively doubles the daily budget. The
-	// loader accepts either a single comma-separated env var
-	// (WPSCAN_API_TOKEN="a,b") or numbered fallbacks (WPSCAN_API_TOKEN_2,
-	// WPSCAN_API_TOKEN_3, …) so docker-compose stays readable.
-	WPScanAPITokens []string
 	// AESEncryptionKey is a 32-byte key used for encrypting sensitive data like OpenCTI credentials.
 	AESEncryptionKey string
 
@@ -91,16 +77,9 @@ func Load() *Config {
 		PublicURL:      getEnv("PUBLIC_URL", ""),
 		UseHTTPS:       getEnv("USE_HTTPS", "false") == "true",
 		AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "")),
-		NVDAPIKey:       getEnv("NVD_API_KEY", ""),
-		APINvdURL:         getEnv("API_NVD_URL", "https://services.nvd.nist.gov/rest/json/cves/2.0"),
-		APIWpscanURL:      getEnv("API_WPSCAN_URL", "https://wpscan.com/api/v3"),
-		APINumVerifyURL:   getEnv("API_NUMVERIFY_URL", "http://apilayer.net/api/validate"),
-		APIIpApiURL:       getEnv("API_IP_API_URL", "http://ip-api.com/json/"),
-		APIWebArchiveURL:  getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
-		APICrtShURL:       getEnv("API_CRTSH_URL", "https://crt.sh/"),
-		APICertSpotterURL: getEnv("API_CERTSPOTTER_URL", "https://api.certspotter.com/v1/issuances"),
+		NVDAPIKey:        getEnv("NVD_API_KEY", ""),
+		APINvdURL:        getEnv("API_NVD_URL", "https://services.nvd.nist.gov/rest/json/cves/2.0"),
 		GitHubToken:      getEnv("GITHUB_TOKEN", ""),
-		WPScanAPITokens:  loadWPScanTokens(),
 		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "default-insecure-key-exct-32-byt"),
 
 		VirusTotalKeys: loadVirusTotalKeys(),
@@ -147,31 +126,6 @@ func loadVirusTotalKeys() []string {
 	add(os.Getenv("VIRUSTOTAL"))
 	for i := 1; i <= 4; i++ {
 		add(os.Getenv(fmt.Sprintf("VIRUSTOTAL_%d", i)))
-	}
-	return out
-}
-
-// loadWPScanTokens returns the configured WPScan tokens in priority order.
-// Sources, merged in order with duplicates dropped:
-//  1. WPSCAN_API_TOKEN — single token, or comma-separated list ("a,b,c").
-//  2. WPSCAN_API_TOKEN_2 … WPSCAN_API_TOKEN_9 — numbered fallbacks for
-//     ops who prefer one-var-per-token in compose files.
-func loadWPScanTokens() []string {
-	seen := make(map[string]bool)
-	out := make([]string, 0, 4)
-	add := func(raw string) {
-		for _, t := range strings.Split(raw, ",") {
-			s := strings.TrimSpace(t)
-			if s == "" || seen[s] {
-				continue
-			}
-			seen[s] = true
-			out = append(out, s)
-		}
-	}
-	add(os.Getenv("WPSCAN_API_TOKEN"))
-	for i := 2; i <= 9; i++ {
-		add(os.Getenv(fmt.Sprintf("WPSCAN_API_TOKEN_%d", i)))
 	}
 	return out
 }

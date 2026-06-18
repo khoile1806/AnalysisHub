@@ -44,8 +44,6 @@ services:
       - PUBLIC_URL=${PUBLIC_URL:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - USE_HTTPS=${USE_HTTPS:-false}
-      - WPSCAN_API_TOKEN=${WPSCAN_API_TOKEN:-cPjhzW2Jq6NeHD9MMLLesLSfbrvzZbmQOUHEcEjYLsM}
-      - WPSCAN_API_TOKEN_2=${WPSCAN_API_TOKEN_2:-md9YXsKj1b0L4KlwelaFqpPE5YT5qxgz53KeD3PoAiM}
       - LOG_PATH=/app/data/logs
     volumes:
       - storage_data:/app/storage

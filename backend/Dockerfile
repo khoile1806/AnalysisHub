@@ -1,4 +1,4 @@
-# Stage 0: Build agent binaries (Windows + Linux) from the repo root context
+# Stage 0: Build agent binaries (online + offline, Windows + Linux)
 FROM golang:1.23-alpine AS agent-builder
 
 RUN apk add --no-cache git ca-certificates
@@ -8,6 +8,7 @@ COPY ./agent .
 
 RUN go mod tidy && go mod download
 
+# ── Online agent ──────────────────────────────────────────────
 # Cross-compile for Windows (amd64)
 RUN GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
     go build -ldflags="-s -w" -o forensichub-agent.exe ./cmd/agent
@@ -15,6 +16,15 @@ RUN GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
 # Cross-compile for Linux (amd64)
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
     go build -ldflags="-s -w" -o forensichub-agent-linux ./cmd/agent
+
+# ── Offline agent ─────────────────────────────────────────────
+# Cross-compile for Windows (amd64) — includes embedded HTML UI
+RUN GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+    go build -ldflags="-s -w" -o agent-offline.exe ./cmd/offline-agent
+
+# Cross-compile for Linux (amd64)
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+    go build -ldflags="-s -w" -o agent-offline-linux ./cmd/offline-agent
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
@@ -70,9 +80,13 @@ WORKDIR /app
 # Backend server binary
 COPY --from=builder /build/server /app/server
 
-# Pre-compiled agent binaries served for one-click install
+# Pre-compiled online agent binaries served for one-click install
 COPY --from=agent-builder /agent/forensichub-agent.exe   /app/agent-bins/forensichub-agent.exe
 COPY --from=agent-builder /agent/forensichub-agent-linux /app/agent-bins/forensichub-agent-linux
+
+# Pre-compiled offline agent binaries — used by GenerateOfflineBundle to embed in ZIP
+COPY --from=agent-builder /agent/agent-offline.exe      /app/defaults/agent-offline.exe
+COPY --from=agent-builder /agent/agent-offline-linux    /app/defaults/agent-offline-linux
 
 # Copy internal data like cve_collection.json
 COPY --from=builder /build/data /app/data

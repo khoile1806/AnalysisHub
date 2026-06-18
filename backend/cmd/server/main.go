@@ -24,7 +24,6 @@ import (
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
-	"github.com/forensichub/backend/internal/wpscan"
 	"github.com/forensichub/backend/internal/ws"
 )
 
@@ -156,11 +155,6 @@ func main() {
 	handlers.StartCVEUpdateWorker(hub)
 	handlers.StartNewsUpdateWorker(hub)
 
-	// WPScan token pool — used by the CVE Intel handler for WordPress
-	// plugin/core CVE lookups against the WPScan Vulnerability DB.
-	wpscanPool := wpscan.NewPool(cfg.WPScanAPITokens)
-	log.Printf("[main] wpscan token pool initialised (%d token(s))", len(wpscanPool.Tokens()))
-
 	// Threat intel enrichment client — used by the AI analysis pipeline to
 	// automatically look up IPs, hashes, and domains before sending the
 	// forensic prompt to the AI model.
@@ -175,7 +169,7 @@ func main() {
 	// ------------------------------------------------------------------ //
 	// 8. Build Gin router
 	// ------------------------------------------------------------------ //
-	router := api.NewRouter(db, hub, store, rdb, cfg, wpscanPool, enrichClient)
+	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient)
 
 	// ------------------------------------------------------------------ //
 	// 9. Start HTTP server with graceful shutdown

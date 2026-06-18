@@ -25,6 +25,7 @@ const AIAnalysisPage = lazy(() => import('@/pages/AIAnalysis'))
 const AIProviderSettingsPage = lazy(() => import('@/pages/AIProviderSettings'))
 const TestCasesPage = lazy(() => import('@/pages/TestCases'))
 const SystemHealthPage = lazy(() => import('@/pages/SystemHealth'))
+const OfflineBundlesPage = lazy(() => import('@/pages/OfflineBundles'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -297,6 +298,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <SystemHealthPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/offline-bundles"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <OfflineBundlesPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

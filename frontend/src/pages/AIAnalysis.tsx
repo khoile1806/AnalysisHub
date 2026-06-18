@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   BrainCircuit, Plus, Trash2, Upload,
   FileText, Server, ClipboardList, Search, Settings2,
-  Activity,
+  Activity, Package,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
@@ -28,6 +28,7 @@ const SOURCE_ICONS: Record<SessionSourceType, typeof FileText> = {
   checklist_run: ClipboardList,
   elk_result: Search,
   upload: Upload,
+  offline_report: Package,
 }
 
 const SOURCE_LABELS: Record<SessionSourceType, string> = {
@@ -35,6 +36,7 @@ const SOURCE_LABELS: Record<SessionSourceType, string> = {
   checklist_run: 'Evidence Checklist',
   elk_result: 'ELK Hunt Result',
   upload: 'File Upload',
+  offline_report: 'Offline Report',
 }
 
 function statusColor(status: AnalysisSession['status']) {
@@ -64,10 +66,30 @@ function NewAnalysisModal({
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [offlinePreview, setOfflinePreview] = useState<{ bundleName: string; caseName: string; hostname: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const fileSizeMB = file ? file.size / (1024 * 1024) : 0
   const isLargeFile = fileSizeMB > 100
+
+  const handleOfflineFile = (f: File) => {
+    setFile(f)
+    setOfflinePreview(null)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string)
+        if (data.bundle_name) {
+          setOfflinePreview({
+            bundleName: data.bundle_name ?? '',
+            caseName: data.case_name ?? '',
+            hostname: data.hostname ?? '',
+          })
+        }
+      } catch { /* not valid JSON, ignore */ }
+    }
+    reader.readAsText(f)
+  }
 
   const { data: providers = [] } = useQuery({ queryKey: ['ai-providers'], queryFn: analysisApi.listProviders, enabled: open })
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => jobsApi.list(), enabled: open && sourceType === 'job' })
@@ -78,7 +100,7 @@ function NewAnalysisModal({
     mutationFn: () => analysisApi.createSession({
       provider_id: providerId,
       source_type: sourceType,
-      source_id: sourceType !== 'upload' ? sourceId : undefined,
+      source_id: (sourceType !== 'upload' && sourceType !== 'offline_report') ? sourceId : undefined,
       title: title || undefined,
       file: file || undefined,
     }),
@@ -94,10 +116,15 @@ function NewAnalysisModal({
     e.preventDefault()
     setDragOver(false)
     const f = e.dataTransfer.files[0]
-    if (f) setFile(f)
+    if (f) {
+      if (sourceType === 'offline_report') handleOfflineFile(f)
+      else setFile(f)
+    }
   }
 
-  const canSubmit = providerId && (sourceType === 'upload' ? !!file : !!sourceId)
+  const canSubmit = providerId && (
+    (sourceType === 'upload' || sourceType === 'offline_report') ? !!file : !!sourceId
+  )
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
@@ -134,7 +161,7 @@ function NewAnalysisModal({
                   <button
                     key={t}
                     type="button"
-                    onClick={() => { setSourceType(t); setSourceId(''); setFile(null) }}
+                    onClick={() => { setSourceType(t); setSourceId(''); setFile(null); setOfflinePreview(null) }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-xs font-medium transition ${
                       sourceType === t ? 'border-emerald-500/60 bg-emerald-900/20 text-emerald-400' : 'border-gray-700 text-gray-400 hover:border-gray-600'
                     }`}
@@ -233,6 +260,44 @@ function NewAnalysisModal({
                 <input ref={fileRef} type="file" className="hidden"
                   accept=".txt,.csv,.json,.xml,.html,.htm,.log,.man,.raw,.dmp,.vmem,.mem,.bin"
                   onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]) }} />
+              </div>
+            </div>
+          )}
+
+          {sourceType === 'offline_report' && (
+            <div>
+              <label className="label">Upload Offline Report (JSON) *</label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
+                  dragOver ? 'border-purple-400 bg-purple-900/10' : 'border-gray-700 hover:border-gray-600'
+                }`}
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+              >
+                <Package className="h-6 w-6 mx-auto text-purple-500/60 mb-2" />
+                {file ? (
+                  <div className="space-y-1">
+                    <p className="text-sm text-purple-400 font-medium">{file.name}</p>
+                    {offlinePreview ? (
+                      <div className="text-xs text-gray-400 space-y-0.5 mt-2">
+                        <p><span className="text-gray-600">Bundle:</span> {offlinePreview.bundleName}</p>
+                        {offlinePreview.caseName && <p><span className="text-gray-600">Case:</span> {offlinePreview.caseName}</p>}
+                        {offlinePreview.hostname && <p><span className="text-gray-600">Host:</span> {offlinePreview.hostname}</p>}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-yellow-500 mt-1">⚠ Not a valid offline report JSON</p>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-400">Drop <code className="text-purple-400">report-*.json</code> here or click to browse</p>
+                    <p className="text-xs text-gray-600 mt-1">File generated by the offline agent's "Generate Report" button</p>
+                  </>
+                )}
+                <input ref={fileRef} type="file" className="hidden" accept=".json"
+                  onChange={(e) => { if (e.target.files?.[0]) handleOfflineFile(e.target.files[0]) }} />
               </div>
             </div>
           )}
@@ -550,9 +615,10 @@ export default function AIAnalysisPage() {
     }
   }, [sessions.length]) // eslint-disable-line
 
-  // Auto-open modal if navigated from another page with source params
+  // Auto-open modal if navigated from another page with source params.
+  // offline_report only needs source (no preSourceId since user uploads the file).
   useEffect(() => {
-    if (preSourceType && preSourceId) {
+    if (preSourceType && (preSourceId || preSourceType === 'offline_report')) {
       setNewOpen(true)
     }
   }, []) // eslint-disable-line

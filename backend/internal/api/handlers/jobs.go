@@ -626,3 +626,149 @@ func GetArtifactContent(c *gin.Context) {
 	fullPath := filepath.Join(store.BasePath, job.ArtifactPath)
 	c.File(fullPath)
 }
+
+// GetJobReport generates a self-contained HTML report from the job's accumulated
+// output and serves it as an inline or downloadable file. Works for any job with
+// output — no artifact upload required.
+//
+// GET /api/v1/jobs/:id/report?download=true
+func GetJobReport(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid job ID"})
+		return
+	}
+
+	var job models.Job
+	if err := db.Preload("Agent").Preload("Tool").First(&job, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "job not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "internal server error"})
+		return
+	}
+
+	agentName := "unknown"
+	if job.Agent.Name != "" {
+		agentName = job.Agent.Name
+	}
+	toolName := "unknown"
+	if job.Tool.Name != "" {
+		toolName = job.Tool.Name
+	}
+
+	started := ""
+	finished := ""
+	duration := ""
+	if job.StartedAt != nil {
+		started = job.StartedAt.UTC().Format(time.RFC3339)
+	}
+	if job.FinishedAt != nil {
+		finished = job.FinishedAt.UTC().Format(time.RFC3339)
+		if job.StartedAt != nil {
+			d := job.FinishedAt.Sub(*job.StartedAt)
+			if d.Seconds() < 60 {
+				duration = fmt.Sprintf("%.1fs", d.Seconds())
+			} else {
+				duration = fmt.Sprintf("%dm %ds", int(d.Minutes()), int(d.Seconds())%60)
+			}
+		}
+	}
+
+	lines := strings.Split(job.Output, "\n")
+
+	html := buildJobReportHTML(jobReportData{
+		JobID:     id.String(),
+		ToolName:  toolName,
+		AgentName: agentName,
+		Args:      job.Args,
+		Status:    string(job.Status),
+		StartedAt: started,
+		FinishedAt: finished,
+		Duration:  duration,
+		Lines:     lines,
+	})
+
+	download := c.Query("download") == "true"
+	fname := fmt.Sprintf("job-report-%s-%s.html", agentName, id.String()[:8])
+	if download {
+		c.Header("Content-Disposition", `attachment; filename="`+fname+`"`)
+	} else {
+		c.Header("Content-Disposition", `inline; filename="`+fname+`"`)
+	}
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+type jobReportData struct {
+	JobID      string
+	ToolName   string
+	AgentName  string
+	Args       string
+	Status     string
+	StartedAt  string
+	FinishedAt string
+	Duration   string
+	Lines      []string
+}
+
+func buildJobReportHTML(d jobReportData) string {
+	statusColor := map[string]string{
+		"done": "#22c55e", "failed": "#ef4444",
+		"stopped": "#f59e0b", "running": "#3b82f6",
+	}
+	col, ok := statusColor[d.Status]
+	if !ok {
+		col = "#6b7280"
+	}
+
+	var outputHTML strings.Builder
+	for _, line := range d.Lines {
+		escaped := strings.ReplaceAll(line, "&", "&amp;")
+		escaped = strings.ReplaceAll(escaped, "<", "&lt;")
+		escaped = strings.ReplaceAll(escaped, ">", "&gt;")
+		lower := strings.ToLower(line)
+		cls := ""
+		if strings.Contains(lower, "error") || strings.Contains(lower, "[!]") {
+			cls = ` class="err"`
+		} else if strings.Contains(lower, "found") || strings.Contains(lower, "[+]") {
+			cls = ` class="ok"`
+		} else if strings.Contains(lower, "warn") || strings.Contains(lower, "[?]") {
+			cls = ` class="warn"`
+		}
+		outputHTML.WriteString(`<div` + cls + `>` + escaped + `</div>`)
+	}
+
+	return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Job Report — ` + d.ToolName + `</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;font-size:14px}
+header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 24px}
+h1{font-size:17px;font-weight:700;color:#f8fafc}
+.meta{display:flex;gap:20px;flex-wrap:wrap;padding:12px 24px;background:#1e293b;border-bottom:1px solid #334155}
+.m{display:flex;flex-direction:column;gap:2px}
+.ml{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em}
+.mv{font-size:13px;color:#cbd5e1;font-weight:500}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:9999px;color:#fff;background:` + col + `}
+.out{background:#020617;padding:16px 20px;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-all;min-height:400px;margin:16px}
+.out .err{color:#fca5a5}.out .ok{color:#86efac}.out .warn{color:#fde68a}
+</style></head><body>
+<header><h1>` + d.ToolName + ` — Job Report</h1></header>
+<div class="meta">
+<div class="m"><span class="ml">Status</span><span class="mv"><span class="badge">` + strings.ToUpper(d.Status) + `</span></span></div>
+<div class="m"><span class="ml">Agent</span><span class="mv">` + d.AgentName + `</span></div>
+<div class="m"><span class="ml">Args</span><span class="mv" style="font-family:monospace;font-size:12px">` + d.Args + `</span></div>
+<div class="m"><span class="ml">Started</span><span class="mv">` + d.StartedAt + `</span></div>
+<div class="m"><span class="ml">Finished</span><span class="mv">` + d.FinishedAt + `</span></div>
+<div class="m"><span class="ml">Duration</span><span class="mv">` + d.Duration + `</span></div>
+<div class="m"><span class="ml">Lines</span><span class="mv">` + fmt.Sprintf("%d", len(d.Lines)) + `</span></div>
+</div>
+<div class="out">` + outputHTML.String() + `</div>
+</body></html>`
+}

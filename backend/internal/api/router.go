@@ -10,7 +10,6 @@ import (
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
-	"github.com/forensichub/backend/internal/wpscan"
 	"github.com/forensichub/backend/internal/ws"
 )
 
@@ -23,7 +22,6 @@ func NewRouter(
 	store *storage.LocalStorage,
 	rdb *redis.Client,
 	cfg *config.Config,
-	wpscanPool *wpscan.Pool,
 	enrich *threatintel.EnrichClient,
 ) *gin.Engine {
 	router := gin.New()
@@ -52,7 +50,6 @@ func NewRouter(
 		c.Set("nvdAPIKey", cfg.NVDAPIKey)
 		c.Set("githubToken", cfg.GitHubToken)
 		c.Set("aesEncryptionKey", cfg.AESEncryptionKey)
-		c.Set("wpscanPool", wpscanPool)
 		c.Set("config", cfg)
 		if cfg.PublicURL != "" {
 			c.Set("serverURL", cfg.PublicURL)
@@ -106,10 +103,15 @@ func NewRouter(
 		protected.GET("/jobs/:id", handlers.GetJob)
 		protected.DELETE("/jobs/:id", handlers.DeleteJob)
 		protected.GET("/jobs/:id/output", handlers.StreamJobOutput)
+		protected.GET("/jobs/:id/report", handlers.GetJobReport)
 		protected.POST("/jobs/:id/run", handlers.RunJob)
 		protected.POST("/jobs/:id/stop", handlers.StopJob)
 		protected.GET("/jobs/:id/artifact/download", handlers.DownloadArtifact)
 		protected.GET("/jobs/:id/artifact/content", handlers.GetArtifactContent)
+
+		// Offline Bundles
+		protected.GET("/offline-bundles", handlers.ListOfflineBundles)
+		protected.POST("/offline-bundles/generate", handlers.GenerateOfflineBundle)
 
 		// Hunting Scenarios
 		protected.GET("/hunting/scenarios", handlers.ListScenarios)
