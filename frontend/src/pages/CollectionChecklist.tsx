@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   CheckSquare, Square, ChevronDown, ChevronRight, Play,
   RotateCcw, Download, AlertTriangle, Terminal, Loader2,
@@ -10,6 +10,12 @@ import { agentsApi, Agent } from '@/api/agents'
 import { checklistApi, ChecklistBatch } from '@/api/checklist'
 import { toolsApi, Tool } from '@/api/tools'
 import { jobsApi } from '@/api/jobs'
+import { casesApi, Case } from '@/api/cases'
+import {
+  COMPLIANCE_SECTIONS, COMPLIANCE_FRAMEWORKS, type Framework,
+} from '@/data/complianceChecklist'
+import { PLAYBOOK_CHECKLISTS } from '@/data/playbookChecklists'
+import { PLAYBOOKS } from '@/data/playbooks'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +30,11 @@ interface ChecklistItem {
   commands: string[]
   priority: Priority
   executable: boolean
+  // Compliance-only metadata (present on Compliance Audit profile items).
+  frameworks?: Framework[]
+  control?: string
+  purpose?: string         // what the check is for / why it matters
+  suggestedTools?: string[] // external tools for deeper / more accurate results
 }
 
 interface ChecklistSection {
@@ -43,82 +54,114 @@ const PHASE1_WIN: ChecklistItem[] = [
   // 1.1 System Information
   { id:'p1w-1.1-1', subsection:'1.1', subsectionLabel:'System Information', priority:'critical', executable:true,
     label:'Thu thập thông tin hệ thống (OS version, patch level, hostname)',
+    purpose:'Xác định chính xác môi trường HĐH để đối chiếu các lỗ hổng (CVE) có khả năng đã bị khai thác.',
+    suggestedTools:['systeminfo', 'winver'],
     commands:['systeminfo > systeminfo.txt','hostname >> systeminfo.txt','whoami /all >> systeminfo.txt'] },
   { id:'p1w-1.1-2', subsection:'1.1', subsectionLabel:'System Information', priority:'critical', executable:true,
     label:'Ghi lại system time + tính time offset so với UTC',
+    purpose:'Tạo mốc thời gian chuẩn (Timeline) để đồng bộ và phân tích log từ nhiều thiết bị/hệ thống khác nhau.',
+    suggestedTools:['w32tm'],
     commands:['date /t && time /t','powershell -c "Get-Date -Format \'yyyy-MM-dd HH:mm:ss zzz\'"','w32tm /query /status 2>NUL','w32tm /query /configuration 2>NUL'] },
   { id:'p1w-1.1-3', subsection:'1.1', subsectionLabel:'System Information', priority:'medium', executable:true,
     label:'Ghi lại uptime hệ thống',
+    purpose:'Kiểm tra xem hệ thống đã bị khởi động lại gần đây hay chưa (kẻ tấn công có thể reboot để xóa dấu vết trên RAM).',
     commands:['net statistics workstation | findstr "since"'] },
   { id:'p1w-1.1-4', subsection:'1.1', subsectionLabel:'System Information', priority:'medium', executable:true,
     label:'Thu thập environment variables',
+    purpose:'Phát hiện các biến môi trường bất thường được dùng để cấu hình mã độc hoặc backdoor (VD: LD_PRELOAD trên Linux, hay các biến lạ trên Windows).',
     commands:['set > env_vars.txt'] },
 
   // 1.2 Network State
   { id:'p1w-1.2-1', subsection:'1.2', subsectionLabel:'Network State', priority:'critical', executable:true,
     label:'Tất cả kết nối mạng đang hoạt động (kèm PID + executable)',
+    purpose:'Tìm kiếm các kết nối C2 (Command & Control) lạ, xác định tiến trình nào đang mở port hoặc gọi ra ngoài.',
+    suggestedTools:['TCPView', 'ProcessHacker'],
     commands:['netstat -anob > netstat.txt'] },
   { id:'p1w-1.2-2', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'ARP cache (phát hiện lateral movement nội bộ)',
+    purpose:'Khôi phục các kết nối mạng nội bộ trong LAN gần đây, giúp phát hiện hành vi Lateral Movement.',
     commands:['arp -a > arp_cache.txt'] },
   { id:'p1w-1.2-3', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'Cấu hình network interfaces',
+    purpose:'Ghi nhận địa chỉ IP, MAC hiện tại của máy nạn nhân và kiểm tra xem có network interface ẩn nào không.',
     commands:['ipconfig /all > ipconfig.txt'] },
   { id:'p1w-1.2-4', subsection:'1.2', subsectionLabel:'Network State', priority:'medium', executable:true,
     label:'Routing table',
+    purpose:'Phát hiện xem kẻ tấn công có thêm route mới để định tuyến traffic qua proxy hoặc VPN nội bộ hay không.',
     commands:['route print > route.txt'] },
   { id:'p1w-1.2-5', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'DNS cache (phát hiện C2 domains đã resolve)',
+    purpose:'Phục hồi danh sách các domain đã phân giải, kể cả những domain mã độc chưa bị xoá khỏi cache.',
+    suggestedTools:['ipconfig'],
     commands:['ipconfig /displaydns > dns_cache.txt'] },
   { id:'p1w-1.2-6', subsection:'1.2', subsectionLabel:'Network State', priority:'medium', executable:true,
     label:'Network shares đang mount',
+    purpose:'Phát hiện các ổ đĩa mạng chia sẻ có thể đã bị lây nhiễm hoặc dùng để sao chép dữ liệu ra ngoài (Data Exfiltration).',
     commands:['net use > net_shares.txt','net share >> net_shares.txt'] },
   { id:'p1w-1.2-7', subsection:'1.2', subsectionLabel:'Network State', priority:'medium', executable:true,
     label:'WiFi profiles đã lưu (có thể chứa credentials)',
+    purpose:'Tìm các mạng WiFi đã lưu, có thể bị attacker xuất (export) để lấy mật khẩu WiFi dạng clear-text.',
     commands:['netsh wlan show profiles > wifi_profiles.txt'] },
   { id:'p1w-1.2-8', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'Windows Firewall logs',
+    purpose:'Phân tích các hành vi block/allow traffic bất thường, kiểm tra cấu hình tường lửa hiện tại.',
     commands:['mkdir evidence 2>NUL','copy C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log evidence\\ 2>NUL','netsh advfirewall show allprofiles state'] },
 
   // 1.3 Running Processes
   { id:'p1w-1.3-1', subsection:'1.3', subsectionLabel:'Running Processes', priority:'critical', executable:true,
     label:'Danh sách processes kèm command line đầy đủ',
+    purpose:'Kiểm tra toàn bộ tiến trình đang chạy và câu lệnh khởi tạo chúng để phát hiện các tham số thực thi mã độc.',
+    suggestedTools:['ProcessExplorer', 'ProcessHacker'],
     commands:['tasklist /v /fo csv','powershell -c "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath | ConvertTo-Csv -NoTypeInformation"'] },
   { id:'p1w-1.3-2', subsection:'1.3', subsectionLabel:'Running Processes', priority:'high', executable:true,
     label:'DLLs được load bởi từng process (tìm DLL injection)',
+    purpose:'Phát hiện kĩ thuật DLL Injection, Sideloading bằng cách xem các process hợp lệ có load thư viện lạ nào không.',
+    suggestedTools:['ListDLLs'],
     commands:['tasklist /m > dlls_loaded.txt'] },
   { id:'p1w-1.3-3', subsection:'1.3', subsectionLabel:'Running Processes', priority:'high', executable:true,
     label:'Open file handles của mỗi process',
+    purpose:'Xác định process mã độc đang khóa (lock) file nào, hoặc đang truy cập vào tập tin hệ thống nào.',
+    suggestedTools:['Handle'],
     commands:['handle.exe -a 2>NUL','powershell -c "Get-Process | Select-Object Id,Name,HandleCount,@{N=\'Path\';E={try{$_.MainModule.FileName}catch{\'\'}}} | Sort-Object HandleCount -Descending | Format-Table -AutoSize"'] },
   { id:'p1w-1.3-4', subsection:'1.3', subsectionLabel:'Running Processes', priority:'high', executable:true,
     label:'Loaded drivers (tìm rootkit kernel-mode)',
+    purpose:'Liệt kê các trình điều khiển (drivers) hiện tại để phát hiện kernel rootkit mã hoá tiến trình.',
     commands:['driverquery /fo csv /v > drivers.csv'] },
 
   // 1.4 Users & Sessions
   { id:'p1w-1.4-1', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'critical', executable:true,
     label:'Users đang đăng nhập và active sessions',
+    purpose:'Phát hiện xem hacker có đang remote hay dùng chung phiên (session) hiện tại hay không.',
     commands:['query user > sessions.txt','query session >> sessions.txt'] },
   { id:'p1w-1.4-2', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'high', executable:true,
     label:'Danh sách tất cả local accounts',
+    purpose:'Soát xét các tài khoản cục bộ để tìm xem có tài khoản nào mới bị tạo lén lút hay không.',
     commands:['net user','powershell -c "Get-LocalUser | Select-Object Name,SID,Enabled,LastLogon,Description | Format-Table -AutoSize"'] },
   { id:'p1w-1.4-3', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'high', executable:true,
     label:'Danh sách local groups (đặc biệt Administrators)',
+    purpose:'Phát hiện hành vi gán quyền leo thang (đưa tài khoản vào group Administrators).',
     commands:['net localgroup Administrators > admins.txt','net localgroup > all_groups.txt'] },
   { id:'p1w-1.4-4', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'medium', executable:true,
     label:'Clipboard content (có thể chứa credentials)',
+    purpose:'Bắt giữ nội dung clipboard hiện tại vì nó có thể chứa lệnh mã độc hoặc mật khẩu người dùng vừa copy.',
     commands:['powershell -c "Get-Clipboard" > clipboard.txt'] },
 
   // 1.5 Scheduled Tasks & Services
   { id:'p1w-1.5-1', subsection:'1.5', subsectionLabel:'Scheduled Tasks & Services', priority:'critical', executable:true,
     label:'Tất cả Scheduled Tasks (tìm persistence)',
+    purpose:'Các Scheduled Tasks thường bị dùng làm Persistence để mã độc tự khởi chạy định kỳ hoặc khi khởi động.',
+    suggestedTools:['Autoruns'],
     commands:['schtasks /query /fo csv /v > schtasks.csv'] },
   { id:'p1w-1.5-2', subsection:'1.5', subsectionLabel:'Scheduled Tasks & Services', priority:'critical', executable:true,
     label:'Tất cả services và trạng thái hiện tại',
+    purpose:'Tìm các Windows Service độc hại được thiết lập để tự động chạy ẩn dưới nền (Background service backdoor).',
     commands:['sc query type= all state= all','powershell -c "Get-Service | Select-Object Name,DisplayName,Status,StartType | Sort-Object Status | Format-Table -AutoSize"','powershell -c "Get-CimInstance Win32_Service | Select-Object Name,PathName,StartMode,State | ConvertTo-Csv -NoTypeInformation"'] },
 
   // 1.6 Persistence / Autorun
   { id:'p1w-1.6-1', subsection:'1.6', subsectionLabel:'Persistence / Autorun', priority:'critical', executable:true,
     label:'Registry Run keys (HKLM & HKCU)',
+    purpose:'Thu thập thông tin khởi chạy tự động của Windows nằm trong Registry để phát hiện phần mềm độc hại.',
+    suggestedTools:['RegEdit', 'Autoruns'],
     commands:[
       'reg query HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run > run_keys.txt',
       'reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run >> run_keys.txt',
@@ -127,49 +170,70 @@ const PHASE1_WIN: ChecklistItem[] = [
     ]},
   { id:'p1w-1.6-2', subsection:'1.6', subsectionLabel:'Persistence / Autorun', priority:'critical', executable:true,
     label:'Chạy Autoruns — tổng hợp tất cả persistence points',
+    purpose:'Sử dụng AutorunsC để kết xuất một file tổng hợp tất cả các kịch bản khởi động (Persistence) trên máy.',
+    suggestedTools:['AutorunsC'],
     commands:['autorunsc.exe -a * -c -h -s > autoruns.csv'] },
 
   // 1.7 Windows Event Logs
   { id:'p1w-1.7-1', subsection:'1.7', subsectionLabel:'Windows Event Logs', priority:'critical', executable:true,
     label:'Security.evtx — logon, process creation, account management',
+    purpose:'Dấu vết đăng nhập, thay đổi phân quyền và hành vi người dùng cực kỳ quan trọng.',
+    suggestedTools:['EventViewer', 'LogParser'],
     commands:['mkdir evidence 2>NUL','wevtutil epl Security evidence\\Security.evtx'] },
   { id:'p1w-1.7-2', subsection:'1.7', subsectionLabel:'Windows Event Logs', priority:'critical', executable:true,
     label:'System.evtx — service install, boot/shutdown',
+    purpose:'Ghi lại các tác vụ cài đặt Services mới, các lần sập nguồn và khởi động.',
+    suggestedTools:['EventViewer'],
     commands:['mkdir evidence 2>NUL','wevtutil epl System evidence\\System.evtx'] },
   { id:'p1w-1.7-3', subsection:'1.7', subsectionLabel:'Windows Event Logs', priority:'critical', executable:true,
     label:'PowerShell/Operational.evtx — script block logging',
+    purpose:'Theo dõi chi tiết các đoạn mã script PowerShell đã thực thi (kể cả obfuscated).',
     commands:['mkdir evidence 2>NUL','wevtutil epl "Microsoft-Windows-PowerShell/Operational" evidence\\PS_Operational.evtx'] },
   { id:'p1w-1.7-4', subsection:'1.7', subsectionLabel:'Windows Event Logs', priority:'high', executable:true,
     label:'TaskScheduler/Operational.evtx',
+    purpose:'Theo dõi lịch sử chạy của các Scheduled Tasks (xác minh thời điểm thực thi cron job).',
     commands:['mkdir evidence 2>NUL','wevtutil epl "Microsoft-Windows-TaskScheduler/Operational" evidence\\TaskSched.evtx'] },
   { id:'p1w-1.7-5', subsection:'1.7', subsectionLabel:'Windows Event Logs', priority:'high', executable:true,
     label:'Sysmon/Operational.evtx (nếu Sysmon đang chạy)',
+    purpose:'Sysmon là nguồn log chi tiết nhất về process, file creation và network connection nếu được cài đặt.',
+    suggestedTools:['Sysmon'],
     commands:['mkdir evidence 2>NUL','wevtutil epl "Microsoft-Windows-Sysmon/Operational" evidence\\Sysmon.evtx 2>NUL || echo Sysmon not installed - skipping'] },
   { id:'p1w-1.7-6', subsection:'1.7', subsectionLabel:'Windows Event Logs', priority:'high', executable:true,
     label:'Application.evtx + copy toàn bộ thư mục logs',
+    purpose:'Thu thập thông tin crash log, application error để rà soát hành vi tấn công qua ứng dụng.',
     commands:['mkdir evidence 2>NUL','wevtutil epl Application evidence\\Application.evtx','xcopy /E /I /Y C:\\Windows\\System32\\winevt\\Logs\\ evidence\\evtx_all\\'] },
 
   // 1.8 User Artifacts & Activity
   { id:'p1w-1.8-1', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'critical', executable:true,
     label:'PowerShell command history',
+    purpose:'Thu thập tập tin lịch sử lệnh PowerShell của người dùng để tìm đoạn script độc.',
     commands:['mkdir evidence 2>NUL','copy "%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt" evidence\\ps_history.txt 2>NUL','powershell -c "Get-Content (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue | Select-Object -Last 200"'] },
   { id:'p1w-1.8-2', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'high', executable:true,
     label:'Prefetch files (chứng minh chương trình đã từng chạy)',
+    purpose:'Prefetch giúp xác định ứng dụng có chạy hay chưa, chạy bao nhiêu lần, path của ứng dụng.',
+    suggestedTools:['PECmd'],
     commands:['mkdir evidence 2>NUL','mkdir evidence\\prefetch 2>NUL','xcopy /Y C:\\Windows\\Prefetch\\*.pf evidence\\prefetch\\ 2>NUL || echo Prefetch disabled or access denied'] },
   { id:'p1w-1.8-3', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'medium', executable:true,
     label:'Recent files & Jump Lists',
+    purpose:'Xác định các tệp tài liệu, thư mục vừa được truy cập hoặc chỉnh sửa (rất tốt khi điều tra Data Exfiltration).',
     commands:['mkdir evidence 2>NUL','mkdir evidence\\recent 2>NUL','xcopy /E /I /Y "C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\" evidence\\recent\\ 2>NUL'] },
   { id:'p1w-1.8-4', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'high', executable:true,
     label:'Browser history — Chrome',
+    purpose:'Lịch sử trình duyệt, có thể chứa dấu vết tải file mã độc từ các URL độc hại.',
+    suggestedTools:['BrowsingHistoryView'],
     commands:['mkdir evidence 2>NUL','mkdir evidence\\chrome 2>NUL','xcopy /E /I /Y "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\" evidence\\chrome\\ 2>NUL || echo Chrome not found'] },
   { id:'p1w-1.8-5', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'high', executable:true,
     label:'Browser history — Firefox',
+    purpose:'Lịch sử trình duyệt web Firefox để phát hiện malware download path.',
+    suggestedTools:['BrowsingHistoryView'],
     commands:['mkdir evidence 2>NUL','mkdir evidence\\firefox 2>NUL','xcopy /E /I /Y "C:\\Users\\*\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\" evidence\\firefox\\ 2>NUL || echo Firefox not found'] },
   { id:'p1w-1.8-6', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'high', executable:true,
     label:'Tìm file mới tạo/modified trong khoảng thời gian sự cố',
+    purpose:'Rà quét tệp tin trên thư mục C:\\Users để tìm ransomware note, mã độc payload mới được tạo.',
     commands:['powershell -c "Get-ChildItem -Path C:\\Users -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-30)} | Select-Object FullName,LastWriteTime,Length | ConvertTo-Csv -NoTypeInformation"'] },
   { id:'p1w-1.8-7', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'critical', executable:true,
     label:'Kiểm tra thư mục temp/staging hay dùng bởi attacker',
+    purpose:'Kiểm tra các thư mục Temp, ProgramData là nơi mà attacker hay lợi dụng để đặt công cụ bypass UAC.',
     commands:['dir /a C:\\Windows\\Temp\\','dir /a C:\\Users\\Public\\','dir /a C:\\ProgramData\\','dir /a "%TEMP%"'] },
 ]
 
@@ -177,206 +241,282 @@ const PHASE1_LIN: ChecklistItem[] = [
   // 1.1
   { id:'p1l-1.1-1', subsection:'1.1', subsectionLabel:'System Information', priority:'critical', executable:true,
     label:'Thu thập thông tin hệ thống (kernel, distro, hostname)',
+    purpose:'Phân loại kernel và cấu trúc HĐH để xác định xem phiên bản này dính CVE nào (đặc biệt local root exploit).',
+    suggestedTools:['uname'],
     commands:['uname -a > systeminfo.txt','cat /etc/os-release >> systeminfo.txt','hostname >> systeminfo.txt','id && whoami'] },
   { id:'p1l-1.1-2', subsection:'1.1', subsectionLabel:'System Information', priority:'critical', executable:true,
     label:'Ghi lại system time + timezone + time offset so với UTC',
+    purpose:'Đồng bộ hoá Timeline phân tích với các thiết bị mạng khác như Firewall, IDS/IPS.',
     commands:['date > time_info.txt','timedatectl >> time_info.txt'] },
   { id:'p1l-1.1-3', subsection:'1.1', subsectionLabel:'System Information', priority:'medium', executable:true,
     label:'Ghi lại uptime hệ thống',
+    purpose:'Kiểm tra xem hệ thống đã khởi động được bao lâu, liệu attacker đã reboot máy hay chưa.',
     commands:['uptime > uptime.txt'] },
   { id:'p1l-1.1-4', subsection:'1.1', subsectionLabel:'System Information', priority:'medium', executable:true,
     label:'Thu thập environment variables',
+    purpose:'Phát hiện kĩ thuật chèn LD_PRELOAD hoặc các biến được dùng làm C2 config ẩn.',
     commands:["env > env_vars.txt","cat /proc/1/environ | tr '\\0' '\\n' >> env_vars.txt"] },
 
   // 1.2
   { id:'p1l-1.2-1', subsection:'1.2', subsectionLabel:'Network State', priority:'critical', executable:true,
     label:'Tất cả kết nối mạng đang hoạt động (kèm PID + process)',
+    purpose:'Dò tìm các kết nối Reverse Shell, Bind Shell hoặc C2 ẩn trong hệ thống.',
+    suggestedTools:['ss', 'netstat'],
     commands:['ss -antp > netstat.txt','netstat -antp >> netstat.txt 2>/dev/null'] },
   { id:'p1l-1.2-2', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'ARP cache (phát hiện lateral movement nội bộ)',
+    purpose:'Xác định các thiết bị nào trong cùng LAN đang có liên lạc để vẽ sơ đồ Lateral Movement.',
     commands:['arp -n > arp_cache.txt','ip neigh >> arp_cache.txt'] },
   { id:'p1l-1.2-3', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'Cấu hình network interfaces',
+    purpose:'Phát hiện các interface Promiscuous (bị chuyển sang chế độ Sniffing mạng nội bộ).',
     commands:['ip addr show > ip_config.txt','ifconfig -a >> ip_config.txt 2>/dev/null'] },
   { id:'p1l-1.2-4', subsection:'1.2', subsectionLabel:'Network State', priority:'medium', executable:true,
     label:'Routing table',
+    purpose:'Phát hiện hành vi điều hướng (Route) traffic qua tunnel của Hacker.',
     commands:['ip route show > route.txt','route -n >> route.txt 2>/dev/null'] },
   { id:'p1l-1.2-5', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'DNS config + hosts file',
+    purpose:'Kiểm tra xem attacker có chỉnh /etc/hosts để chuyển hướng DNS (DNS Hijacking) hay không.',
     commands:['cat /etc/resolv.conf > dns_config.txt','cat /etc/hosts >> dns_config.txt'] },
   { id:'p1l-1.2-6', subsection:'1.2', subsectionLabel:'Network State', priority:'medium', executable:true,
     label:'Network shares đang mount',
+    purpose:'Xác định các vùng lưu trữ NFS/SMB để kiểm tra khả năng lây lan ngang hàng.',
     commands:['mount > mounted.txt','cat /etc/fstab >> mounted.txt'] },
   { id:'p1l-1.2-7', subsection:'1.2', subsectionLabel:'Network State', priority:'high', executable:true,
     label:'Firewall rules hiện tại',
+    purpose:'Tìm xem hacker có thêm rules mở port cho backdoor hay không.',
     commands:['iptables -L -n -v > firewall_rules.txt','ip6tables -L -n -v >> firewall_rules.txt 2>/dev/null','ufw status verbose >> firewall_rules.txt 2>/dev/null'] },
 
   // 1.3
   { id:'p1l-1.3-1', subsection:'1.3', subsectionLabel:'Running Processes', priority:'critical', executable:true,
     label:'Process tree đầy đủ kèm parent-child relationship',
+    purpose:'Bắt được những process mẹ (Malware) đang điều khiển các tiến trình con giả mạo (ví dụ: sshd lạ, kworker ảo).',
+    suggestedTools:['ps', 'htop'],
     commands:['ps auxf > processes.txt','ps -eo pid,ppid,user,stat,cmd >> processes.txt'] },
   { id:'p1l-1.3-2', subsection:'1.3', subsectionLabel:'Running Processes', priority:'high', executable:true,
     label:'Symlinks của executables trong /proc (tìm fileless malware)',
+    purpose:'Kiểm tra xem mã nguồn thực thi của tiến trình (exe symlink trong /proc) có bị xoá khỏi ổ cứng nhưng vẫn chạy trên RAM không.',
     commands:['ls -la /proc/*/exe 2>/dev/null > proc_exe.txt'] },
   { id:'p1l-1.3-3', subsection:'1.3', subsectionLabel:'Running Processes', priority:'high', executable:true,
     label:'Open files & network connections của mỗi process',
+    purpose:'Sử dụng lsof để coi quá trình mở file, đọc tệp nhạy cảm (như /etc/shadow) trái phép.',
+    suggestedTools:['lsof'],
     commands:['lsof -n > open_files.txt','lsof -i >> open_files.txt'] },
   { id:'p1l-1.3-4', subsection:'1.3', subsectionLabel:'Running Processes', priority:'high', executable:true,
     label:'Kernel modules đang load (tìm rootkit)',
+    purpose:'Phát hiện LKM Rootkit ẩn (ví dụ: Diamorphine, Reptile) qua các module đang load trong kernel.',
     commands:['lsmod > lsmod.txt','cat /proc/modules >> lsmod.txt'] },
 
   // 1.4
   { id:'p1l-1.4-1', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'critical', executable:true,
     label:'Users đang đăng nhập và active sessions',
+    purpose:'Phát hiện hacker có đang truy cập qua SSH hoặc TTY vào lúc này không.',
     commands:['who > sessions.txt','w >> sessions.txt'] },
   { id:'p1l-1.4-2', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'high', executable:true,
     label:'Lịch sử đăng nhập gần đây',
+    purpose:'Kiểm tra những user nào đăng nhập thành công vào các thời điểm bất thường.',
+    suggestedTools:['last', 'lastlog'],
     commands:['last -50 > last_logins.txt','lastlog >> last_logins.txt'] },
   { id:'p1l-1.4-3', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'high', executable:true,
     label:'Danh sách tất cả user accounts',
+    purpose:'Tìm tài khoản mới được tạo ra hoặc tài khoản lạ có UID=0 (giống root).',
     commands:['cat /etc/passwd > local_users.txt','getent passwd >> local_users.txt'] },
   { id:'p1l-1.4-4', subsection:'1.4', subsectionLabel:'Users & Sessions', priority:'high', executable:true,
     label:'Danh sách groups (đặc biệt sudo/wheel)',
+    purpose:'Tìm xem có tài khoản thường nào bị đưa nhầm (cố ý) vào nhóm quyền Admin (sudo, wheel).',
     commands:["cat /etc/group > groups.txt","grep -E '^(sudo|wheel|adm)' /etc/group >> groups.txt"] },
 
   // 1.5
   { id:'p1l-1.5-1', subsection:'1.5', subsectionLabel:'Scheduled Tasks & Services', priority:'critical', executable:true,
     label:'Crontab của từng user và system-wide',
+    purpose:'Hacker thường dùng cron để tự tải và thực thi mã độc hoặc giữ Reverse Shell.',
     commands:['crontab -l > crontabs.txt 2>/dev/null','cat /etc/crontab >> crontabs.txt','ls -la /etc/cron.* >> crontabs.txt','cat /var/spool/cron/crontabs/* >> crontabs.txt 2>/dev/null'] },
   { id:'p1l-1.5-2', subsection:'1.5', subsectionLabel:'Scheduled Tasks & Services', priority:'critical', executable:true,
     label:'Tất cả systemd services và trạng thái',
+    purpose:'Kiểm tra các SystemD Unit/Service được tạo ra nhằm duy trì cửa hậu.',
     commands:['systemctl list-units --type=service > services.txt','systemctl list-unit-files --type=service >> services.txt'] },
 
   // 1.6
   { id:'p1l-1.6-1', subsection:'1.6', subsectionLabel:'Persistence', priority:'critical', executable:true,
     label:'Startup scripts của users và hệ thống',
+    purpose:'Phát hiện kịch bản khởi động ẩn, alias lạ (VD: alias sudo để chộp mật khẩu).',
     commands:['cat ~/.bashrc ~/.bash_profile ~/.profile > startup_scripts.txt 2>/dev/null','cat /etc/rc.local >> startup_scripts.txt 2>/dev/null','ls /etc/profile.d/ >> startup_scripts.txt'] },
   { id:'p1l-1.6-2', subsection:'1.6', subsectionLabel:'Persistence', priority:'critical', executable:true,
     label:'SSH authorized_keys của tất cả users (backdoor phổ biến)',
+    purpose:'Tìm kiếm Public Key của attacker bị cấy vào máy nạn nhân để duy trì SSH không cần password.',
     commands:['cat /root/.ssh/authorized_keys > ssh_keys.txt 2>/dev/null','find /home -name "authorized_keys" -exec cat {} \\; >> ssh_keys.txt 2>/dev/null'] },
   { id:'p1l-1.6-3', subsection:'1.6', subsectionLabel:'Persistence', priority:'high', executable:true,
     label:'LD_PRELOAD hijack check',
+    purpose:'Kĩ thuật giấu backdoor siêu mạnh trên Linux bằng cách ép toàn bộ ứng dụng phải load thư viện (.so) mã độc.',
     commands:['cat /etc/ld.so.preload > ldpreload.txt 2>/dev/null','echo $LD_PRELOAD >> ldpreload.txt'] },
   { id:'p1l-1.6-4', subsection:'1.6', subsectionLabel:'Persistence', priority:'high', executable:true,
     label:'SUID/SGID binaries bất thường',
+    purpose:'Phát hiện file bị gán cờ SUID trái phép, cho phép leo thang đặc quyền từ user thường lên root.',
     commands:['find / -perm -4000 -o -perm -2000 2>/dev/null > suid_sgid.txt'] },
 
   // 1.7
   { id:'p1l-1.7-1', subsection:'1.7', subsectionLabel:'System Logs', priority:'critical', executable:true,
     label:'Auth log — SSH, sudo, PAM authentication',
+    purpose:'Điều tra tấn công Brute-force SSH, hoặc theo dõi vết thay đổi quyền hệ thống.',
     commands:['mkdir -p evidence/logs','cp /var/log/auth.log* evidence/logs/ 2>/dev/null','cp /var/log/secure* evidence/logs/ 2>/dev/null'] },
   { id:'p1l-1.7-2', subsection:'1.7', subsectionLabel:'System Logs', priority:'high', executable:true,
     label:'Syslog / messages — general system events',
+    purpose:'Log toàn cục, quan sát mọi hoạt động phần cứng/phần mềm.',
     commands:['mkdir -p evidence/logs','cp /var/log/syslog* evidence/logs/ 2>/dev/null','cp /var/log/messages* evidence/logs/ 2>/dev/null'] },
   { id:'p1l-1.7-3', subsection:'1.7', subsectionLabel:'System Logs', priority:'high', executable:true,
     label:'Audit logs (nếu auditd đang chạy)',
+    purpose:'Nguồn thông tin chính xác nhất về các lời gọi hàm hệ thống (syscall) từ auditd.',
     commands:['mkdir -p evidence/logs','cp /var/log/audit/audit.log* evidence/logs/ 2>/dev/null','ausearch -i 2>/dev/null'] },
   { id:'p1l-1.7-4', subsection:'1.7', subsectionLabel:'System Logs', priority:'high', executable:true,
     label:'Web server logs — Apache / Nginx',
+    purpose:'Quan trọng để tìm vết khai thác qua Web (SQLi, Webshell, LFI/RFI).',
     commands:['mkdir -p evidence/logs/web','cp /var/log/apache2/* evidence/logs/web/ 2>/dev/null','cp /var/log/nginx/* evidence/logs/web/ 2>/dev/null'] },
   { id:'p1l-1.7-5', subsection:'1.7', subsectionLabel:'System Logs', priority:'high', executable:true,
     label:'Firewall logs (ufw / iptables)',
+    purpose:'Kiểm tra traffic đi/đến (Inbound/Outbound) xem có IP xấu truy cập port nào bị rớt hay không.',
     commands:['mkdir -p evidence/logs','cp /var/log/ufw.log* evidence/logs/ 2>/dev/null','cp /var/log/kern.log* evidence/logs/ 2>/dev/null'] },
   { id:'p1l-1.7-6', subsection:'1.7', subsectionLabel:'System Logs', priority:'high', executable:true,
     label:'Journald logs (systemd-based distros)',
+    purpose:'Lấy log hệ thống qua systemd-journald.',
     commands:['mkdir -p evidence/logs','journalctl --no-pager -n 5000 2>/dev/null','journalctl -u sshd --no-pager 2>/dev/null','journalctl -u apache2 -u nginx --no-pager 2>/dev/null'] },
 
   // 1.8
   { id:'p1l-1.8-1', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'critical', executable:true,
     label:'Bash history của tất cả users (flush buffer trước)',
+    purpose:'Lấy danh sách lệnh mà attacker đã gõ vào trong terminal.',
     commands:['history -a','mkdir -p evidence','cp /root/.bash_history evidence/bash_history_root.txt 2>/dev/null','find /home -name ".bash_history" -exec cp {} evidence/ \\; 2>/dev/null','find /home /root -name ".*_history" 2>/dev/null'] },
   { id:'p1l-1.8-2', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'high', executable:true,
     label:'Browser profiles — Chrome / Firefox',
+    purpose:'Tìm file tải về đáng ngờ, URL Phishing từ lịch sử web.',
     commands:['mkdir -p evidence/chrome evidence/firefox','cp -r ~/.config/google-chrome/Default/ evidence/chrome/ 2>/dev/null','cp -r ~/.mozilla/firefox/*.default*/ evidence/firefox/ 2>/dev/null','find /home -name "places.sqlite" -o -name "History" 2>/dev/null'] },
   { id:'p1l-1.8-3', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'high', executable:true,
     label:'Tìm file mới tạo/modified trong khoảng thời gian sự cố',
+    purpose:'Phát hiện công cụ, payload hoặc output rác bị bỏ lại.',
     commands:['find /home /var /tmp /opt /root /usr/local /srv -mtime -7 -type f 2>/dev/null'] },
   { id:'p1l-1.8-4', subsection:'1.8', subsectionLabel:'User Artifacts & Activity', priority:'critical', executable:true,
     label:'Kiểm tra thư mục staging hay dùng bởi attacker',
+    purpose:'Tìm mã nguồn backdoor, rootkit, hoặc file thực thi trong các thư mục ẩn danh /dev/shm hoặc /tmp.',
     commands:['ls -la /tmp/ /var/tmp/ /dev/shm/ /root/ 2>/dev/null > staging_dirs.txt'] },
 ]
 
 const PHASE2_WIN: ChecklistItem[] = [
   { id:'p2w-2.1-1', subsection:'2.1', subsectionLabel:'Memory (RAM) Dump', priority:'critical', executable:true,
     label:'Dump toàn bộ RAM (winpmem)',
+    purpose:'Bảo toàn trạng thái RAM chứa mã nguồn độc không nằm trên đĩa (Fileless malware), khoá giải mã mật khẩu.',
+    suggestedTools:['winpmem', 'DumpIt'],
     commands:['winpmem_mini.exe memdump.raw'] },
   { id:'p2w-2.1-2', subsection:'2.1', subsectionLabel:'Memory (RAM) Dump', priority:'critical', executable:true,
     label:'Verify hash RAM dump',
+    purpose:'Bảo đảm tính toàn vẹn (Integrity) của tập tin Memory Dump cho quá trình giám định pháp y chuẩn.',
+    suggestedTools:['certutil'],
     commands:['certutil -hashfile memdump.raw SHA256 > memdump.sha256'] },
   { id:'p2w-2.1-3', subsection:'2.1', subsectionLabel:'Memory (RAM) Dump', priority:'high', executable:true,
     label:'Thu thập pagefile (RAM overflow ra disk)',
+    purpose:'Tìm kiếm vùng nhớ tràn của RAM trên đĩa cứng chứa thông tin giá trị lịch sử chưa bị ghi đè.',
     commands:['mkdir evidence 2>NUL','esentutl /y C:\\pagefile.sys /vss /d evidence\\pagefile.sys 2>NUL || echo pagefile.sys is locked - requires VSS or FTK Imager'] },
   { id:'p2w-2.2-1', subsection:'2.2', subsectionLabel:'Disk Imaging', priority:'critical', executable:false,
     label:'Tạo full disk image bằng FTK Imager (.E01 với hash tự động)',
+    purpose:'Sao chép vật lý 1:1 đĩa cứng gốc để phục hồi dữ liệu bị xoá hoặc phân tích mà không can thiệp đĩa thật.',
+    suggestedTools:['FTK Imager'],
     commands:['FTK Imager → File → Create Disk Image → Source: Physical Drive → E01 format'] },
   { id:'p2w-2.2-2', subsection:'2.2', subsectionLabel:'Disk Imaging', priority:'critical', executable:true,
     label:'Verify MD5 + SHA256 sau khi imaging',
+    purpose:'Xác nhận tệp tin image đĩa và đĩa gốc khớp nhau hoàn toàn.',
     commands:['certutil -hashfile disk.E01 MD5','certutil -hashfile disk.E01 SHA256'] },
   { id:'p2w-2.3-1', subsection:'2.3', subsectionLabel:'Registry Hives', priority:'critical', executable:true,
     label:'SAM hive (local accounts + password hashes)',
+    purpose:'Giữ lại bảng băm mật khẩu NTLM để kiểm tra mật khẩu bị bẻ khoá hoặc pass-the-hash.',
+    suggestedTools:['RegEdit'],
     commands:['mkdir evidence 2>NUL','reg save HKLM\\SAM evidence\\SAM.hiv /Y'] },
   { id:'p2w-2.3-2', subsection:'2.3', subsectionLabel:'Registry Hives', priority:'critical', executable:true,
     label:'SYSTEM hive (boot config, services, Shimcache)',
+    purpose:'Kiểm tra kịch bản Boot của Windows và bộ đệm Shimcache quan trọng.',
     commands:['mkdir evidence 2>NUL','reg save HKLM\\SYSTEM evidence\\SYSTEM.hiv /Y'] },
   { id:'p2w-2.3-3', subsection:'2.3', subsectionLabel:'Registry Hives', priority:'high', executable:true,
     label:'SOFTWARE hive (installed programs, OS config)',
+    purpose:'Rà soát lịch sử cài đặt ứng dụng độc hại.',
     commands:['mkdir evidence 2>NUL','reg save HKLM\\SOFTWARE evidence\\SOFTWARE.hiv /Y'] },
   { id:'p2w-2.3-4', subsection:'2.3', subsectionLabel:'Registry Hives', priority:'high', executable:true,
     label:'NTUSER.DAT của từng user',
+    purpose:'Lưu trữ dữ liệu cấu hình riêng lẻ của mỗi user (Recent Docs, Run keys user).',
     commands:['mkdir evidence 2>NUL','mkdir evidence\\ntuser 2>NUL','copy "C:\\Users\\*\\NTUSER.DAT" evidence\\ntuser\\ 2>NUL','copy "C:\\Users\\*\\AppData\\Local\\Microsoft\\Windows\\UsrClass.dat" evidence\\ntuser\\ 2>NUL'] },
   { id:'p2w-2.4-1', subsection:'2.4', subsectionLabel:'NTFS Artifacts', priority:'high', executable:false,
     label:'$MFT — metadata của tất cả files kể cả đã xóa',
+    purpose:'Siêu dữ liệu cho phép phục dựng và xem mốc thời gian MAC (Modified, Accessed, Created) của mọi file.',
+    suggestedTools:['FTK Imager', 'MFTExplorer'],
     commands:['FTK Imager → Add Evidence Item → Logical Drive → Export Files → chọn $MFT'] },
   { id:'p2w-2.4-2', subsection:'2.4', subsectionLabel:'NTFS Artifacts', priority:'high', executable:true,
     label:'$UsnJrnl — file system change journal',
+    purpose:'Bằng chứng quan trọng ghi nhận ai đã tạo/xoá/đổi tên file nào trên hệ thống NTFS.',
+    suggestedTools:['fsutil'],
     commands:['fsutil usn readjournal C: csv > evidence\\usnjrnl.csv'] },
   { id:'p2w-2.4-3', subsection:'2.4', subsectionLabel:'NTFS Artifacts', priority:'high', executable:true,
     label:'Amcache.hve — application execution history',
+    purpose:'Khôi phục các tệp thực thi mã độc, đặc biệt ứng dụng mãnh liệt chỉ chạy một lần rồi xoá.',
     commands:['mkdir evidence 2>NUL','copy C:\\Windows\\AppCompat\\Programs\\Amcache.hve evidence\\ 2>NUL'] },
 ]
 
 const PHASE2_LIN: ChecklistItem[] = [
   { id:'p2l-2.1-1', subsection:'2.1', subsectionLabel:'Memory (RAM) Dump', priority:'critical', executable:true,
     label:'Dump RAM bằng LiME kernel module',
+    purpose:'Ghi xuất bộ nhớ RAM để tìm kiếm các backdoor ẩn mình ở Kernel hoặc các shellcode chạy ngang.',
+    suggestedTools:['LiME', 'Volatility'],
     commands:['sudo insmod lime.ko "path=/tmp/mem.lime format=lime"'] },
   { id:'p2l-2.1-2', subsection:'2.1', subsectionLabel:'Memory (RAM) Dump', priority:'critical', executable:true,
     label:'Verify hash RAM dump',
+    purpose:'Tạo giá trị băm chứng minh Memory Dump là nguyên bản, không bị chỉnh sửa giả lập.',
     commands:['sha256sum mem.lime > mem.lime.sha256'] },
   { id:'p2l-2.1-3', subsection:'2.1', subsectionLabel:'Memory (RAM) Dump', priority:'high', executable:true,
     label:'Thu thập swap partition',
+    purpose:'Thu thập thông tin cũ trên bộ nhớ đệm (Swap) có thể chưa bị xoá đi.',
     commands:['swapon -s','dd if=/dev/sda2 of=/tmp/swap.raw bs=4M conv=noerror,sync'] },
   { id:'p2l-2.2-1', subsection:'2.2', subsectionLabel:'Disk Imaging', priority:'critical', executable:true,
     label:'Full disk image với hash tích hợp (dcfldd)',
+    purpose:'Imaging toàn bộ disk an toàn (read-only) để đem về phòng Lab điều tra chuyên sâu phục hồi tệp bị xoá.',
+    suggestedTools:['dcfldd', 'dd'],
     commands:['sudo dcfldd if=/dev/sda of=/mnt/evidence/disk.img hash=sha256 hashlog=disk.img.sha256 bs=4M conv=noerror,sync'] },
   { id:'p2l-2.2-2', subsection:'2.2', subsectionLabel:'Disk Imaging', priority:'critical', executable:true,
     label:'Verify hash sau khi imaging',
+    purpose:'Đảm bảo quá trình xuất Disk Image không có bất kì tham số Bit nào sai lệch.',
     commands:['sha256sum /mnt/evidence/disk.img > /mnt/evidence/disk.img.sha256'] },
   { id:'p2l-2.3-1', subsection:'2.3', subsectionLabel:'Sensitive Files', priority:'critical', executable:true,
     label:'/etc/shadow — password hashes',
+    purpose:'Kiểm tra bảng băm để xem mật khẩu người dùng nào đã bị suy đoán (Cracked).',
     commands:['cp /etc/shadow evidence/shadow.txt 2>/dev/null'] },
   { id:'p2l-2.3-2', subsection:'2.3', subsectionLabel:'Sensitive Files', priority:'high', executable:true,
     label:'SSH private keys của tất cả users',
+    purpose:'Rà soát xem key nào bị lộ và phải thu hồi ngay lập tức để khoá đường vào của attacker.',
     commands:['find / -name "id_rsa" -o -name "id_ed25519" 2>/dev/null > ssh_keys_found.txt'] },
   { id:'p2l-2.3-3', subsection:'2.3', subsectionLabel:'Sensitive Files', priority:'high', executable:true,
     label:'Web shells trong web root',
+    purpose:'Quét toàn bộ thư mục web để tìm các file webshell PHP/JSP mới tạo lạ thường.',
+    suggestedTools:['find'],
     commands:['find /var/www /srv/www /usr/share/nginx -name "*.php" -newer /etc/passwd 2>/dev/null > new_php_files.txt'] },
 ]
 
 const PHASE3_ITEMS: ChecklistItem[] = [
   { id:'p3-1', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'critical', executable:false,
-    label:'Hash SHA256 TẤT CẢ file evidence sau khi thu thập', commands:[] },
+    label:'Hash SHA256 TẤT CẢ file evidence sau khi thu thập', 
+    purpose:'Đây là nguyên tắc sống còn số 1 để bằng chứng được chấp nhận tại Toà Án (Integrity verification).', commands:[] },
   { id:'p3-2', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'critical', executable:false,
-    label:'Ghi nhận Chain of Custody đầy đủ cho từng item', commands:[] },
+    label:'Ghi nhận Chain of Custody đầy đủ cho từng item', 
+    purpose:'Kê khai quy trình: Ai lấy, lấy khi nào, bàn giao cho ai, phân tích tại đâu (Ngăn chặn phá hoại bằng chứng).', commands:[] },
   { id:'p3-3', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'critical', executable:false,
-    label:'KHÔNG làm việc trực tiếp trên evidence gốc — luôn dùng bản copy', commands:[] },
+    label:'KHÔNG làm việc trực tiếp trên evidence gốc — luôn dùng bản copy', 
+    purpose:'Bảo đảm mẫu vật (original evidence) không bao giờ bị nhiễm bẩn hoặc sửa đổi trong lúc phân tích.', commands:[] },
   { id:'p3-4', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'critical', executable:false,
-    label:'Dùng write-blocker khi imaging disk vật lý', commands:[] },
+    label:'Dùng write-blocker khi imaging disk vật lý', 
+    purpose:'Ngăn hệ điều hành máy tính của nhà điều tra tự động ghi đè cache NTFS vào ổ đĩa tang vật.', commands:[] },
   { id:'p3-5', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'high', executable:false,
-    label:'Tạo ít nhất 2 bản backup của toàn bộ evidence (3-2-1 rule)', commands:[] },
+    label:'Tạo ít nhất 2 bản backup của toàn bộ evidence (3-2-1 rule)', 
+    purpose:'Tránh hỏng hóc hoặc mã hoá dữ liệu tang vật do Ransomware tái hoạt động trong quá trình xử lý.', commands:[] },
   { id:'p3-6', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'critical', executable:false,
-    label:'Verify hash sau khi chuyển evidence đến nơi lưu trữ', commands:[] },
+    label:'Verify hash sau khi chuyển evidence đến nơi lưu trữ', 
+    purpose:'Xác minh dữ liệu không thất thoát trong quá trình Network Transfer (SFTP/SMB) tới kho lạnh lưu trữ.', commands:[] },
   { id:'p3-7', subsection:'3.0', subsectionLabel:'Chain of Custody', priority:'critical', executable:false,
-    label:'Lưu trữ evidence tại nơi an toàn, kiểm soát truy cập', commands:[] },
+    label:'Lưu trữ evidence tại nơi an toàn, kiểm soát truy cập', 
+    purpose:'Khoá vật lý và quản trị phân quyền kho lưu trữ (Air-gapped) để chỉ chuyên gia mới được truy cập.', commands:[] },
 ]
 
 const SECTIONS: ChecklistSection[] = [
@@ -659,6 +799,10 @@ function ToolResultCard({ result }: { result: ToolResult }) {
 
 export default function CollectionChecklist() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  const playbookParam = queryParams.get('playbook')
+
   const {
     platform, setPlatform,
     selectedAgent, setSelectedAgent,
@@ -667,7 +811,6 @@ export default function CollectionChecklist() {
     tab, setTab,
     running, setRunning,
     caseID, setCaseID,
-    analyst, setAnalyst,
     itemStatus, setItemStatus,
     runIDs, setRunIDs,
     batchResults, setBatchResults,
@@ -681,6 +824,23 @@ export default function CollectionChecklist() {
   const [agents, setAgents] = useState<Agent[]>([])
   const queryClient = useQueryClient()
   const [tools, setTools] = useState<Tool[]>([])
+  const [cases, setCases] = useState<Case[]>([])
+
+  // Checklist profile: forensic evidence collection vs compliance audit readiness.
+  // Both use the same dispatch engine; only the item set + metadata differ.
+  const [profile, setProfile] = useState<string>(
+    () => localStorage.getItem('checklist-profile') || 'forensic'
+  )
+  const switchProfile = (p: string) => {
+    localStorage.setItem('checklist-profile', p)
+    setProfile(p)
+    if (playbookParam) {
+      navigate('/collection-checklist', { replace: true })
+    }
+  }
+  const [selectedFrameworks, setSelectedFrameworks] = useState<Framework[]>([])
+  const toggleFramework = (f: Framework) =>
+    setSelectedFrameworks((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f])
   
   const pollTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({})
 
@@ -689,6 +849,7 @@ export default function CollectionChecklist() {
   useEffect(() => {
     agentsApi.list().then(setAgents).catch(() => {})
     toolsApi.list().then(setTools).catch(() => {})
+    casesApi.list().then(setCases).catch(() => {})
   }, [])
 
   const { data: runs } = useQuery({
@@ -748,9 +909,27 @@ export default function CollectionChecklist() {
     }
   }, [])
 
-  const allItems = (platform === 'win'
-    ? [...PHASE1_WIN, ...PHASE2_WIN, ...PHASE3_ITEMS]
-    : [...PHASE1_LIN, ...PHASE2_LIN, ...PHASE3_ITEMS])
+  // Active sections depend on the selected profile or the playbook param. For compliance, apply the
+  // framework filter (show only checks mapped to the selected standards).
+  let baseSections: ChecklistSection[] = SECTIONS
+  const currentKey = playbookParam || profile
+  if (currentKey === 'compliance') {
+    baseSections = COMPLIANCE_SECTIONS as ChecklistSection[]
+  } else if (PLAYBOOK_CHECKLISTS[currentKey]) {
+    baseSections = PLAYBOOK_CHECKLISTS[currentKey] as unknown as ChecklistSection[]
+  }
+  
+  const activeSections: ChecklistSection[] = (currentKey === 'compliance' && selectedFrameworks.length > 0)
+    ? baseSections.map((s) => ({
+        ...s,
+        items: {
+          win: s.items.win.filter((it) => it.frameworks?.some((f) => selectedFrameworks.includes(f))),
+          linux: s.items.linux.filter((it) => it.frameworks?.some((f) => selectedFrameworks.includes(f))),
+        },
+      }))
+    : baseSections
+
+  const allItems = activeSections.flatMap((s) => s.items[platform === 'win' ? 'win' : 'linux'])
 
   const checkedItems = allItems.filter(it => checked.has(it.id))
   const executableChecked = checkedItems.filter(it => it.executable)
@@ -825,7 +1004,7 @@ export default function CollectionChecklist() {
         platform,
         label: item.label.slice(0, 60),
         case_id: caseID,
-        analyst,
+        analyst: '',
         batches: [{
           batch_key: item.subsection,
           batch_label: item.label.slice(0, 80),
@@ -867,7 +1046,7 @@ export default function CollectionChecklist() {
         platform,
         label: `Section ${groupKey}: ${groupLabel}`,
         case_id: caseID,
-        analyst,
+        analyst: '',
         batches: [{
           batch_key: groupKey,
           batch_label: groupLabel,
@@ -911,9 +1090,9 @@ export default function CollectionChecklist() {
       const result = await checklistApi.run({
         agent_id: selectedAgent,
         platform,
-        label: `Evidence Collection ${new Date().toISOString().slice(0, 10)}`,
+        label: `${currentKey === 'compliance' ? 'Compliance Audit' : PLAYBOOK_CHECKLISTS[currentKey] ? 'Playbook: ' + currentKey : 'Evidence Collection'} ${new Date().toISOString().slice(0, 10)}`,
         case_id: caseID,
-        analyst,
+        analyst: '',
         batches: batchGroups.map(g => ({
           batch_key: g.key,
           batch_label: g.label,
@@ -1023,9 +1202,8 @@ export default function CollectionChecklist() {
 
   function exportResults() {
     const lines: string[] = [
-      `# DFIR Evidence Collection Report`,
+      currentKey === 'compliance' ? `# Compliance Audit Report (ISO 27001 / SOC 2 / PCI-DSS / NIST)` : PLAYBOOK_CHECKLISTS[currentKey] ? `# Playbook: ${currentKey} Report` : `# DFIR Evidence Collection Report`,
       `Case ID : ${caseID || '(not set)'}`,
-      `Analyst : ${analyst || '(not set)'}`,
       `Platform: ${platform === 'win' ? 'Windows' : 'Linux'}`,
       `Date    : ${new Date().toISOString()}`,
       `Run IDs : ${runIDs.join(', ') || '—'}`,
@@ -1102,24 +1280,77 @@ export default function CollectionChecklist() {
       {/* ── Header ── */}
       <div className="px-6 py-4 border-b border-[#2a2f4a] flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-lg font-bold text-[#4f8ef7]">DFIR — Evidence Collection Checklist</h1>
-          <p className="text-xs text-[#5a6488] mt-0.5">Digital Forensics & Incident Response · Thu thập chứng cứ từ máy mục tiêu</p>
+          <h1 className="text-lg font-bold text-[#4f8ef7]">
+            {currentKey === 'compliance' ? 'Compliance Audit Checklist' : PLAYBOOK_CHECKLISTS[currentKey] ? `Playbook: ${PLAYBOOKS.find(p => p.id === currentKey)?.title || currentKey}` : 'DFIR — Evidence Collection Checklist'}
+          </h1>
+          <p className="text-xs text-[#5a6488] mt-0.5">
+            {currentKey === 'compliance'
+              ? 'Audit readiness hunting · ISO 27001 / SOC 2 / PCI-DSS / NIST'
+              : PLAYBOOK_CHECKLISTS[currentKey] ? `Automated evidence collection for ${PLAYBOOKS.find(p => p.id === currentKey)?.title || currentKey}` : 'Digital Forensics & Incident Response · Thu thập chứng cứ từ máy mục tiêu'}
+          </p>
+          {/* Profile switch */}
+          <div className="flex border border-[#2a2f4a] rounded-lg overflow-hidden mt-2 w-fit flex-wrap">
+            {([
+              { key: 'forensic', label: 'Evidence Collection' },
+              { key: 'compliance', label: 'Compliance Audit' },
+              ...PLAYBOOKS.filter(p => p.id !== 'compliance' && PLAYBOOK_CHECKLISTS[p.id]).map(p => ({
+                key: p.id,
+                label: `Playbook: ${p.title}`
+              }))
+            ]).map((p) => (
+              <button
+                key={p.key}
+                onClick={() => switchProfile(p.key)}
+                className={`text-[11px] font-semibold px-3 py-1 transition-colors ${
+                  currentKey === p.key ? 'bg-[#4f8ef7] text-white' : 'bg-[#1c2030] text-[#5a6488] hover:text-[#dde3f0]'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {/* Framework filter (compliance only) */}
+          {currentKey === 'compliance' && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#5a6488] mr-1">Standards:</span>
+              {COMPLIANCE_FRAMEWORKS.map((f) => {
+                const on = selectedFrameworks.includes(f)
+                return (
+                  <button
+                    key={f}
+                    onClick={() => toggleFramework(f)}
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                      on
+                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                        : 'bg-transparent text-[#5a6488] border-[#2a2f4a] hover:text-[#dde3f0]'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                )
+              })}
+              {selectedFrameworks.length > 0 && (
+                <button onClick={() => setSelectedFrameworks([])} className="text-[10px] text-[#5a6488] hover:text-red-400 ml-1">clear</button>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-3">
-          {[
-            { label: 'Case ID', value: caseID, set: setCaseID, placeholder: 'IR-2025-001' },
-            { label: 'Analyst', value: analyst, set: setAnalyst, placeholder: 'Họ tên' },
-          ].map(f => (
-            <div key={f.label} className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5a6488]">{f.label}</label>
-              <input
-                value={f.value}
-                onChange={e => f.set(e.target.value)}
-                placeholder={f.placeholder}
-                className="bg-[#1c2030] border border-[#2a2f4a] rounded-md text-[#dde3f0] text-xs px-2 py-1 w-36 focus:outline-none focus:border-[#4f8ef7]"
-              />
-            </div>
-          ))}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-widest text-[#5a6488]">Target Case</label>
+            <select
+              value={caseID}
+              onChange={e => setCaseID(e.target.value)}
+              className="bg-[#1c2030] border border-[#2a2f4a] rounded-md text-[#dde3f0] text-xs px-2 py-1.5 w-48 focus:outline-none focus:border-[#4f8ef7]"
+            >
+              <option value="">— Unassigned (No Case) —</option>
+              {cases.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -1227,7 +1458,7 @@ export default function CollectionChecklist() {
         {/* ─── CHECKLIST TAB ─────────────────────────────────────────── */}
         {tab === 'checklist' && (
           <div className="p-6 flex flex-col gap-4 max-w-4xl">
-            {SECTIONS.map(section => {
+            {activeSections.map(section => {
               const sectionItems = section.items[platform === 'win' ? 'win' : 'linux']
               const groups = groupBySubsection(sectionItems)
               const isCollapsed = collapsed[section.id]
@@ -1311,6 +1542,33 @@ export default function CollectionChecklist() {
                                     <div className={`text-sm ${isChecked ? 'line-through text-[#5a6488]' : 'text-[#dde3f0]'}`}>
                                       {item.label}
                                     </div>
+                                    {(item.control || item.frameworks) && (
+                                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                                        {item.frameworks?.map((f) => (
+                                          <span key={f} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                            {f}
+                                          </span>
+                                        ))}
+                                        {item.control && (
+                                          <span className="text-[10px] font-mono text-[#7d88b0]">{item.control}</span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {item.purpose && (
+                                      <p className="text-[11px] text-[#8a93b8] mt-1 leading-snug">
+                                        <span className="text-[#5a6488]">▸ Phục vụ: </span>{item.purpose}
+                                      </p>
+                                    )}
+                                    {item.suggestedTools && item.suggestedTools.length > 0 && (
+                                      <div className="flex items-center gap-1 flex-wrap mt-1">
+                                        <span className="text-[10px] text-[#5a6488]">🔧 Tool gợi ý:</span>
+                                        {item.suggestedTools.map((t) => (
+                                          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                            {t}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
                                     {item.commands.length > 0 && (
                                       <code className="mt-1.5 block text-[11px] font-mono text-[#8fa8d0] bg-[#0d0f18] border border-[#2a2f4a] rounded px-2.5 py-1.5 whitespace-pre-wrap break-all leading-relaxed">
                                         {item.commands.join('\n')}

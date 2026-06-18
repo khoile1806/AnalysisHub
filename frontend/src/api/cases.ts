@@ -51,8 +51,30 @@ export const casesApi = {
     return data.data
   },
 
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete<ApiResponse<void>>(`/cases/${id}`)
+  },
+
   getSummary: async (id: string): Promise<CaseSummaryResponse> => {
     const { data } = await apiClient.get<ApiResponse<{ case: Case; agents: Agent[]; deployments?: any[]; jobs?: any[]; checklist_runs?: any[] }>>(`/cases/${id}/summary`)
     return data.data
   },
+
+  importOfflineReport: async (id: string, file: File): Promise<ImportOfflineResult> => {
+    const form = new FormData()
+    form.append('file', file)
+    const { data } = await apiClient.post<ApiResponse<ImportOfflineResult>>(
+      `/cases/${id}/import-offline-report`, form,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    )
+    return data.data
+  },
+}
+
+export interface ImportOfflineResult {
+  agent_id: string
+  agent_name: string
+  imported_jobs: number
+  bundle_name: string
+  hostname: string
 }

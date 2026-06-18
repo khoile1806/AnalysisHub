@@ -15,6 +15,7 @@ type Agent struct {
 	OS          string     `                                                      json:"os"`
 	IPAddress   string     `                                                      json:"ip_address"`
 	Status      string     `gorm:"default:'offline'"                              json:"status"` // online | offline
+	Source      string     `gorm:"default:'online'"                               json:"source"` // online | offline-import
 	LastSeen    *time.Time `                                                      json:"last_seen"`
 	Description string     `                                                      json:"description"`
 

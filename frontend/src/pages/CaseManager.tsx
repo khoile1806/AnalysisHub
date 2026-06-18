@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, FolderOpen, Briefcase, Calendar, Pencil } from 'lucide-react'
+import { Plus, FolderOpen, Briefcase, Calendar, Pencil, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { casesApi, type Case } from '@/api/cases'
 import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
@@ -144,10 +144,54 @@ function EditCaseModal({ caseObj, onClose }: { caseObj: Case | null; onClose: ()
   )
 }
 
+function DeleteCaseModal({ caseObj, onClose }: { caseObj: Case | null; onClose: () => void }) {
+  const qc = useQueryClient()
+  const deleteMutation = useMutation({
+    mutationFn: () => casesApi.delete(caseObj!.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cases'] })
+      toast.success('Case deleted successfully')
+      onClose()
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  if (!caseObj) return null
+
+  return (
+    <Dialog open={!!caseObj} onOpenChange={(v) => { if (!v) onClose() }}>
+      <DialogContent className="max-w-md border-red-500/30">
+        <DialogHeader>
+          <DialogTitle className="text-red-400">Delete Case</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete case <strong>{caseObj.name}</strong>?
+            <br />
+            This action cannot be undone. It may fail if there are jobs or agents currently linked to it.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="mt-4">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={deleteMutation.isPending}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn-primary bg-red-500 hover:bg-red-600 focus:ring-red-500"
+            onClick={() => deleteMutation.mutate()}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? 'Deleting...' : 'Delete Case'}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function CaseManagerPage() {
   const navigate = useNavigate()
   const [newOpen, setNewOpen] = useState(false)
   const [editCase, setEditCase] = useState<Case | null>(null)
+  const [deleteCase, setDeleteCase] = useState<Case | null>(null)
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ['cases'],
@@ -200,6 +244,13 @@ export default function CaseManagerPage() {
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
+                  <button
+                    className="p-1 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded transition"
+                    title="Delete case"
+                    onClick={(e) => { e.stopPropagation(); setDeleteCase(c) }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
               <p className="text-xs text-gray-400 flex-1 line-clamp-2 mb-4">
@@ -218,6 +269,7 @@ export default function CaseManagerPage() {
 
       <NewCaseModal open={newOpen} onClose={() => setNewOpen(false)} />
       <EditCaseModal caseObj={editCase} onClose={() => setEditCase(null)} />
+      <DeleteCaseModal caseObj={deleteCase} onClose={() => setDeleteCase(null)} />
     </div>
   )
 }

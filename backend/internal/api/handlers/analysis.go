@@ -855,13 +855,16 @@ type offlineReport struct {
 	Arch        string `json:"arch"`
 	GeneratedAt string `json:"generated_at"`
 	Jobs        []struct {
-		ToolName    string  `json:"tool_name"`
-		Args        string  `json:"args"`
-		Status      string  `json:"status"`
-		DurationSec float64 `json:"duration_seconds"`
-		OutputLines int     `json:"output_lines"`
-		Output      string  `json:"output"`
-		Error       string  `json:"error"`
+		ToolName    string    `json:"tool_name"`
+		ToolID      string    `json:"tool_id"`
+		Args        string    `json:"args"`
+		Status      string    `json:"status"`
+		StartedAt   time.Time `json:"started_at"`
+		FinishedAt  time.Time `json:"finished_at"`
+		DurationSec float64   `json:"duration_seconds"`
+		OutputLines int       `json:"output_lines"`
+		Output      string    `json:"output"`
+		Error       string    `json:"error"`
 	} `json:"jobs"`
 	Summary struct {
 		TotalTools int `json:"total_tools"`

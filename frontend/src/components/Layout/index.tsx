@@ -13,21 +13,27 @@ import {
   LibraryBig,
   ArrowUp,
   Briefcase,
+  BookOpen,
   Menu,
   X,
   Crosshair,
   ClipboardList,
   BrainCircuit,
-  Settings2,
   FlaskConical,
   Activity,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
 import toast from 'react-hot-toast'
 import { useLocation } from 'react-router-dom'
 
+// Sidebar groups follow the DFIR investigation lifecycle top-to-bottom, so even
+// a new analyst can read it as a workflow: see overview → prepare endpoints &
+// tools → collect evidence → analyze → look up threat intel → check system.
+// (AI Providers config lives inside the AI Analysis page, not as its own item.)
 const NAV_GROUPS = [
   {
     label: 'Overview',
@@ -37,28 +43,38 @@ const NAV_GROUPS = [
     ]
   },
   {
-    label: 'Forensic & Hunting',
+    label: 'Endpoints & Tools',
     items: [
-      { to: '/agents',               icon: Server,        label: 'Agents' },
-      { to: '/tools',                icon: Wrench,        label: 'Tools' },
-      { to: '/offline-bundles',      icon: Package,       label: 'Offline Bundles' },
+      { to: '/agents',          icon: Server,  label: 'Agents' },
+      { to: '/tools',           icon: Wrench,  label: 'Tools' },
+      { to: '/offline-bundles', icon: Package, label: 'Offline Bundles' },
+    ]
+  },
+  {
+    label: 'Collection & Hunting',
+    items: [
       { to: '/hunting',              icon: Crosshair,     label: 'Scenario Hunting' },
-      { to: '/webshell-scanner',     icon: Shield,        label: 'Webshell Scanner' },
-      { to: '/collection-checklist', icon: ClipboardList, label: 'Evidence Checklist' },
-      { to: '/ai-analysis',          icon: BrainCircuit,  label: 'AI Analysis' },
-      { to: '/ai-providers',         icon: Settings2,     label: 'AI Providers' },
+      { to: '/collection-checklist', icon: ClipboardList, label: 'Evidence & Compliance' },
+      { to: '/playbooks',            icon: BookOpen,      label: 'Playbooks' },
     ]
   },
   {
-    label: 'Threat Intel',
+    label: 'Analysis',
     items: [
-      { to: '/cve',       icon: Bug,             label: 'Vulnerability Search' },
-      { to: '/cve-collection', icon: LibraryBig, label: 'Threat Intelligence' },
-      { to: '/opencti',   icon: ShieldAlert,     label: 'ELK Threat Hunting' },
+      { to: '/ai-analysis',      icon: BrainCircuit, label: 'AI Analysis' },
+      { to: '/webshell-scanner', icon: Shield,       label: 'Webshell Scanner' },
+      { to: '/opencti',          icon: ShieldAlert,  label: 'ELK Threat Hunting' },
     ]
   },
   {
-    label: 'Quality Assurance',
+    label: 'Threat Intelligence',
+    items: [
+      { to: '/cve',            icon: Bug,        label: 'Vulnerability Search' },
+      { to: '/cve-collection', icon: LibraryBig, label: 'Threat Intelligence' },
+    ]
+  },
+  {
+    label: 'System',
     items: [
       { to: '/system-health', icon: Activity,     label: 'System Health' },
       { to: '/test-cases',    icon: FlaskConical, label: 'Test Cases' },
@@ -77,7 +93,8 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'webshell-scanner': 'Webshell Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
-  'collection-checklist': 'Evidence Checklist',
+  'collection-checklist': 'Evidence & Compliance',
+  'playbooks': 'Playbooks',
   'ai-analysis': 'AI Analysis',
   'ai-providers': 'AI Providers',
   'test-cases':     'Test Cases',
@@ -115,7 +132,18 @@ export default function Layout() {
   const mainRef = useRef<HTMLElement>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  // Desktop-only collapse: shrink the sidebar to an icon rail. Persisted so the
+  // choice survives reloads. (On mobile the sidebar is a full drawer instead.)
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === '1')
   const location = useLocation()
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem('sidebar-collapsed', next ? '1' : '0')
+      return next
+    })
+  }
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -153,47 +181,61 @@ export default function Layout() {
       )}
 
       {/* Sidebar */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col w-64 shrink-0 bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 bg-gray-900 border-r border-gray-800 transform transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${collapsed ? 'w-64 md:w-[4.5rem]' : 'w-64'}`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-gray-800">
+        <div className={`flex items-center border-b border-gray-800 py-5 ${collapsed ? 'md:flex-col md:gap-3 md:px-0 px-5 justify-between md:justify-center' : 'px-5 justify-between'}`}>
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-500/10 border border-emerald-500/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-500/10 border border-emerald-500/30 shrink-0">
               <Terminal className="h-4 w-4 text-forensic-500" style={{ color: '#00ff41' }} />
             </div>
-            <div>
+            <div className={collapsed ? 'md:hidden' : ''}>
               <span className="font-mono font-bold text-sm text-forensic-500 tracking-wider" style={{ color: '#00ff41' }}>
                 ForensicHub
               </span>
               <div className="text-[10px] text-gray-500 font-mono tracking-widest">DFIR PLATFORM</div>
             </div>
           </div>
-          <button 
+          {/* Mobile close */}
+          <button
             className="md:hidden text-gray-400 hover:text-white"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X className="h-5 w-5" />
           </button>
+          {/* Desktop collapse toggle */}
+          <button
+            className="hidden md:flex items-center justify-center text-gray-500 hover:text-emerald-400 transition-colors"
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto custom-scrollbar">
+        <nav className={`flex-1 py-4 overflow-y-auto custom-scrollbar ${collapsed ? 'px-2 md:px-2' : 'px-3'}`}>
           {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="mb-6 last:mb-0">
-              <h3 className="px-3 mb-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+            <div key={group.label} className="mb-5 last:mb-0">
+              <h3 className={`px-3 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest ${collapsed ? 'md:hidden' : ''}`}>
                 {group.label}
               </h3>
+              {/* Divider replaces group label when collapsed */}
+              {collapsed && <div className="hidden md:block mx-2 mb-2 h-px bg-gray-800" />}
               <div className="space-y-0.5">
                 {group.items.map(({ to, icon: Icon, label }) => (
                   <NavLink
                     key={to}
                     to={to}
                     onClick={() => setIsMobileMenuOpen(false)}
+                    title={collapsed ? label : undefined}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 group ${
+                      `flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 group ${
+                        collapsed ? 'px-3 md:px-0 md:justify-center' : 'px-3'
+                      } ${
                         isActive
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                           : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
@@ -205,7 +247,7 @@ export default function Layout() {
                         <Icon
                           className={`h-4 w-4 shrink-0 ${isActive ? 'text-emerald-400' : 'text-gray-500 group-hover:text-gray-300'}`}
                         />
-                        {label}
+                        <span className={collapsed ? 'md:hidden' : ''}>{label}</span>
                       </>
                     )}
                   </NavLink>
@@ -216,22 +258,25 @@ export default function Layout() {
         </nav>
 
         {/* User info & logout */}
-        <div className="px-3 py-4 border-t border-gray-800 space-y-2">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+        <div className={`py-4 border-t border-gray-800 space-y-2 ${collapsed ? 'px-2 md:px-2' : 'px-3'}`}>
+          <div className={`flex items-center gap-3 py-2 ${collapsed ? 'px-3 md:px-0 md:justify-center' : 'px-3'}`}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0" title={collapsed ? (user?.email ?? 'analyst') : undefined}>
               <Shield className="h-4 w-4 text-emerald-400" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 ${collapsed ? 'md:hidden' : ''}`}>
               <div className="text-xs font-medium text-gray-200 truncate">{user?.email ?? 'analyst'}</div>
               <div className="text-[10px] text-gray-500 uppercase tracking-wider">{user?.role ?? 'analyst'}</div>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-red-900/20 transition-colors duration-150"
+            title={collapsed ? 'Sign out' : undefined}
+            className={`flex w-full items-center gap-3 py-2 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-red-900/20 transition-colors duration-150 ${
+              collapsed ? 'px-3 md:px-0 md:justify-center' : 'px-3'
+            }`}
           >
-            <LogOut className="h-4 w-4" />
-            Sign out
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className={collapsed ? 'md:hidden' : ''}>Sign out</span>
           </button>
         </div>
       </aside>

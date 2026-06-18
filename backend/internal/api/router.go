@@ -160,6 +160,7 @@ func NewRouter(
 		protected.GET("/elk/hunt/results", handlers.ListELKHuntResults)
 		protected.GET("/elk/hunt/results/:id", handlers.GetELKHuntResult)
 		protected.DELETE("/elk/hunt/results/:id", handlers.DeleteELKHuntResult)
+		protected.POST("/elk/hunt/results/:id/promote-timeline", handlers.NewTimelineHandler(db).PromoteELKResult)
 
 		// CVE Collection
 		protected.GET("/cve-collection", handlers.GetCVECollection)
@@ -177,7 +178,15 @@ func NewRouter(
 		protected.GET("/cases", casesHandler.ListCases)
 		protected.POST("/cases", casesHandler.CreateCase)
 		protected.PATCH("/cases/:id", casesHandler.UpdateCase)
+		protected.DELETE("/cases/:id", casesHandler.DeleteCase)
 		protected.GET("/cases/:id/summary", casesHandler.GetCaseSummary)
+		protected.POST("/cases/:id/import-offline-report", casesHandler.ImportOfflineReport)
+
+		// Attack Timeline
+		timelineHandler := handlers.NewTimelineHandler(db)
+		protected.GET("/cases/:id/timeline", timelineHandler.ListTimeline)
+		protected.POST("/cases/:id/timeline", timelineHandler.CreateTimelineEvent)
+		protected.DELETE("/timeline/:id", timelineHandler.DeleteTimelineEvent)
 
 		// Evidence Collection Checklist
 		protected.POST("/checklist/run", handlers.RunChecklist)
@@ -198,6 +207,15 @@ func NewRouter(
 		protected.GET("/ai/sessions/:id", aiHandler.GetSession)
 		protected.GET("/ai/sessions/:id/stream", aiHandler.StreamSession)
 		protected.DELETE("/ai/sessions/:id", aiHandler.DeleteSession)
+		protected.POST("/cases/:id/timeline/ai-extract", aiHandler.ExtractTimeline)
+		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
+
+		// Dashboard usecases — incident-type custom views
+		ucHandler := handlers.NewDashboardUsecaseHandler(db)
+		protected.GET("/dashboard/usecases", ucHandler.List)
+		protected.POST("/dashboard/usecases", ucHandler.Create)
+		protected.PUT("/dashboard/usecases/:id", ucHandler.Update)
+		protected.DELETE("/dashboard/usecases/:id", ucHandler.Delete)
 
 		// System — health check and usage statistics
 		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)

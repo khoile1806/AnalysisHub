@@ -117,6 +117,30 @@ func (h *CasesHandler) UpdateCase(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": caseObj})
 }
 
+// DeleteCase deletes a case by ID.
+// DELETE /api/v1/cases/:id
+func (h *CasesHandler) DeleteCase(c *gin.Context) {
+	caseID := c.Param("id")
+
+	var caseObj models.Case
+	if err := h.DB.First(&caseObj, "id = ?", caseID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "Case not found"})
+		return
+	}
+
+	if err := h.DB.Delete(&caseObj).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Cannot delete case. It might have linked resources."})
+		return
+	}
+
+	userID := c.MustGet("userID").(string)
+	if uid, err := uuid.Parse(userID); err == nil {
+		writeAudit(c, h.DB, &uid, nil, "delete", "case", "Deleted case "+caseObj.Name)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
 // GetCaseSummary returns a case with its agents, deployments, jobs, and checklist runs.
 // Deployments are fetched both via associated agents AND directly via case_id on the
 // deployment, so results from any deploy path are included.

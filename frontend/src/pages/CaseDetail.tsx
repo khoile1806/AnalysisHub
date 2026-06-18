@@ -7,8 +7,9 @@ import { generateOfflineBundle } from '@/api/offline_bundles'
 import {
   Briefcase, Activity, Server, ChevronRight, User, Wrench,
   ClipboardList, Lock, Unlock, Package, Monitor, Terminal,
-  Globe, CheckSquare, Square, Download, BrainCircuit,
+  Globe, CheckSquare, Square, Download, BrainCircuit, Crosshair,
 } from 'lucide-react'
+import AttackTimeline from '@/components/AttackTimeline'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { CategoryBadge, PlatformBadge } from '@/components/StatusBadge'
 import { formatBytes } from '@/lib/utils'
@@ -216,7 +217,7 @@ function OfflineBundleModal({
 }
 
 // ── CaseDetail page ────────────────────────────────────────────────────────
-type TabKey = 'timeline' | 'jobs' | 'offline'
+type TabKey = 'timeline' | 'attack' | 'jobs' | 'offline'
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -239,6 +240,15 @@ export default function CaseDetailPage() {
       qc.invalidateQueries({ queryKey: ['case-summary', id] })
       qc.invalidateQueries({ queryKey: ['cases'] })
       toast.success(`Case ${updated.status === 'open' ? 'reopened' : 'closed'}`)
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  const importMutation = useMutation({
+    mutationFn: (file: File) => casesApi.importOfflineReport(id!, file),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['case-summary', id] })
+      toast.success(`Imported ${res.imported_jobs} tool result(s) from ${res.hostname}`)
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   })
@@ -278,6 +288,7 @@ export default function CaseDetailPage() {
 
   const TABS: { key: TabKey; label: string; icon: typeof Activity }[] = [
     { key: 'timeline', label: 'Activity Timeline', icon: Activity },
+    { key: 'attack',   label: 'Attack Timeline',   icon: Crosshair },
     { key: 'jobs',     label: 'Hunting Results',   icon: ClipboardList },
     { key: 'offline',  label: 'Offline Bundle',    icon: Package },
   ]
@@ -362,7 +373,9 @@ export default function CaseDetailPage() {
                   tab === t.key
                     ? t.key === 'offline'
                       ? 'border-purple-500 text-purple-400'
-                      : 'border-emerald-500 text-emerald-400'
+                      : t.key === 'attack'
+                        ? 'border-rose-500 text-rose-400'
+                        : 'border-emerald-500 text-emerald-400'
                     : 'border-transparent text-gray-400 hover:text-gray-200'
                 }`}
               >
@@ -437,6 +450,11 @@ export default function CaseDetailPage() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Attack Timeline tab */}
+          {tab === 'attack' && (
+            <AttackTimeline caseId={caseObj.id} />
           )}
 
           {/* Hunting Results tab */}
@@ -561,6 +579,54 @@ export default function CaseDetailPage() {
                     <strong className="text-gray-200">AI Analysis</strong> for automated forensic review
                   </li>
                 </ol>
+              </div>
+
+              {/* Import offline report */}
+              <div className="card p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <Download className="w-4 h-4 text-emerald-400 rotate-180" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-200">Import Offline Report</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Upload <code className="bg-gray-800 px-1 rounded">report-*.json</code> — each tool result becomes a job in this case
+                    </p>
+                  </div>
+                </div>
+                <label
+                  className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-5 cursor-pointer transition ${
+                    importMutation.isPending
+                      ? 'border-emerald-500/40 bg-emerald-500/5 cursor-wait'
+                      : 'border-gray-700 hover:border-emerald-500/50 hover:bg-emerald-500/5'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    disabled={importMutation.isPending}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) importMutation.mutate(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  {importMutation.isPending ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin text-emerald-400" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span className="text-xs text-emerald-400">Importing…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5 text-gray-500 rotate-180" />
+                      <span className="text-xs text-gray-400">Drop <code className="bg-gray-800 px-1 rounded">report.json</code> here or click to browse</span>
+                    </>
+                  )}
+                </label>
               </div>
 
               {/* AI Analysis shortcut */}

@@ -91,6 +91,9 @@ COPY --from=agent-builder /agent/agent-offline-linux    /app/defaults/agent-offl
 # Copy internal data like cve_collection.json
 COPY --from=builder /build/data /app/data
 
+# Copy documentation for playbooks
+COPY ./docs /app/docs
+
 # Integrated Tools
 COPY --from=scanner-builder /app/defaults/webshell-scanner-linux.zip /app/defaults/webshell-scanner.zip
 

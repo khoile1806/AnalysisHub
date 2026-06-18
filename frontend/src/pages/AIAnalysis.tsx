@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
   BrainCircuit, Plus, Trash2, Upload,
   FileText, Server, ClipboardList, Search, Settings2,
-  Activity, Package,
+  Activity, Package, ArrowLeft,
 } from 'lucide-react'
+import AIProviderSettings from '@/pages/AIProviderSettings'
 import toast from 'react-hot-toast'
 import {
   analysisApi, elkResultsApi,
@@ -592,10 +593,10 @@ function SessionPanel({ session, onDeleted }: { session: AnalysisSession; onDele
 // Main Page
 // ──────────────────────────────────────────────────────────────
 export default function AIAnalysisPage() {
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [newOpen, setNewOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [view, setView] = useState<'sessions' | 'providers'>('sessions')
 
   // Support deep-link: /ai-analysis?source=job&id=<jobId>
   const preSourceType = (searchParams.get('source') as SessionSourceType | null) ?? undefined
@@ -633,7 +634,11 @@ export default function AIAnalysisPage() {
             AI Analysis
           </h1>
           <div className="flex items-center gap-1">
-            <button onClick={() => navigate('/ai-providers')} className="p-1.5 text-gray-500 hover:text-gray-300 rounded transition" title="AI Providers">
+            <button
+              onClick={() => setView((v) => (v === 'providers' ? 'sessions' : 'providers'))}
+              className={`p-1.5 rounded transition ${view === 'providers' ? 'text-emerald-400 bg-emerald-900/20' : 'text-gray-500 hover:text-gray-300'}`}
+              title="AI Providers (configuration)"
+            >
               <Settings2 className="h-4 w-4" />
             </button>
           </div>
@@ -679,8 +684,18 @@ export default function AIAnalysisPage() {
       </div>
 
       {/* Main panel */}
-      <div className="flex-1 min-w-0">
-        {activeSession ? (
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        {view === 'providers' ? (
+          <div>
+            <button
+              onClick={() => setView('sessions')}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-emerald-400 mb-4 transition"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to analysis
+            </button>
+            <AIProviderSettings />
+          </div>
+        ) : activeSession ? (
           <SessionPanel
             key={activeSession.id}
             session={activeSession}
@@ -693,9 +708,14 @@ export default function AIAnalysisPage() {
             <p className="text-sm text-gray-600 mt-2 max-w-sm">
               Analyze tool results, evidence checklists, ELK hunt results, or upload external files (Redline, Volatility output, etc.)
             </p>
-            <button className="btn-primary mt-5" onClick={() => setNewOpen(true)}>
-              <Plus className="h-4 w-4" /> New Analysis Session
-            </button>
+            <div className="flex items-center gap-2 mt-5">
+              <button className="btn-primary" onClick={() => setNewOpen(true)}>
+                <Plus className="h-4 w-4" /> New Analysis Session
+              </button>
+              <button className="btn-secondary" onClick={() => setView('providers')}>
+                <Settings2 className="h-4 w-4" /> Configure AI Providers
+              </button>
+            </div>
           </div>
         )}
       </div>
