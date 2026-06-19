@@ -3,6 +3,16 @@ import apiClient from './client'
 export type TimelineSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info'
 export type TimelineSource = 'manual' | 'elk' | 'ai' | 'job'
 
+// An enrichment attached to a timeline node: an existing/uploaded evidence file
+// (possibly an image) or an external link.
+export interface TimelineAttachment {
+  type: 'evidence' | 'link'
+  evidence_id?: string
+  url?: string
+  label?: string
+  is_image?: boolean
+}
+
 export interface TimelineEvent {
   id: string
   case_id: string
@@ -15,6 +25,7 @@ export interface TimelineEvent {
   severity: TimelineSeverity
   title: string
   detail?: string
+  attachments?: string // JSON array of TimelineAttachment
   created_by: string
   created_at: string
 }
@@ -27,6 +38,17 @@ export interface CreateTimelineEvent {
   severity?: TimelineSeverity
   title: string
   detail?: string
+  attachments?: string
+}
+
+export function parseAttachments(json?: string): TimelineAttachment[] {
+  if (!json) return []
+  try {
+    const a = JSON.parse(json)
+    return Array.isArray(a) ? a : []
+  } catch {
+    return []
+  }
 }
 
 interface ApiResponse<T> {
@@ -60,6 +82,11 @@ export const timelineApi = {
 
   create: async (caseId: string, payload: CreateTimelineEvent): Promise<TimelineEvent> => {
     const { data } = await apiClient.post<ApiResponse<TimelineEvent>>(`/cases/${caseId}/timeline`, payload)
+    return data.data
+  },
+
+  update: async (eventId: string, payload: Partial<CreateTimelineEvent>): Promise<TimelineEvent> => {
+    const { data } = await apiClient.patch<ApiResponse<TimelineEvent>>(`/timeline/${eventId}`, payload)
     return data.data
   },
 

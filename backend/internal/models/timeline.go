@@ -32,6 +32,12 @@ type TimelineEvent struct {
 	Title  string `gorm:"not null" json:"title"`
 	Detail string `gorm:"type:text" json:"detail,omitempty"`
 
+	// Attachments: JSON array of evidence files / images / links enriching the
+	// node. Element shape: { "type": "evidence"|"link", "evidence_id": "...",
+	// "url": "...", "label": "...", "is_image": true }.
+	Attachments string `gorm:"type:text" json:"attachments,omitempty"`
+
 	CreatedBy uuid.UUID `gorm:"type:uuid" json:"created_by"`
 	CreatedAt time.Time `                 json:"created_at"`
+	UpdatedAt time.Time `                 json:"updated_at"`
 }

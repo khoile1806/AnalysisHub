@@ -148,6 +148,61 @@ const COMPLIANCE_LIN: PlaybookChecklistItem[] = [
     commands: ['systemctl is-active auditd 2>/dev/null', 'auditctl -l 2>/dev/null | head', 'systemctl is-active rsyslog wazuh-agent filebeat 2>/dev/null'] }
 ]
 
+// ── Cryptojacking & Resource Hijacking ──────────────────────────────────────
+const CRYPTO_WIN: PlaybookChecklistItem[] = [
+  { id: 'cj-w1', subsection: '1', subsectionLabel: 'Identification', priority: 'critical', executable: true,
+    label: 'Tiến trình ngốn CPU', purpose: 'Phát hiện mã độc đào tiền ảo qua CPU usage', suggestedTools: ['Task Manager'], commands: ['powershell -c "Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 | Format-Table Id,Name,CPU,Path -AutoSize"'] },
+  { id: 'cj-w2', subsection: '2', subsectionLabel: 'Network', priority: 'critical', executable: true,
+    label: 'Kết nối mạng Mining Pool (Port 3333, 4444, 8080)', purpose: 'Xác định kết nối đến pool đào coin', commands: ['netstat -ano | findstr /i "3333 4444 8080 5555"'] },
+  { id: 'cj-w3', subsection: '3', subsectionLabel: 'Persistence', priority: 'high', executable: true,
+    label: 'Scheduled Tasks bất thường', purpose: 'Phát hiện script tự tải payload đào coin định kỳ', commands: ['schtasks /query /fo LIST /v | findstr /i "TaskName Task To Run"'] }
+]
+
+const CRYPTO_LIN: PlaybookChecklistItem[] = [
+  { id: 'cj-l1', subsection: '1', subsectionLabel: 'Identification', priority: 'critical', executable: true,
+    label: 'Tiến trình ngốn CPU', purpose: 'Phát hiện xmrig, kdevtmpfsi', commands: ['top -b -n 1 | head -n 20'] },
+  { id: 'cj-l2', subsection: '2', subsectionLabel: 'Network', priority: 'critical', executable: true,
+    label: 'Kết nối mạng Mining Pool', purpose: 'Xác định TCP outbound đến pool', commands: ['ss -antup 2>/dev/null | grep -E "3333|4444|8080|5555"'] },
+  { id: 'cj-l3', subsection: '3', subsectionLabel: 'Persistence', priority: 'critical', executable: true,
+    label: 'Crontab tải mã độc (curl/wget)', purpose: 'Xác định lệnh cron độc hại', commands: ['crontab -l 2>/dev/null', 'cat /etc/crontab'] }
+]
+
+// ── Data Exfiltration & Insider Threat ──────────────────────────────────────
+const EXFIL_WIN: PlaybookChecklistItem[] = [
+  { id: 'ex-w1', subsection: '1', subsectionLabel: 'Staging', priority: 'critical', executable: true,
+    label: 'Tìm file nén lớn (.zip, .rar)', purpose: 'Phát hiện thư mục gom dữ liệu staging', commands: ['powershell -c "Get-ChildItem -Path C:\\Users -Include *.zip,*.rar,*.7z -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.Length -gt 50MB} | Select-Object FullName, Length, LastWriteTime | Format-Table -AutoSize"'] },
+  { id: 'ex-w2', subsection: '2', subsectionLabel: 'USB History', priority: 'high', executable: true,
+    label: 'Lịch sử cắm USB (Registry)', purpose: 'Truy vết dữ liệu lấy ra qua USB', commands: ['reg query HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR'] },
+  { id: 'ex-w3', subsection: '3', subsectionLabel: 'Network', priority: 'high', executable: true,
+    label: 'Kết nối công cụ tải dữ liệu', purpose: 'Tìm kiếm rclone, curl, ftp', commands: ['powershell -c "Get-Process | Where-Object {$_.Name -match \'rclone|curl|ftp|winscp\'} | Select Id,Name,Path"'] }
+]
+
+const EXFIL_LIN: PlaybookChecklistItem[] = [
+  { id: 'ex-l1', subsection: '1', subsectionLabel: 'Staging', priority: 'critical', executable: true,
+    label: 'Tìm file nén ở thư mục tạm', purpose: 'Phát hiện tar, zip staging', commands: ['find /tmp /var/tmp /dev/shm -type f -name "*.tar*" -o -name "*.zip" 2>/dev/null'] },
+  { id: 'ex-l2', subsection: '2', subsectionLabel: 'Execution', priority: 'high', executable: true,
+    label: 'Lịch sử lệnh nén & truyền file', purpose: 'Phát hiện scp, rsync, tar trong bash history', commands: ['grep -E "tar|zip|scp|rsync|curl|wget" ~/.bash_history 2>/dev/null'] }
+]
+
+// ── Active Directory & Lateral Movement ─────────────────────────────────────
+const AD_WIN: PlaybookChecklistItem[] = [
+  { id: 'ad-w1', subsection: '1', subsectionLabel: 'Credential Dumping', priority: 'critical', executable: true,
+    label: 'Tiến trình lạ chạm vào lsass.exe', purpose: 'Phát hiện dump bộ nhớ lsass (Event ID 4656/4663)', commands: ['powershell -c "Get-WinEvent -FilterHashtable @{LogName=\'Security\';ID=4656,4663} -MaxEvents 50 -EA SilentlyContinue | Where-Object {$_.Message -match \'lsass.exe\'} | Select TimeCreated,Id,Message | Format-List"'] },
+  { id: 'ad-w2', subsection: '2', subsectionLabel: 'Logon Activity', priority: 'high', executable: true,
+    label: 'Đăng nhập mạng (Type 3)', purpose: 'Xác định dấu hiệu Lateral Movement/Pass-the-Hash', commands: ['powershell -c "Get-WinEvent -FilterHashtable @{LogName=\'Security\';ID=4624} -MaxEvents 50 -EA SilentlyContinue | Where-Object {$_.Properties[8].Value -eq 3} | Select TimeCreated,Id | Format-Table -AutoSize"'] },
+  { id: 'ad-w3', subsection: '3', subsectionLabel: 'Remote Execution', priority: 'critical', executable: true,
+    label: 'Dịch vụ PsExec sinh ra', purpose: 'Event ID 7045 PSEXESVC', commands: ['powershell -c "Get-WinEvent -FilterHashtable @{LogName=\'System\';ID=7045} -MaxEvents 20 -EA SilentlyContinue | Where-Object {$_.Message -match \'PSEXESVC\'} | Select TimeCreated,Message | Format-List"'] },
+  { id: 'ad-w4', subsection: '4', subsectionLabel: 'Privilege Escalation', priority: 'high', executable: true,
+    label: 'Quyền nhóm Administrators', purpose: 'Xác minh ai đang có quyền quản trị cục bộ', commands: ['net localgroup administrators'] }
+]
+
+const AD_LIN: PlaybookChecklistItem[] = [
+  { id: 'ad-l1', subsection: '1', subsectionLabel: 'Lateral Movement', priority: 'high', executable: true,
+    label: 'Lịch sử SSH Outbound', purpose: 'Phát hiện hacker SSH từ máy này sang máy khác', commands: ['grep "ssh " ~/.bash_history 2>/dev/null'] },
+  { id: 'ad-l2', subsection: '2', subsectionLabel: 'Keys', priority: 'critical', executable: true,
+    label: 'Authorized Keys & Known Hosts', purpose: 'Tìm khóa SSH lạ dùng để di chuyển ngang', commands: ['cat ~/.ssh/authorized_keys ~/.ssh/known_hosts 2>/dev/null'] }
+]
+
 export const PLAYBOOK_CHECKLISTS: Record<string, PlaybookChecklistSection[]> = {
   'ransomware': [
     { id: 'rw-sec1', phase: '1', label: 'Ransomware Response Checklist', items: { win: RANSOMWARE_WIN, linux: RANSOMWARE_LIN } }
@@ -177,5 +232,14 @@ export const PLAYBOOK_CHECKLISTS: Record<string, PlaybookChecklistSection[]> = {
   ],
   'compliance': [
     { id: 'cp-sec1', phase: '1', label: 'Compliance Audit Checklist', items: { win: COMPLIANCE_WIN, linux: COMPLIANCE_LIN } }
+  ],
+  'cryptojacking': [
+    { id: 'cj-sec1', phase: '1', label: 'Cryptojacking Response Checklist', items: { win: CRYPTO_WIN, linux: CRYPTO_LIN } }
+  ],
+  'data-exfiltration': [
+    { id: 'ex-sec1', phase: '1', label: 'Data Exfiltration Hunting Checklist', items: { win: EXFIL_WIN, linux: EXFIL_LIN } }
+  ],
+  'ad-lateral-movement': [
+    { id: 'ad-sec1', phase: '1', label: 'Lateral Movement (AD) Checklist', items: { win: AD_WIN, linux: AD_LIN } }
   ]
 }

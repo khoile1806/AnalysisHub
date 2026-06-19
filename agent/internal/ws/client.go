@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"io"
 	"log"
 	"mime/multipart"
@@ -45,6 +46,9 @@ type inboundMsg struct {
 	DownloadURL    string `json:"download_url,omitempty"`
 	Args           string `json:"args,omitempty"`
 	ExecutablePath string `json:"executable_path,omitempty"`
+	CPULimit       int    `json:"cpu_limit,omitempty"`
+	RAMLimit       int    `json:"ram_limit,omitempty"`
+	Priority       string `json:"priority,omitempty"`
 
 	// Terminal (interactive PTY) fields.
 	SessionID string `json:"session_id,omitempty"`
@@ -303,9 +307,11 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 
 		var msg inboundMsg
 		if err := json.Unmarshal(raw, &msg); err != nil {
-			log.Printf("[ws] unparseable message: %v — raw: %s", err, raw)
+			slog.Warn("unparseable message", "error", err, "raw", string(raw))
 			continue
 		}
+
+		slog.Debug("received message", "type", msg.Type, "job_id", msg.JobID, "tool_id", msg.ToolID)
 
 		switch msg.Type {
 		case "job_start":
@@ -347,6 +353,9 @@ func (c *Client) handleJobStart(ctx context.Context, msg inboundMsg) {
 		DownloadURL:    msg.DownloadURL,
 		Args:           msg.Args,
 		ExecutablePath: msg.ExecutablePath,
+		CPULimit:       msg.CPULimit,
+		RAMLimit:       msg.RAMLimit,
+		Priority:       msg.Priority,
 		AgentToken:     c.cfg.AgentToken,
 		ServerURL:      c.cfg.ServerURL,
 	}
@@ -391,6 +400,9 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 		FileName:       msg.FileName,
 		Args:           msg.Args,
 		ExecutablePath: msg.ExecutablePath,
+		CPULimit:       msg.CPULimit,
+		RAMLimit:       msg.RAMLimit,
+		Priority:       msg.Priority,
 	}
 
 	log.Printf("[job:%s] received job_run tool=%s tool_id=%s file=%s exec_path=%q args=%q",

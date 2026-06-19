@@ -19,7 +19,35 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 		return fmt.Errorf("executor: chmod %s: %w", execPath, err)
 	}
 
-	cmd := exec.CommandContext(ctx, execPath, args...)
+
+	finalArgs := []string{}
+	finalExec := execPath
+
+	// Soft Limit
+	if req.Priority == "idle" {
+		finalArgs = append([]string{"-n", "19", execPath}, args...)
+		finalExec = "nice"
+	} else {
+		finalArgs = args
+	}
+
+	// Hard Limit via systemd-run (if needed and applicable, simplified here to use prlimit or systemd-run)
+	// For a robust implementation, one would check if systemd-run is available.
+	// We'll wrap with systemd-run if limits are set.
+	if req.CPULimit > 0 || req.RAMLimit > 0 {
+		sysRunArgs := []string{"--user", "--scope", "-q"}
+		if req.CPULimit > 0 {
+			sysRunArgs = append(sysRunArgs, "-p", fmt.Sprintf("CPUQuota=%d%%", req.CPULimit))
+		}
+		if req.RAMLimit > 0 {
+			sysRunArgs = append(sysRunArgs, "-p", fmt.Sprintf("MemoryMax=%dM", req.RAMLimit))
+		}
+		sysRunArgs = append(sysRunArgs, finalExec)
+		finalArgs = append(sysRunArgs, finalArgs...)
+		finalExec = "systemd-run"
+	}
+
+	cmd := exec.CommandContext(ctx, finalExec, finalArgs...)
 	cmd.Dir = toolDir
 
 	pr, pw := io.Pipe()

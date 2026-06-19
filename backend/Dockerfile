@@ -47,24 +47,32 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
-# Stage 1.5: Build Webshell Scanner (Linux)
-FROM python:3.11-slim AS scanner-builder
+# Stage 1.5a: Build Webshell Scanner (Linux)
+FROM python:3.11-slim AS scanner-builder-linux
 
-RUN apt-get update && apt-get install -y binutils gcc libmagic1 zip
+RUN apt-get update && apt-get install -y binutils gcc libmagic1
 
 WORKDIR /scanner
 COPY ./tools/webshell-scanner .
 RUN pip install . pyinstaller
-# Build Linux binary
 RUN pyinstaller build.spec --clean --noconfirm --distpath dist/linux
 
-# Create a default bundle with Linux binary
+# Stage 1.5b: Build Webshell Scanner (Windows)
+FROM tobix/pywine:3.11 AS scanner-builder-windows
+
+WORKDIR /wine-scanner
+COPY ./tools/webshell-scanner .
+RUN wine python -m pip install . pyinstaller
+RUN wine pyinstaller build.spec --clean --noconfirm --distpath dist/windows
+
+# Stage 1.5c: Bundle
+FROM alpine:3.19 AS scanner-bundler
+RUN apk add --no-cache zip
 WORKDIR /app/defaults
-RUN mkdir -p linux
-RUN cp /scanner/dist/linux/webshell-scanner linux/
-# Note: Windows binary can only be added if pre-built on host, otherwise bundle is Linux-only
-# We zip it so the backend can easily "upload" it to storage
-RUN zip -r webshell-scanner-linux.zip linux/
+RUN mkdir -p linux windows
+COPY --from=scanner-builder-linux /scanner/dist/linux/webshell-scanner linux/
+COPY --from=scanner-builder-windows /wine-scanner/dist/windows/webshell-scanner.exe windows/
+RUN zip -r webshell-scanner.zip linux/ windows/
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
@@ -95,7 +103,7 @@ COPY --from=builder /build/data /app/data
 COPY ./docs /app/docs
 
 # Integrated Tools
-COPY --from=scanner-builder /app/defaults/webshell-scanner-linux.zip /app/defaults/webshell-scanner.zip
+COPY --from=scanner-bundler /app/defaults/webshell-scanner.zip /app/defaults/webshell-scanner.zip
 
 # Create required directories and fix ownership
 RUN mkdir -p /app/storage /app/agent-bins /app/defaults \

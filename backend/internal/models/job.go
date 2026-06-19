@@ -29,6 +29,9 @@ type Job struct {
 	DeploymentID *uuid.UUID `gorm:"type:uuid;index"                                json:"deployment_id,omitempty"` // set when job is part of a hunting scenario batch deploy
 	Status       JobStatus  `gorm:"default:'pending'"                              json:"status"`
 	Output       string     `gorm:"type:text"                                      json:"output,omitempty"`
+	CPULimit     int        `                                                      json:"cpu_limit,omitempty"`
+	RAMLimit     int        `                                                      json:"ram_limit,omitempty"`
+	Priority     string     `gorm:"default:'normal'"                               json:"priority,omitempty"`
 	ArtifactPath string     `                                                      json:"artifact_path,omitempty"` // path to uploaded artifact
 	StartedAt     *time.Time `                                                      json:"started_at"`
 	FinishedAt    *time.Time `                                                      json:"finished_at"`

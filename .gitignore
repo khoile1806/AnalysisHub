@@ -20,6 +20,4 @@ tools/webshell-scanner/report_test/
 __pycache__/
 *.pyc
 *.pyo
-backend/data/news.json
-backend/data/logs/
-!backend/data/logs/.gitkeep
+backend/data/

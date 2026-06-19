@@ -555,7 +555,7 @@ const powershellInstallScript = `# ForensicHub Agent - Windows Installer
 # Server: {{.ServerURL}}
 
 $ErrorActionPreference = "Stop"
-$InstallDir  = "C:\ForensicHub"
+$InstallDir  = Join-Path $env:LOCALAPPDATA "ForensicHub"
 $AgentBinary = Join-Path $InstallDir "forensichub-agent.exe"
 $ConfigFile  = Join-Path $InstallDir "forensichub-agent.conf"
 $BinaryUrl   = "{{.ServerURL}}/api/v1/agent/binary/windows"
@@ -604,7 +604,7 @@ const bashInstallScript = `#!/usr/bin/env bash
 
 set -euo pipefail
 
-INSTALL_DIR="/opt/forensichub"
+INSTALL_DIR="$HOME/.forensichub"
 BINARY_URL="{{.ServerURL}}/api/v1/agent/binary/linux"
 AGENT_TOKEN="{{.Token}}"
 

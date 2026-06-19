@@ -43,6 +43,8 @@ export interface ManualHuntPayload {
   mode: HuntMode
   query?: string
   body?: Record<string, any>
+  indices?: string
+  timeRange?: string
 }
 
 export interface AutoHuntProgress {
@@ -174,14 +176,21 @@ export const elkApi = {
     return data
   },
 
+  getIndices: async (): Promise<string[]> => {
+    const { data } = await api.get('/elk/indices')
+    return data
+  },
+
   manualHunt: async (payload: ManualHuntPayload): Promise<ELKSearchResponse> => {
     const { data } = await api.post('/elk/hunt', payload)
     return data
   },
 
-  streamAutoHunt: (token: string, handlers: AutoHuntHandlers): EventSource => {
+  streamAutoHunt: (token: string, indices: string, timeRange: string, handlers: AutoHuntHandlers): EventSource => {
     const baseUrl = (api.defaults.baseURL || '').replace(/\/+$/, '')
-    const url = `${baseUrl}/elk/hunt/stream?token=${encodeURIComponent(token)}`
+    let url = `${baseUrl}/elk/hunt/stream?token=${encodeURIComponent(token)}`
+    if (indices) url += `&indices=${encodeURIComponent(indices)}`
+    if (timeRange) url += `&timeRange=${encodeURIComponent(timeRange)}`
     const es = new EventSource(url)
     attachSseHandlers(es, handlers)
     return es
@@ -197,10 +206,12 @@ export const elkApi = {
     return data
   },
 
-  streamFileHunt: (token: string, iocs: FileIOC[], handlers: AutoHuntHandlers): EventSource => {
+  streamFileHunt: (token: string, iocs: FileIOC[], indices: string, timeRange: string, handlers: AutoHuntHandlers): EventSource => {
     const baseUrl = (api.defaults.baseURL || '').replace(/\/+$/, '')
     const payload = base64url(JSON.stringify({ iocs }))
-    const url = `${baseUrl}/elk/hunt/file-stream?token=${encodeURIComponent(token)}&iocs=${encodeURIComponent(payload)}`
+    let url = `${baseUrl}/elk/hunt/file-stream?token=${encodeURIComponent(token)}&iocs=${encodeURIComponent(payload)}`
+    if (indices) url += `&indices=${encodeURIComponent(indices)}`
+    if (timeRange) url += `&timeRange=${encodeURIComponent(timeRange)}`
     const es = new EventSource(url)
     attachSseHandlers(es, handlers)
     return es

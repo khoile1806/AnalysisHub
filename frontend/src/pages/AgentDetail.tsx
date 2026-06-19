@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase } from 'lucide-react'
+import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
 import { casesApi } from '@/api/cases'
@@ -10,6 +10,7 @@ import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { AgentTerminal } from '@/components/AgentTerminal'
 import { FileBrowser } from '@/components/FileBrowser'
+import { WebshellScanner } from '@/components/Agent/WebshellScanner'
 import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -31,7 +32,10 @@ interface SysInfo { cpu_model: string; cpu_cores: number; ram_total_mb: number; 
 function CreateJobModal({ agentId, open, onClose }: { agentId: string; open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const [toolId, setToolId] = useState('')
-  const [args, setArgs] = useState('')
+	const [args, setArgs] = useState('')
+	const [cpuLimit, setCpuLimit] = useState<number | ''>('')
+	const [ramLimit, setRamLimit] = useState<number | ''>('')
+	const [priority, setPriority] = useState('normal')
 
   const { data: tools = [] } = useQuery({
     queryKey: ['tools'],
@@ -60,7 +64,14 @@ function CreateJobModal({ agentId, open, onClose }: { agentId: string; open: boo
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!toolId) { toast.error('Select a tool'); return }
-    createMutation.mutate({ agent_id: agentId, tool_id: toolId, args: args || undefined })
+		createMutation.mutate({
+			agent_id: agentId,
+			tool_id: toolId,
+			args: args || undefined,
+			cpu_limit: cpuLimit ? Number(cpuLimit) : undefined,
+			ram_limit: ramLimit ? Number(ramLimit) : undefined,
+			priority: priority !== 'normal' ? priority : undefined
+		})
   }
 
   const toolsByCategory = TOOL_CATEGORIES.reduce<Record<string, typeof tools>>((acc, cat) => {
@@ -101,6 +112,26 @@ function CreateJobModal({ agentId, open, onClose }: { agentId: string; open: boo
               <label className="label">Arguments <span className="text-xs text-gray-500">(optional)</span></label>
               <input className="input font-mono text-xs" value={args} onChange={(e) => setArgs(e.target.value)} placeholder="e.g. -f evidence.raw" />
             </div>
+						<div className="grid grid-cols-3 gap-3">
+							<div>
+								<label className="label">CPU Limit (%)</label>
+								<input type="number" min="1" max="100" className="input text-xs" value={cpuLimit} onChange={(e) => setCpuLimit(e.target.value ? Number(e.target.value) : '')} placeholder="Uncapped" />
+							</div>
+							<div>
+								<label className="label">RAM Limit (MB)</label>
+								<input type="number" min="1" className="input text-xs" value={ramLimit} onChange={(e) => setRamLimit(e.target.value ? Number(e.target.value) : '')} placeholder="Uncapped" />
+							</div>
+							<div>
+								<label className="label">Priority</label>
+								<Select value={priority} onValueChange={setPriority}>
+									<SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+									<SelectContent>
+										<SelectItem value="normal">Normal</SelectItem>
+										<SelectItem value="idle">Idle (Soft)</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
           </DialogBody>
           <DialogFooter>
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
@@ -557,7 +588,7 @@ function ProcessesTab({ agent }: { agent: Agent }) {
 }
 
 // ---- Main Page ----
-type TabId = 'jobs' | 'sysinfo' | 'network' | 'processes' | 'terminal' | 'files'
+type TabId = 'jobs' | 'sysinfo' | 'network' | 'processes' | 'terminal' | 'files' | 'scanner'
 
 const TABS: { id: TabId; label: string; icon: typeof Server }[] = [
   { id: 'jobs',      label: 'Jobs',        icon: ClipboardList },
@@ -566,6 +597,7 @@ const TABS: { id: TabId; label: string; icon: typeof Server }[] = [
   { id: 'processes', label: 'Processes',   icon: Cpu },
   { id: 'terminal',  label: 'Terminal',    icon: TerminalIcon },
   { id: 'files',     label: 'Files',       icon: FolderTree },
+  { id: 'scanner',   label: 'Scanner',     icon: Shield as any },
 ]
 
 export default function AgentDetailPage() {
@@ -762,6 +794,7 @@ export default function AgentDetailPage() {
       {activeTab === 'processes' && <ProcessesTab agent={agent} />}
       {activeTab === 'terminal'  && <AgentTerminal agent={agent} />}
       {activeTab === 'files'     && <FileBrowser agent={agent} />}
+      {activeTab === 'scanner'   && <WebshellScanner agent={agent} />}
     </div>
   )
 }

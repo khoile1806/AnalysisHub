@@ -319,6 +319,9 @@ func StreamELKFileHunt(c *gin.Context) {
 		return true
 	}
 
+	indicesParam := c.DefaultQuery("indices", "*")
+	timeRangeParam := c.Query("timeRange")
+
 	buckets := groupIOCs(pseudoIOCs)
 
 	type batchPlan struct {
@@ -359,13 +362,13 @@ func StreamELKFileHunt(c *gin.Context) {
 
 		var body map[string]interface{}
 		if len(plan.fields) == 0 {
-			body = luceneBody(luceneOR(plan.values), elkPerBatchHits)
+			body = luceneBody(luceneOR(plan.values), elkPerBatchHits, timeRangeParam)
 		} else {
-			body = termsBatchBody(plan.fields, plan.values, elkPerBatchHits)
+			body = termsBatchBody(plan.fields, plan.values, elkPerBatchHits, timeRangeParam)
 		}
 		bodyBytes, _ := json.Marshal(body)
 
-		respBody, status, err := elkSearch(config.URL, authHeader, "*", bodyBytes, time.Duration(elkBatchTimeoutSec)*time.Second)
+		respBody, status, err := elkSearch(config.URL, authHeader, indicesParam, bodyBytes, time.Duration(elkBatchTimeoutSec)*time.Second)
 		if err != nil {
 			sendEvent("error", gin.H{"batch": idx + 1, "bucket": plan.bucket, "error": err.Error()})
 			time.Sleep(elkBetweenBatches)

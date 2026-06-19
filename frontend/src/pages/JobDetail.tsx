@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Download, Clock, Server, Wrench, Calendar, RefreshCw, BrainCircuit } from 'lucide-react'
+import { ArrowLeft, Download, Clock, Server, Wrench, Calendar, RefreshCw, BrainCircuit, Terminal as TerminalIcon, FileText } from 'lucide-react'
 import { jobsApi } from '@/api/jobs'
 import { JobStatusBadge } from '@/components/StatusBadge'
 import TerminalOutput from '@/components/Terminal'
@@ -28,6 +28,7 @@ export default function JobDetailPage() {
   const navigate = useNavigate()
   const [outputLines, setOutputLines] = useState<string[]>([])
   const [sseConnected, setSseConnected] = useState(false)
+  const [viewMode, setViewMode] = useState<'process' | 'report'>('process')
   const eventSourceRef = useRef<EventSource | null>(null)
   const token = useAuthStore((s) => s.token)
 
@@ -297,39 +298,76 @@ export default function JobDetailPage() {
           )}
         </div>
 
-        {/* Right: terminal output */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-gray-200">Output</h2>
-            {sseConnected && (
-              <span className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                </span>
-                Streaming live
-              </span>
-            )}
-            {outputLines.length > 0 && (
-              <span className="text-xs text-gray-500">{outputLines.length} lines</span>
+        {/* Right: terminal output / report viewer */}
+        <div className="lg:col-span-2 flex flex-col h-full min-h-[500px]">
+          <div className="flex items-center gap-2 mb-3 bg-gray-900/50 p-1.5 rounded-lg border border-gray-800 self-start">
+            <button 
+              onClick={() => setViewMode('process')}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                viewMode === 'process' 
+                  ? 'bg-gray-800 text-emerald-400 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <TerminalIcon className="h-3.5 w-3.5" />
+              Process Output
+            </button>
+            <button 
+              onClick={() => setViewMode('report')}
+              disabled={!artifactDownloadUrl}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                viewMode === 'report' 
+                  ? 'bg-gray-800 text-emerald-400 shadow-sm' 
+                  : !artifactDownloadUrl ? 'opacity-30 cursor-not-allowed' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Report Viewer
+            </button>
+          </div>
+
+          <div className="flex-1 flex flex-col min-h-0 bg-gray-900/30 rounded-xl border border-gray-800 overflow-hidden relative">
+            {viewMode === 'process' ? (
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between p-3 border-b border-gray-800">
+                  <h2 className="text-sm font-semibold text-gray-200">Terminal Output</h2>
+                  {sseConnected && (
+                    <span className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                      </span>
+                      Streaming live
+                    </span>
+                  )}
+                  {!sseConnected && outputLines.length > 0 && (
+                    <span className="text-xs text-gray-500">{outputLines.length} lines</span>
+                  )}
+                </div>
+                <TerminalOutput
+                  lines={outputLines}
+                  isRunning={isRunning || job.status === 'pending'}
+                  className="flex-1 border-0 rounded-none"
+                />
+              </div>
+            ) : (
+              <iframe 
+                src={job.id ? `${import.meta.env.VITE_API_URL ?? ''}/api/v1/jobs/${job.id}/artifact/content?token=${encodeURIComponent(token ?? '')}` : ''}
+                className="absolute inset-0 w-full h-full border-none bg-white"
+                title="Artifact Report"
+              />
             )}
           </div>
 
-          <TerminalOutput
-            lines={outputLines}
-            isRunning={isRunning || job.status === 'pending'}
-            className="min-h-[400px]"
-          />
-
           {job.status === 'failed' && (
-            <div className="mt-3 rounded-lg bg-red-900/20 border border-red-800/40 p-3">
+            <div className="mt-3 rounded-lg bg-red-900/20 border border-red-800/40 p-3 shrink-0">
               <p className="text-xs text-red-400 font-medium">
                 Job failed. Check the output above for error details.
               </p>
             </div>
           )}
-          {job.status === 'done' && (
-            <div className="mt-3 rounded-lg bg-emerald-900/20 border border-emerald-800/40 p-3">
+          {job.status === 'done' && viewMode === 'process' && (
+            <div className="mt-3 rounded-lg bg-emerald-900/20 border border-emerald-800/40 p-3 shrink-0">
               <p className="text-xs text-emerald-400 font-medium">
                 Job completed successfully in {formatDuration(job.started_at, job.finished_at)}.
               </p>

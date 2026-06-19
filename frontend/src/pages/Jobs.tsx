@@ -48,6 +48,9 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
   const [toolId, setToolId] = useState('')
   const [args, setArgs] = useState('')
   const [scenarioId, setScenarioId] = useState('')
+  const [cpuLimit, setCpuLimit] = useState<number | ''>('')
+  const [ramLimit, setRamLimit] = useState<number | ''>('')
+  const [priority, setPriority] = useState('normal')
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
@@ -68,7 +71,7 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
   })
 
   const resetState = () => {
-    setMode('tool'); setAgentId(''); setToolId(''); setArgs(''); setScenarioId('')
+    setMode('tool'); setAgentId(''); setToolId(''); setArgs(''); setScenarioId(''); setCpuLimit(''); setRamLimit(''); setPriority('normal')
   }
 
   // Auto-fill args when tool changes
@@ -113,7 +116,14 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
     if (!agentId) { toast.error('Select an agent'); return }
     if (mode === 'tool') {
       if (!toolId) { toast.error('Select a tool'); return }
-      createMutation.mutate({ agent_id: agentId, tool_id: toolId, args: args || undefined })
+      createMutation.mutate({
+        agent_id: agentId,
+        tool_id: toolId,
+        args: args || undefined,
+        cpu_limit: cpuLimit ? Number(cpuLimit) : undefined,
+        ram_limit: ramLimit ? Number(ramLimit) : undefined,
+        priority: priority !== 'normal' ? priority : undefined
+      })
     } else {
       if (!scenarioId) { toast.error('Select a scenario'); return }
       if (!selectedScenario || (selectedScenario.tools ?? []).length === 0) {
@@ -256,6 +266,27 @@ function NewJobModal({ open, onClose }: NewJobModalProps) {
                     onChange={(e) => setArgs(e.target.value)}
                     placeholder="e.g. -f evidence.raw imageinfo"
                   />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="label">CPU Limit (%)</label>
+                    <input type="number" min="1" max="100" className="input text-xs" value={cpuLimit} onChange={(e) => setCpuLimit(e.target.value ? Number(e.target.value) : '')} placeholder="Uncapped" />
+                  </div>
+                  <div>
+                    <label className="label">RAM Limit (MB)</label>
+                    <input type="number" min="1" className="input text-xs" value={ramLimit} onChange={(e) => setRamLimit(e.target.value ? Number(e.target.value) : '')} placeholder="Uncapped" />
+                  </div>
+                  <div>
+                    <label className="label">Priority</label>
+                    <Select value={priority} onValueChange={setPriority}>
+                      <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="idle">Idle (Soft)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Preview */}

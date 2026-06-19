@@ -362,6 +362,62 @@ func SaveELKConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Configuration saved"})
 }
 
+// GetELKIndices fetches the list of available indices from ELK
+func GetELKIndices(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	aesKey := c.GetString("aesEncryptionKey")
+
+	config, authHeader, err := loadELKAuth(db, aesKey)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	url := fmt.Sprintf("%s/_cat/indices?format=json&h=index", strings.TrimRight(config.URL, "/"))
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "build request failed"})
+		return
+	}
+	if authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("ELK request failed: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("ELK returned status %d: %s", resp.StatusCode, string(body))})
+		return
+	}
+
+	var catResp []map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&catResp); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse ELK response"})
+		return
+	}
+
+	indices := make([]string, 0, len(catResp))
+	for _, item := range catResp {
+		if index, ok := item["index"]; ok {
+			indices = append(indices, index)
+		}
+	}
+
+	c.JSON(http.StatusOK, indices)
+}
+
 // huntRequest is the body for POST /elk/hunt.
 //
 //   - mode "lucene": wrap Query into a query_string search (legacy behaviour).
@@ -369,9 +425,11 @@ func SaveELKConfig(c *gin.Context) {
 //
 // Empty mode is treated as "lucene" with an empty Query, which is rejected.
 type huntRequest struct {
-	Mode  string                 `json:"mode"`
-	Query string                 `json:"query"`
-	Body  map[string]interface{} `json:"body"`
+	Mode      string                 `json:"mode"`
+	Query     string                 `json:"query"`
+	Body      map[string]interface{} `json:"body"`
+	Indices   string                 `json:"indices"`
+	TimeRange string                 `json:"timeRange"`
 }
 
 // RunELKHunt performs a single synchronous search against Elasticsearch.
@@ -413,10 +471,14 @@ func RunELKHunt(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Empty query. Use mode=dsl for raw bodies, or provide a Lucene query string."})
 			return
 		}
-		bodyBytes, _ = json.Marshal(luceneBody(req.Query, elkPerBatchHits))
+		bodyBytes, _ = json.Marshal(luceneBody(req.Query, elkPerBatchHits, req.TimeRange))
 	}
 
-	respBody, status, err := elkSearch(config.URL, authHeader, "*", bodyBytes, 30*time.Second)
+	targetIndices := req.Indices
+	if targetIndices == "" {
+		targetIndices = "*"
+	}
+	respBody, status, err := elkSearch(config.URL, authHeader, targetIndices, bodyBytes, 30*time.Second)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
@@ -504,6 +566,10 @@ func StreamELKAutoHunt(c *gin.Context) {
 
 	// Group IOCs by bucket — each bucket maps to a set of ECS field names so
 	// terms queries target the right schema columns instead of scanning *.
+
+	indicesParam := c.DefaultQuery("indices", "*")
+	timeRangeParam := c.Query("timeRange")
+
 	buckets := groupIOCs(iocs)
 
 	type batchPlan struct {
@@ -546,13 +612,13 @@ func StreamELKAutoHunt(c *gin.Context) {
 		if len(plan.fields) == 0 {
 			// Fallback for unknown IOC types: search the values across all
 			// fields with a quoted query_string OR-chain.
-			body = luceneBody(luceneOR(plan.values), elkPerBatchHits)
+			body = luceneBody(luceneOR(plan.values), elkPerBatchHits, timeRangeParam)
 		} else {
-			body = termsBatchBody(plan.fields, plan.values, elkPerBatchHits)
+			body = termsBatchBody(plan.fields, plan.values, elkPerBatchHits, timeRangeParam)
 		}
 		bodyBytes, _ := json.Marshal(body)
 
-		respBody, status, err := elkSearch(config.URL, authHeader, "*", bodyBytes, time.Duration(elkBatchTimeoutSec)*time.Second)
+		respBody, status, err := elkSearch(config.URL, authHeader, indicesParam, bodyBytes, time.Duration(elkBatchTimeoutSec)*time.Second)
 		if err != nil {
 			sendEvent("error", gin.H{"batch": idx + 1, "bucket": plan.bucket, "error": err.Error()})
 			time.Sleep(elkBetweenBatches)
@@ -719,16 +785,38 @@ func elkSearch(baseURL, authHeader, indexPattern string, body []byte, timeout ti
 }
 
 // luceneBody wraps a Lucene query string into a query_string search.
-func luceneBody(query string, size int) map[string]interface{} {
-	return map[string]interface{}{
-		"query": map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"query":   query,
-				"fields":  []string{"*"},
-				"lenient": true,
-			},
+func luceneBody(query string, size int, timeRange string) map[string]interface{} {
+	qs := map[string]interface{}{
+		"query_string": map[string]interface{}{
+			"query":   query,
+			"fields":  []string{"*"},
+			"lenient": true,
 		},
-		"size": size,
+	}
+
+	var finalQuery map[string]interface{}
+	if timeRange != "" {
+		finalQuery = map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": []interface{}{
+					qs,
+					map[string]interface{}{
+						"range": map[string]interface{}{
+							"@timestamp": map[string]interface{}{
+								"gte": timeRange,
+							},
+						},
+					},
+				},
+			},
+		}
+	} else {
+		finalQuery = qs
+	}
+
+	return map[string]interface{}{
+		"query": finalQuery,
+		"size":  size,
 		"sort": []map[string]interface{}{
 			{"@timestamp": map[string]interface{}{"order": "desc", "unmapped_type": "boolean"}},
 		},
@@ -738,19 +826,32 @@ func luceneBody(query string, size int) map[string]interface{} {
 // termsBatchBody builds a bool.should query that runs the same terms list
 // against multiple ECS field names. Lenient + unmapped_type avoid failures
 // when an index does not have one of the candidate fields.
-func termsBatchBody(fields []string, values []string, size int) map[string]interface{} {
+func termsBatchBody(fields []string, values []string, size int, timeRange string) map[string]interface{} {
 	should := make([]map[string]interface{}, 0, len(fields))
 	for _, f := range fields {
 		should = append(should, map[string]interface{}{
 			"terms": map[string]interface{}{f: values},
 		})
 	}
+
+	boolQuery := map[string]interface{}{
+		"should":               should,
+		"minimum_should_match": 1,
+	}
+
+	if timeRange != "" {
+		boolQuery["filter"] = map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": timeRange,
+				},
+			},
+		}
+	}
+
 	return map[string]interface{}{
 		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
-				"should":               should,
-				"minimum_should_match": 1,
-			},
+			"bool": boolQuery,
 		},
 		"size": size,
 		"sort": []map[string]interface{}{

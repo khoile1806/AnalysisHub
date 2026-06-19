@@ -61,9 +61,8 @@ const NAV_GROUPS = [
   {
     label: 'Analysis',
     items: [
-      { to: '/ai-analysis',      icon: BrainCircuit, label: 'AI Analysis' },
-      { to: '/webshell-scanner', icon: Shield,       label: 'Webshell Scanner' },
-      { to: '/opencti',          icon: ShieldAlert,  label: 'ELK Threat Hunting' },
+      { to: '/ai-analysis', icon: BrainCircuit, label: 'AI Analysis' },
+      { to: '/opencti',     icon: ShieldAlert,  label: 'SIEM Threat Hunting' },
     ]
   },
   {
@@ -89,7 +88,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   agents:    'Agent Management',
   jobs:      'Jobs',
   cve:       'Vulnerability Search',
-  opencti:   'ELK Threat Hunting',
+  opencti:   'SIEM Threat Hunting',
   'webshell-scanner': 'Webshell Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',

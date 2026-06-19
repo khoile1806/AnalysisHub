@@ -12,6 +12,9 @@ export interface Job {
   agent: Agent
   tool: Tool
   args: string
+  cpu_limit?: number
+  ram_limit?: number
+  priority?: string
   status: JobStatus
   output: string
   artifact_path: string
@@ -29,6 +32,9 @@ export interface CreateJobData {
   agent_id: string
   tool_id: string
   args?: string
+  cpu_limit?: number
+  ram_limit?: number
+  priority?: string
 }
 
 interface ApiResponse<T> {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"log"
 	"net/http"
 	"os"
@@ -33,7 +34,7 @@ func main() {
 	//    directly, e.g. in Docker / Kubernetes).
 	// ------------------------------------------------------------------ //
 	if err := godotenv.Load(); err != nil {
-		log.Println("[main] .env file not found, using environment variables")
+		slog.Info(".env file not found, using environment variables")
 	}
 
 	// ------------------------------------------------------------------ //
@@ -47,14 +48,15 @@ func main() {
 	cleanupLogs := logger.Setup(cfg.LogPath)
 	defer cleanupLogs()
 
-	log.Printf("[main] starting ForensicHub (env=%s, port=%s)", cfg.AppEnv, cfg.ServerPort)
+	slog.Info("starting ForensicHub", "env", cfg.AppEnv, "port", cfg.ServerPort)
 
 	// ------------------------------------------------------------------ //
 	// 3. Connect to PostgreSQL and run migrations
 	// ------------------------------------------------------------------ //
 	db, err := database.Init(cfg.PostgresDSN, cfg.AppEnv)
 	if err != nil {
-		log.Fatalf("[main] database init failed: %v", err)
+		slog.Error("database init failed", "error", err)
+		os.Exit(1)
 	}
 
 	// ------------------------------------------------------------------ //
@@ -68,9 +70,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
-		log.Printf("[main] redis connection warning: %v (continuing without Redis cache)", err)
+		slog.Warn("redis connection warning (continuing without Redis cache)", "error", err)
 	} else {
-		log.Println("[main] redis connected")
+		slog.Info("redis connected")
 	}
 
 	// ------------------------------------------------------------------ //
@@ -78,21 +80,23 @@ func main() {
 	// ------------------------------------------------------------------ //
 	store, err := storage.New(cfg.StoragePath)
 	if err != nil {
-		log.Fatalf("[main] storage init failed: %v", err)
+		slog.Error("storage init failed", "error", err)
+		os.Exit(1)
 	}
-	log.Printf("[main] storage initialised at %s", cfg.StoragePath)
+	slog.Info("storage initialised", "path", cfg.StoragePath)
 
 	// ------------------------------------------------------------------ //
 	// 6. Seed admin user (idempotent)
 	// ------------------------------------------------------------------ //
 	if err := seedAdmin(db, cfg.AdminEmail, cfg.AdminPassword); err != nil {
-		log.Fatalf("[main] seed admin failed: %v", err)
+		slog.Error("seed admin failed", "error", err)
+		os.Exit(1)
 	}
 	if err := seedTools(db, store); err != nil {
-		log.Printf("[main] seed tools warning: %v", err)
+		slog.Warn("seed tools warning", "error", err)
 	}
 	if err := seedScenarios(db); err != nil {
-		log.Printf("[main] seed scenarios warning: %v", err)
+		slog.Warn("seed scenarios warning", "error", err)
 	}
 
 	// ------------------------------------------------------------------ //
@@ -147,7 +151,7 @@ func main() {
 	}
 
 	go hub.Run()
-	log.Println("[main] WebSocket hub started")
+	slog.Info("WebSocket hub started")
 
 	// ------------------------------------------------------------------ //
 	// 7.5 Start Background Workers
@@ -160,10 +164,10 @@ func main() {
 	// forensic prompt to the AI model.
 	enrichClient := threatintel.New(cfg.VirusTotalKeys, cfg.AbuseIPDBKey, cfg.AlienVaultKey, cfg.ShodanKey)
 	if enrichClient.Configured() {
-		log.Printf("[main] threat intel client initialised (VT keys: %d, AbuseIPDB: %v, OTX: %v, Shodan: %v)",
-			len(cfg.VirusTotalKeys), cfg.AbuseIPDBKey != "", cfg.AlienVaultKey != "", cfg.ShodanKey != "")
+		slog.Info("threat intel client initialised",
+			"vt_keys", len(cfg.VirusTotalKeys), "abuseipdb", cfg.AbuseIPDBKey != "", "otx", cfg.AlienVaultKey != "", "shodan", cfg.ShodanKey != "")
 	} else {
-		log.Println("[main] threat intel: no API keys configured — IOC enrichment disabled")
+		slog.Info("threat intel: no API keys configured — IOC enrichment disabled")
 	}
 
 	// ------------------------------------------------------------------ //
@@ -185,7 +189,7 @@ func main() {
 	// Run server in a goroutine so we can listen for OS signals concurrently.
 	serverErr := make(chan error, 1)
 	go func() {
-		log.Printf("[main] HTTP server listening on :%s", cfg.ServerPort)
+		slog.Info("HTTP server listening", "port", cfg.ServerPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
 		}
@@ -197,9 +201,9 @@ func main() {
 
 	select {
 	case sig := <-quit:
-		log.Printf("[main] received signal %s, shutting down gracefully", sig)
+		slog.Info("shutting down gracefully", "signal", sig.String())
 	case err := <-serverErr:
-		log.Printf("[main] server error: %v", err)
+		slog.Error("server error", "error", err)
 	}
 
 	// Allow up to 30 seconds for in-flight requests to complete.
@@ -207,7 +211,7 @@ func main() {
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("[main] server shutdown error: %v", err)
+		slog.Error("server shutdown error", "error", err)
 	}
 
 	// Close DB connection pool.
@@ -218,7 +222,7 @@ func main() {
 	// Close Redis connection.
 	rdb.Close()
 
-	log.Println("[main] shutdown complete")
+	slog.Info("shutdown complete")
 }
 
 // seedAdmin creates the admin user if one with cfg.AdminEmail does not already
@@ -238,7 +242,7 @@ func seedAdmin(db *gorm.DB, email, password string) error {
 		if err := db.Save(&existing).Error; err != nil {
 			return fmt.Errorf("update admin: %w", err)
 		}
-		log.Printf("[main] admin user %s synced from configuration", email)
+		slog.Info("admin user synced from configuration", "email", email)
 		return nil
 	}
 	if err != gorm.ErrRecordNotFound {
@@ -253,7 +257,7 @@ func seedAdmin(db *gorm.DB, email, password string) error {
 	if err := db.Create(&admin).Error; err != nil {
 		return fmt.Errorf("create admin: %w", err)
 	}
-	log.Printf("[main] admin user %s created", email)
+	slog.Info("admin user created", "email", email)
 	return nil
 }
 
@@ -271,7 +275,7 @@ func seedTools(db *gorm.DB, store *storage.LocalStorage) error {
 		return nil // No bundle to seed
 	}
 
-	log.Println("[main] seeding integrated Webshell Scanner...")
+	slog.Info("seeding integrated Webshell Scanner")
 
 	// 1. Create Tool Record
 	toolID := uuid.New()
@@ -306,7 +310,7 @@ func seedTools(db *gorm.DB, store *storage.LocalStorage) error {
 		return fmt.Errorf("create tool record: %w", err)
 	}
 
-	log.Printf("[main] integrated tool %s registered successfully", tool.Name)
+	slog.Info("integrated tool registered successfully", "name", tool.Name)
 	return nil
 }
 
@@ -332,7 +336,7 @@ func seedScenarios(db *gorm.DB) error {
 			log.Printf("[main] seed scenario %s: %v", sc.Slug, err)
 			continue
 		}
-		log.Printf("[main] seeded hunting scenario %q", sc.Name)
+		slog.Info("seeded hunting scenario", "name", sc.Name)
 	}
 	return nil
 }

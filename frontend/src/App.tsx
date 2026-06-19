@@ -17,7 +17,6 @@ const JobsPage = lazy(() => import('@/pages/Jobs'))
 const JobDetailPage = lazy(() => import('@/pages/JobDetail'))
 const CVEPage = lazy(() => import('@/pages/CVE'))
 const OpenCTIPage = lazy(() => import('@/pages/OpenCTI'))
-const WebshellScannerPage = lazy(() => import('@/pages/WebshellScanner'))
 const CVECollectionPage = lazy(() => import('@/pages/CVECollection'))
 const HuntingPage = lazy(() => import('@/pages/Hunting'))
 const CollectionChecklistPage = lazy(() => import('@/pages/CollectionChecklist'))
@@ -219,16 +218,6 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <OpenCTIPage />
-              </Suspense>
-            </ChunkErrorBoundary>
-          }
-        />
-        <Route
-          path="/webshell-scanner"
-          element={
-            <ChunkErrorBoundary>
-              <Suspense fallback={<PageFallback />}>
-                <WebshellScannerPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

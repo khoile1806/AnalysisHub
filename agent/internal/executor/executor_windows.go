@@ -49,9 +49,16 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 
 	// PS1 wrapper: run tool, tee output to log file so both the window and
 	// the dashboard can see it simultaneously.
+
+	softLimitSnippet := ""
+	if strings.ToLower(req.Priority) == "idle" {
+		softLimitSnippet = "[System.Diagnostics.Process]::GetCurrentProcess().PriorityClass = 'Idle'\r\n"
+	}
+
 	ps1 := fmt.Sprintf(
-		"# ForensicHub: %s [%s]\r\n$ErrorActionPreference = 'Continue'\r\n%s 2>&1 | Tee-Object -FilePath %s\r\n",
+		"# ForensicHub: %s [%s]\r\n$ErrorActionPreference = 'Continue'\r\n%s%s 2>&1 | Tee-Object -FilePath %s\r\n",
 		req.ToolName, req.JobID,
+		softLimitSnippet,
 		toolLine,
 		psSingleQuote(logFile),
 	)
@@ -74,6 +81,11 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("executor: start tool window: %w", err)
+	}
+
+	if err := applyHardLimitsWindows(cmd.Process.Pid, req.CPULimit, req.RAMLimit); err != nil {
+		// Log the error but don't fail the execution if limit application fails
+		fmt.Printf("[job:%s] warning: failed to apply hard limits: %v\n", req.JobID, err)
 	}
 
 	tailDone := make(chan struct{})

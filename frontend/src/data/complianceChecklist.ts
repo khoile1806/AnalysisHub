@@ -392,3 +392,13 @@ export const COMPLIANCE_SECTIONS: ComplianceSection[] = [
 ]
 
 export const COMPLIANCE_FRAMEWORKS: Framework[] = ['ISO 27001', 'SOC 2', 'PCI-DSS', 'NIST']
+
+// Flat lookup of every compliance item by id — used to enrich a checklist run's
+// batch outputs with control/framework/purpose metadata when sending to AI assess.
+export const COMPLIANCE_ITEM_MAP: Record<string, ComplianceItem> = (() => {
+  const m: Record<string, ComplianceItem> = {}
+  for (const s of COMPLIANCE_SECTIONS) {
+    for (const it of [...s.items.win, ...s.items.linux]) m[it.id] = it
+  }
+  return m
+})()

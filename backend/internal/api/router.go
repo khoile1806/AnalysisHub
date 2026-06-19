@@ -148,6 +148,7 @@ func NewRouter(
 		protected.GET("/elk/config", handlers.GetELKConfig)
 		protected.PUT("/elk/config", handlers.SaveELKConfig)
 		protected.GET("/elk/configs", handlers.ListELKConfigs)
+		protected.GET("/elk/indices", handlers.GetELKIndices)
 		protected.POST("/elk/configs", handlers.CreateELKConfig)
 		protected.PUT("/elk/configs/:id", handlers.UpdateELKConfig)
 		protected.DELETE("/elk/configs/:id", handlers.DeleteELKConfig)
@@ -161,6 +162,29 @@ func NewRouter(
 		protected.GET("/elk/hunt/results/:id", handlers.GetELKHuntResult)
 		protected.DELETE("/elk/hunt/results/:id", handlers.DeleteELKHuntResult)
 		protected.POST("/elk/hunt/results/:id/promote-timeline", handlers.NewTimelineHandler(db).PromoteELKResult)
+
+		// Splunk Hunt
+		protected.GET("/splunk/config", handlers.GetSplunkConfig)
+		protected.GET("/splunk/configs", handlers.ListSplunkConfigs)
+		protected.POST("/splunk/configs", handlers.CreateSplunkConfig)
+		protected.PUT("/splunk/configs/:id", handlers.UpdateSplunkConfig)
+		protected.DELETE("/splunk/configs/:id", handlers.DeleteSplunkConfig)
+		protected.POST("/splunk/configs/:id/activate", handlers.ActivateSplunkConfig)
+		protected.GET("/splunk/indices", handlers.GetSplunkIndices)
+		protected.POST("/splunk/hunt", handlers.RunSplunkHunt)
+		protected.GET("/splunk/hunt/stream", handlers.StreamSplunkAutoHunt)
+		protected.POST("/splunk/hunt/file-stream", handlers.StreamSplunkFileHunt)
+
+		// QRadar Hunt
+		protected.GET("/qradar/config", handlers.GetQRadarConfig)
+		protected.GET("/qradar/configs", handlers.ListQRadarConfigs)
+		protected.POST("/qradar/configs", handlers.CreateQRadarConfig)
+		protected.PUT("/qradar/configs/:id", handlers.UpdateQRadarConfig)
+		protected.DELETE("/qradar/configs/:id", handlers.DeleteQRadarConfig)
+		protected.POST("/qradar/configs/:id/activate", handlers.ActivateQRadarConfig)
+		protected.POST("/qradar/hunt", handlers.RunQRadarHunt)
+		protected.GET("/qradar/hunt/stream", handlers.StreamQRadarAutoHunt)
+		protected.POST("/qradar/hunt/file-stream", handlers.StreamQRadarFileHunt)
 
 		// CVE Collection
 		protected.GET("/cve-collection", handlers.GetCVECollection)
@@ -186,7 +210,16 @@ func NewRouter(
 		timelineHandler := handlers.NewTimelineHandler(db)
 		protected.GET("/cases/:id/timeline", timelineHandler.ListTimeline)
 		protected.POST("/cases/:id/timeline", timelineHandler.CreateTimelineEvent)
+		protected.PATCH("/timeline/:id", timelineHandler.UpdateTimelineEvent)
 		protected.DELETE("/timeline/:id", timelineHandler.DeleteTimelineEvent)
+
+		// Case Evidence files (result uploads with host attribution)
+		evidenceHandler := handlers.NewEvidenceHandler(db, store)
+		protected.POST("/cases/:id/evidence", evidenceHandler.Upload)
+		protected.GET("/cases/:id/evidence", evidenceHandler.List)
+		protected.DELETE("/evidence/:id", evidenceHandler.Delete)
+		protected.GET("/evidence/:id/download", evidenceHandler.Download)
+		protected.GET("/evidence/:id/view", evidenceHandler.View)
 
 		// Evidence Collection Checklist
 		protected.POST("/checklist/run", handlers.RunChecklist)
@@ -209,6 +242,16 @@ func NewRouter(
 		protected.DELETE("/ai/sessions/:id", aiHandler.DeleteSession)
 		protected.POST("/cases/:id/timeline/ai-extract", aiHandler.ExtractTimeline)
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
+		protected.POST("/cases/:id/evidence/:evidenceId/extract-timeline", aiHandler.ExtractTimelineFromEvidence)
+		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
+
+		// Compliance findings + report
+		complianceHandler := handlers.NewComplianceHandler(db)
+		protected.GET("/cases/:id/compliance/findings", complianceHandler.ListFindings)
+		protected.DELETE("/cases/:id/compliance/findings", complianceHandler.DeleteFindings)
+		protected.GET("/cases/:id/compliance/report", complianceHandler.GetReport)
+		protected.GET("/cases/:id/compliance/snapshots", complianceHandler.ListSnapshots)
+		protected.PATCH("/compliance/findings/:id", complianceHandler.UpdateFinding)
 
 		// Dashboard usecases — incident-type custom views
 		ucHandler := handlers.NewDashboardUsecaseHandler(db)

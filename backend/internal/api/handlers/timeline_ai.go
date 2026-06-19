@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -14,6 +15,129 @@ import (
 	ai "github.com/forensichub/backend/internal/ai"
 	"github.com/forensichub/backend/internal/models"
 )
+
+// ExtractTimelineFromEvidence reads an uploaded evidence file and asks AI to
+// extract time-stamped attack events. Events inherit the evidence's host.
+//
+// POST /api/v1/cases/:id/evidence/:evidenceId/extract-timeline  { provider_id }
+func (h *AIHandler) ExtractTimelineFromEvidence(c *gin.Context) {
+	caseUUID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid case id"})
+		return
+	}
+	evidenceID, err := uuid.Parse(c.Param("evidenceId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid evidence id"})
+		return
+	}
+
+	var input struct {
+		ProviderID string `json:"provider_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	providerID, err := uuid.Parse(input.ProviderID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid provider_id"})
+		return
+	}
+	var provider models.AIProvider
+	if err := h.db.First(&provider, "id = ?", providerID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "provider not found"})
+		return
+	}
+	client, clientErr := h.newDecryptedClient(&provider)
+	if clientErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": clientErr.Error()})
+		return
+	}
+
+	var ev models.CaseEvidence
+	if err := h.db.First(&ev, "id = ? AND case_id = ?", evidenceID, caseUUID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "evidence not found"})
+		return
+	}
+
+	raw, rerr := os.ReadFile(h.store.GetEvidencePath(ev.StoredPath))
+	if rerr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to read evidence file"})
+		return
+	}
+	content := string(raw)
+	const contentCap = 24 * 1024
+	if len(content) > contentCap {
+		content = content[:contentCap]
+	}
+
+	prompt := buildTimelinePrompt(content, ev.Host)
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
+	defer cancel()
+	tokenCh := make(chan string, 256)
+	var sb strings.Builder
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
+		close(tokenCh)
+	}()
+	for tok := range tokenCh {
+		sb.WriteString(tok)
+	}
+	if aiErr := <-errCh; aiErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "AI error: " + aiErr.Error()})
+		return
+	}
+
+	events := parseAITimeline(sb.String())
+	var userUUID uuid.UUID
+	if v, ok := c.Get("userID"); ok {
+		if uid, perr := uuid.Parse(v.(string)); perr == nil {
+			userUUID = uid
+		}
+	}
+
+	imported := 0
+	for _, e := range events {
+		ts := parseFlexibleTime(e.Time)
+		if ts.IsZero() {
+			continue
+		}
+		sev := strings.ToLower(strings.TrimSpace(e.Severity))
+		if !validSeverity(sev) {
+			sev = "medium"
+		}
+		host := strings.TrimSpace(e.Host)
+		if host == "" {
+			host = ev.Host // attribute to the evidence's machine
+		}
+		tev := models.TimelineEvent{
+			CaseID:    caseUUID,
+			EventTime: ts,
+			Source:    "ai",
+			SourceRef: ev.ID.String(),
+			Host:      host,
+			Tactic:    strings.TrimSpace(e.Tactic),
+			Technique: strings.TrimSpace(e.Technique),
+			Severity:  sev,
+			Title:     strings.TrimSpace(e.Title),
+			Detail:    strings.TrimSpace(e.Detail),
+			CreatedBy: userUUID,
+		}
+		if tev.Title == "" {
+			continue
+		}
+		if err := h.db.Create(&tev).Error; err != nil {
+			continue
+		}
+		imported++
+	}
+	h.db.Model(&ev).Update("extracted", true)
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"imported": imported, "host": ev.Host}})
+}
 
 // aiTimelineEvent mirrors the JSON object the AI is asked to emit per event.
 type aiTimelineEvent struct {

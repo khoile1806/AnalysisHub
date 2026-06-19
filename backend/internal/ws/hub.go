@@ -17,6 +17,9 @@ type AgentCommand struct {
 	DownloadURL    string `json:"download_url,omitempty"`
 	Args           string `json:"args,omitempty"`
 	ExecutablePath string `json:"executable_path,omitempty"` // relative path to executable within tool dir
+	CPULimit       int    `json:"cpu_limit,omitempty"`
+	RAMLimit       int    `json:"ram_limit,omitempty"`
+	Priority       string `json:"priority,omitempty"` // "normal" | "idle"
 
 	// Terminal (interactive PTY) fields.
 	SessionID string `json:"session_id,omitempty"`

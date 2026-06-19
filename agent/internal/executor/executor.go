@@ -48,6 +48,11 @@ type JobRequest struct {
 
 	// ServerURL is the base URL of the ForensicHub server.
 	ServerURL string
+
+	// Resource limits for Throttling on Production.
+	CPULimit int
+	RAMLimit int
+	Priority string // "normal" or "idle"
 }
 
 // DownloadJob downloads the tool (if not already cached) into a shared tools

@@ -2,7 +2,9 @@ package database
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
+	"strings"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -16,8 +18,8 @@ import (
 // It returns the *gorm.DB instance ready for use.
 func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	logLevel := logger.Silent
-	if appEnv == "development" {
-		logLevel = logger.Info
+	if appEnv == "development" || strings.ToUpper(os.Getenv("LOG_LEVEL")) == "DEBUG" {
+		logLevel = logger.Info // Info level in GORM prints all SQL queries
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -39,7 +41,7 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 
 	// Enable the pgcrypto extension required by gen_random_uuid()
 	if result := db.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto"); result.Error != nil {
-		log.Printf("[db] could not create pgcrypto extension (may already exist): %v", result.Error)
+		slog.Warn("could not create pgcrypto extension (may already exist)", "error", result.Error)
 	}
 
 	// AutoMigrate all models in dependency order
@@ -55,6 +57,8 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.AuditLog{},
 		&models.OpenCTIConfig{},
 		&models.ELKConfig{},
+		&models.SplunkConfig{},
+		&models.QRadarConfig{},
 		&models.ELKHuntResult{},
 		&models.IOC{},
 		&models.ChecklistRun{},
@@ -63,6 +67,9 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.AnalysisSession{},
 		&models.TimelineEvent{},
 		&models.DashboardUsecase{},
+		&models.ComplianceFinding{},
+		&models.ComplianceSnapshot{},
+		&models.CaseEvidence{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
@@ -75,6 +82,6 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	db.Exec(`UPDATE elk_configs SET name = COALESCE(NULLIF(name, ''), 'Default'), is_active = TRUE WHERE name IS NULL OR name = ''`)
 	db.Exec(`UPDATE open_cti_configs SET name = COALESCE(NULLIF(name, ''), 'Default'), is_active = TRUE WHERE name IS NULL OR name = ''`)
 
-	log.Println("[db] migrations applied successfully")
+	slog.Info("migrations applied successfully")
 	return db, nil
 }

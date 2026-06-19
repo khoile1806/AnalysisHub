@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -19,9 +21,12 @@ import (
 
 // createJobRequest is the JSON body for dispatching a new job.
 type createJobRequest struct {
-	AgentID string `json:"agent_id" binding:"required"`
-	ToolID  string `json:"tool_id"  binding:"required"`
-	Args    string `json:"args"`
+	AgentID  string `json:"agent_id" binding:"required"`
+	ToolID   string `json:"tool_id"  binding:"required"`
+	Args     string `json:"args"`
+	CPULimit int    `json:"cpu_limit,omitempty"`
+	RAMLimit int    `json:"ram_limit,omitempty"`
+	Priority string `json:"priority,omitempty"`
 }
 
 // ListJobs returns all jobs, optionally filtered by agent_id and/or status.
@@ -119,6 +124,9 @@ func CreateJob(c *gin.Context) {
 		ToolID:    toolID,
 		Args:      req.Args,
 		Status:    models.JobPending,
+		CPULimit:  req.CPULimit,
+		RAMLimit:  req.RAMLimit,
+		Priority:  firstNonEmpty(req.Priority, "normal"),
 		CreatedBy: userID,
 	}
 
@@ -210,6 +218,9 @@ func RunJob(c *gin.Context) {
 		FileName:       job.Tool.FileName,
 		Args:           mergeArgs(job.Tool.Args, job.Args),
 		ExecutablePath: job.Tool.ExecutablePath,
+		CPULimit:       job.CPULimit,
+		RAMLimit:       job.RAMLimit,
+		Priority:       job.Priority,
 	}
 	if err := hub.SendJobToAgent(job.AgentID.String(), cmd); err != nil {
 		log.Printf("[jobs] run dispatch error: %v", err)
@@ -624,6 +635,26 @@ func GetArtifactContent(c *gin.Context) {
 	}
 
 	fullPath := filepath.Join(store.BasePath, job.ArtifactPath)
+
+	if strings.EqualFold(filepath.Ext(fullPath), ".zip") {
+		z, err := zip.OpenReader(fullPath)
+		if err == nil {
+			defer z.Close()
+			for _, f := range z.File {
+				if strings.EqualFold(filepath.Ext(f.Name), ".html") {
+					rc, err := f.Open()
+					if err == nil {
+						defer rc.Close()
+						c.Header("Content-Type", "text/html")
+						c.Header("X-Content-Type-Options", "nosniff")
+						io.Copy(c.Writer, rc)
+						return
+					}
+				}
+			}
+		}
+	}
+
 	c.File(fullPath)
 }
 

@@ -46,13 +46,14 @@ func (h *TimelineHandler) CreateTimelineEvent(c *gin.Context) {
 	}
 
 	var input struct {
-		EventTime time.Time `json:"event_time" binding:"required"`
-		Host      string    `json:"host"`
-		Tactic    string    `json:"tactic"`
-		Technique string    `json:"technique"`
-		Severity  string    `json:"severity"`
-		Title     string    `json:"title" binding:"required"`
-		Detail    string    `json:"detail"`
+		EventTime   time.Time `json:"event_time" binding:"required"`
+		Host        string    `json:"host"`
+		Tactic      string    `json:"tactic"`
+		Technique   string    `json:"technique"`
+		Severity    string    `json:"severity"`
+		Title       string    `json:"title" binding:"required"`
+		Detail      string    `json:"detail"`
+		Attachments string    `json:"attachments"` // JSON array
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -72,22 +73,82 @@ func (h *TimelineHandler) CreateTimelineEvent(c *gin.Context) {
 	}
 
 	ev := models.TimelineEvent{
-		CaseID:    caseID,
-		EventTime: input.EventTime,
-		Source:    "manual",
-		Host:      input.Host,
-		Tactic:    input.Tactic,
-		Technique: input.Technique,
-		Severity:  severity,
-		Title:     input.Title,
-		Detail:    input.Detail,
-		CreatedBy: userUUID,
+		CaseID:      caseID,
+		EventTime:   input.EventTime,
+		Source:      "manual",
+		Host:        input.Host,
+		Tactic:      input.Tactic,
+		Technique:   input.Technique,
+		Severity:    severity,
+		Title:       input.Title,
+		Detail:      input.Detail,
+		Attachments: input.Attachments,
+		CreatedBy:   userUUID,
 	}
 	if err := h.DB.Create(&ev).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to create event"})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": ev})
+}
+
+// UpdateTimelineEvent edits an event (fields + attachments).
+// PATCH /api/v1/timeline/:id
+func (h *TimelineHandler) UpdateTimelineEvent(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid event id"})
+		return
+	}
+	var ev models.TimelineEvent
+	if err := h.DB.First(&ev, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "event not found"})
+		return
+	}
+	var input struct {
+		Title       *string    `json:"title"`
+		Detail      *string    `json:"detail"`
+		Host        *string    `json:"host"`
+		Severity    *string    `json:"severity"`
+		Tactic      *string    `json:"tactic"`
+		Technique   *string    `json:"technique"`
+		EventTime   *time.Time `json:"event_time"`
+		Attachments *string    `json:"attachments"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	updates := map[string]interface{}{}
+	if input.Title != nil {
+		updates["title"] = *input.Title
+	}
+	if input.Detail != nil {
+		updates["detail"] = *input.Detail
+	}
+	if input.Host != nil {
+		updates["host"] = *input.Host
+	}
+	if input.Severity != nil && validSeverity(*input.Severity) {
+		updates["severity"] = *input.Severity
+	}
+	if input.Tactic != nil {
+		updates["tactic"] = *input.Tactic
+	}
+	if input.Technique != nil {
+		updates["technique"] = *input.Technique
+	}
+	if input.EventTime != nil {
+		updates["event_time"] = *input.EventTime
+	}
+	if input.Attachments != nil {
+		updates["attachments"] = *input.Attachments
+	}
+	if len(updates) > 0 {
+		h.DB.Model(&ev).Updates(updates)
+	}
+	h.DB.First(&ev, "id = ?", id)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": ev})
 }
 
 // DeleteTimelineEvent removes a single timeline event.

@@ -91,6 +91,34 @@ func (s *LocalStorage) GetArtifactByRelPath(relPath string) string {
 	return filepath.Join(s.BasePath, relPath)
 }
 
+// SaveCaseEvidence stores a result/evidence file under
+// case-evidence/<caseID>/<unique>-<filename>. Returns the relative path.
+func (s *LocalStorage) SaveCaseEvidence(caseID, unique, filename string, reader io.Reader) (string, error) {
+	dir := filepath.Join(s.BasePath, "case-evidence", caseID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("create evidence dir for case %s: %w", caseID, err)
+	}
+	safe := unique + "-" + filepath.Base(filename)
+	dest := filepath.Join(dir, safe)
+	if err := s.writeFile(dest, reader); err != nil {
+		return "", fmt.Errorf("save evidence %s: %w", filename, err)
+	}
+	return filepath.Join("case-evidence", caseID, safe), nil
+}
+
+// GetEvidencePath returns the absolute path for a stored evidence file.
+func (s *LocalStorage) GetEvidencePath(relPath string) string {
+	return filepath.Join(s.BasePath, relPath)
+}
+
+// RemoveByRelPath deletes a stored file given its relative path.
+func (s *LocalStorage) RemoveByRelPath(relPath string) error {
+	if relPath == "" {
+		return nil
+	}
+	return os.Remove(filepath.Join(s.BasePath, relPath))
+}
+
 // writeFile atomically creates or overwrites dest with data from reader.
 func (s *LocalStorage) writeFile(dest string, reader io.Reader) error {
 	f, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)

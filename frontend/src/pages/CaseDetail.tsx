@@ -7,9 +7,10 @@ import { generateOfflineBundle } from '@/api/offline_bundles'
 import {
   Briefcase, Activity, Server, ChevronRight, User, Wrench,
   ClipboardList, Lock, Unlock, Package, Monitor, Terminal,
-  Globe, CheckSquare, Square, Download, BrainCircuit, Crosshair,
+  Globe, CheckSquare, Square, Download, BrainCircuit, Crosshair, ShieldCheck,
 } from 'lucide-react'
 import AttackTimeline from '@/components/AttackTimeline'
+import ComplianceAssessment from '@/components/ComplianceAssessment'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { CategoryBadge, PlatformBadge } from '@/components/StatusBadge'
 import { formatBytes } from '@/lib/utils'
@@ -217,7 +218,7 @@ function OfflineBundleModal({
 }
 
 // ── CaseDetail page ────────────────────────────────────────────────────────
-type TabKey = 'timeline' | 'attack' | 'jobs' | 'offline'
+type TabKey = 'timeline' | 'attack' | 'jobs' | 'compliance' | 'offline'
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -287,10 +288,11 @@ export default function CaseDetailPage() {
   const isOpen = caseObj.status === 'open'
 
   const TABS: { key: TabKey; label: string; icon: typeof Activity }[] = [
-    { key: 'timeline', label: 'Activity Timeline', icon: Activity },
-    { key: 'attack',   label: 'Attack Timeline',   icon: Crosshair },
-    { key: 'jobs',     label: 'Hunting Results',   icon: ClipboardList },
-    { key: 'offline',  label: 'Offline Bundle',    icon: Package },
+    { key: 'timeline',   label: 'Activity Timeline', icon: Activity },
+    { key: 'attack',     label: 'Attack Timeline',   icon: Crosshair },
+    { key: 'jobs',       label: 'Hunting Results',   icon: ClipboardList },
+    { key: 'compliance', label: 'Compliance',        icon: ShieldCheck },
+    { key: 'offline',    label: 'Offline Bundle',    icon: Package },
   ]
 
   return (
@@ -375,7 +377,9 @@ export default function CaseDetailPage() {
                       ? 'border-purple-500 text-purple-400'
                       : t.key === 'attack'
                         ? 'border-rose-500 text-rose-400'
-                        : 'border-emerald-500 text-emerald-400'
+                        : t.key === 'compliance'
+                          ? 'border-amber-500 text-amber-400'
+                          : 'border-emerald-500 text-emerald-400'
                     : 'border-transparent text-gray-400 hover:text-gray-200'
                 }`}
               >
@@ -454,7 +458,12 @@ export default function CaseDetailPage() {
 
           {/* Attack Timeline tab */}
           {tab === 'attack' && (
-            <AttackTimeline caseId={caseObj.id} />
+            <AttackTimeline caseId={caseObj.id} agents={agents ?? []} />
+          )}
+
+          {/* Compliance tab */}
+          {tab === 'compliance' && (
+            <ComplianceAssessment caseId={caseObj.id} checklistRuns={checklist_runs ?? []} agents={agents ?? []} />
           )}
 
           {/* Hunting Results tab */}
