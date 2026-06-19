@@ -80,8 +80,9 @@ func (h *AIHandler) ExtractTimelineFromEvidence(c *gin.Context) {
 	var sb strings.Builder
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
+		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
 		close(tokenCh)
+		errCh <- sErr
 	}()
 	for tok := range tokenCh {
 		sb.WriteString(tok)
@@ -220,8 +221,9 @@ func (h *AIHandler) ExtractTimeline(c *gin.Context) {
 	var sb strings.Builder
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
+		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
 		close(tokenCh)
+		errCh <- sErr
 	}()
 	for tok := range tokenCh {
 		sb.WriteString(tok)
@@ -362,8 +364,9 @@ func (h *AIHandler) RebuildTimeline(c *gin.Context) {
 	var sb strings.Builder
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
+		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
 		close(tokenCh)
+		errCh <- sErr
 	}()
 	for tok := range tokenCh {
 		sb.WriteString(tok)

@@ -2,14 +2,12 @@ package ai
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
 
 // anthropicClient handles Anthropic's native Messages API with streaming.
@@ -19,7 +17,9 @@ type anthropicClient struct {
 	maxTok int
 }
 
-func (c *anthropicClient) StreamChat(ctx context.Context, msgs []Message, opts Options, out chan<- string) error {
+func (c *anthropicClient) StreamChat(ctx context.Context, msgs []Message, opts Options, out chan<- string) (Usage, error) {
+	var usage Usage
+
 	// Anthropic requires system message to be a top-level field, not in messages.
 	var system string
 	var anthropicMsgs []map[string]string
@@ -34,7 +34,7 @@ func (c *anthropicClient) StreamChat(ctx context.Context, msgs []Message, opts O
 		})
 	}
 	if len(anthropicMsgs) == 0 {
-		return fmt.Errorf("no user/assistant messages provided")
+		return usage, fmt.Errorf("no user/assistant messages provided")
 	}
 
 	maxTok := opts.MaxTokens
@@ -42,7 +42,9 @@ func (c *anthropicClient) StreamChat(ctx context.Context, msgs []Message, opts O
 		maxTok = c.maxTok
 	}
 	if maxTok == 0 {
-		maxTok = 4096
+		// Forensic reports are long; 4096 truncated them. Streaming means a high
+		// ceiling carries no timeout risk.
+		maxTok = 8192
 	}
 
 	reqMap := map[string]interface{}{
@@ -57,42 +59,44 @@ func (c *anthropicClient) StreamChat(ctx context.Context, msgs []Message, opts O
 
 	bodyBytes, err := json.Marshal(reqMap)
 	if err != nil {
-		return fmt.Errorf("marshal request: %w", err)
+		return usage, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(bodyBytes))
+	resp, err := postSSE(ctx, "https://api.anthropic.com/v1/messages", map[string]string{
+		"Content-Type":      "application/json",
+		"x-api-key":         c.apiKey,
+		"anthropic-version": "2023-06-01",
+	}, bodyBytes)
 	if err != nil {
-		return fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", c.apiKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-
-	client := &http.Client{Timeout: 5 * time.Minute}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("send request: %w", err)
+		return usage, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("anthropic returned %d: %s", resp.StatusCode, truncate(string(body), 300))
+		return usage, fmt.Errorf("anthropic returned %d: %s", resp.StatusCode, truncate(string(body), 300))
 	}
 
 	// Anthropic SSE format:
-	// event: content_block_delta
-	// data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}
+	// event: message_start    data: {"message":{"usage":{"input_tokens":N,"cache_read_input_tokens":M}}}
+	// event: content_block_delta  data: {"delta":{"type":"text_delta","text":"..."}}
+	// event: message_delta    data: {"usage":{"output_tokens":K}}
 	var eventType string
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "event: ") {
 			eventType = strings.TrimPrefix(line, "event: ")
 			continue
 		}
-		if strings.HasPrefix(line, "data: ") && eventType == "content_block_delta" {
-			payload := strings.TrimPrefix(line, "data: ")
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		payload := strings.TrimPrefix(line, "data: ")
+
+		switch eventType {
+		case "content_block_delta":
 			var chunk struct {
 				Delta struct {
 					Text string `json:"text"`
@@ -102,20 +106,43 @@ func (c *anthropicClient) StreamChat(ctx context.Context, msgs []Message, opts O
 				select {
 				case out <- chunk.Delta.Text:
 				case <-ctx.Done():
-					return ctx.Err()
+					return usage, ctx.Err()
 				}
+			}
+		case "message_start":
+			var chunk struct {
+				Message struct {
+					Usage struct {
+						InputTokens     int `json:"input_tokens"`
+						CacheReadTokens int `json:"cache_read_input_tokens"`
+					} `json:"usage"`
+				} `json:"message"`
+			}
+			if err := json.Unmarshal([]byte(payload), &chunk); err == nil {
+				usage.InputTokens = chunk.Message.Usage.InputTokens
+				usage.CacheReadTokens = chunk.Message.Usage.CacheReadTokens
+			}
+		case "message_delta":
+			var chunk struct {
+				Usage struct {
+					OutputTokens int `json:"output_tokens"`
+				} `json:"usage"`
+			}
+			if err := json.Unmarshal([]byte(payload), &chunk); err == nil && chunk.Usage.OutputTokens > 0 {
+				usage.OutputTokens = chunk.Usage.OutputTokens
 			}
 		}
 	}
-	return scanner.Err()
+	return usage, scanner.Err()
 }
 
 func (c *anthropicClient) TestConnection(ctx context.Context) error {
 	ch := make(chan string, 8)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- c.StreamChat(ctx, []Message{{Role: "user", Content: "Hi"}}, Options{MaxTokens: 5}, ch)
+		_, err := c.StreamChat(ctx, []Message{{Role: "user", Content: "Hi"}}, Options{MaxTokens: 5}, ch)
 		close(ch)
+		errCh <- err
 	}()
 	for range ch {
 	}

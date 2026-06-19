@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -552,6 +553,8 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	tokenCh := make(chan string, 256)
 	var resultBuilder strings.Builder
 	aiErrCh := make(chan error, 1)
+	usageCh := make(chan ai.Usage, 1)
+	var usage ai.Usage
 	tokenCount := 0
 
 	go func() {
@@ -559,8 +562,10 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 			{Role: "user", Content: prompt},
 		}
 		opts := ai.Options{MaxTokens: provider.MaxTokens}
-		aiErrCh <- aiClient.StreamChat(ctx, msgs, opts, tokenCh)
+		u, err := aiClient.StreamChat(ctx, msgs, opts, tokenCh)
 		close(tokenCh)
+		usageCh <- u
+		aiErrCh <- err
 	}()
 
 	for tok := range tokenCh {
@@ -588,8 +593,12 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 		h.db.Model(&session).Update("status", "failed")
 		return
 	}
+	usage = <-usageCh
 	setStep(analyzeIdx, "done", fmt.Sprintf("%d tokens", tokenCount))
 	h.sendLog(c, "success", fmt.Sprintf("AI hoàn thành — %d tokens nhận được", tokenCount))
+	if usage.Total() > 0 {
+		h.sendLog(c, "info", fmt.Sprintf("Token usage — input: %d, output: %d", usage.InputTokens, usage.OutputTokens))
+	}
 
 	// ── Step: save ─────────────────────────────────────────────
 	{
@@ -608,6 +617,7 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 			"status":      "done",
 			"result":      cleanResult,
 			"finished_at": now,
+			"tokens_used": usage.Total(),
 		})
 		setStep(saveIdx, "done", fmt.Sprintf("%d words", wordCount))
 		h.sendLog(c, "success", fmt.Sprintf("Báo cáo đã lưu — %d words", wordCount))
@@ -1003,6 +1013,17 @@ func (h *AIHandler) collectUpload(uploadPath string) (string, error) {
 	return sb.String(), nil
 }
 
+// envIntKB reads a positive integer (in KB) from an environment variable,
+// falling back to def when unset or invalid.
+func envIntKB(name string, def int) int {
+	if v := strings.TrimSpace(os.Getenv(name)); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
 // buildPrompt constructs the forensic analysis prompt.
 // enrichSummary is the optional threat-intel block injected between the raw
 // content and the analysis instructions; pass "" to omit it.
@@ -1018,13 +1039,15 @@ func (h *AIHandler) buildPrompt(session *models.AnalysisSession, content, enrich
 		sourceLabel = "dữ liệu forensic"
 	}
 
-	// Adaptive cap based on content size.
-	// Free-tier APIs (Groq on_demand: 12K TPM, Gemini free: 1M TPM) have very
-	// different limits. We use a conservative 24KB cap (~6000 tokens) which fits
-	// safely within Groq free tier while still covering most forensic outputs.
-	// For large outputs, the most useful data is at the start (headers, errors,
-	// findings) so front-truncation is intentional.
-	const contentCap = 24 * 1024
+	// Content budget. Modern models carry 128K–1M token context, so the old
+	// 24KB (~6000 token) cap front-truncated forensic evidence and dropped
+	// findings that sit past the first few KB. 128KB (~32K tokens) is a balanced
+	// default that fits comfortably in every current model while preserving far
+	// more of the evidence. Operators on tiny free-tier quotas can lower this via
+	// AI_CONTENT_CAP_KB. For inputs larger than this, front-truncation still
+	// applies (headers/errors/findings cluster early); a map-reduce summarizer is
+	// the planned follow-up for multi-MB sources.
+	contentCap := envIntKB("AI_CONTENT_CAP_KB", 128) * 1024
 	truncated := false
 	if len(content) > contentCap {
 		content = content[:contentCap]

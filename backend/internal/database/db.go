@@ -66,15 +66,12 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.AIProvider{},
 		&models.AnalysisSession{},
 		&models.TimelineEvent{},
-		&models.DashboardUsecase{},
 		&models.ComplianceFinding{},
 		&models.ComplianceSnapshot{},
 		&models.CaseEvidence{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
-
-	seedDashboardUsecases(db)
 
 	// Backfill: legacy single-row ELK/OpenCTI configs predate the multi-profile
 	// schema. Give them a name + active=true so they remain usable after the

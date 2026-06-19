@@ -244,6 +244,8 @@ func NewRouter(
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
 		protected.POST("/cases/:id/evidence/:evidenceId/extract-timeline", aiHandler.ExtractTimelineFromEvidence)
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
+		// AI triage of SIEM hunt hits — ranks/clusters raw ELK hits by suspicion.
+		protected.POST("/elk/hunt/results/:id/triage", aiHandler.TriageELKResult)
 
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)
@@ -252,13 +254,6 @@ func NewRouter(
 		protected.GET("/cases/:id/compliance/report", complianceHandler.GetReport)
 		protected.GET("/cases/:id/compliance/snapshots", complianceHandler.ListSnapshots)
 		protected.PATCH("/compliance/findings/:id", complianceHandler.UpdateFinding)
-
-		// Dashboard usecases — incident-type custom views
-		ucHandler := handlers.NewDashboardUsecaseHandler(db)
-		protected.GET("/dashboard/usecases", ucHandler.List)
-		protected.POST("/dashboard/usecases", ucHandler.Create)
-		protected.PUT("/dashboard/usecases/:id", ucHandler.Update)
-		protected.DELETE("/dashboard/usecases/:id", ucHandler.Delete)
 
 		// System — health check and usage statistics
 		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)

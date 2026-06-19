@@ -2,14 +2,12 @@ package ai
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
 
 // googleClient handles Google Gemini's streamGenerateContent API.
@@ -18,7 +16,9 @@ type googleClient struct {
 	model  string
 }
 
-func (c *googleClient) StreamChat(ctx context.Context, msgs []Message, opts Options, out chan<- string) error {
+func (c *googleClient) StreamChat(ctx context.Context, msgs []Message, opts Options, out chan<- string) (Usage, error) {
+	var usage Usage
+
 	// Gemini uses "contents" with "parts". System messages become a leading user turn.
 	type part struct {
 		Text string `json:"text"`
@@ -42,15 +42,19 @@ func (c *googleClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 		}
 	}
 
-	// Prepend system instruction as a user turn (Gemini 1.5+ supports systemInstruction field,
-	// but the simple prepend approach works across all model versions).
+	// Prepend system instruction into the first user turn — works across all
+	// Gemini model versions without the systemInstruction field.
 	if systemText != "" && len(contents) > 0 {
-		merged := systemText + "\n\n" + contents[0].Parts[0].Text
-		contents[0].Parts[0].Text = merged
+		contents[0].Parts[0].Text = systemText + "\n\n" + contents[0].Parts[0].Text
 	}
 
 	reqMap := map[string]interface{}{
 		"contents": contents,
+	}
+	if opts.JSON {
+		reqMap["generationConfig"] = map[string]interface{}{
+			"responseMimeType": "application/json",
+		}
 	}
 
 	model := c.model
@@ -60,33 +64,29 @@ func (c *googleClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 
 	bodyBytes, err := json.Marshal(reqMap)
 	if err != nil {
-		return fmt.Errorf("marshal request: %w", err)
+		return usage, fmt.Errorf("marshal request: %w", err)
 	}
 
 	url := fmt.Sprintf(
 		"https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s",
 		model, c.apiKey,
 	)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyBytes))
+	resp, err := postSSE(ctx, url, map[string]string{
+		"Content-Type": "application/json",
+	}, bodyBytes)
 	if err != nil {
-		return fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 5 * time.Minute}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("send request: %w", err)
+		return usage, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("google returned %d: %s", resp.StatusCode, truncate(string(body), 300))
+		return usage, fmt.Errorf("google returned %d: %s", resp.StatusCode, truncate(string(body), 300))
 	}
 
-	// Google SSE: data: {"candidates":[{"content":{"parts":[{"text":"..."}]}}]}
+	// Google SSE: data: {"candidates":[{"content":{"parts":[{"text":"..."}]}}],"usageMetadata":{...}}
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if !strings.HasPrefix(line, "data: ") {
@@ -102,9 +102,17 @@ func (c *googleClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 					} `json:"parts"`
 				} `json:"content"`
 			} `json:"candidates"`
+			UsageMetadata *struct {
+				PromptTokenCount     int `json:"promptTokenCount"`
+				CandidatesTokenCount int `json:"candidatesTokenCount"`
+			} `json:"usageMetadata"`
 		}
 		if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
 			continue
+		}
+		if chunk.UsageMetadata != nil {
+			usage.InputTokens = chunk.UsageMetadata.PromptTokenCount
+			usage.OutputTokens = chunk.UsageMetadata.CandidatesTokenCount
 		}
 		if len(chunk.Candidates) > 0 && len(chunk.Candidates[0].Content.Parts) > 0 {
 			token := chunk.Candidates[0].Content.Parts[0].Text
@@ -112,20 +120,21 @@ func (c *googleClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 				select {
 				case out <- token:
 				case <-ctx.Done():
-					return ctx.Err()
+					return usage, ctx.Err()
 				}
 			}
 		}
 	}
-	return scanner.Err()
+	return usage, scanner.Err()
 }
 
 func (c *googleClient) TestConnection(ctx context.Context) error {
 	ch := make(chan string, 8)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- c.StreamChat(ctx, []Message{{Role: "user", Content: "Hi"}}, Options{}, ch)
+		_, err := c.StreamChat(ctx, []Message{{Role: "user", Content: "Hi"}}, Options{}, ch)
 		close(ch)
+		errCh <- err
 	}()
 	for range ch {
 	}

@@ -72,6 +72,7 @@ export interface AutoHuntDoneEvent {
   total_batches: number
   total_iocs: number
   took_ms: number
+  result_id?: string  // saved ELKHuntResult id — used to run AI triage
 }
 
 export interface AutoHuntHandlers {
