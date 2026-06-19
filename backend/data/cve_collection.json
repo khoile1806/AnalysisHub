@@ -1,5 +1,1009 @@
 [
   {
+    "id": "MAL-2026-6195",
+    "description": "Malicious code in ts-linter-builders (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T04:30:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:51Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6189",
+    "description": "Malicious code in eyee (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T04:51:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:50Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6186",
+    "description": "Malicious code in electron-internal-utils (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T04:56:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:49Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6192",
+    "description": "Malicious code in nodepathbalance54 (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T05:01:34Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:49Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6184",
+    "description": "Malicious code in @qlab/component-intelligence (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T05:02:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:48Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6183",
+    "description": "Malicious code in @mep-exp/api-tools (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T05:03:19Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:47Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6193",
+    "description": "Malicious code in ordered-btree (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T05:09:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:47Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6191",
+    "description": "Malicious code in node-slot (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T05:10:55Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:46Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6185",
+    "description": "Malicious code in conversa-sdk (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T04:57:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:45Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6187",
+    "description": "Malicious code in eslint-helper (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T03:59:01Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:44Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6194",
+    "description": "Malicious code in portloop (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T04:36:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:43Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6182",
+    "description": "Malicious code in fluent-panel-metrics (PyPI)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-19T00:53:01Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-19T05:36:42Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2025-69135",
+    "description": "Subscriber SQL Injection in Events Schedule - WordPress Events Calendar Plugin \u003c= 2.7.2 versions.",
+    "severity": "high",
+    "cvss_score": 8.5,
+    "epss_score": 0.00342,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.903",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69131",
+    "description": "Unauthenticated Arbitrary File Download in WordPress \u0026 WooCommerce Scraper Plugin, Import Data from Any Site \u003c= 1.0.7 versions.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00481,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69129",
+    "description": "Unauthenticated Arbitrary File Upload in WordPress \u0026 WooCommerce Scraper Plugin, Import Data from Any Site \u003c= 1.0.7 versions.",
+    "severity": "critical",
+    "cvss_score": 10,
+    "epss_score": 0.00358,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.620",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69125",
+    "description": "Unauthenticated Local File Inclusion in Food Drop \u003c= 1.3 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00348,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.467",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69124",
+    "description": "Unauthenticated Local File Inclusion in Especio \u003c= 1.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.330",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69122",
+    "description": "Unauthenticated PHP Object Injection in SeaFood Company \u003c= 1.4 versions.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00525,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69121",
+    "description": "Unauthenticated Local File Inclusion in Deliciosa \u003c= 1.10.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:18.053",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69119",
+    "description": "Unauthenticated Local File Inclusion in Corbesier \u003c= 1.15.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.920",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69118",
+    "description": "Unauthenticated Local File Inclusion in CopyPress \u003c= 1.4.5 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00348,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.783",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69117",
+    "description": "Unauthenticated Local File Inclusion in Ingenioso \u003c= 1.14.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.647",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69116",
+    "description": "Unauthenticated Local File Inclusion in Iona \u003c= 1.0.8 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.517",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69114",
+    "description": "Unauthenticated Local File Inclusion in MaxiNet \u003c= 1.2.10 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.383",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69113",
+    "description": "Unauthenticated Local File Inclusion in Nexio \u003c= 1.10.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.240",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69112",
+    "description": "Unauthenticated Local File Inclusion in Planty \u003c= 1.14.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:17.100",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69110",
+    "description": "Unauthenticated Local File Inclusion in AirSupply \u003c= 2.0.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.947",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:59:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69109",
+    "description": "Unauthenticated Local File Inclusion in Raider Spirit \u003c= 1.1.2 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.813",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69108",
+    "description": "Unauthenticated PHP Object Injection in Hot Coffee \u003c= 1.7 versions.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00525,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.683",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69107",
+    "description": "Unauthenticated Local File Inclusion in Rosaleen \u003c= 2.8 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.550",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69105",
+    "description": "Unauthenticated Local File Inclusion in Modernee \u003c= 1.6.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.413",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69104",
+    "description": "Unauthenticated Cross Site Scripting (XSS) in Qreatix \u003c= 1.9.4 versions.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00237,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.267",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-69103",
+    "description": "Subscriber Arbitrary Content Deletion in Brikk \u003c= 3.0.0 versions.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00407,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:16.127",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-62340",
+    "description": "HCL iControl was affected by Inadequate Session Timeout vulnerability. The vulnerability involves a security risk where a web application fails to automatically terminate user sessions after a period of inactivity",
+    "severity": "low",
+    "cvss_score": 3.1,
+    "epss_score": 0.00189,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.840",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-60223",
+    "description": "Subscriber Arbitrary File Deletion in WPBot Pro Wordpress Chatbot \u003c= 13.6.5 versions.",
+    "severity": "high",
+    "cvss_score": 7.7,
+    "epss_score": 0.0045,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.710",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-60218",
+    "description": "Subscriber Arbitrary File Upload in PT Luxa Addons \u003c= 1.2.2 versions.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0.00447,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.583",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-60205",
+    "description": "Unauthenticated PHP Object Injection in ThemeREX Addons \u003c= 2.36.1.1 versions.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00525,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.457",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-60085",
+    "description": "Unauthenticated Local File Inclusion in Learnify \u003c= 1.15.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00423,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.317",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-59872",
+    "description": "HCL ZIE for Web is affetced by an Unrestricted File Upload vulnerability, If the server is configured to execute code, then it may be possible to obtain command execution on the server by uploading a file known as a web shell, which allows you to execute arbitrary code or operating system commands. For this attack to be successful, the file needs to be uploaded inside the Webroot, and the server must be configured to execute the code",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00341,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-59563",
+    "description": "Subscriber Privilege Escalation in Sonaar \u003c= 4.27.4 versions.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00378,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:15.057",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-59560",
+    "description": "Unauthenticated Cross Site Scripting (XSS) in Sonaar \u003c= 4.27.4 versions.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.0023,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.927",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-58954",
+    "description": "Unauthenticated Local File Inclusion in HomeRoofer \u003c= 2.11.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00423,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.793",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-58953",
+    "description": "Unauthenticated Local File Inclusion in Joly \u003c= 1.22.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00423,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.653",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-58952",
+    "description": "Unauthenticated Local File Inclusion in Neuronet \u003c 1.14.0 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00338,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:58:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-58924",
+    "description": "Unauthenticated Local File Inclusion in Geya \u003c= 1.15 versions.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00435,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.387",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-49403",
+    "description": "Unauthenticated Arbitrary File Download in Premium Age Verification / Restriction for WordPress \u003c= 3.0.2 versions.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00294,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.243",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-48643",
+    "description": "In multiple locations there is a possible provisioning bypass due to improper input validation. This could lead to local escalation of privilege with no additional execution privileges needed. User interaction is not needed for exploitation.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00084,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.140",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-48640",
+    "description": "In multiple locations, there is a possible 3rd party passkey entry pairing approval due to a missing permission check. This could lead to remote (proximal/adjacent) escalation of privilege with no additional execution privileges needed. User interaction is not needed for exploitation.",
+    "severity": "high",
+    "cvss_score": 8,
+    "epss_score": 0.00118,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:14.040",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-48617",
+    "description": "In overrideConfig of CarrierConfigLoader.java, there is a possible way to bypass UID check due to a permissions bypass. This could lead to local escalation of privilege with no additional execution privileges needed. User interaction is not needed for exploitation.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00077,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:13.940",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-48571",
+    "description": "In multiple functions of btm_sec.cc, there is a possible way for an attacker to intercept SMS messages due to a logic error in the code. This could lead to remote information disclosure with no additional execution privileges needed. User interaction is needed for exploitation.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00191,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:13.760",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-31013",
+    "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Themify Folo allows Reflected XSS.\n\nThis issue affects Themify Folo: from n/a through 1.9.6.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00146,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:13.360",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-15642",
+    "description": "Netskope is notified about a potential gap in its Netskoped Client for Windows systems where a malicious insider with admin privileges can lead to bypassing the NSClient Tamper Protections due to weak Discretionary Access Control List (DACLs) on the service object and related registry keys,.\n  *  Product Name: Netskope Client\n  *  Affected Platform: Windows\n  *  Affected Version: All version below R138",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00143,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:13.230",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-15641",
+    "description": "Netskope was notified about a potential gap in its Netskope Client for Windows systems where a malicious insider with administrative privileges can potentially tamper with the customer IOCTL by sending crafted IOCTL requests to the driver. A successful exploit can result in the bypassing of all anti-tampering protections for the NSClient.Affected Product(s) and Version(s)\n  *  Product Name: Netskope Client\n  *  Affected Platform: Windows\n  *  Affected Version: All version below R138",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00163,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:13.070",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-52488",
+    "description": "Subscriber Arbitrary File Upload in Grip \u003c= 1.0.9 versions.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0.00471,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.913",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-49269",
+    "description": "Unauthenticated Cross Site Scripting (XSS) in my flatonica \u003c= 0.0.8 versions.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00241,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-37496",
+    "description": "Missing Authorization vulnerability in Rara Themes Metro Magazine allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects Metro Magazine: from n/a through 1.3.7.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00208,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.627",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-37210",
+    "description": "Missing Authorization vulnerability in ali2woo AliNext allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects AliNext: from n/a through 3.3.5.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00269,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.490",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-35690",
+    "description": "Insertion of sensitive information into sent data vulnerability in MarketingFire Widget Options allows Retrieve Embedded Sensitive Data.\n\nThis issue affects Widget Options: from n/a through 4.0.1.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00294,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.353",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-35648",
+    "description": "Cross-Site request forgery (CSRF) vulnerability in Andy Moyle Emergency Password Reset allows Cross Site Request Forgery.\n\nThis issue affects Emergency Password Reset: from n/a through 8.0.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00127,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.210",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-34810",
+    "description": "Cross-Site request forgery (CSRF) vulnerability in Extend Themes Skyline WP allows Cross Site Request Forgery.\n\nThis issue affects Skyline WP: from n/a through 1.0.10.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00117,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:12.067",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-33909",
+    "description": "Missing Authorization vulnerability in Avirtum iPages Flipbook allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects iPages Flipbook: from n/a through 1.5.1.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0.00249,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:11.930",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:57:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-33685",
+    "description": "Missing Authorization vulnerability in Jegstudio Startupzy startupzy allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects Startupzy: from n/a through 1.1.1.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-17T13:19:11.783",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-19T04:56:58Z",
+    "source": "NVD"
+  },
+  {
     "id": "MAL-2026-6138",
     "description": "Malicious code in randpicker (PyPI)",
     "severity": "none",

@@ -208,5 +208,53 @@ export const PLAYBOOKS: Playbook[] = [
       { title: 'PCI Security Standards', url: 'https://www.pcisecuritystandards.org/' },
       { title: 'CIS Controls v8', url: 'https://www.cisecurity.org/controls/v8' }
     ]
+  },
+  {
+    id: 'security-hunting',
+    title: 'Security Assessment & Hunting',
+    description: 'Quy trình chủ động thu thập bằng chứng và săn tìm dấu hiệu xâm nhập (Threat Hunting) trên Windows và Linux. Áp dụng để rà soát an toàn định kỳ hoặc xác minh một nghi ngờ chưa rõ — thu thập snapshot toàn diện về tiến trình, mạng, tài khoản, persistence và log.',
+    type: 'Threat Hunting',
+    platforms: ['Windows', 'Linux'],
+    mitre: 'Multiple Tactics (Discovery, Persistence, C2)',
+    color: 'blue',
+    icon: 'Crosshair',
+    goals: [
+      'Visibility: Ảnh chụp toàn diện trạng thái hệ thống (process, mạng, account, persistence).',
+      'Detection: Phát hiện tiến trình lạ, kết nối C2 (Beaconing), tài khoản trái phép, backdoor.',
+      'Evidence Collection: Thu thập bằng chứng có mốc thời gian để dựng Timeline tấn công.',
+      'Threat Hunting: Trích xuất IOC để săn tìm trên diện rộng (SIEM/ELK).'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Chuẩn bị & Khoanh vùng (Scope)',
+        content: '**Xác định phạm vi và mục tiêu:**\n- Tạo một Case mới trong Case Manager để gom toàn bộ bằng chứng.\n- Xác định danh sách máy cần rà soát (scope) và gán Agent tương ứng.\n- Mở **Evidence & Compliance** với profile **Forensic Collection** — bộ check đã có sẵn note "Phục vụ" và gợi ý tool cho từng mục.',
+        icon: 'Target'
+      },
+      {
+        title: 'Bước 2: Thu thập trên Windows',
+        content: '**5 nhóm bằng chứng:**\n- **System & Patches:** `systeminfo`, `Get-HotFix` — đối chiếu CVE để tìm máy thiếu bản vá.\n- **Identity:** `net user`, `net localgroup administrators`, `query user` — tìm account lạ / admin trái phép.\n- **Process & Network:** `Get-Process` (lọc Path) + `Get-NetTCPConnection` map process — soi process không path, parent bất thường, beaconing.\n- **Persistence:** `schtasks`, Registry Run keys (HKLM/HKCU), scheduled tasks non-Microsoft.\n- **Event hunt:** ID 4624/4625 (logon), 4697 (cài service = backdoor), 4104 (PowerShell script đáng ngờ).',
+        icon: 'Server'
+      },
+      {
+        title: 'Bước 3: Thu thập trên Linux',
+        content: '**5 nhóm bằng chứng:**\n- **System:** `uname -a`, firewall (`iptables`/`ufw`), `sshd_config` (PermitRootLogin/PasswordAuthentication = cấu hình lỏng).\n- **Identity:** `/etc/passwd` (shell), nhóm sudo/wheel, `last`/`lastb` — bùng nổ failed login = brute-force.\n- **Process & Network:** `ps auxef`/`pstree`, `ss -antup` — phát hiện reverse shell.\n- **Persistence:** crontab, systemd enabled, `authorized_keys` lạ, LD_PRELOAD, SUID/SGID bất thường.\n- **Logs:** `auth.log`/`secure`, bash_history.',
+        icon: 'TerminalSquare'
+      },
+      {
+        title: 'Bước 4: Phân tích & Dựng Timeline',
+        content: '**Biến bằng chứng thành kết luận:**\n- Dùng **AI Analysis** để tóm tắt phát hiện và đánh giá bất thường từ output đã thu.\n- Đưa IOC (IP, hash, path) vào **ELK Threat Hunting** để săn trên diện rộng.\n- Promote hits + **AI Extract/Rebuild** vào **Attack Timeline** của case để dựng dòng sự kiện chuẩn.\n- Khi xác định loại tấn công cụ thể → chuyển sang playbook chuyên sâu (Webshell/Ransomware).',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 5: Tự động hóa & Quy mô lớn',
+        content: '**Khi cần rà soát hàng trăm máy:**\n- **KAPE / CyLR** (Windows) và **UAC** (Linux): tự động đóng gói artifact của từng máy.\n- **Hayabusa / DeepBlueCLI / Chainsaw:** phân tích nhanh Windows Event Logs tìm dấu hiệu tấn công.\n- **Velociraptor (khuyên dùng):** triển khai agent đa nền tảng, viết truy vấn VQL để hunt & thu thập bằng chứng từ hàng ngàn máy qua web console tập trung.\n- **OSQuery / Wazuh:** truy vấn trạng thái endpoint dạng SQL trên toàn fleet.',
+        icon: 'Download'
+      }
+    ],
+    references: [
+      { title: 'MITRE ATT&CK Framework', url: 'https://attack.mitre.org/' },
+      { title: 'Velociraptor — Digital Forensic & Incident Response', url: 'https://docs.velociraptor.app/' },
+      { title: 'SANS Threat Hunting Resources', url: 'https://www.sans.org/blog/threat-hunting-resources/' }
+    ]
   }
 ]
