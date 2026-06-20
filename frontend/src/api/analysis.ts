@@ -149,29 +149,9 @@ export interface ELKHuntResult {
   total_hits: number
   results: string  // JSON string of hits
   status: 'running' | 'done' | 'failed'
-  triage?: string  // JSON string of AI triage (ranked clusters)
-  triaged_at?: string
   created_by: string
   created_at: string
   finished_at?: string
-}
-
-export interface TriageCluster {
-  title: string
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info'
-  confidence?: 'high' | 'medium' | 'low'
-  rationale?: string
-  iocs?: string[]
-  hosts?: string[]
-  hit_count?: number
-  false_positive?: boolean
-  recommended_action?: string
-}
-
-export interface TriageReport {
-  summary: string
-  total_clusters?: number
-  clusters: TriageCluster[]
 }
 
 export const elkResultsApi = {
@@ -188,23 +168,4 @@ export const elkResultsApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/elk/hunt/results/${id}`)
   },
-
-  // triage runs AI ranking/clustering over a hunt result's raw hits.
-  triage: async (id: string, providerId: string): Promise<{ triage: TriageReport; clusters: number; tokens: number }> => {
-    const { data } = await apiClient.post<ApiResponse<{ triage: TriageReport; clusters: number; tokens: number }>>(
-      `/elk/hunt/results/${id}/triage`, { provider_id: providerId },
-    )
-    return data.data
-  },
-}
-
-// parseTriage safely parses the stored triage JSON string into a TriageReport.
-export function parseTriage(json?: string): TriageReport | null {
-  if (!json) return null
-  try {
-    const r = JSON.parse(json)
-    return Array.isArray(r.clusters) ? r : null
-  } catch {
-    return null
-  }
 }

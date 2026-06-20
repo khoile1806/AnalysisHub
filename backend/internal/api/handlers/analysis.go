@@ -4,22 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	ai "github.com/forensichub/backend/internal/ai"
+	"github.com/forensichub/backend/internal/analysis"
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/crypto"
@@ -459,7 +457,12 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	setStep(collectIdx, "running", "đang đọc...")
 	h.sendLog(c, "info", fmt.Sprintf("Đọc dữ liệu từ nguồn [%s]", session.SourceType))
 
-	content, collectErr := h.collectData(ctx, &session)
+	pipeline := analysis.NewPipeline(h.db, h.store)
+	content, collectErr := pipeline.Collect(analysis.Source{
+		Type:       session.SourceType,
+		ID:         session.SourceID,
+		UploadPath: session.UploadPath,
+	})
 	if collectErr != nil {
 		setStep(collectIdx, "failed", collectErr.Error())
 		h.sendLog(c, "warn", "Lỗi thu thập: "+collectErr.Error())
@@ -491,7 +494,7 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	if parseIdx := h.stepIndex(steps, "extract_strings"); parseIdx >= 0 {
 		setStep(parseIdx, "running", "")
 		h.sendLog(c, "info", "Trích xuất printable strings từ binary file...")
-		extracted := extractStrings(content, 512*1024)
+		extracted := analysis.ExtractStrings(content, 512*1024)
 		content = extracted
 		setStep(parseIdx, "done", fmt.Sprintf("%.1f KB strings", float64(len(content))/1024))
 		h.sendLog(c, "success", fmt.Sprintf("Trích xuất xong — %.1f KB strings", float64(len(content))/1024))
@@ -539,7 +542,13 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	contextIdx := h.stepIndex(steps, "context")
 	setStep(contextIdx, "running", "")
 	h.sendLog(c, "info", "Xây dựng DFIR forensic prompt...")
-	prompt := h.buildPrompt(&session, content, enrichSummary)
+	budget := analysis.EnvIntKB("AI_CONTENT_CAP_KB", 128) * 1024
+	truncated := false
+	if len(content) > budget {
+		content = content[:budget]
+		truncated = true
+	}
+	prompt := analysis.BuildDFIRPrompt(session.SourceType, content, enrichSummary, truncated)
 	promptKB := float64(len(prompt)) / 1024
 	setStep(contextIdx, "done", fmt.Sprintf("%.1f KB prompt", promptKB))
 	h.sendLog(c, "success", fmt.Sprintf("Prompt sẵn sàng — %.1f KB (~%d tokens)", promptKB, int(promptKB*250)))
@@ -716,428 +725,17 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 	// Threat intel enrichment steps — only shown when keys are configured
 	if h.enrich != nil && h.enrich.Configured() {
 		steps = append(steps,
-			models.ChainStep{ID: "extract_iocs", Label: "Trích xuất IOC",       Status: "pending"},
-			models.ChainStep{ID: "enrich",        Label: "Tra cứu Threat Intel", Status: "pending"},
+			models.ChainStep{ID: "extract_iocs", Label: "Trích xuất IOC", Status: "pending"},
+			models.ChainStep{ID: "enrich", Label: "Tra cứu Threat Intel", Status: "pending"},
 		)
 	}
 
 	steps = append(steps,
-		models.ChainStep{ID: "context",  Label: "Xây dựng DFIR prompt",   Status: "pending"},
-		models.ChainStep{ID: "analyze",  Label: "AI phân tích",            Status: "pending"},
-		models.ChainStep{ID: "save",     Label: "Lưu báo cáo",             Status: "pending"},
+		models.ChainStep{ID: "context", Label: "Xây dựng DFIR prompt", Status: "pending"},
+		models.ChainStep{ID: "analyze", Label: "AI phân tích", Status: "pending"},
+		models.ChainStep{ID: "save", Label: "Lưu báo cáo", Status: "pending"},
 	)
 	return steps
-}
-
-// collectData gathers text content from the session source.
-func (h *AIHandler) collectData(ctx context.Context, session *models.AnalysisSession) (string, error) {
-	switch session.SourceType {
-	case "job":
-		return h.collectJob(session.SourceID)
-	case "checklist_run":
-		return h.collectChecklistRun(session.SourceID)
-	case "elk_result":
-		return h.collectELKResult(session.SourceID)
-	case "upload":
-		return h.collectUpload(session.UploadPath)
-	case "offline_report":
-		return h.collectOfflineReport(session.UploadPath)
-	default:
-		return "", fmt.Errorf("unknown source type: %q", session.SourceType)
-	}
-}
-
-func (h *AIHandler) collectJob(jobIDStr string) (string, error) {
-	jobID, err := uuid.Parse(jobIDStr)
-	if err != nil {
-		return "", fmt.Errorf("invalid job ID: %w", err)
-	}
-	var job models.Job
-	if err := h.db.Preload("Tool").Preload("Agent").First(&job, "id = ?", jobID).Error; err != nil {
-		return "", fmt.Errorf("job not found: %w", err)
-	}
-
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "=== JOB EXECUTION RESULT ===\n")
-	fmt.Fprintf(&sb, "Tool: %s\n", job.Tool.Name)
-	fmt.Fprintf(&sb, "Agent: %s (OS: %s, IP: %s)\n", job.Agent.Name, job.Agent.OS, job.Agent.IPAddress)
-	fmt.Fprintf(&sb, "Args: %s\n", job.Args)
-	fmt.Fprintf(&sb, "Status: %s\n", job.Status)
-	if job.StartedAt != nil {
-		fmt.Fprintf(&sb, "Started: %s\n", job.StartedAt.Format(time.RFC3339))
-	}
-	if job.FinishedAt != nil {
-		fmt.Fprintf(&sb, "Finished: %s\n", job.FinishedAt.Format(time.RFC3339))
-	}
-	sb.WriteString("\n=== OUTPUT ===\n")
-	sb.WriteString(job.Output)
-
-	// If there's a JSON artifact, include it (capped at 200KB).
-	if job.ArtifactPath != "" {
-		fullPath := h.store.GetArtifactByRelPath(job.ArtifactPath)
-		ext := strings.ToLower(filepath.Ext(fullPath))
-		if ext == ".json" || ext == ".txt" || ext == ".csv" || ext == ".log" || ext == ".xml" {
-			data, readErr := os.ReadFile(fullPath)
-			if readErr == nil {
-				sb.WriteString("\n=== ARTIFACT (" + filepath.Base(job.ArtifactPath) + ") ===\n")
-				artifact := string(data)
-				if len(artifact) > 16*1024 {
-					artifact = artifact[:16*1024] + "\n... [truncated]"
-				}
-				sb.WriteString(artifact)
-			}
-		}
-	}
-	return sb.String(), nil
-}
-
-func (h *AIHandler) collectChecklistRun(runIDStr string) (string, error) {
-	runID, err := uuid.Parse(runIDStr)
-	if err != nil {
-		return "", fmt.Errorf("invalid run ID: %w", err)
-	}
-	var run models.ChecklistRun
-	if err := h.db.Preload("Batches").First(&run, "id = ?", runID).Error; err != nil {
-		return "", fmt.Errorf("checklist run not found: %w", err)
-	}
-
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "=== EVIDENCE COLLECTION CHECKLIST RESULTS ===\n")
-	fmt.Fprintf(&sb, "Platform: %s | Analyst: %s | Label: %s\n", run.Platform, run.Analyst, run.Label)
-	fmt.Fprintf(&sb, "Status: %s | Created: %s\n\n", run.Status, run.CreatedAt.Format(time.RFC3339))
-
-	// Per-batch cap: keep first 2KB of each batch output.
-	// Checklist runs often have many batches; the first part of each is most
-	// representative (command header + immediate output). Total per-run budget
-	// is further capped by buildPrompt (24KB), so even 20 batches × 2KB = 40KB
-	// will be trimmed before sending to the AI.
-	const batchCap = 2 * 1024
-	for _, batch := range run.Batches {
-		if batch.Output == "" {
-			continue
-		}
-		out := batch.Output
-		if len(out) > batchCap {
-			out = out[:batchCap] + "\n... [truncated]"
-		}
-		fmt.Fprintf(&sb, "--- [%s] %s ---\n", batch.BatchKey, batch.BatchLabel)
-		sb.WriteString(out)
-		sb.WriteString("\n")
-	}
-	return sb.String(), nil
-}
-
-func (h *AIHandler) collectELKResult(resultIDStr string) (string, error) {
-	resultID, err := uuid.Parse(resultIDStr)
-	if err != nil {
-		return "", fmt.Errorf("invalid ELK result ID: %w", err)
-	}
-	var result models.ELKHuntResult
-	if err := h.db.First(&result, "id = ?", resultID).Error; err != nil {
-		return "", fmt.Errorf("ELK result not found: %w", err)
-	}
-
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "=== ELK THREAT HUNT RESULTS ===\n")
-	fmt.Fprintf(&sb, "Title: %s\n", result.Title)
-	fmt.Fprintf(&sb, "IOCs used: %d | Total hits: %d | Status: %s\n\n", result.IOCsUsed, result.TotalHits, result.Status)
-
-	if result.Results != "" {
-		// Cap hits to 16KB — beyond that the AI can't usefully process anyway
-		data := result.Results
-		if len(data) > 16*1024 {
-			data = data[:16*1024] + "\n... [truncated]"
-		}
-		sb.WriteString("=== HITS ===\n")
-		sb.WriteString(data)
-	}
-	return sb.String(), nil
-}
-
-// offlineReport mirrors the JSON structure emitted by the offline agent reporter.
-type offlineReport struct {
-	BundleName  string `json:"bundle_name"`
-	CaseID      string `json:"case_id"`
-	CaseName    string `json:"case_name"`
-	Hostname    string `json:"hostname"`
-	IP          string `json:"ip"`
-	OS          string `json:"os"`
-	Arch        string `json:"arch"`
-	GeneratedAt string `json:"generated_at"`
-	Jobs        []struct {
-		ToolName    string    `json:"tool_name"`
-		ToolID      string    `json:"tool_id"`
-		Args        string    `json:"args"`
-		Status      string    `json:"status"`
-		StartedAt   time.Time `json:"started_at"`
-		FinishedAt  time.Time `json:"finished_at"`
-		DurationSec float64   `json:"duration_seconds"`
-		OutputLines int       `json:"output_lines"`
-		Output      string    `json:"output"`
-		Error       string    `json:"error"`
-	} `json:"jobs"`
-	Summary struct {
-		TotalTools int `json:"total_tools"`
-		Done       int `json:"done"`
-		Failed     int `json:"failed"`
-		Stopped    int `json:"stopped"`
-	} `json:"summary"`
-}
-
-// collectOfflineReport reads and formats an offline-agent JSON report for AI analysis.
-// Each tool's output is included up to 4 KB; total is further capped by buildPrompt.
-func (h *AIHandler) collectOfflineReport(uploadPath string) (string, error) {
-	if uploadPath == "" {
-		return "", fmt.Errorf("no upload file associated with this session")
-	}
-	fullPath := h.store.GetAnalysisUploadPath(uploadPath)
-	raw, err := os.ReadFile(fullPath)
-	if err != nil {
-		return "", fmt.Errorf("read offline report: %w", err)
-	}
-
-	var rep offlineReport
-	if err := json.Unmarshal(raw, &rep); err != nil {
-		// Not a valid bundle JSON — treat as plain text
-		return string(raw), nil
-	}
-
-	var sb strings.Builder
-	sb.WriteString("=== FORENSICHUB OFFLINE HUNTING REPORT ===\n")
-	fmt.Fprintf(&sb, "Bundle   : %s\n", rep.BundleName)
-	if rep.CaseName != "" {
-		fmt.Fprintf(&sb, "Case     : %s\n", rep.CaseName)
-	}
-	fmt.Fprintf(&sb, "Host     : %s\n", rep.Hostname)
-	fmt.Fprintf(&sb, "IP       : %s\n", rep.IP)
-	fmt.Fprintf(&sb, "OS/Arch  : %s / %s\n", rep.OS, rep.Arch)
-	if rep.GeneratedAt != "" {
-		fmt.Fprintf(&sb, "Generated: %s\n", rep.GeneratedAt)
-	}
-	fmt.Fprintf(&sb, "Summary  : %d tools — %d done, %d failed, %d stopped\n\n",
-		rep.Summary.TotalTools, rep.Summary.Done, rep.Summary.Failed, rep.Summary.Stopped)
-
-	const perToolCap = 4 * 1024
-	for i, job := range rep.Jobs {
-		dur := ""
-		if job.DurationSec > 0 {
-			dur = fmt.Sprintf(" (%.1fs)", job.DurationSec)
-		}
-		fmt.Fprintf(&sb, "--- [%d/%d] %s | %s%s | args: %s ---\n",
-			i+1, len(rep.Jobs), job.ToolName, job.Status, dur, job.Args)
-		if job.Error != "" {
-			fmt.Fprintf(&sb, "ERROR: %s\n", job.Error)
-		}
-		output := job.Output
-		if len(output) > perToolCap {
-			output = output[:perToolCap] + "\n... [truncated]"
-		}
-		sb.WriteString(output)
-		sb.WriteString("\n\n")
-	}
-	return sb.String(), nil
-}
-
-// collectUpload reads a sampled portion of the uploaded file without loading
-// the whole thing into memory.  Memory dumps and disk images can be multiple
-// gigabytes; os.ReadFile on such a file OOMs the server.  Instead we read:
-//   - up to 1 MB from the beginning (process lists, PE headers, registry hives)
-//   - up to 512 KB from the middle (heap allocations, stack frames)
-//   - up to 512 KB from the end (recent activity, logs)
-//
-// Total in-memory footprint: ≤ 2 MB regardless of file size.
-// The extractStrings step that follows will reduce this to ≤ 512 KB of
-// printable ASCII, and buildPrompt caps to 24 KB before sending to the AI.
-func (h *AIHandler) collectUpload(uploadPath string) (string, error) {
-	if uploadPath == "" {
-		return "", fmt.Errorf("no upload file associated with this session")
-	}
-	fullPath := h.store.GetAnalysisUploadPath(uploadPath)
-
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return "", fmt.Errorf("open upload file: %w", err)
-	}
-	defer f.Close()
-
-	info, err := f.Stat()
-	if err != nil {
-		return "", fmt.Errorf("stat upload file: %w", err)
-	}
-	size := info.Size()
-
-	const (
-		headBytes   = 1 * 1024 * 1024 // 1 MB from start
-		middleBytes = 512 * 1024       // 512 KB from middle
-		tailBytes   = 512 * 1024       // 512 KB from end
-	)
-
-	// Small file: read entirely
-	if size <= int64(headBytes+middleBytes+tailBytes) {
-		data, rerr := io.ReadAll(io.LimitReader(f, int64(headBytes+middleBytes+tailBytes)))
-		if rerr != nil {
-			return "", fmt.Errorf("read upload file: %w", rerr)
-		}
-		return string(data), nil
-	}
-
-	var sb strings.Builder
-	sb.Grow(headBytes + middleBytes + tailBytes + 64)
-
-	// Head
-	head := make([]byte, headBytes)
-	n, _ := io.ReadFull(f, head)
-	sb.Write(head[:n])
-
-	// Middle
-	midOffset := (size / 2) - int64(middleBytes/2)
-	if _, seekErr := f.Seek(midOffset, io.SeekStart); seekErr == nil {
-		mid := make([]byte, middleBytes)
-		n, _ = io.ReadFull(f, mid)
-		sb.WriteString("\n\n[... middle sample ...]\n\n")
-		sb.Write(mid[:n])
-	}
-
-	// Tail
-	tailOffset := size - int64(tailBytes)
-	if tailOffset < 0 {
-		tailOffset = 0
-	}
-	if _, seekErr := f.Seek(tailOffset, io.SeekStart); seekErr == nil {
-		tail := make([]byte, tailBytes)
-		n, _ = io.ReadFull(f, tail)
-		sb.WriteString("\n\n[... tail sample ...]\n\n")
-		sb.Write(tail[:n])
-	}
-
-	return sb.String(), nil
-}
-
-// envIntKB reads a positive integer (in KB) from an environment variable,
-// falling back to def when unset or invalid.
-func envIntKB(name string, def int) int {
-	if v := strings.TrimSpace(os.Getenv(name)); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return n
-		}
-	}
-	return def
-}
-
-// buildPrompt constructs the forensic analysis prompt.
-// enrichSummary is the optional threat-intel block injected between the raw
-// content and the analysis instructions; pass "" to omit it.
-func (h *AIHandler) buildPrompt(session *models.AnalysisSession, content, enrichSummary string) string {
-	sourceLabel := map[string]string{
-		"job":            "kết quả chạy tool",
-		"checklist_run":  "kết quả thu thập bằng chứng (Evidence Checklist)",
-		"elk_result":     "kết quả ELK Threat Hunt",
-		"upload":         "file upload từ bên ngoài",
-		"offline_report": "báo cáo forensic hunting offline (chạy trên endpoint không có mạng)",
-	}[session.SourceType]
-	if sourceLabel == "" {
-		sourceLabel = "dữ liệu forensic"
-	}
-
-	// Content budget. Modern models carry 128K–1M token context, so the old
-	// 24KB (~6000 token) cap front-truncated forensic evidence and dropped
-	// findings that sit past the first few KB. 128KB (~32K tokens) is a balanced
-	// default that fits comfortably in every current model while preserving far
-	// more of the evidence. Operators on tiny free-tier quotas can lower this via
-	// AI_CONTENT_CAP_KB. For inputs larger than this, front-truncation still
-	// applies (headers/errors/findings cluster early); a map-reduce summarizer is
-	// the planned follow-up for multi-MB sources.
-	contentCap := envIntKB("AI_CONTENT_CAP_KB", 128) * 1024
-	truncated := false
-	if len(content) > contentCap {
-		content = content[:contentCap]
-		truncated = true
-	}
-	truncateNote := ""
-	if truncated {
-		truncateNote = "\n\n⚠️ *Nội dung đã được cắt bớt do giới hạn token của API. Chỉ phần đầu được phân tích.*"
-	}
-
-	// Build the enrichment block and tailor analysis instructions accordingly.
-	enrichSection := ""
-	iocInstruction := "Liệt kê các IOC được phát hiện (IP, domain, hash, path, v.v.) nếu có."
-	enrichInstruction := ""
-	if enrichSummary != "" {
-		enrichSection = "\n\n---\n\n" + enrichSummary
-		iocInstruction = `Dựa trên kết quả Threat Intelligence ở trên, liệt kê từng IOC kèm đánh giá:
-- Với mỗi IOC: ghi rõ giá trị, loại (IP/hash/domain), điểm reputation và verdict (MALICIOUS / SUSPICIOUS / CLEAN)
-- Tham chiếu nguồn cụ thể: VirusTotal score, AbuseIPDB confidence, OTX pulses
-- Nếu IOC là CLEAN, ghi rõ để loại bỏ khỏi danh sách nghi vấn`
-		enrichInstruction = `
-⚠️ **Lưu ý quan trọng**: Kết quả Threat Intelligence thực tế đã được tra cứu tự động và đính kèm bên trên.
-Hãy:
-- Dựa HOÀN TOÀN vào dữ liệu reputation thực tế (VT score, AbuseIPDB score, OTX pulses) — không được phỏng đoán
-- Phân loại mức độ nguy hiểm dựa trên số liệu cụ thể, không phải nhận xét chung chung
-- Nêu rõ tên malware family / threat label khi VT cung cấp (ví dụ: "Emotet", "Cobalt Strike", "Mirai")
-- Phân biệt rõ IOC đã được xác nhận độc hại vs. chưa tìm thấy trong database
-
-`
-	}
-
-	return fmt.Sprintf(`Bạn là chuyên gia DFIR (Digital Forensics & Incident Response) với nhiều năm kinh nghiệm.
-
-Dưới đây là %s cần được phân tích:%s
-
-%s
-%s
----
-
-%sHãy thực hiện phân tích toàn diện theo cấu trúc sau (dùng Markdown):
-
-## Tóm tắt tổng quan
-Mô tả ngắn gọn về dữ liệu và những điểm đáng chú ý nhất. Nêu số lượng IOC phát hiện được và mức độ nguy hiểm tổng thể dựa trên dữ liệu thực tế.
-
-## Phát hiện chính
-Liệt kê các phát hiện quan trọng, phân loại theo mức độ nghiêm trọng (dựa trên dữ liệu threat intel thực tế nếu có):
-- 🔴 **Critical** — xác nhận là malicious, cần xử lý ngay
-- 🟠 **High** — suspicious hoặc có dấu hiệu rõ ràng
-- 🟡 **Medium** — cần điều tra thêm
-- 🟢 **Low/Info** — clean hoặc không đủ bằng chứng
-
-## Phân tích chi tiết
-Giải thích từng phát hiện: nguyên nhân, tác động, threat family (nếu có từ VT labels), bằng chứng cụ thể với số liệu reputation.
-
-## Indicators of Compromise (IOC)
-%s
-
-## Đề xuất hành động
-Các bước điều tra và khắc phục cụ thể, theo thứ tự ưu tiên. Bao gồm cách block/quarantine IOC đã được xác nhận độc hại.
-
-## Kết luận
-Đánh giá tổng thể mức độ rủi ro dựa trên kết quả threat intel. Nêu rõ: bao nhiêu IOC được xác nhận malicious, loại mối đe dọa, và mức độ khẩn cấp cần phản hồi.`, sourceLabel, truncateNote, content, enrichSection, enrichInstruction, iocInstruction)
-}
-
-// extractStrings extracts printable ASCII sequences (≥4 chars) from binary data.
-// Returns at most maxBytes of extracted strings.
-func extractStrings(data string, maxBytes int) string {
-	bytes := []byte(data)
-	var sb strings.Builder
-	var current strings.Builder
-
-	for _, b := range bytes {
-		if b >= 0x20 && b < 0x7f && unicode.IsPrint(rune(b)) {
-			current.WriteByte(b)
-		} else {
-			if current.Len() >= 4 {
-				sb.WriteString(current.String())
-				sb.WriteByte('\n')
-				if sb.Len() >= maxBytes {
-					sb.WriteString("\n... [truncated]")
-					return sb.String()
-				}
-			}
-			current.Reset()
-		}
-	}
-	if current.Len() >= 4 {
-		sb.WriteString(current.String())
-	}
-	return sb.String()
 }
 
 // newDecryptedClient decrypts the provider API key and returns an ai.Client.
@@ -1155,4 +753,3 @@ func (h *AIHandler) newDecryptedClient(p *models.AIProvider) (ai.Client, error) 
 	}
 	return client, nil
 }
-

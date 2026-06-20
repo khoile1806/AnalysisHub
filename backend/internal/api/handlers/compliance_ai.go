@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	ai "github.com/forensichub/backend/internal/ai"
+	"github.com/forensichub/backend/internal/analysis"
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -30,17 +30,6 @@ func dueOffsetBySeverity(sev string) time.Duration {
 	default:
 		return 90 * 24 * time.Hour
 	}
-}
-
-// assessItem is one check sent by the client for AI evaluation.
-type assessItem struct {
-	ItemID    string   `json:"item_id"`
-	Control   string   `json:"control"`
-	Frameworks []string `json:"frameworks"`
-	Title     string   `json:"title"`
-	Purpose   string   `json:"purpose"`
-	Output    string   `json:"output"`
-	Host      string   `json:"host"`
 }
 
 // aiVerdict is one element of the AI's JSON response.
@@ -66,9 +55,9 @@ func (h *AIHandler) AssessCompliance(c *gin.Context) {
 	}
 
 	var input struct {
-		ProviderID string       `json:"provider_id" binding:"required"`
-		Replace    bool         `json:"replace"`
-		Items      []assessItem `json:"items" binding:"required,min=1"`
+		ProviderID string                `json:"provider_id" binding:"required"`
+		Replace    bool                  `json:"replace"`
+		Items      []analysis.AssessItem `json:"items" binding:"required,min=1"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -103,28 +92,18 @@ func (h *AIHandler) AssessCompliance(c *gin.Context) {
 		}
 	}
 
-	prompt := buildAssessPrompt(input.Items)
+	prompt := analysis.BuildAssessPrompt(input.Items)
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 180*time.Second)
 	defer cancel()
 
-	tokenCh := make(chan string, 256)
-	var sb strings.Builder
-	errCh := make(chan error, 1)
-	go func() {
-		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
-		close(tokenCh)
-		errCh <- sErr
-	}()
-	for tok := range tokenCh {
-		sb.WriteString(tok)
-	}
-	if aiErr := <-errCh; aiErr != nil {
+	aiOut, _, aiErr := analysis.Chat(ctx, client, prompt, ai.Options{MaxTokens: provider.MaxTokens, JSON: true})
+	if aiErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "AI error: " + aiErr.Error()})
 		return
 	}
 
-	verdicts := parseAssessVerdicts(sb.String())
+	verdicts := parseAssessVerdicts(aiOut)
 	if len(verdicts) == 0 {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"assessed": 0, "note": "AI returned no parseable verdicts"}})
 		return
@@ -223,62 +202,9 @@ func (h *AIHandler) saveComplianceSnapshot(caseID uuid.UUID) {
 	h.db.Create(&snap)
 }
 
-func buildAssessPrompt(items []assessItem) string {
-	var sb strings.Builder
-	sb.WriteString(`You are a security compliance auditor (ISO 27001 / SOC 2 / PCI-DSS / NIST / CIS).
-For EACH check below you are given: its purpose (the expected secure baseline) and the ACTUAL command output collected from the host. Decide whether the host meets the control.
-
-Return ONLY a JSON array (no markdown, no prose, no code fences). One element per check:
-{
-  "item_id": "<the id given>",
-  "status": "compliant | non_compliant | partial | na",
-  "severity": "critical | high | medium | low | info",
-  "rationale": "one concise sentence explaining the verdict, citing the evidence",
-  "remediation": "short concrete fix if not compliant, else empty"
-}
-
-Rules:
-- "compliant" = output clearly meets the secure baseline.
-- "non_compliant" = output clearly violates it (assign severity by impact).
-- "partial" = partially meets / needs review.
-- "na" = output empty/insufficient or check not applicable.
-- Base the verdict ONLY on the actual output; do not assume.
-
-CHECKS:
-`)
-	for i, it := range items {
-		fmt.Fprintf(&sb, "\n[%d] item_id=%s | control=%s\n", i+1, it.ItemID, it.Control)
-		fmt.Fprintf(&sb, "check: %s\n", it.Title)
-		if it.Purpose != "" {
-			fmt.Fprintf(&sb, "expected/purpose: %s\n", it.Purpose)
-		}
-		out := it.Output
-		if strings.TrimSpace(out) == "" {
-			out = "(no output)"
-		}
-		fmt.Fprintf(&sb, "actual output:\n%s\n", out)
-	}
-	return sb.String()
-}
-
 func parseAssessVerdicts(raw string) []aiVerdict {
-	s := stripThinkBlocks(raw)
-	s = strings.TrimSpace(s)
-	if strings.HasPrefix(s, "```") {
-		if i := strings.Index(s, "\n"); i >= 0 {
-			s = s[i+1:]
-		}
-		s = strings.TrimSuffix(strings.TrimSpace(s), "```")
-		s = strings.TrimSpace(s)
-	}
-	start := strings.Index(s, "[")
-	end := strings.LastIndex(s, "]")
-	if start < 0 || end <= start {
-		return nil
-	}
-	s = s[start : end+1]
 	var v []aiVerdict
-	if err := json.Unmarshal([]byte(s), &v); err != nil {
+	if err := json.Unmarshal([]byte(ai.ExtractJSON(stripThinkBlocks(raw))), &v); err != nil {
 		return nil
 	}
 	return v

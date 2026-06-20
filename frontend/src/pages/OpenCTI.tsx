@@ -12,7 +12,6 @@ import {
 } from '@/api/elk'
 import { splunkApi, SplunkConfig } from '@/api/splunk'
 import { qradarApi, QRadarConfig } from '@/api/qradar'
-import HitTriagePanel from '@/components/HitTriagePanel'
 import { useAuthStore } from '@/store/auth'
 import toast from 'react-hot-toast'
 import {
@@ -1588,9 +1587,6 @@ function ProgressBlock({ state }: { state: HuntState }) {
             {state.batchErrors.map((e, i) => (<li key={i}>batch {e.batch} [{e.bucket}]: {e.error}</li>))}
           </ul>
         </details>
-      )}
-      {state.done?.result_id && state.done.total_hits > 0 && (
-        <HitTriagePanel resultId={state.done.result_id} />
       )}
     </div>
   )

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	ai "github.com/forensichub/backend/internal/ai"
+	"github.com/forensichub/backend/internal/analysis"
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -72,27 +73,17 @@ func (h *AIHandler) ExtractTimelineFromEvidence(c *gin.Context) {
 		content = content[:contentCap]
 	}
 
-	prompt := buildTimelinePrompt(content, ev.Host)
+	prompt := analysis.BuildTimelinePrompt(content, ev.Host)
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 	defer cancel()
-	tokenCh := make(chan string, 256)
-	var sb strings.Builder
-	errCh := make(chan error, 1)
-	go func() {
-		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
-		close(tokenCh)
-		errCh <- sErr
-	}()
-	for tok := range tokenCh {
-		sb.WriteString(tok)
-	}
-	if aiErr := <-errCh; aiErr != nil {
+	aiOut, _, aiErr := analysis.Chat(ctx, client, prompt, ai.Options{MaxTokens: provider.MaxTokens, JSON: true})
+	if aiErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "AI error: " + aiErr.Error()})
 		return
 	}
 
-	events := parseAITimeline(sb.String())
+	events := parseAITimeline(aiOut)
 	var userUUID uuid.UUID
 	if v, ok := c.Get("userID"); ok {
 		if uid, perr := uuid.Parse(v.(string)); perr == nil {
@@ -192,7 +183,7 @@ func (h *AIHandler) ExtractTimeline(c *gin.Context) {
 	}
 
 	// Collect evidence text from the job (covers offline-imported jobs too).
-	content, collectErr := h.collectJob(input.JobID)
+	content, collectErr := analysis.NewPipeline(h.db, h.store).Collect(analysis.Source{Type: "job", ID: input.JobID})
 	if collectErr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": collectErr.Error()})
 		return
@@ -211,29 +202,19 @@ func (h *AIHandler) ExtractTimeline(c *gin.Context) {
 		}
 	}
 
-	prompt := buildTimelinePrompt(content, host)
+	prompt := analysis.BuildTimelinePrompt(content, host)
 
 	// Accumulate the full AI response (non-streaming use of StreamChat).
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 	defer cancel()
 
-	tokenCh := make(chan string, 256)
-	var sb strings.Builder
-	errCh := make(chan error, 1)
-	go func() {
-		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
-		close(tokenCh)
-		errCh <- sErr
-	}()
-	for tok := range tokenCh {
-		sb.WriteString(tok)
-	}
-	if aiErr := <-errCh; aiErr != nil {
+	aiOut, _, aiErr := analysis.Chat(ctx, client, prompt, ai.Options{MaxTokens: provider.MaxTokens, JSON: true})
+	if aiErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "AI error: " + aiErr.Error()})
 		return
 	}
 
-	events := parseAITimeline(sb.String())
+	events := parseAITimeline(aiOut)
 	if len(events) == 0 {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"imported": 0, "note": "AI returned no parseable events"}})
 		return
@@ -355,28 +336,18 @@ func (h *AIHandler) RebuildTimeline(c *gin.Context) {
 	evidence := aggregateCaseEvidence(jobs)
 	existing := formatExistingEvents(events)
 
-	prompt := buildRebuildPrompt(evidence, existing)
+	prompt := analysis.BuildRebuildPrompt(evidence, existing)
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 180*time.Second)
 	defer cancel()
 
-	tokenCh := make(chan string, 256)
-	var sb strings.Builder
-	errCh := make(chan error, 1)
-	go func() {
-		_, sErr := client.StreamChat(ctx, []ai.Message{{Role: "user", Content: prompt}}, ai.Options{MaxTokens: provider.MaxTokens}, tokenCh)
-		close(tokenCh)
-		errCh <- sErr
-	}()
-	for tok := range tokenCh {
-		sb.WriteString(tok)
-	}
-	if aiErr := <-errCh; aiErr != nil {
+	aiOut, _, aiErr := analysis.Chat(ctx, client, prompt, ai.Options{MaxTokens: provider.MaxTokens, JSON: true})
+	if aiErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "AI error: " + aiErr.Error()})
 		return
 	}
 
-	parsed := parseAITimeline(sb.String())
+	parsed := parseAITimeline(aiOut)
 	if len(parsed) == 0 {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"imported": 0, "replaced": false, "note": "AI returned no parseable events — existing timeline kept"}})
 		return
@@ -484,92 +455,12 @@ func formatExistingEvents(events []models.TimelineEvent) string {
 	return sb.String()
 }
 
-func buildRebuildPrompt(evidence, existingEvents string) string {
-	return fmt.Sprintf(`You are a senior DFIR analyst producing the FINAL attack timeline for an incident report.
-
-You are given two inputs:
-1. RAW EVIDENCE: aggregated output from forensic tools run across the affected hosts.
-2. EXISTING ANALYST NOTES: timeline entries an analyst added during triage. These may be rough, inconsistently worded, duplicated, or out of order.
-
-Your task: reconstruct ONE authoritative attack timeline by reviewing everything from the beginning. Requirements:
-- Merge and DEDUPLICATE events that describe the same activity.
-- Use clear, consistent, professional incident-report wording for every title.
-- Order strictly by real timestamp (ascending).
-- Keep ONLY events with a real timestamp found in the evidence or notes. Do NOT invent times.
-- Map each event to a MITRE ATT&CK tactic (lowercase-dashed) and technique id where possible.
-- Assign accurate severity based on impact.
-- Prefer evidence-derived facts over vague notes; refine the analyst notes into precise statements.
-
-Return ONLY a JSON array (no markdown, no prose, no code fences). Each element:
-{
-  "time": "ISO8601 timestamp",
-  "host": "hostname or empty",
-  "severity": "critical | high | medium | low | info",
-  "tactic": "initial-access | execution | persistence | ... or empty",
-  "technique": "T1059 or empty",
-  "title": "clear professional one-line description",
-  "detail": "supporting evidence / reasoning"
-}
-
-If nothing has a real timestamp, return [].
-
-=== EXISTING ANALYST NOTES ===
-%s
-
-=== RAW EVIDENCE ===
-%s`, existingEvents, evidence)
-}
-
-func buildTimelinePrompt(content, host string) string {
-	hostNote := ""
-	if host != "" {
-		hostNote = fmt.Sprintf(" The evidence was collected from host %q.", host)
-	}
-	return fmt.Sprintf(`You are a DFIR analyst reconstructing an attack timeline from forensic evidence.%s
-
-Below is tool output / forensic evidence. Extract every event that has a REAL timestamp inside the evidence (file creation, login, process start, network connection, persistence change, etc.). Do NOT invent timestamps. Ignore events without a clear time.
-
-Return ONLY a JSON array (no markdown, no prose, no code fences). Each element:
-{
-  "time": "ISO8601 timestamp from the evidence (e.g. 2026-06-15T03:42:00Z)",
-  "host": "hostname if known, else empty",
-  "severity": "critical | high | medium | low | info",
-  "tactic": "MITRE ATT&CK tactic in lowercase-dashed form (e.g. initial-access, execution, persistence, exfiltration) or empty",
-  "technique": "MITRE technique id (e.g. T1059) or empty",
-  "title": "short one-line description of what happened",
-  "detail": "supporting evidence / context"
-}
-
-If there are no time-stamped events, return [].
-
-EVIDENCE:
-%s`, hostNote, content)
-}
-
-// parseAITimeline strips think blocks + markdown fences and parses the JSON array.
+// parseAITimeline extracts the JSON array from the model response — tolerating
+// reasoning-model think blocks and markdown fences via the shared extractor —
+// and unmarshals it. The request also asks for JSON mode (ai.Options.JSON).
 func parseAITimeline(raw string) []aiTimelineEvent {
-	s := stripThinkBlocks(raw)
-	s = strings.TrimSpace(s)
-
-	// Strip ```json ... ``` fences if present.
-	if strings.HasPrefix(s, "```") {
-		if i := strings.Index(s, "\n"); i >= 0 {
-			s = s[i+1:]
-		}
-		s = strings.TrimSuffix(strings.TrimSpace(s), "```")
-		s = strings.TrimSpace(s)
-	}
-
-	// Isolate the outermost JSON array.
-	start := strings.Index(s, "[")
-	end := strings.LastIndex(s, "]")
-	if start < 0 || end <= start {
-		return nil
-	}
-	s = s[start : end+1]
-
 	var events []aiTimelineEvent
-	if err := json.Unmarshal([]byte(s), &events); err != nil {
+	if err := json.Unmarshal([]byte(ai.ExtractJSON(stripThinkBlocks(raw))), &events); err != nil {
 		return nil
 	}
 	return events

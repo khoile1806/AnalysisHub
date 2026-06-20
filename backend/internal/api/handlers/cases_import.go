@@ -53,7 +53,7 @@ func (h *CasesHandler) ImportOfflineReport(c *gin.Context) {
 		return
 	}
 
-	var rep offlineReport
+	var rep models.OfflineReport
 	if jerr := json.Unmarshal(raw, &rep); jerr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "not a valid offline report JSON"})
 		return
@@ -138,7 +138,7 @@ func (h *CasesHandler) ImportOfflineReport(c *gin.Context) {
 // findOrCreateOfflineAgent reuses an existing offline-import agent for the same
 // case + hostname, or creates a new one. This keeps re-imports of the same
 // endpoint under a single agent rather than spawning duplicates.
-func (h *CasesHandler) findOrCreateOfflineAgent(caseUUID uuid.UUID, rep offlineReport) (*models.Agent, error) {
+func (h *CasesHandler) findOrCreateOfflineAgent(caseUUID uuid.UUID, rep models.OfflineReport) (*models.Agent, error) {
 	hostname := rep.Hostname
 	if hostname == "" {
 		hostname = "unknown-host"

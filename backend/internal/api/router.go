@@ -244,8 +244,6 @@ func NewRouter(
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
 		protected.POST("/cases/:id/evidence/:evidenceId/extract-timeline", aiHandler.ExtractTimelineFromEvidence)
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
-		// AI triage of SIEM hunt hits — ranks/clusters raw ELK hits by suspicion.
-		protected.POST("/elk/hunt/results/:id/triage", aiHandler.TriageELKResult)
 
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)
