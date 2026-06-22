@@ -69,6 +69,11 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.ComplianceFinding{},
 		&models.ComplianceSnapshot{},
 		&models.CaseEvidence{},
+		&models.OsintScan{},
+		&models.OsintCollector{},
+		&models.OsintFinding{},
+		&models.OsintWatch{},
+		&models.OsintWatchAlert{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

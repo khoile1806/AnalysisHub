@@ -216,7 +216,7 @@ function ServerResourcesSection({ res }: { res: ServerResources }) {
     return (
       <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 px-5 py-6 text-center">
         <Cpu className="h-6 w-6 text-gray-700 mx-auto mb-2" />
-        <p className="text-xs text-gray-600">Thống kê tài nguyên server không khả dụng (chỉ hỗ trợ trên Linux).</p>
+        <p className="text-xs text-gray-600">Server resource stats unavailable (Linux only).</p>
       </div>
     )
   }
@@ -227,7 +227,7 @@ function ServerResourcesSection({ res }: { res: ServerResources }) {
         icon={Cpu}
         label="CPU Usage"
         percent={res.cpu_percent}
-        detail={res.cpu_percent > 0 ? `${res.cpu_percent.toFixed(1)}% across ${res.cpu_count} logical core(s)` : `${res.cpu_count} logical core(s) — chưa có mẫu delta`}
+        detail={res.cpu_percent > 0 ? `${res.cpu_percent.toFixed(1)}% across ${res.cpu_count} logical core(s)` : `${res.cpu_count} logical core(s) — no delta sample yet`}
         subDetail={`${res.cpu_count} core(s)`}
       />
       <ResourceGauge
@@ -257,8 +257,8 @@ function AgentResourcesTable({ agents }: { agents: AgentResource[] }) {
     return (
       <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 px-5 py-6 text-center">
         <Server className="h-6 w-6 text-gray-700 mx-auto mb-2" />
-        <p className="text-xs text-gray-600">Chưa có agent nào online hoặc chưa gửi resource telemetry.</p>
-        <p className="text-[11px] text-gray-700 mt-1">Agent cần gửi <code className="font-mono">resource_report</code> để hiển thị ở đây.</p>
+        <p className="text-xs text-gray-600">No agents online or none reporting resource telemetry yet.</p>
+        <p className="text-[11px] text-gray-700 mt-1">Agents must send <code className="font-mono">resource_report</code> to appear here.</p>
       </div>
     )
   }
@@ -381,14 +381,14 @@ class TabErrorBoundary extends Component<
         <div className="rounded-xl border border-red-500/30 bg-red-900/10 p-5 space-y-2">
           <div className="flex items-center gap-2 text-red-400">
             <XCircle className="h-4 w-4 shrink-0" />
-            <span className="text-sm font-medium">Lỗi render tab {this.props.label}</span>
+            <span className="text-sm font-medium">Failed to render tab {this.props.label}</span>
           </div>
           <p className="text-xs text-red-400/70 font-mono break-all">{this.state.msg}</p>
           <button
             onClick={() => this.setState({ hasError: false, msg: '' })}
             className="text-xs text-red-400 hover:text-red-300 underline"
           >
-            Thử lại
+            Retry
           </button>
         </div>
       )
@@ -427,7 +427,7 @@ function HealthTab() {
           )}
           {dataUpdatedAt > 0 && (
             <span className="text-[11px] text-gray-600">
-              Cập nhật {safeDistanceToNow(dataUpdatedAt, { addSuffix: true })}
+              Updated {safeDistanceToNow(dataUpdatedAt, { addSuffix: true })}
             </span>
           )}
         </div>
@@ -444,13 +444,13 @@ function HealthTab() {
       {isLoading && (
         <div className="flex items-center gap-2 text-gray-500 py-8 justify-center">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Đang kiểm tra hệ thống…</span>
+          <span className="text-sm">Checking system…</span>
         </div>
       )}
 
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-red-900/10 p-4 text-sm text-red-400">
-          Không thể kết nối backend: {(error as Error).message}
+          Cannot reach backend: {(error as Error).message}
         </div>
       )}
 
@@ -556,7 +556,7 @@ function TokenUsageTab() {
     <div className="space-y-5">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-600">Thống kê từ tất cả analysis sessions đã hoàn thành</span>
+        <span className="text-xs text-gray-600">Stats from all completed analysis sessions</span>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
@@ -570,14 +570,14 @@ function TokenUsageTab() {
       {isLoading && (
         <div className="flex items-center gap-2 text-gray-500 py-8 justify-center">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Đang tải thống kê…</span>
+          <span className="text-sm">Loading stats…</span>
         </div>
       )}
 
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-red-900/10 p-4 text-sm text-red-400 flex items-center gap-2">
           <XCircle className="h-4 w-4 shrink-0" />
-          Không thể tải token stats: {(error as Error).message}
+          Failed to load token stats: {(error as Error).message}
         </div>
       )}
 
@@ -687,8 +687,8 @@ function TokenUsageTab() {
           {data.by_provider.length === 0 && (
             <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 px-5 py-10 text-center">
               <BrainCircuit className="h-8 w-8 text-gray-700 mx-auto mb-3" />
-              <p className="text-sm text-gray-600">Chưa có session nào hoàn thành.</p>
-              <p className="text-xs text-gray-700 mt-1">Chạy thử AI Analysis để xem thống kê token.</p>
+              <p className="text-sm text-gray-600">No completed sessions yet.</p>
+              <p className="text-xs text-gray-700 mt-1">Run an AI Analysis to see token stats.</p>
             </div>
           )}
 
@@ -697,7 +697,7 @@ function TokenUsageTab() {
             <div className="rounded-xl border border-gray-800/60 overflow-hidden">
               <div className="px-5 py-3 bg-gray-900/60 border-b border-gray-800/60 flex items-center gap-2">
                 <History className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-semibold text-gray-200">Lịch sử gần đây</span>
+                <span className="text-sm font-semibold text-gray-200">Recent history</span>
                 <span className="text-[10px] text-gray-600 ml-auto">
                   {showAll ? data.recent.length : Math.min(5, data.recent.length)} / {data.recent.length}
                 </span>
@@ -727,8 +727,8 @@ function TokenUsageTab() {
                   className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800/30 border-t border-gray-800/40 transition-colors"
                 >
                   {showAll
-                    ? <><ChevronUp className="h-3.5 w-3.5" /> Rút gọn</>
-                    : <><ChevronDown className="h-3.5 w-3.5" /> Xem thêm {data.recent.length - 5} session</>
+                    ? <><ChevronUp className="h-3.5 w-3.5" /> Collapse</>
+                    : <><ChevronDown className="h-3.5 w-3.5" /> Show {data.recent.length - 5} more session(s)</>
                   }
                 </button>
               )}
@@ -763,7 +763,7 @@ export default function SystemHealthPage() {
           System Health
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Trạng thái các subsystem và thống kê sử dụng AI token.
+          Subsystem status and AI token usage stats.
         </p>
       </div>
 

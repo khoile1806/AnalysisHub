@@ -1,5 +1,6 @@
 import apiClient from './client'
 import { Agent } from './agents'
+import type { OsintScan } from './osint'
 
 export interface Case {
   id: string
@@ -11,12 +12,19 @@ export interface Case {
   updated_at: string
 }
 
+export interface CaseOsintSummary {
+  investigations: OsintScan[]
+  total_scans: number
+  total_findings: number
+}
+
 export interface CaseSummaryResponse {
   case: Case
   agents: Agent[]
   deployments?: any[]
   jobs?: any[]
   checklist_runs?: any[]
+  osint?: CaseOsintSummary
 }
 
 export interface CreateCaseData {
@@ -56,7 +64,7 @@ export const casesApi = {
   },
 
   getSummary: async (id: string): Promise<CaseSummaryResponse> => {
-    const { data } = await apiClient.get<ApiResponse<{ case: Case; agents: Agent[]; deployments?: any[]; jobs?: any[]; checklist_runs?: any[] }>>(`/cases/${id}/summary`)
+    const { data } = await apiClient.get<ApiResponse<CaseSummaryResponse>>(`/cases/${id}/summary`)
     return data.data
   },
 

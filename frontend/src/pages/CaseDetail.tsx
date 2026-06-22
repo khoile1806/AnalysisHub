@@ -8,6 +8,7 @@ import {
   Briefcase, Activity, Server, ChevronRight, User, Wrench,
   ClipboardList, Lock, Unlock, Package, Monitor, Terminal,
   Globe, CheckSquare, Square, Download, BrainCircuit, Crosshair, ShieldCheck,
+  Fingerprint,
 } from 'lucide-react'
 import AttackTimeline from '@/components/AttackTimeline'
 import ComplianceAssessment from '@/components/ComplianceAssessment'
@@ -218,7 +219,7 @@ function OfflineBundleModal({
 }
 
 // ── CaseDetail page ────────────────────────────────────────────────────────
-type TabKey = 'timeline' | 'attack' | 'jobs' | 'compliance' | 'offline'
+type TabKey = 'timeline' | 'attack' | 'jobs' | 'compliance' | 'osint' | 'offline'
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -265,7 +266,7 @@ export default function CaseDetailPage() {
 
   if (!data) return <div className="p-10 text-center text-red-400">Case not found</div>
 
-  const { case: caseObj, agents, deployments, jobs, checklist_runs } = data
+  const { case: caseObj, agents, deployments, jobs, checklist_runs, osint } = data
 
   const activities: any[] = []
   if (deployments) {
@@ -292,6 +293,7 @@ export default function CaseDetailPage() {
     { key: 'attack',     label: 'Attack Timeline',   icon: Crosshair },
     { key: 'jobs',       label: 'Hunting Results',   icon: ClipboardList },
     { key: 'compliance', label: 'Compliance',        icon: ShieldCheck },
+    { key: 'osint',      label: 'OSINT',             icon: Fingerprint },
     { key: 'offline',    label: 'Offline Bundle',    icon: Package },
   ]
 
@@ -464,6 +466,52 @@ export default function CaseDetailPage() {
           {/* Compliance tab */}
           {tab === 'compliance' && (
             <ComplianceAssessment caseId={caseObj.id} checklistRuns={checklist_runs ?? []} agents={agents ?? []} />
+          )}
+
+          {/* OSINT tab */}
+          {tab === 'osint' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 text-sm text-gray-400">
+                <span className="flex items-center gap-1.5">
+                  <Fingerprint className="h-4 w-4 text-emerald-400" />
+                  {osint?.investigations?.length ?? 0} investigation(s)
+                </span>
+                <span>·</span>
+                <span>{osint?.total_scans ?? 0} total scans (incl. auto-pivot)</span>
+                <span>·</span>
+                <span>{osint?.total_findings ?? 0} findings</span>
+              </div>
+              {osint && osint.investigations.length > 0 ? (
+                <div className="space-y-2">
+                  {osint.investigations.map((s) => (
+                    <Link
+                      key={s.id}
+                      to={`/osint/${s.id}`}
+                      className="card flex items-center gap-4 p-4 hover:border-emerald-700/50 transition-colors"
+                    >
+                      <Fingerprint className="h-4 w-4 text-gray-600 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-100 truncate">{s.name}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="font-mono text-xs text-emerald-400">{s.target}</span>
+                          <span className="text-[10px] font-mono text-gray-600 uppercase">{s.target_type}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-mono uppercase bg-gray-800 text-gray-400 shrink-0">
+                        {s.status}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-gray-600" />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="card flex flex-col items-center justify-center py-16 text-center gap-3">
+                  <Fingerprint className="h-9 w-9 text-gray-700" />
+                  <p className="text-gray-500 text-sm">No OSINT investigations filed under this case.</p>
+                  <Link to="/osint" className="btn-secondary text-sm">Open OSINT Footprinting</Link>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Hunting Results tab */}

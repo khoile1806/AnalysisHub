@@ -23,8 +23,8 @@ interface TestResult {
 interface TestDef {
   id: string
   name: string
-  what: string      // Một câu mô tả: test case này kiểm tra điều gì
-  expected: string  // Kết quả mong muốn
+  what: string      // One-line description: what this test case checks
+  expected: string  // Expected result
   run: () => Promise<string>  // resolve = detail string, reject = error message
 }
 
@@ -63,128 +63,128 @@ const CATEGORIES: CategoryDef[] = [
       {
         id: 'AUTH-01',
         name: 'Get Current User Profile',
-        what: 'Gọi GET /auth/me với JWT token hợp lệ từ session hiện tại',
-        expected: 'Response trả về object user có đầy đủ email, role, id',
+        what: 'Call GET /auth/me with a valid JWT token from the current session',
+        expected: 'Response returns a user object with email, role, id',
         async run() {
           const { data } = await apiClient.get('/auth/me')
-          if (!data.data?.email) throw new Error('Thiếu trường email trong response')
-          if (!data.data?.role)  throw new Error('Thiếu trường role trong response')
+          if (!data.data?.email) throw new Error('Missing email field in response')
+          if (!data.data?.role)  throw new Error('Missing role field in response')
           return `OK — user: ${data.data.email} | role: ${data.data.role}`
         },
       },
       {
         id: 'AUTH-02',
-        name: 'Truy Cập Endpoint Không Có Token',
-        what: 'Gọi GET /auth/me mà KHÔNG gửi Authorization header',
-        expected: 'Server phải từ chối với HTTP 401 Unauthorized',
+        name: 'Access Endpoint Without Token',
+        what: 'Call GET /auth/me WITHOUT an Authorization header',
+        expected: 'Server must reject with HTTP 401 Unauthorized',
         async run() {
           try {
             await rawAxios.get('/auth/me')
-            throw new Error('Mong đợi 401 nhưng nhận được 200 — endpoint không được bảo vệ!')
+            throw new Error('Expected 401 but got 200 — endpoint is not protected!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 401) return 'OK — 401 Unauthorized (đúng như mong đợi)'
+            if (e.response?.status === 401) return 'OK — 401 Unauthorized (as expected)'
             throw err
           }
         },
       },
       {
         id: 'AUTH-03',
-        name: 'Đăng Nhập Sai Thông Tin',
-        what: 'POST /auth/login với email và password không tồn tại trong hệ thống',
-        expected: 'HTTP 401 — không trả về JWT token',
+        name: 'Login With Wrong Credentials',
+        what: 'POST /auth/login with an email and password that do not exist',
+        expected: 'HTTP 401 — no JWT token returned',
         async run() {
           try {
             await rawAxios.post('/auth/login', {
               email: 'nonexistent_test_user@invalid.xyz',
               password: 'wrong_password_12345',
             })
-            throw new Error('Mong đợi 401 nhưng nhận được 200 — lỗ hổng bảo mật!')
+            throw new Error('Expected 401 but got 200 — security hole!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 401) return 'OK — 401 Unauthorized (credentials bị từ chối)'
+            if (e.response?.status === 401) return 'OK — 401 Unauthorized (credentials rejected)'
             throw err
           }
         },
       },
       {
         id: 'AUTH-04',
-        name: 'Middleware Auth Áp Dụng Cho Mọi Route',
-        what: 'Gọi GET /agents mà không có token — kiểm tra auth middleware toàn cục',
-        expected: 'HTTP 401, không có dữ liệu agent nào bị lộ',
+        name: 'Auth Middleware Applies To Every Route',
+        what: 'Call GET /agents without a token — check the global auth middleware',
+        expected: 'HTTP 401, no agent data leaked',
         async run() {
           try {
             await rawAxios.get('/agents')
-            throw new Error('Mong đợi 401 nhưng nhận được 200!')
+            throw new Error('Expected 401 but got 200!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 401) return 'OK — /agents được bảo vệ đúng'
+            if (e.response?.status === 401) return 'OK — /agents is properly protected'
             throw err
           }
         },
       },
       {
         id: 'AUTH-05',
-        name: 'Đăng Nhập Thành Công',
-        what: 'POST /auth/login với admin credentials mặc định — lấy JWT token hợp lệ',
-        expected: 'HTTP 200, response chứa token (JWT) và thông tin user',
+        name: 'Successful Login',
+        what: 'POST /auth/login with default admin credentials — get a valid JWT token',
+        expected: 'HTTP 200, response contains a token (JWT) and user info',
         async run() {
           const { data } = await rawAxios.post('/auth/login', {
             email: 'admin@forensichub.local',
             password: 'Admin@123456',
           })
-          if (!data.token) throw new Error('Thiếu token trong response')
-          if (!data.user?.email) throw new Error('Thiếu user.email trong response')
-          return `OK — login thành công | user: ${data.user.email} | token: ${String(data.token).slice(0, 20)}…`
+          if (!data.token) throw new Error('Missing token in response')
+          if (!data.user?.email) throw new Error('Missing user.email in response')
+          return `OK — login succeeded | user: ${data.user.email} | token: ${String(data.token).slice(0, 20)}…`
         },
       },
       {
         id: 'AUTH-06',
-        name: 'Login Thiếu Trường Email → 400',
-        what: 'POST /auth/login chỉ gửi password, không có email',
-        expected: 'HTTP 400 hoặc 401 — validation hoặc auth error',
+        name: 'Login Missing Email Field → 400',
+        what: 'POST /auth/login sending only a password, no email',
+        expected: 'HTTP 400 or 401 — validation or auth error',
         async run() {
           try {
             await rawAxios.post('/auth/login', { password: 'Admin@123456' })
-            throw new Error('Server chấp nhận request thiếu email — cần validate!')
+            throw new Error('Server accepted a request without email — needs validation!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
             if (e.response?.status === 400 || e.response?.status === 401)
-              return `OK — server từ chối request thiếu email (${e.response.status})`
+              return `OK — server rejected the request without email (${e.response.status})`
             throw err
           }
         },
       },
       {
         id: 'AUTH-07',
-        name: 'Login Body Rỗng → Lỗi',
-        what: 'POST /auth/login với body {} không có trường nào',
-        expected: 'HTTP 400 hoặc 401, server không crash',
+        name: 'Login Empty Body → Error',
+        what: 'POST /auth/login with an empty {} body',
+        expected: 'HTTP 400 or 401, server does not crash',
         async run() {
           try {
             await rawAxios.post('/auth/login', {})
-            throw new Error('Server chấp nhận empty body — lỗ hổng!')
+            throw new Error('Server accepted an empty body — security hole!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
             if (e.response?.status === 400 || e.response?.status === 401)
-              return `OK — server từ chối body rỗng (${e.response.status})`
+              return `OK — server rejected the empty body (${e.response.status})`
             throw err
           }
         },
       },
       {
         id: 'AUTH-08',
-        name: 'JWT Giả Mạo Bị Từ Chối',
-        what: 'Gọi GET /auth/me với JWT được ký bằng secret sai',
-        expected: 'HTTP 401 — server xác thực chữ ký JWT',
+        name: 'Forged JWT Rejected',
+        what: 'Call GET /auth/me with a JWT signed using the wrong secret',
+        expected: 'HTTP 401 — server verifies the JWT signature',
         async run() {
           const fakeJWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYWtlLXVzZXIiLCJyb2xlIjoiYWRtaW4ifQ.invalid_signature_here'
           try {
             await rawAxios.get('/auth/me', { headers: { Authorization: `Bearer ${fakeJWT}` } })
-            throw new Error('Server chấp nhận JWT giả mạo — lỗ hổng bảo mật nghiêm trọng!')
+            throw new Error('Server accepted a forged JWT — critical security hole!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 401) return 'OK — JWT giả mạo bị từ chối (401)'
+            if (e.response?.status === 401) return 'OK — forged JWT rejected (401)'
             throw err
           }
         },
@@ -203,20 +203,20 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'AGENT-01',
-        name: 'Liệt Kê Tất Cả Agents',
-        what: 'GET /agents — lấy danh sách agent đã đăng ký',
-        expected: 'Response là array (có thể rỗng), mỗi item có id, name, status',
+        name: 'List All Agents',
+        what: 'GET /agents — get the list of registered agents',
+        expected: 'Response is an array (may be empty), each item has id, name, status',
         async run() {
           const { data } = await apiClient.get('/agents')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} agent(s) trong hệ thống`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} agent(s) in the system`
         },
       },
       {
         id: 'AGENT-02',
-        name: 'Tạo Agent Mới & Xóa (Lifecycle)',
-        what: 'POST /agents để tạo → xác minh có id/token → DELETE để xóa',
-        expected: 'Agent được tạo với token hợp lệ, sau đó xóa thành công',
+        name: 'Create & Delete Agent (Lifecycle)',
+        what: 'POST /agents to create → verify id/token → DELETE to remove',
+        expected: 'Agent created with a valid token, then deleted successfully',
         async run() {
           const name = `__test_agent_${Date.now()}`
           const { data: createData } = await apiClient.post('/agents', {
@@ -224,119 +224,119 @@ const CATEGORIES: CategoryDef[] = [
             description: 'Automated test agent — safe to delete',
           })
           const agent = createData.data
-          if (!agent?.id)    throw new Error('Không có id trong response')
-          if (!agent?.token) throw new Error('Không có token trong response')
+          if (!agent?.id)    throw new Error('No id in response')
+          if (!agent?.token) throw new Error('No token in response')
           try {
             await apiClient.delete(`/agents/${agent.id}`)
           } catch {
-            throw new Error(`Tạo OK (${agent.id.slice(0,8)}) nhưng xóa thất bại`)
+            throw new Error(`Created OK (${agent.id.slice(0,8)}) but delete failed`)
           }
-          return `OK — tạo agent "${name}", xóa thành công`
+          return `OK — created agent "${name}", deleted successfully`
         },
       },
       {
         id: 'AGENT-03',
-        name: 'Lấy Installer Config Của Agent',
-        what: 'GET /agents/:id/installer — lấy JSON config để deploy agent',
-        expected: 'Response chứa agent_id, server_url',
+        name: 'Get Agent Installer Config',
+        what: 'GET /agents/:id/installer — get the JSON config to deploy an agent',
+        expected: 'Response contains agent_id, server_url',
         async run() {
           const { data: listData } = await apiClient.get('/agents')
-          if (!listData.data?.length) return 'SKIP — không có agent nào để test'
+          if (!listData.data?.length) return 'SKIP — no agent to test'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/agents/${id}/installer`)
           const cfg = data.data
-          if (!cfg?.agent_id) throw new Error('Thiếu agent_id')
-          if (!cfg?.server_url) throw new Error('Thiếu server_url')
-          return `OK — installer config cho agent "${cfg.agent_name}" tại ${cfg.server_url}`
+          if (!cfg?.agent_id) throw new Error('Missing agent_id')
+          if (!cfg?.server_url) throw new Error('Missing server_url')
+          return `OK — installer config for agent "${cfg.agent_name}" at ${cfg.server_url}`
         },
       },
       {
         id: 'AGENT-04',
-        name: 'Cập Nhật Mô Tả Agent',
-        what: 'PATCH /agents/:id — cập nhật trường description',
-        expected: 'Response trả về agent với description đã được cập nhật',
+        name: 'Update Agent Description',
+        what: 'PATCH /agents/:id — update the description field',
+        expected: 'Response returns the agent with the updated description',
         async run() {
           const { data: listData } = await apiClient.get('/agents')
-          if (!listData.data?.length) return 'SKIP — không có agent nào để test'
+          if (!listData.data?.length) return 'SKIP — no agent to test'
           const id = listData.data[0].id
           const newDesc = `Test update at ${new Date().toISOString()}`
           const { data } = await apiClient.patch(`/agents/${id}`, { description: newDesc })
-          if (data.data?.description !== newDesc) throw new Error('Description không được cập nhật')
-          return `OK — description cập nhật thành công cho agent ${id.slice(0,8)}`
+          if (data.data?.description !== newDesc) throw new Error('Description was not updated')
+          return `OK — description updated for agent ${id.slice(0,8)}`
         },
       },
       {
         id: 'AGENT-05',
-        name: 'Duyệt Filesystem Agent',
-        what: 'GET /agents/:id/fs?path=/ — liệt kê thư mục gốc trên agent online',
-        expected: 'Response là array các entry (tên file/thư mục)',
+        name: 'Browse Agent Filesystem',
+        what: 'GET /agents/:id/fs?path=/ — list the root directory on an online agent',
+        expected: 'Response is an array of entries (file/directory names)',
         async run() {
           const { data: listData } = await apiClient.get('/agents')
           const online = listData.data?.find((a: { status: string }) => a.status === 'online')
-          if (!online) return 'SKIP — không có agent online để test filesystem'
+          if (!online) return 'SKIP — no online agent to test the filesystem'
           const { data } = await apiClient.get(`/agents/${online.id}/fs`, { params: { path: '/' } })
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} entry trong filesystem của agent "${online.name}"`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} entries in the filesystem of agent "${online.name}"`
         },
       },
       {
         id: 'AGENT-06',
-        name: 'Tên Agent Rỗng Bị Từ Chối',
-        what: 'POST /agents với name="" — kiểm tra validation bắt buộc',
+        name: 'Empty Agent Name Rejected',
+        what: 'POST /agents with name="" — check required-field validation',
         expected: 'HTTP 400 Bad Request',
         async run() {
           try {
             await apiClient.post('/agents', { name: '', description: 'validation test' })
-            throw new Error('Server chấp nhận tên rỗng — cần validate!')
+            throw new Error('Server accepted an empty name — needs validation!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 400) return 'OK — tên rỗng bị từ chối (400)'
+            if (e.response?.status === 400) return 'OK — empty name rejected (400)'
             throw err
           }
         },
       },
       {
         id: 'AGENT-07',
-        name: 'Agent Không Tồn Tại → 404',
-        what: 'GET /agents/:id với UUID không có trong DB',
+        name: 'Agent Does Not Exist → 404',
+        what: 'GET /agents/:id with a UUID not in the DB',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/agents/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'AGENT-08',
-        name: 'Token Không Bị Lộ Trong Danh Sách',
-        what: 'GET /agents — kiểm tra field "token" không xuất hiện trong list response',
-        expected: 'Không có item nào có field token (security check)',
+        name: 'Token Not Leaked In List',
+        what: 'GET /agents — check the "token" field is absent from the list response',
+        expected: 'No item has a token field (security check)',
         async run() {
           const { data: listData } = await apiClient.get('/agents')
-          if (!listData.data?.length) return 'SKIP — không có agent nào để kiểm tra'
+          if (!listData.data?.length) return 'SKIP — no agent to check'
           const withToken = listData.data.filter((a: { token?: string }) => a.token)
-          if (withToken.length > 0) throw new Error(`${withToken.length} agent(s) bị lộ token trong response!`)
-          return `OK — token không bị lộ trong ${listData.data.length} agent(s)`
+          if (withToken.length > 0) throw new Error(`${withToken.length} agent(s) leaked a token in the response!`)
+          return `OK — no token leaked across ${listData.data.length} agent(s)`
         },
       },
       {
         id: 'AGENT-09',
         name: 'Download Agent Binary (Windows)',
         what: 'GET /agents/binary/windows — download agent binary cho Windows',
-        expected: 'HTTP 200 với file binary, hoặc 404 nếu binary chưa build',
+        expected: 'HTTP 200 with the binary file, or 404 if the binary is not built',
         async run() {
           try {
             const { status } = await apiClient.get('/agents/binary/windows', { responseType: 'blob' })
             if (status !== 200) throw new Error(`Status ${status}`)
-            return 'OK — Windows agent binary endpoint phản hồi 200'
+            return 'OK — Windows agent binary endpoint responded 200'
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'SKIP — binary chưa được build/upload'
+            if (e.response?.status === 404) return 'SKIP — binary not built/uploaded yet'
             throw err
           }
         },
@@ -355,75 +355,75 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'TOOL-01',
-        name: 'Liệt Kê Tất Cả Tools',
-        what: 'GET /tools — lấy danh sách tất cả công cụ forensic',
-        expected: 'Array các tool, mỗi item có id, name, category, platform',
+        name: 'List All Tools',
+        what: 'GET /tools — get the list of all forensic tools',
+        expected: 'Array of tools, each item has id, name, category, platform',
         async run() {
           const { data } = await apiClient.get('/tools')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} tool(s) trong thư viện`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} tool(s) in the library`
         },
       },
       {
         id: 'TOOL-02',
-        name: 'Lọc Tools Theo Platform',
-        what: 'GET /tools?platform=windows — chỉ lấy tool dành cho Windows',
-        expected: 'Array chỉ chứa tool có platform="windows" hoặc "both"',
+        name: 'Filter Tools By Platform',
+        what: 'GET /tools?platform=windows — only Windows tools',
+        expected: 'Array contains only tools with platform="windows" or "both"',
         async run() {
           const { data } = await apiClient.get('/tools', { params: { platform: 'windows' } })
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
           return `OK — ${data.data.length} Windows tool(s)`
         },
       },
       {
         id: 'TOOL-03',
-        name: 'Lọc Tools Theo Category',
-        what: 'GET /tools?category=memory — lấy tool thuộc danh mục memory analysis',
-        expected: 'Array chỉ chứa tool có category="memory"',
+        name: 'Filter Tools By Category',
+        what: 'GET /tools?category=memory — tools in the memory-analysis category',
+        expected: 'Array contains only tools with category="memory"',
         async run() {
           const { data } = await apiClient.get('/tools', { params: { category: 'memory' } })
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
           return `OK — ${data.data.length} memory tool(s)`
         },
       },
       {
         id: 'TOOL-04',
-        name: 'Lấy Chi Tiết Một Tool',
-        what: 'GET /tools/:id — lấy metadata đầy đủ của một tool cụ thể',
-        expected: 'Object tool với id, name, category, platform, default_args',
+        name: 'Get Tool Details',
+        what: 'GET /tools/:id — get the full metadata of a specific tool',
+        expected: 'Tool object with id, name, category, platform, default_args',
         async run() {
           const { data: listData } = await apiClient.get('/tools')
-          if (!listData.data?.length) return 'SKIP — không có tool nào trong hệ thống'
+          if (!listData.data?.length) return 'SKIP — no tool in the system'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/tools/${id}`)
-          if (!data.data?.name) throw new Error('Thiếu trường name trong response')
+          if (!data.data?.name) throw new Error('Missing name field in response')
           return `OK — tool "${data.data.name}" (${data.data.category}/${data.data.platform})`
         },
       },
       {
         id: 'TOOL-05',
-        name: 'Tool Không Tồn Tại → 404',
-        what: 'GET /tools/:id với UUID không tồn tại trong DB',
+        name: 'Tool Does Not Exist → 404',
+        what: 'GET /tools/:id with a UUID not in the DB',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/tools/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'TOOL-06',
-        name: 'Cập Nhật Metadata Tool',
-        what: 'PUT /tools/:id — cập nhật description của tool hiện có',
-        expected: 'Response trả về tool với metadata đã được cập nhật',
+        name: 'Update Tool Metadata',
+        what: 'PUT /tools/:id — update the description of an existing tool',
+        expected: 'Response returns the tool with updated metadata',
         async run() {
           const { data: listData } = await apiClient.get('/tools')
-          if (!listData.data?.length) return 'SKIP — không có tool nào để test'
+          if (!listData.data?.length) return 'SKIP — no tool to test'
           const tool = listData.data[0]
           const newDesc = `[Test] Updated at ${new Date().toISOString()}`
           const { data } = await apiClient.put(`/tools/${tool.id}`, {
@@ -432,24 +432,24 @@ const CATEGORIES: CategoryDef[] = [
             category: tool.category,
             platform: tool.platform,
           })
-          if (!data.data) throw new Error('Không có data trong response')
-          return `OK — tool "${tool.name}" description cập nhật thành công`
+          if (!data.data) throw new Error('No data in response')
+          return `OK — tool "${tool.name}" description updated successfully`
         },
       },
       {
         id: 'TOOL-07',
-        name: 'Server File Path Không Bị Lộ',
-        what: 'GET /tools/:id — kiểm tra response không chứa đường dẫn tuyệt đối trên server',
-        expected: 'Không có "/var/", "C:\\\\", "/home/" trong response',
+        name: 'Server File Path Not Leaked',
+        what: 'GET /tools/:id — check the response has no absolute server paths',
+        expected: 'No "/var/", "C:\\\\", "/home/" in the response',
         async run() {
           const { data: listData } = await apiClient.get('/tools')
-          if (!listData.data?.length) return 'SKIP — không có tool nào để kiểm tra'
+          if (!listData.data?.length) return 'SKIP — no tool to check'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/tools/${id}`)
           const str = JSON.stringify(data.data ?? {})
           if (str.includes('/var/') || str.includes('C:\\\\') || str.includes('/home/'))
-            throw new Error('Server file path bị lộ trong response!')
-          return 'OK — không phát hiện server path tuyệt đối trong response'
+            throw new Error('Server file path leaked in the response!')
+          return 'OK — no absolute server path found in the response'
         },
       },
     ],
@@ -466,104 +466,104 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'JOB-01',
-        name: 'Liệt Kê Tất Cả Jobs',
-        what: 'GET /jobs — lấy danh sách tất cả job thực thi tool',
-        expected: 'Array jobs, mỗi item có id, status, agent_id, tool_id',
+        name: 'List All Jobs',
+        what: 'GET /jobs — get the list of all tool-execution jobs',
+        expected: 'Array of jobs, each item has id, status, agent_id, tool_id',
         async run() {
           const { data } = await apiClient.get('/jobs')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} job(s) trong hệ thống`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} job(s) in the system`
         },
       },
       {
         id: 'JOB-02',
-        name: 'Lọc Jobs Theo Status=done',
-        what: 'GET /jobs?status=done — chỉ lấy job đã hoàn thành',
-        expected: 'Tất cả item trong array phải có status="done"',
+        name: 'Filter Jobs By Status=done',
+        what: 'GET /jobs?status=done — only completed jobs',
+        expected: 'Every item in the array must have status="done"',
         async run() {
           const { data } = await apiClient.get('/jobs', { params: { status: 'done' } })
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
           const mismatch = data.data.filter((j: { status: string }) => j.status !== 'done')
-          if (mismatch.length > 0) throw new Error(`${mismatch.length} job không phải "done"`)
-          return `OK — ${data.data.length} job(s) với status=done`
+          if (mismatch.length > 0) throw new Error(`${mismatch.length} job(s) not "done"`)
+          return `OK — ${data.data.length} job(s) with status=done`
         },
       },
       {
         id: 'JOB-03',
-        name: 'Lấy Chi Tiết Job',
-        what: 'GET /jobs/:id — lấy thông tin đầy đủ kèm agent và tool preloaded',
-        expected: 'Object job có id, status, tool.name, agent.name',
+        name: 'Get Job Details',
+        what: 'GET /jobs/:id — full info with agent and tool preloaded',
+        expected: 'Job object has id, status, tool.name, agent.name',
         async run() {
           const { data: listData } = await apiClient.get('/jobs')
-          if (!listData.data?.length) return 'SKIP — không có job nào để test'
+          if (!listData.data?.length) return 'SKIP — no job to test'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/jobs/${id}`)
           const job = data.data
-          if (!job?.id) throw new Error('Thiếu id trong response')
+          if (!job?.id) throw new Error('Missing id in response')
           return `OK — job ${id.slice(0,8)} | status: ${job.status} | tool: ${job.tool?.name ?? 'N/A'}`
         },
       },
       {
         id: 'JOB-04',
-        name: 'Lấy Artifact Content Của Job',
-        what: 'GET /jobs/:id/artifact/content — lấy nội dung file artifact kết quả',
-        expected: 'Nội dung text của file artifact nếu job có artifact_path',
+        name: 'Get Job Artifact Content',
+        what: 'GET /jobs/:id/artifact/content — get the result artifact file content',
+        expected: 'Text content of the artifact file if the job has an artifact_path',
         async run() {
           const { data: listData } = await apiClient.get('/jobs', { params: { status: 'done' } })
           const withArtifact = listData.data?.find((j: { artifact_path?: string }) => j.artifact_path)
-          if (!withArtifact) return 'SKIP — không có job done nào có artifact'
+          if (!withArtifact) return 'SKIP — no completed job has an artifact'
           const { data } = await apiClient.get(`/jobs/${withArtifact.id}/artifact/content`)
-          if (typeof data !== 'string' && typeof data !== 'object') throw new Error('Response không hợp lệ')
-          return `OK — artifact content của job ${withArtifact.id.slice(0,8)} (${String(data).length} bytes)`
+          if (typeof data !== 'string' && typeof data !== 'object') throw new Error('Invalid response')
+          return `OK — artifact content of job ${withArtifact.id.slice(0,8)} (${String(data).length} bytes)`
         },
       },
       {
         id: 'JOB-05',
-        name: 'Lọc Jobs Theo Agent',
-        what: 'GET /jobs?agent_id=:id — chỉ lấy jobs thuộc một agent cụ thể',
-        expected: 'Tất cả items trong array phải có agent_id khớp',
+        name: 'Filter Jobs By Agent',
+        what: 'GET /jobs?agent_id=:id — only jobs of a specific agent',
+        expected: 'Every item in the array must have a matching agent_id',
         async run() {
           const { data: agentData } = await apiClient.get('/agents')
-          if (!agentData.data?.length) return 'SKIP — không có agent nào'
+          if (!agentData.data?.length) return 'SKIP — no agent'
           const agentId = agentData.data[0].id
           const { data } = await apiClient.get('/jobs', { params: { agent_id: agentId } })
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
           const mismatch = data.data.filter((j: { agent_id: string }) => j.agent_id !== agentId)
-          if (mismatch.length > 0) throw new Error(`${mismatch.length} job không thuộc agent ${agentId.slice(0,8)}`)
-          return `OK — ${data.data.length} job(s) của agent ${agentId.slice(0,8)}`
+          if (mismatch.length > 0) throw new Error(`${mismatch.length} job(s) not belonging to agent ${agentId.slice(0,8)}`)
+          return `OK — ${data.data.length} job(s) of agent ${agentId.slice(0,8)}`
         },
       },
       {
         id: 'JOB-06',
-        name: 'Job Không Tồn Tại → 404',
-        what: 'GET /jobs/:id với UUID không tồn tại trong DB',
+        name: 'Job Does Not Exist → 404',
+        what: 'GET /jobs/:id with a UUID not in the DB',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/jobs/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'JOB-07',
-        name: 'Stop Job Đã Done → 400',
-        what: 'POST /jobs/:id/stop trên job có status=done — không thể stop job đã kết thúc',
+        name: 'Stop A Completed Job → 400',
+        what: 'POST /jobs/:id/stop on a status=done job — cannot stop a finished job',
         expected: 'HTTP 400 Bad Request',
         async run() {
           const { data: listData } = await apiClient.get('/jobs', { params: { status: 'done' } })
-          if (!listData.data?.length) return 'SKIP — không có done job nào để test'
+          if (!listData.data?.length) return 'SKIP — no completed job to test'
           const id = listData.data[0].id
           try {
             await apiClient.post(`/jobs/${id}/stop`)
-            throw new Error('Server cho phép stop job đã done — không đúng!')
+            throw new Error('Server allowed stopping a completed job — incorrect!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 400) return `OK — không thể stop job đã done (400)`
+            if (e.response?.status === 400) return `OK — cannot stop a completed job (400)`
             throw err
           }
         },
@@ -582,82 +582,82 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'CHK-01',
-        name: 'Liệt Kê Checklist Runs',
-        what: 'GET /checklist/runs — lấy lịch sử các lần chạy thu thập bằng chứng',
-        expected: 'Array runs, mỗi item có id, agent_id, status, created_at',
+        name: 'List Checklist Runs',
+        what: 'GET /checklist/runs — history of evidence-collection runs',
+        expected: 'Array of runs, each item has id, agent_id, status, created_at',
         async run() {
           const { data } = await apiClient.get('/checklist/runs')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} checklist run(s) trong lịch sử`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} checklist run(s) in history`
         },
       },
       {
         id: 'CHK-02',
-        name: 'Lấy Chi Tiết Checklist Run',
-        what: 'GET /checklist/runs/:id — lấy run kèm batches và output từng lệnh',
-        expected: 'Object run có id, batches array, mỗi batch có status',
+        name: 'Get Checklist Run Details',
+        what: 'GET /checklist/runs/:id — run with batches and per-command output',
+        expected: 'Run object has id, a batches array, each batch has a status',
         async run() {
           const { data: listData } = await apiClient.get('/checklist/runs')
-          if (!listData.data?.length) return 'SKIP — không có run nào để test'
+          if (!listData.data?.length) return 'SKIP — no run to test'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/checklist/runs/${id}`)
           const run = data.data
-          if (!run?.id) throw new Error('Thiếu id trong response')
+          if (!run?.id) throw new Error('Missing id in response')
           const batchCount = run.batches?.length ?? 0
           return `OK — run ${id.slice(0,8)} | ${batchCount} batch(es) | status: ${run.status}`
         },
       },
       {
         id: 'CHK-03',
-        name: 'Batch Fields Đầy Đủ',
-        what: 'Lấy detail run → kiểm tra batch đầu tiên có đủ id, status, batch_key',
-        expected: 'Batch có id, batch_key, batch_label, status',
+        name: 'Batch Fields Complete',
+        what: 'Get run detail → check the first batch has id, status, batch_key',
+        expected: 'Batch has id, batch_key, batch_label, status',
         async run() {
           const { data: listData } = await apiClient.get('/checklist/runs')
-          if (!listData.data?.length) return 'SKIP — không có run nào'
+          if (!listData.data?.length) return 'SKIP — no run'
           const { data: runDetail } = await apiClient.get(`/checklist/runs/${listData.data[0].id}`)
           const batch = runDetail.data?.batches?.[0]
-          if (!batch) return 'SKIP — run không có batch nào'
-          if (!batch.id) throw new Error('Batch thiếu id')
-          if (!batch.status) throw new Error('Batch thiếu status')
+          if (!batch) return 'SKIP — run has no batches'
+          if (!batch.id) throw new Error('Batch missing id')
+          if (!batch.status) throw new Error('Batch missing status')
           return `OK — batch "${batch.batch_label ?? batch.batch_key}" | status: ${batch.status}`
         },
       },
       {
         id: 'CHK-04',
-        name: 'Run Không Tồn Tại → 404',
-        what: 'GET /checklist/runs/:id với UUID không tồn tại',
+        name: 'Run Does Not Exist → 404',
+        what: 'GET /checklist/runs/:id with a non-existent UUID',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/checklist/runs/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'CHK-05',
-        name: 'Phát Hiện Runs Theo Platform',
-        what: 'GET /checklist/runs — kiểm tra có phân biệt được platform win/linux',
-        expected: 'Tìm thấy run với platform field (win hoặc linux)',
+        name: 'Detect Runs By Platform',
+        what: 'GET /checklist/runs — check win/linux platform is distinguishable',
+        expected: 'Find a run with a platform field (win or linux)',
         async run() {
           const { data } = await apiClient.get('/checklist/runs')
-          if (!data.data?.length) return 'SKIP — không có run nào'
+          if (!data.data?.length) return 'SKIP — no run'
           const withPlatform = data.data.filter((r: { platform?: string }) => r.platform)
-          if (!withPlatform.length) return 'SKIP — không có run nào có platform field'
+          if (!withPlatform.length) return 'SKIP — no run has a platform field'
           const platforms = [...new Set(withPlatform.map((r: { platform: string }) => r.platform))].join(', ')
-          return `OK — phát hiện platform(s): ${platforms} trong ${data.data.length} run(s)`
+          return `OK — detected platform(s): ${platforms} across ${data.data.length} run(s)`
         },
       },
       {
         id: 'CHK-06',
-        name: 'Tạo Run Với Agent Không Tồn Tại → Lỗi',
-        what: 'POST /checklist/run với agent_id UUID không có trong DB',
-        expected: 'HTTP 400 hoặc 404 — không thể chạy với agent không hợp lệ',
+        name: 'Create Run With Non-existent Agent → Error',
+        what: 'POST /checklist/run with an agent_id UUID not in the DB',
+        expected: 'HTTP 400 or 404 — cannot run with an invalid agent',
         async run() {
           try {
             await apiClient.post('/checklist/run', {
@@ -666,11 +666,11 @@ const CATEGORIES: CategoryDef[] = [
               label: 'Test invalid agent',
               analyst: 'tester',
             })
-            throw new Error('Server cho phép tạo run với agent không tồn tại!')
+            throw new Error('Server allowed creating a run with a non-existent agent!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
             if (e.response?.status === 400 || e.response?.status === 404 || e.response?.status === 503)
-              return `OK — bị từ chối với agent không hợp lệ (${e.response.status})`
+              return `OK — rejected with an invalid agent (${e.response.status})`
             throw err
           }
         },
@@ -689,20 +689,20 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'HUNT-01',
-        name: 'Liệt Kê Kịch Bản Hunting',
-        what: 'GET /hunting/scenarios — lấy danh sách tất cả kịch bản tấn công/điều tra',
-        expected: 'Array kịch bản, mỗi item có id, name, tools (preloaded)',
+        name: 'List Hunting Scenarios',
+        what: 'GET /hunting/scenarios — list all attack/investigation scenarios',
+        expected: 'Array of scenarios, each item has id, name, tools (preloaded)',
         async run() {
           const { data } = await apiClient.get('/hunting/scenarios')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} kịch bản hunting`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} hunting scenario(s)`
         },
       },
       {
         id: 'HUNT-02',
-        name: 'Tạo & Xóa Kịch Bản (Lifecycle)',
-        what: 'POST /hunting/scenarios tạo mới → GET lấy lại → DELETE xóa',
-        expected: 'Kịch bản được tạo với id, sau đó xóa sạch khỏi DB',
+        name: 'Create & Delete Scenario (Lifecycle)',
+        what: 'POST /hunting/scenarios to create → GET it back → DELETE',
+        expected: 'Scenario created with an id, then fully removed from the DB',
         async run() {
           const name = `__test_scenario_${Date.now()}`
           const { data: createData } = await apiClient.post('/hunting/scenarios', {
@@ -710,23 +710,23 @@ const CATEGORIES: CategoryDef[] = [
             description: 'Automated test scenario — safe to delete',
           })
           const sc = createData.data
-          if (!sc?.id) throw new Error('Không có id trong response')
+          if (!sc?.id) throw new Error('No id in response')
           try {
             await apiClient.delete(`/hunting/scenarios/${sc.id}`)
           } catch {
-            throw new Error(`Tạo OK nhưng DELETE thất bại (id: ${sc.id.slice(0,8)})`)
+            throw new Error(`Created OK but DELETE failed (id: ${sc.id.slice(0,8)})`)
           }
-          return `OK — tạo kịch bản "${name}", xóa thành công`
+          return `OK — created scenario "${name}", deleted successfully`
         },
       },
       {
         id: 'HUNT-03',
-        name: 'Gắn Tool Vào Kịch Bản',
-        what: 'POST /hunting/scenarios/:id/tools với tool_id — liên kết tool vào scenario',
-        expected: 'Scenario được cập nhật với tool đã gắn',
+        name: 'Attach Tool To Scenario',
+        what: 'POST /hunting/scenarios/:id/tools with tool_id — link a tool to the scenario',
+        expected: 'Scenario updated with the attached tool',
         async run() {
           const { data: toolsData } = await apiClient.get('/tools')
-          if (!toolsData.data?.length) return 'SKIP — không có tool nào để gắn'
+          if (!toolsData.data?.length) return 'SKIP — no tool to attach'
           const name = `__test_sc_attach_${Date.now()}`
           const { data: createData } = await apiClient.post('/hunting/scenarios', {
             name, description: 'Tool attachment test'
@@ -737,8 +737,8 @@ const CATEGORIES: CategoryDef[] = [
               tool_id: toolsData.data[0].id, sort_order: 1
             })
             const { data: getBack } = await apiClient.get(`/hunting/scenarios/${sc.id}`)
-            if (!getBack.data?.tools?.length) throw new Error('Tool không xuất hiện sau khi gắn')
-            return `OK — gắn tool "${toolsData.data[0].name}" vào kịch bản thành công`
+            if (!getBack.data?.tools?.length) throw new Error('Tool did not appear after attaching')
+            return `OK — attached tool "${toolsData.data[0].name}" to the scenario`
           } finally {
             try { await apiClient.delete(`/hunting/scenarios/${sc.id}`) } catch {}
           }
@@ -746,76 +746,76 @@ const CATEGORIES: CategoryDef[] = [
       },
       {
         id: 'HUNT-04',
-        name: 'Liệt Kê Deployment',
-        what: 'GET /hunting/deployments — lấy lịch sử deploy kịch bản lên agent',
-        expected: 'Array deployments, mỗi item có scenario và jobs liên kết',
+        name: 'List Deployments',
+        what: 'GET /hunting/deployments — history of scenario deployments to agents',
+        expected: 'Array of deployments, each item has a scenario and linked jobs',
         async run() {
           const { data } = await apiClient.get('/hunting/deployments')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} deployment(s) trong lịch sử`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} deployment(s) in history`
         },
       },
       {
         id: 'HUNT-05',
-        name: 'Cập Nhật Scenario',
-        what: 'PUT /hunting/scenarios/:id — đổi description kịch bản',
-        expected: 'Response trả về scenario với metadata đã cập nhật',
+        name: 'Update Scenario',
+        what: 'PUT /hunting/scenarios/:id — change the scenario description',
+        expected: 'Response returns the scenario with updated metadata',
         async run() {
           const { data: listData } = await apiClient.get('/hunting/scenarios')
-          if (!listData.data?.length) return 'SKIP — không có scenario nào để test'
+          if (!listData.data?.length) return 'SKIP — no scenario to test'
           const sc = listData.data[0]
           const { data } = await apiClient.put(`/hunting/scenarios/${sc.id}`, {
             name: sc.name,
             description: `Updated at ${new Date().toISOString()}`,
           })
-          if (!data.data) throw new Error('Không có data trong response')
-          return `OK — scenario "${sc.name}" cập nhật thành công`
+          if (!data.data) throw new Error('No data in response')
+          return `OK — scenario "${sc.name}" updated successfully`
         },
       },
       {
         id: 'HUNT-06',
-        name: 'Scenario Không Tồn Tại → 404',
-        what: 'GET /hunting/scenarios/:id với UUID không tồn tại',
+        name: 'Scenario Does Not Exist → 404',
+        what: 'GET /hunting/scenarios/:id with a non-existent UUID',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/hunting/scenarios/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'HUNT-07',
-        name: 'Tên Scenario Rỗng → 400',
-        what: 'POST /hunting/scenarios với name="" — kiểm tra validation bắt buộc',
+        name: 'Empty Scenario Name → 400',
+        what: 'POST /hunting/scenarios with name="" — check required-field validation',
         expected: 'HTTP 400 Bad Request',
         async run() {
           try {
             await apiClient.post('/hunting/scenarios', { name: '', description: 'test' })
-            throw new Error('Server chấp nhận tên rỗng — cần validate!')
+            throw new Error('Server accepted an empty name — needs validation!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 400) return 'OK — tên rỗng bị từ chối (400)'
+            if (e.response?.status === 400) return 'OK — empty name rejected (400)'
             throw err
           }
         },
       },
       {
         id: 'HUNT-08',
-        name: 'Lấy Detail Deployment',
-        what: 'GET /hunting/deployments/:id — lấy deployment kèm scenario và jobs',
-        expected: 'Object deployment có id, scenario, jobs array',
+        name: 'Get Deployment Detail',
+        what: 'GET /hunting/deployments/:id — deployment with scenario and jobs',
+        expected: 'Deployment object has id, scenario, jobs array',
         async run() {
           const { data: listData } = await apiClient.get('/hunting/deployments')
-          if (!listData.data?.length) return 'SKIP — không có deployment nào để test'
+          if (!listData.data?.length) return 'SKIP — no deployment to test'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/hunting/deployments/${id}`)
           const dep = data.data
-          if (!dep?.id) throw new Error('Thiếu id trong response')
+          if (!dep?.id) throw new Error('Missing id in response')
           const jobCount = dep.jobs?.length ?? 0
           return `OK — deployment ${id.slice(0,8)} | scenario: "${dep.scenario?.name ?? 'N/A'}" | ${jobCount} job(s)`
         },
@@ -834,20 +834,20 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'CASE-01',
-        name: 'Liệt Kê Tất Cả Cases',
-        what: 'GET /cases — lấy danh sách các vụ điều tra',
-        expected: 'Array cases, mỗi item có id, name, status (open/closed)',
+        name: 'List All Cases',
+        what: 'GET /cases — get the list of investigation cases',
+        expected: 'Array of cases, each item has id, name, status (open/closed)',
         async run() {
           const { data } = await apiClient.get('/cases')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} case(s) trong hệ thống`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} case(s) in the system`
         },
       },
       {
         id: 'CASE-02',
-        name: 'Tạo Case Mới',
-        what: 'POST /cases — tạo vụ điều tra mới với tên và mô tả',
-        expected: 'Case được tạo với id, status="open", timestamps hợp lệ',
+        name: 'Create New Case',
+        what: 'POST /cases — create a new investigation case with a name and description',
+        expected: 'Case created with an id, status="open", valid timestamps',
         async run() {
           const name = `__test_case_${Date.now()}`
           const { data } = await apiClient.post('/cases', {
@@ -855,39 +855,39 @@ const CATEGORIES: CategoryDef[] = [
             description: 'Automated test case — created by test runner',
           })
           const c = data.data
-          if (!c?.id)           throw new Error('Thiếu id')
-          if (c.status !== 'open') throw new Error(`Status phải là "open", nhận "${c.status}"`)
-          return `OK — case "${name}" tạo thành công (id: ${c.id.slice(0,8)}, status: ${c.status})`
+          if (!c?.id)           throw new Error('Missing id')
+          if (c.status !== 'open') throw new Error(`Status must be "open", got "${c.status}"`)
+          return `OK — case "${name}" created successfully (id: ${c.id.slice(0,8)}, status: ${c.status})`
         },
       },
       {
         id: 'CASE-03',
-        name: 'Cập Nhật Trạng Thái Case',
-        what: 'PATCH /cases/:id — thay đổi status từ open → closed',
-        expected: 'Response trả về case với status="closed"',
+        name: 'Update Case Status',
+        what: 'PATCH /cases/:id — change status from open → closed',
+        expected: 'Response returns the case with status="closed"',
         async run() {
           const { data: listData } = await apiClient.get('/cases')
           const openCase = listData.data?.find((c: { status: string }) => c.status === 'open')
-          if (!openCase) return 'SKIP — không có case "open" nào để test'
+          if (!openCase) return 'SKIP — no "open" case to test'
           const { data } = await apiClient.patch(`/cases/${openCase.id}`, { status: 'closed' })
-          if (data.data?.status !== 'closed') throw new Error('Status không được cập nhật thành "closed"')
+          if (data.data?.status !== 'closed') throw new Error('Status was not updated to "closed"')
           // Restore
           await apiClient.patch(`/cases/${openCase.id}`, { status: 'open' })
-          return `OK — case "${openCase.name}" closed thành công (đã restore lại open)`
+          return `OK — case "${openCase.name}" closed successfully (restored to open)`
         },
       },
       {
         id: 'CASE-04',
-        name: 'Lấy Case Summary',
-        what: 'GET /cases/:id/summary — lấy tổng quan case kèm agents, deployments, checklist runs',
-        expected: 'Object case với các nested arrays: agents, deployments, checklist_runs, jobs',
+        name: 'Get Case Summary',
+        what: 'GET /cases/:id/summary — case overview with agents, deployments, checklist runs',
+        expected: 'Case object with nested arrays: agents, deployments, checklist_runs, jobs',
         async run() {
           const { data: listData } = await apiClient.get('/cases')
-          if (!listData.data?.length) return 'SKIP — không có case nào để test'
+          if (!listData.data?.length) return 'SKIP — no case to test'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/cases/${id}/summary`)
           const s = data.data
-          if (!s?.id) throw new Error('Thiếu id trong summary')
+          if (!s?.id) throw new Error('Missing id trong summary')
           const agentCount = s.agents?.length ?? 0
           const jobCount   = s.jobs?.length ?? 0
           return `OK — case "${s.name}" | ${agentCount} agent(s), ${jobCount} job(s)`
@@ -895,47 +895,47 @@ const CATEGORIES: CategoryDef[] = [
       },
       {
         id: 'CASE-05',
-        name: 'Case Không Tồn Tại → 404',
-        what: 'GET /cases/:id/summary với UUID không tồn tại',
+        name: 'Case Does Not Exist → 404',
+        what: 'GET /cases/:id/summary with a non-existent UUID',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/cases/00000000-0000-0000-0000-000000000000/summary')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'CASE-06',
-        name: 'Case Tên Unicode (Tiếng Việt)',
-        what: 'POST /cases với name chứa ký tự UTF-8 tiếng Việt',
-        expected: 'Case tạo thành công, name được lưu đúng encoding',
+        name: 'Case Unicode Name (Vietnamese)',
+        what: 'POST /cases with a name containing Vietnamese UTF-8 characters',
+        expected: 'Case created successfully, name stored with correct encoding',
         async run() {
           const name = `Sự cố APT ${Date.now()}`
           const { data } = await apiClient.post('/cases', { name, description: 'UTF-8 test' })
-          if (!data.data?.id) throw new Error('Thiếu id trong response')
-          if (data.data.name !== name) throw new Error(`Name bị biến đổi: "${data.data.name}" ≠ "${name}"`)
-          return `OK — case Unicode tạo thành công: "${data.data.name}"`
+          if (!data.data?.id) throw new Error('Missing id in response')
+          if (data.data.name !== name) throw new Error(`Name was altered: "${data.data.name}" ≠ "${name}"`)
+          return `OK — Unicode case created successfully: "${data.data.name}"`
         },
       },
       {
         id: 'CASE-07',
-        name: 'Case Mới Xuất Hiện Trong Danh Sách',
-        what: 'POST /cases rồi GET /cases — xác nhận case mới được index ngay',
-        expected: 'Case mới tạo phải có mặt trong GET /cases',
+        name: 'New Case Appears In List',
+        what: 'POST /cases then GET /cases — confirm the new case is indexed immediately',
+        expected: 'The newly created case must appear in GET /cases',
         async run() {
           const name = `__test_list_${Date.now()}`
           const { data: createData } = await apiClient.post('/cases', { name, description: 'list verify' })
           const newId = createData.data?.id
-          if (!newId) throw new Error('Không có id sau khi tạo')
+          if (!newId) throw new Error('No id after creation')
           const { data: listData } = await apiClient.get('/cases')
           const found = listData.data?.find((c: { id: string }) => c.id === newId)
-          if (!found) throw new Error(`Case ${newId.slice(0,8)} không xuất hiện trong danh sách!`)
-          return `OK — case "${name}" xuất hiện đúng trong danh sách`
+          if (!found) throw new Error(`Case ${newId.slice(0,8)} did not appear in the list!`)
+          return `OK — case "${name}" appears correctly in the list`
         },
       },
     ],
@@ -952,32 +952,32 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'ELK-01',
-        name: 'Lấy Active ELK Config',
-        what: 'GET /elk/config — lấy cấu hình Elasticsearch đang được kích hoạt',
-        expected: 'Object config với url, index pattern (key không bị lộ)',
+        name: 'Get Active ELK Config',
+        what: 'GET /elk/config — get the active Elasticsearch configuration',
+        expected: 'Config object with url, index pattern (key not leaked)',
         async run() {
           const { data } = await apiClient.get('/elk/config')
-          if (!data.data) throw new Error('Không có config nào được trả về')
+          if (!data.data) throw new Error('No config was returned')
           const cfg = data.data
           return `OK — ELK profile: "${cfg.name ?? 'default'}" | host: ${cfg.url ?? 'N/A'}`
         },
       },
       {
         id: 'ELK-02',
-        name: 'Liệt Kê ELK Profiles',
-        what: 'GET /elk/configs — lấy tất cả profile cấu hình ELK (multi-profile support)',
-        expected: 'Array configs, mỗi item có id, name, url, is_active',
+        name: 'List ELK Profiles',
+        what: 'GET /elk/configs — get all ELK config profiles (multi-profile support)',
+        expected: 'Array of configs, each item has id, name, url, is_active',
         async run() {
           const { data } = await apiClient.get('/elk/configs')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
           const active = data.data.find((c: { is_active?: boolean }) => c.is_active)
           return `OK — ${data.data.length} ELK profile(s), active: "${active?.name ?? 'none'}"`
         },
       },
       {
         id: 'ELK-03',
-        name: 'Parse IOC File (Phân Loại IOC)',
-        what: 'POST /elk/iocs/parse — phân loại các dòng IOC theo loại: IPv4, hash, domain, URL…',
+        name: 'Parse IOC File (Classify IOCs)',
+        what: 'POST /elk/iocs/parse — classify IOC lines by type: IPv4, hash, domain, URL…',
         expected: 'Response map: { "ipv4": [...], "sha256": [...], "domain": [...] }',
         async run() {
           const testIOCs = [
@@ -989,30 +989,30 @@ const CATEGORIES: CategoryDef[] = [
             'aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899',
           ].join('\n')
           const { data } = await apiClient.post('/elk/iocs/parse', { content: testIOCs })
-          if (!data.data) throw new Error('Không có data trong response')
+          if (!data.data) throw new Error('No data in response')
           const types = Object.entries(data.data as Record<string, unknown[]>)
             .filter(([, v]) => v.length > 0)
             .map(([k, v]) => `${k}:${v.length}`)
             .join(', ')
-          return `OK — phân loại: ${types}`
+          return `OK — classified: ${types}`
         },
       },
       {
         id: 'ELK-04',
-        name: 'Liệt Kê Kết Quả Hunt Đã Lưu',
-        what: 'GET /elk/hunt/results — lấy lịch sử các lần hunt IOC đã được ghi lại',
-        expected: 'Array results với title, iocs_used, total_hits, status',
+        name: 'List Saved Hunt Results',
+        what: 'GET /elk/hunt/results — history of recorded IOC hunts',
+        expected: 'Array of results with title, iocs_used, total_hits, status',
         async run() {
           const { data } = await apiClient.get('/elk/hunt/results')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} hunt result(s) đã lưu`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} saved hunt result(s)`
         },
       },
       {
         id: 'ELK-05',
-        name: 'Tạo ELK Profile Mới & Xóa',
-        what: 'POST /elk/configs → kích hoạt → xóa profile test',
-        expected: 'Profile được tạo, có thể kích hoạt, sau đó xóa được',
+        name: 'Create & Delete ELK Profile',
+        what: 'POST /elk/configs → activate → delete the test profile',
+        expected: 'Profile created, can be activated, then deleted',
         async run() {
           const { data: createData } = await apiClient.post('/elk/configs', {
             name: `__test_elk_${Date.now()}`,
@@ -1022,42 +1022,42 @@ const CATEGORIES: CategoryDef[] = [
             index_pattern: 'logs-*',
           })
           const cfg = createData.data
-          if (!cfg?.id) throw new Error('Thiếu id trong response')
+          if (!cfg?.id) throw new Error('Missing id in response')
           try {
             await apiClient.delete(`/elk/configs/${cfg.id}`)
           } catch {
-            throw new Error(`Tạo OK nhưng xóa thất bại (id: ${cfg.id})`)
+            throw new Error(`Created OK but delete failed (id: ${cfg.id})`)
           }
-          return `OK — tạo & xóa ELK profile thành công, credentials ẩn`
+          return `OK — ELK profile created & deleted successfully, credentials hidden`
         },
       },
       {
         id: 'ELK-06',
-        name: 'Lấy Chi Tiết Hunt Result',
-        what: 'GET /elk/hunt/results/:id — lấy kết quả hunt với hits và metadata',
-        expected: 'Object result có title, iocs_used, total_hits, status',
+        name: 'Get Hunt Result Detail',
+        what: 'GET /elk/hunt/results/:id — get a hunt result with hits and metadata',
+        expected: 'Result object has title, iocs_used, total_hits, status',
         async run() {
           const { data: listData } = await apiClient.get('/elk/hunt/results')
-          if (!listData.data?.length) return 'SKIP — không có hunt result nào'
+          if (!listData.data?.length) return 'SKIP — no hunt result'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/elk/hunt/results/${id}`)
           const r = data.data
-          if (!r?.id) throw new Error('Thiếu id trong response')
+          if (!r?.id) throw new Error('Missing id in response')
           return `OK — result "${r.title ?? id.slice(0,8)}" | hits: ${r.total_hits ?? 0} | status: ${r.status}`
         },
       },
       {
         id: 'ELK-07',
-        name: 'Hunt Result Không Tồn Tại → 404',
-        what: 'GET /elk/hunt/results/:id với UUID không tồn tại',
+        name: 'Hunt Result Does Not Exist → 404',
+        what: 'GET /elk/hunt/results/:id with a non-existent UUID',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/elk/hunt/results/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
@@ -1076,22 +1076,22 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'AI-01',
-        name: 'Liệt Kê AI Providers',
-        what: 'GET /ai/providers — lấy danh sách provider AI đã cấu hình',
-        expected: 'Array providers, API key không được lộ (has_key thay thế)',
+        name: 'List AI Providers',
+        what: 'GET /ai/providers — get the list of configured AI providers',
+        expected: 'Array of providers, API key not leaked (has_key instead)',
         async run() {
           const { data } = await apiClient.get('/ai/providers')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
           const withKey = data.data.filter((p: { api_key?: string }) => p.api_key)
-          if (withKey.length > 0) throw new Error('API key bị lộ trong response!')
-          return `OK — ${data.data.length} AI provider(s), keys ẩn`
+          if (withKey.length > 0) throw new Error('API key leaked in the response!')
+          return `OK — ${data.data.length} AI provider(s), keys hidden`
         },
       },
       {
         id: 'AI-02',
-        name: 'Tạo & Xóa AI Provider (Lifecycle)',
-        what: 'POST /ai/providers → xác minh key encrypted (has_key=true) → DELETE dọn dẹp',
-        expected: 'Provider tạo với has_key=true, api_key không lộ, xóa được',
+        name: 'Create & Delete AI Provider (Lifecycle)',
+        what: 'POST /ai/providers → verify the key is encrypted (has_key=true) → DELETE cleanup',
+        expected: 'Provider created with has_key=true, api_key not leaked, deletable',
         async run() {
           const { data: createData } = await apiClient.post('/ai/providers', {
             name: `__test_provider_${Date.now()}`,
@@ -1103,55 +1103,55 @@ const CATEGORIES: CategoryDef[] = [
             is_active: false,
           })
           const p = createData.data
-          if (!p?.id) throw new Error('Thiếu id trong response')
-          if (p?.api_key) throw new Error('API key bị lộ trong response!')
-          if (!p?.has_key) throw new Error('has_key phải là true sau khi cung cấp key')
+          if (!p?.id) throw new Error('Missing id in response')
+          if (p?.api_key) throw new Error('API key leaked in the response!')
+          if (!p?.has_key) throw new Error('has_key must be true after providing a key')
           try {
             await apiClient.delete(`/ai/providers/${p.id}`)
           } catch {
-            throw new Error(`Tạo OK nhưng xóa thất bại (id: ${p.id.slice(0,8)})`)
+            throw new Error(`Created OK but delete failed (id: ${p.id.slice(0,8)})`)
           }
-          return `OK — provider tạo (key mã hóa, has_key=true), xóa sạch`
+          return `OK — provider created (key encrypted, has_key=true), fully deleted`
         },
       },
       {
         id: 'AI-03',
         name: 'Test Provider Connection',
-        what: 'POST /ai/providers/:id/test — kiểm tra kết nối thực sự đến AI API',
-        expected: 'Response có field success=true/false với message rõ ràng',
+        what: 'POST /ai/providers/:id/test — check the real connection to the AI API',
+        expected: 'Response has a success=true/false field with a clear message',
         async run() {
           const { data: listData } = await apiClient.get('/ai/providers')
-          if (!listData.data?.length) return 'SKIP — không có provider nào để test'
+          if (!listData.data?.length) return 'SKIP — no provider to test'
           const id = listData.data[0].id
           const { data } = await apiClient.post(`/ai/providers/${id}/test`)
-          if (data.success === undefined) throw new Error('Thiếu field success trong response')
-          const result = data.success ? 'kết nối thành công' : `thất bại: ${data.error ?? 'unknown'}`
+          if (data.success === undefined) throw new Error('Missing success field in response')
+          const result = data.success ? 'connection successful' : `failed: ${data.error ?? 'unknown'}`
           return `OK — provider "${listData.data[0].name}": ${result}`
         },
       },
       {
         id: 'AI-04',
-        name: 'Liệt Kê Analysis Sessions',
-        what: 'GET /ai/sessions — lấy lịch sử các lần phân tích AI',
-        expected: 'Array sessions với source_type, status, provider info',
+        name: 'List Analysis Sessions',
+        what: 'GET /ai/sessions — history of AI analysis runs',
+        expected: 'Array of sessions with source_type, status, provider info',
         async run() {
           const { data } = await apiClient.get('/ai/sessions')
-          if (!Array.isArray(data.data)) throw new Error('data.data không phải array')
-          return `OK — ${data.data.length} analysis session(s) trong lịch sử`
+          if (!Array.isArray(data.data)) throw new Error('data.data is not an array')
+          return `OK — ${data.data.length} analysis session(s) in history`
         },
       },
       {
         id: 'AI-05',
-        name: 'Lấy Chi Tiết Session',
-        what: 'GET /ai/sessions/:id — lấy session kèm chain steps và kết quả',
-        expected: 'Object session có steps (JSON array), result (markdown report)',
+        name: 'Get Session Detail',
+        what: 'GET /ai/sessions/:id — session with chain steps and result',
+        expected: 'Session object has steps (JSON array), result (markdown report)',
         async run() {
           const { data: listData } = await apiClient.get('/ai/sessions')
-          if (!listData.data?.length) return 'SKIP — không có session nào để test'
+          if (!listData.data?.length) return 'SKIP — no session to test'
           const id = listData.data[0].id
           const { data } = await apiClient.get(`/ai/sessions/${id}`)
           const s = data.data
-          if (!s?.id) throw new Error('Thiếu id trong response')
+          if (!s?.id) throw new Error('Missing id in response')
           const raw = s.steps
           const steps = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw).length : 0
           return `OK — session ${id.slice(0,8)} | status: ${s.status} | ${steps} steps | ${s.result?.length ?? 0} chars`
@@ -1159,24 +1159,24 @@ const CATEGORIES: CategoryDef[] = [
       },
       {
         id: 'AI-06',
-        name: 'Session Không Tồn Tại → 404',
-        what: 'GET /ai/sessions/:id với UUID không tồn tại',
+        name: 'Session Does Not Exist → 404',
+        what: 'GET /ai/sessions/:id with a non-existent UUID',
         expected: 'HTTP 404 Not Found',
         async run() {
           try {
             await apiClient.get('/ai/sessions/00000000-0000-0000-0000-000000000000')
-            throw new Error('Mong đợi 404 nhưng nhận được 200')
+            throw new Error('Expected 404 but got 200')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 404) return 'OK — 404 Not Found (đúng)'
+            if (e.response?.status === 404) return 'OK — 404 Not Found (correct)'
             throw err
           }
         },
       },
       {
         id: 'AI-07',
-        name: 'Provider Type Không Hợp Lệ → 400',
-        what: 'POST /ai/providers với provider_type="unsupported_xyz"',
+        name: 'Invalid Provider Type → 400',
+        what: 'POST /ai/providers with provider_type="unsupported_xyz"',
         expected: 'HTTP 400 — validation error',
         async run() {
           try {
@@ -1186,10 +1186,10 @@ const CATEGORIES: CategoryDef[] = [
               api_key: 'test',
               model: 'test-model',
             })
-            throw new Error('Server chấp nhận provider_type không hợp lệ!')
+            throw new Error('Server accepted an invalid provider_type!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 400) return 'OK — provider_type không hợp lệ bị từ chối (400)'
+            if (e.response?.status === 400) return 'OK — invalid provider_type rejected (400)'
             throw err
           }
         },
@@ -1208,74 +1208,174 @@ const CATEGORIES: CategoryDef[] = [
     tests: [
       {
         id: 'SYS-01',
-        name: 'Health Check Trả Về 4 Services',
-        what: 'GET /system/health — kiểm tra trạng thái PostgreSQL, Redis, Storage, WS Hub',
-        expected: 'Response có 4 fields: postgres, redis, storage, ws_hub',
+        name: 'Health Check Returns 4 Services',
+        what: 'GET /system/health — check PostgreSQL, Redis, Storage, WS Hub status',
+        expected: 'Response has 4 fields: postgres, redis, storage, ws_hub',
         async run() {
           const { data } = await apiClient.get('/system/health')
           const h = data.data
-          if (!h) throw new Error('Không có data trong response')
+          if (!h) throw new Error('No data in response')
           const required = ['postgres', 'redis', 'storage', 'ws_hub']
           const missing = required.filter(k => !(k in h))
-          if (missing.length > 0) throw new Error(`Thiếu fields: ${missing.join(', ')}`)
+          if (missing.length > 0) throw new Error(`Missing fields: ${missing.join(', ')}`)
           const statuses = required.map(k => `${k}:${h[k]}`).join(' | ')
           return `OK — ${statuses}`
         },
       },
       {
         id: 'SYS-02',
-        name: 'Server Resources Có Trong Health',
-        what: 'GET /system/health — kiểm tra có CPU/RAM/Disk của server',
-        expected: 'Response có field "server" với cpu_percent, ram_used_mb, disk_used_gb',
+        name: 'Server Resources In Health',
+        what: 'GET /system/health — check the server CPU/RAM/Disk',
+        expected: 'Response has a "server" field with cpu_percent, ram_used_mb, disk_used_gb',
         async run() {
           const { data } = await apiClient.get('/system/health')
           const server = data.data?.server
-          if (!server) return 'SKIP — server resources chưa được implement'
-          if (server.cpu_percent === undefined) throw new Error('Thiếu cpu_percent')
-          if (server.ram_used_mb === undefined) throw new Error('Thiếu ram_used_mb')
-          if (server.disk_used_gb === undefined) throw new Error('Thiếu disk_used_gb')
+          if (!server) return 'SKIP — server resources not implemented yet'
+          if (server.cpu_percent === undefined) throw new Error('Missing cpu_percent')
+          if (server.ram_used_mb === undefined) throw new Error('Missing ram_used_mb')
+          if (server.disk_used_gb === undefined) throw new Error('Missing disk_used_gb')
           return `OK — CPU: ${server.cpu_percent.toFixed(1)}% | RAM: ${server.ram_used_mb}MB | Disk: ${server.disk_used_gb}GB`
         },
       },
       {
         id: 'SYS-03',
         name: 'Agent Resources Trong Health',
-        what: 'GET /system/health — kiểm tra có mảng resource usage của agents online',
-        expected: 'Response có field "agent_resources" là array (có thể rỗng)',
+        what: 'GET /system/health — check for the resource-usage array of online agents',
+        expected: 'Response has an "agent_resources" field that is an array (may be empty)',
         async run() {
           const { data } = await apiClient.get('/system/health')
           const resources = data.data?.agent_resources
-          if (resources === undefined) return 'SKIP — agent_resources chưa được implement'
-          if (!Array.isArray(resources)) throw new Error('agent_resources phải là array')
-          return `OK — ${resources.length} agent(s) đang báo cáo resource`
+          if (resources === undefined) return 'SKIP — agent_resources not implemented yet'
+          if (!Array.isArray(resources)) throw new Error('agent_resources must be an array')
+          return `OK — ${resources.length} agent(s) reporting resources`
         },
       },
       {
         id: 'SYS-04',
         name: 'Token Stats Endpoint',
-        what: 'GET /system/token-stats — lấy thống kê AI token đã sử dụng',
-        expected: 'Object có by_provider (array) và total_tokens (number)',
+        what: 'GET /system/token-stats — get AI token usage stats',
+        expected: 'Object has by_provider (array) and total_tokens (number)',
         async run() {
           const { data } = await apiClient.get('/system/token-stats')
-          if (!data.data) throw new Error('Không có data trong response')
+          if (!data.data) throw new Error('No data in response')
           const stats = data.data
-          if (!Array.isArray(stats.by_provider)) throw new Error('by_provider phải là array')
+          if (!Array.isArray(stats.by_provider)) throw new Error('by_provider must be an array')
           const total = stats.total_tokens ?? 0
-          return `OK — tổng ${total.toLocaleString()} token(s) | ${stats.by_provider.length} provider(s)`
+          return `OK — total ${total.toLocaleString()} token(s) | ${stats.by_provider.length} provider(s)`
         },
       },
       {
         id: 'SYS-05',
-        name: 'Health Endpoint Yêu Cầu Auth',
-        what: 'GET /system/health không có JWT — bảo vệ thông tin hạ tầng',
-        expected: 'HTTP 401 — thông tin server không lộ cho unauthenticated users',
+        name: 'Health Endpoint Requires Auth',
+        what: 'GET /system/health without a JWT — protect infrastructure info',
+        expected: 'HTTP 401 — server info not exposed to unauthenticated users',
         async run() {
           try {
             await rawAxios.get('/system/health')
-            throw new Error('Thông tin hệ thống bị lộ cho unauthenticated request!')
+            throw new Error('System info exposed to an unauthenticated request!')
           } catch (err: unknown) {
             const e = err as { response?: { status: number } }
-            if (e.response?.status === 401) return 'OK — health endpoint được bảo vệ (401)'
+            if (e.response?.status === 401) return 'OK — health endpoint is protected (401)'
+            throw err
+          }
+        },
+      },
+    ],
+  },
+
+  // ─── 11. Egress Proxy ─────────────────────────────────────────────────────
+  {
+    id: 'proxy',
+    label: 'Egress Proxy',
+    icon: Shield,
+    color: 'text-indigo-400',
+    borderColor: 'border-indigo-500/30',
+    bgColor: 'bg-indigo-500/5',
+    tests: [
+      {
+        id: 'PROXY-01',
+        name: 'Proxy Status Endpoint Returns All Fields',
+        what: 'GET /system/proxy — report the applied egress proxy config (read from runtime env)',
+        expected: 'Object has outbound_configured, outbound_proxy, no_proxy, tor_configured, tor_proxy, darkweb_sources',
+        async run() {
+          const { data } = await apiClient.get('/system/proxy')
+          const p = data.data
+          if (!p) throw new Error('No data in response')
+          for (const k of ['outbound_configured', 'tor_configured']) {
+            if (typeof p[k] !== 'boolean') throw new Error(`Field ${k} must be a boolean`)
+          }
+          for (const k of ['outbound_proxy', 'no_proxy', 'tor_proxy']) {
+            if (typeof p[k] !== 'string') throw new Error(`Field ${k} must be a string`)
+          }
+          if (typeof p.darkweb_sources !== 'number') throw new Error('darkweb_sources must be a number')
+          return `OK — outbound: ${p.outbound_configured ? p.outbound_proxy : 'OFF'} | tor: ${p.tor_configured ? 'ON' : 'OFF'} | darkweb sources: ${p.darkweb_sources}`
+        },
+      },
+      {
+        id: 'PROXY-02',
+        name: 'Mask Credentials Trong Proxy URL',
+        what: 'POST /system/proxy/validate with a user:pass proxy — server must fully mask credentials',
+        expected: 'masked_proxy = scheme://host:port, no "@"/user/pass left, leaked=false',
+        async run() {
+          const { data } = await apiClient.post('/system/proxy/validate', {
+            proxy_url: 'http://admin:S3cretP@ss@10.0.0.5:8080',
+          })
+          const d = data.data
+          if (!d) throw new Error('No data in response')
+          if (d.leaked) throw new Error('Server reported leaked=true — credentials were not masked')
+          if (String(d.masked_proxy).includes('@'))
+            throw new Error(`masked_proxy still has "@": ${d.masked_proxy}`)
+          if (String(d.masked_proxy).toLowerCase().includes('admin') || String(d.masked_proxy).includes('S3cret'))
+            throw new Error(`masked_proxy leaked credentials: ${d.masked_proxy}`)
+          if (!String(d.masked_proxy).includes('10.0.0.5:8080'))
+            throw new Error(`masked_proxy lost host:port: ${d.masked_proxy}`)
+          return `OK — masked: http://admin:S3cret…@10.0.0.5:8080 → ${d.masked_proxy}`
+        },
+      },
+      {
+        id: 'PROXY-03',
+        name: 'NO_PROXY Always Bypasses Loopback',
+        what: 'POST /system/proxy/validate — effective NO_PROXY must always include localhost/127.0.0.1/::1 + operator exceptions',
+        expected: 'effective_no_proxy contains localhost, 127.0.0.1, ::1 and "10.20.30.0/24"',
+        async run() {
+          const { data } = await apiClient.post('/system/proxy/validate', {
+            no_proxy: '10.20.30.0/24',
+          })
+          const np = String(data.data?.effective_no_proxy ?? '')
+          for (const must of ['localhost', '127.0.0.1', '::1', '10.20.30.0/24']) {
+            if (!np.includes(must))
+              throw new Error(`effective_no_proxy missing "${must}": ${np}`)
+          }
+          return `OK — NO_PROXY always bypasses loopback + exceptions: ${np}`
+        },
+      },
+      {
+        id: 'PROXY-04',
+        name: 'Configured Flag Matches Proxy Value',
+        what: 'GET /system/proxy — outbound_configured is true iff outbound_proxy has a value; same for tor',
+        expected: 'Boolean flags consistent with their proxy strings',
+        async run() {
+          const { data } = await apiClient.get('/system/proxy')
+          const p = data.data
+          if (p.outbound_configured !== (String(p.outbound_proxy).length > 0))
+            throw new Error('outbound_configured does not match outbound_proxy')
+          if (p.tor_configured !== (String(p.tor_proxy).length > 0))
+            throw new Error('tor_configured does not match tor_proxy')
+          return 'OK — configured flags consistent with proxy values'
+        },
+      },
+      {
+        id: 'PROXY-05',
+        name: 'Proxy Status Requires Auth',
+        what: 'GET /system/proxy without a JWT — do not expose infra config to unauthenticated',
+        expected: 'HTTP 401 Unauthorized',
+        async run() {
+          try {
+            await rawAxios.get('/system/proxy')
+            throw new Error('Proxy config exposed to an unauthenticated request!')
+          } catch (err: unknown) {
+            const e = err as { response?: { status: number } }
+            if (e.response?.status === 401) return 'OK — proxy status endpoint is protected (401)'
             throw err
           }
         },
@@ -1337,7 +1437,7 @@ function TestRow({ def, result, onRun, isRunning }: TestRowProps) {
           </div>
           <p className="text-[12px] text-gray-500 mt-0.5 leading-relaxed">{def.what}</p>
           <p className="text-[11px] text-gray-600 mt-0.5">
-            <span className="text-gray-700">Mong đợi: </span>{def.expected}
+            <span className="text-gray-700">Expected: </span>{def.expected}
           </p>
 
           {/* Detail / Error */}
@@ -1347,7 +1447,7 @@ function TestRow({ def, result, onRun, isRunning }: TestRowProps) {
               className="flex items-center gap-1 mt-1.5 text-[11px] text-gray-500 hover:text-gray-300 transition-colors"
             >
               {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              {expanded ? 'Ẩn chi tiết' : 'Xem chi tiết'}
+              {expanded ? 'Hide details' : 'View details'}
             </button>
           )}
           {expanded && hasDetail && (
@@ -1462,7 +1562,7 @@ export default function TestCasesPage() {
             </span>
           </div>
           <p className="text-sm text-gray-500">
-            Kiểm tra toàn bộ API backend của ForensicHub-v2 — chạy từng test hoặc toàn bộ để xác nhận hệ thống hoạt động đúng.
+            Test the entire ForensicHub-v2 backend API — run tests individually or all at once to confirm the system works correctly.
           </p>
         </div>
         <button
@@ -1473,7 +1573,7 @@ export default function TestCasesPage() {
             disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
         >
           {isAnyRunning
-            ? <><Loader2 className="h-4 w-4 animate-spin" /> Đang chạy…</>
+            ? <><Loader2 className="h-4 w-4 animate-spin" /> Running…</>
             : <><PlayCircle className="h-4 w-4" /> Run All Tests</>
           }
         </button>
@@ -1617,7 +1717,7 @@ export default function TestCasesPage() {
       {/* ── Quick Overview (all categories) ── */}
       <div className="mt-2">
         <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
-          Tổng quan tất cả categories
+          Overview of all categories
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {CATEGORIES.map((cat) => {

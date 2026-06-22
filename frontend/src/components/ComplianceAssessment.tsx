@@ -88,18 +88,18 @@ function AssessPanel({ caseId, items, onDone }: { caseId: string; items: AssessI
     <div className="card p-4 space-y-3 border-emerald-500/30">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-emerald-400" /> AI Assess — chấm Đạt/Không đạt
+          <Sparkles className="h-4 w-4 text-emerald-400" /> AI Assess — grade Pass/Fail
         </h4>
         <button onClick={onDone} className="text-gray-500 hover:text-gray-300"><X className="h-4 w-4" /></button>
       </div>
       <p className="text-xs text-gray-500">
-        AI đọc output từng compliance check + baseline kỳ vọng → kết luận <strong>Pass/Fail/Partial</strong> + lý do + cách khắc phục.
-        Tìm thấy <strong className="text-emerald-300">{items.length}</strong> control có bằng chứng.
+        AI reads each compliance check's output + the expected baseline → concludes <strong>Pass/Fail/Partial</strong> + rationale + remediation.
+        Found <strong className="text-emerald-300">{items.length}</strong> control(s) with evidence.
       </p>
       {items.length === 0 ? (
         <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-500/5 border border-amber-500/20 rounded p-2">
           <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-          <span>Chưa có bằng chứng compliance. Hãy chạy <strong>Evidence & Compliance → Compliance Audit</strong> trên agent thuộc case này trước.</span>
+          <span>No compliance evidence yet. Run <strong>Evidence & Compliance → Compliance Audit</strong> on an agent in this case first.</span>
         </div>
       ) : providers.length === 0 ? (
         <p className="text-xs text-yellow-400">No AI providers configured. <a href="/ai-providers" className="underline">Add one first.</a></p>
@@ -113,7 +113,7 @@ function AssessPanel({ caseId, items, onDone }: { caseId: string; items: AssessI
           </select>
           <button className="btn-primary whitespace-nowrap" disabled={!providerId || assessMut.isPending}
             onClick={() => assessMut.mutate()}>
-            {assessMut.isPending ? 'Đang chấm…' : 'Assess'}
+            {assessMut.isPending ? 'Assessing…' : 'Assess'}
           </button>
         </div>
       )}
@@ -238,17 +238,17 @@ export default function ComplianceAssessment({
               </span>
               {prevScore !== null && score !== prevScore && (
                 <span className={`flex items-center gap-0.5 text-[11px] ${score > prevScore ? 'text-emerald-400' : 'text-red-400'}`}
-                  title={`Lần trước: ${prevScore}%`}>
+                  title={`Previous: ${prevScore}%`}>
                   {score > prevScore ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                   {score > prevScore ? '+' : ''}{score - prevScore}%
                 </span>
               )}
               {prevScore !== null && score === prevScore && (
-                <span className="flex items-center gap-0.5 text-[11px] text-gray-500" title={`Lần trước: ${prevScore}%`}><Minus className="h-3 w-3" /></span>
+                <span className="flex items-center gap-0.5 text-[11px] text-gray-500" title={`Previous: ${prevScore}%`}><Minus className="h-3 w-3" /></span>
               )}
               {openCount > 0 && (
                 <span className="text-xs px-2 py-1 rounded-full border border-red-500/30 bg-red-500/10 text-red-300">
-                  {openCount} cần khắc phục{overdueCount > 0 ? ` · ${overdueCount} quá hạn` : ''}
+                  {openCount} to remediate{overdueCount > 0 ? ` · ${overdueCount} overdue` : ''}
                 </span>
               )}
               {(['compliant', 'non_compliant', 'partial', 'na'] as FindingStatus[]).map((s) =>
@@ -284,9 +284,9 @@ export default function ComplianceAssessment({
       ) : total === 0 ? (
         <div className="card p-10 text-center flex flex-col items-center">
           <ShieldCheck className="h-10 w-10 text-gray-700 mb-3" />
-          <p className="text-gray-400 font-medium">Chưa có đánh giá compliance</p>
+          <p className="text-gray-400 font-medium">No compliance assessment yet</p>
           <p className="text-xs text-gray-500 mt-1 max-w-md">
-            Chạy Compliance Audit checklist trên agent thuộc case, rồi bấm <strong>AI Assess</strong> để AI chấm Đạt/Không đạt và sinh ma trận phủ control + báo cáo.
+            Run the Compliance Audit checklist on an agent in this case, then click <strong>AI Assess</strong> to grade Pass/Fail and generate a control-coverage matrix + report.
           </p>
         </div>
       ) : (
@@ -311,7 +311,7 @@ export default function ComplianceAssessment({
                       <div className="text-[11px] font-mono text-gray-500 mt-0.5">{f.control}</div>
                       {f.rationale && <p className="text-xs text-gray-400 mt-1">{f.rationale}</p>}
                       {needsFix && f.remediation && (
-                        <p className="text-xs text-red-300/80 mt-1"><span className="text-gray-500">Khắc phục: </span>{f.remediation}</p>
+                        <p className="text-xs text-red-300/80 mt-1"><span className="text-gray-500">Remediation: </span>{f.remediation}</p>
                       )}
                       {f.evidence_hash && (
                         <p className="text-[10px] font-mono text-gray-600 mt-1" title={`SHA-256: ${f.evidence_hash}`}>
@@ -340,7 +340,7 @@ export default function ComplianceAssessment({
                               className={`bg-gray-800 border rounded px-1.5 py-0.5 text-[10px] ${overdue ? 'border-red-500/50 text-red-400' : 'border-gray-700 text-gray-300'}`}
                             />
                           </label>
-                          {overdue && <span className="flex items-center gap-0.5 text-[10px] text-red-400"><Clock className="h-3 w-3" /> Quá hạn</span>}
+                          {overdue && <span className="flex items-center gap-0.5 text-[10px] text-red-400"><Clock className="h-3 w-3" /> Overdue</span>}
                           <select
                             value={f.remediation_status}
                             onChange={(e) => patchMut.mutate({ id: f.id, remediation_status: e.target.value as RemediationStatus })}
@@ -372,7 +372,7 @@ export default function ComplianceAssessment({
           </div>
 
           <p className="text-[11px] text-gray-600 flex items-center gap-1.5 pt-1">
-            <Info className="h-3 w-3" /> Verdict do AI đề xuất — analyst có thể chỉnh tay qua ô bên phải. Báo cáo HTML kèm Compliance Matrix + Findings.
+            <Info className="h-3 w-3" /> AI-suggested verdict — the analyst can override it on the right. The HTML report includes the Compliance Matrix + Findings.
           </p>
         </>
       )}

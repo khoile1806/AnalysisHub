@@ -11,6 +11,7 @@ import {
   Bug,
   ShieldAlert,
   LibraryBig,
+  Fingerprint,
   ArrowUp,
   Briefcase,
   BookOpen,
@@ -68,8 +69,9 @@ const NAV_GROUPS = [
   {
     label: 'Threat Intelligence',
     items: [
-      { to: '/cve',            icon: Bug,        label: 'Vulnerability Search' },
-      { to: '/cve-collection', icon: LibraryBig, label: 'Threat Intelligence' },
+      { to: '/cve',            icon: Bug,         label: 'Vulnerability Search' },
+      { to: '/cve-collection', icon: LibraryBig,  label: 'Threat Intelligence' },
+      { to: '/osint',          icon: Fingerprint, label: 'OSINT' },
     ]
   },
   {
@@ -92,6 +94,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'webshell-scanner': 'Webshell Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
+  'osint': 'OSINT',
   'collection-checklist': 'Evidence & Compliance',
   'playbooks': 'Playbooks',
   'ai-analysis': 'AI Analysis',

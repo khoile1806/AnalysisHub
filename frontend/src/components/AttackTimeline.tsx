@@ -354,8 +354,8 @@ function EvidencePanel({ caseId, agents, onDone }: { caseId: string; agents: any
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['timeline', caseId] })
       qc.invalidateQueries({ queryKey: ['case-evidence', caseId] })
-      if (res.imported > 0) toast.success(`Trích ${res.imported} sự kiện từ ${res.host}`)
-      else toast(`Không tìm thấy sự kiện có mốc thời gian (${res.host})`, { icon: 'ℹ️' })
+      if (res.imported > 0) toast.success(`Extracted ${res.imported} event(s) from ${res.host}`)
+      else toast(`No timestamped events found (${res.host})`, { icon: 'ℹ️' })
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   })
@@ -380,33 +380,33 @@ function EvidencePanel({ caseId, agents, onDone }: { caseId: string; agents: any
       {/* Upload form — host is required */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         <div>
-          <label className="label text-xs">Result thuộc máy nào? *</label>
-          <input className="input" list="evidence-hosts" placeholder="VD: WEB-01"
+          <label className="label text-xs">Which host is this result from? *</label>
+          <input className="input" list="evidence-hosts" placeholder="e.g. WEB-01"
             value={host} onChange={(e) => setHost(e.target.value)} />
           <datalist id="evidence-hosts">{hostNames.map((h) => <option key={h} value={h} />)}</datalist>
         </div>
         <div>
-          <label className="label text-xs">Ghi chú (tuỳ chọn)</label>
-          <input className="input" placeholder="VD: output Autoruns" value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <label className="label text-xs">Notes (optional)</label>
+          <input className="input" placeholder="e.g. Autoruns output" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </div>
       <div className="flex items-center gap-2">
         <label className="flex-1 flex items-center gap-2 border border-dashed border-gray-700 rounded-lg px-3 py-2 cursor-pointer hover:border-sky-500/50 text-xs text-gray-400">
           <FolderUp className="h-4 w-4 text-gray-500" />
-          {file ? <span className="text-sky-400 truncate">{file.name}</span> : 'Chọn file result/evidence…'}
+          {file ? <span className="text-sky-400 truncate">{file.name}</span> : 'Choose a result/evidence file…'}
           <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         <button className="btn-primary text-xs py-2" disabled={!file || !host.trim() || uploadMut.isPending}
           onClick={() => uploadMut.mutate()}>
-          {uploadMut.isPending ? 'Đang tải…' : 'Upload'}
+          {uploadMut.isPending ? 'Uploading…' : 'Upload'}
         </button>
       </div>
-      {!host.trim() && file && <p className="text-[11px] text-amber-400">⚠ Phải nhập máy (host) trước khi upload.</p>}
+      {!host.trim() && file && <p className="text-[11px] text-amber-400">⚠ Enter the host before uploading.</p>}
 
       {/* Provider for AI extraction */}
       {evidence.length > 0 && (
         <div className="flex items-center gap-2 pt-1">
-          <span className="text-[11px] text-gray-500">AI provider (để trích timeline):</span>
+          <span className="text-[11px] text-gray-500">AI provider (for timeline extraction):</span>
           <select className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 flex-1"
             value={providerId} onChange={(e) => setProviderId(e.target.value)}>
             <option value="">Select provider…</option>
@@ -418,7 +418,7 @@ function EvidencePanel({ caseId, agents, onDone }: { caseId: string; agents: any
       {/* File list */}
       <div className="space-y-1.5">
         {evidence.length === 0 ? (
-          <p className="text-xs text-gray-500 py-2 text-center">Chưa có file evidence nào.</p>
+          <p className="text-xs text-gray-500 py-2 text-center">No evidence files yet.</p>
         ) : (
           evidence.map((ev: CaseEvidence) => (
             <div key={ev.id} className="flex items-center gap-2 bg-gray-900/40 border border-gray-800 rounded-lg px-3 py-2">
@@ -435,7 +435,7 @@ function EvidencePanel({ caseId, agents, onDone }: { caseId: string; agents: any
                   {ev.notes && <span className="truncate">· {ev.notes}</span>}
                 </div>
               </div>
-              <button title="AI trích timeline" disabled={!providerId || extractMut.isPending}
+              <button title="AI timeline extraction" disabled={!providerId || extractMut.isPending}
                 onClick={() => extractMut.mutate(ev.id)}
                 className="text-[10px] px-2 py-1 rounded border border-violet-500/40 text-violet-300 hover:bg-violet-500/10 disabled:opacity-40 shrink-0 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" /> Extract
@@ -639,7 +639,7 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
                           <div className="flex flex-col items-center gap-1.5 shrink-0">
                             <button
                               onClick={() => setEditAttachFor(editAttachFor === e.id ? null : e.id)}
-                              title="Đính kèm evidence / ảnh / link"
+                              title="Attach evidence / image / link"
                               className={`transition ${editAttachFor === e.id ? 'text-emerald-400' : 'text-gray-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100'}`}
                             >
                               <Paperclip className="h-3.5 w-3.5" />

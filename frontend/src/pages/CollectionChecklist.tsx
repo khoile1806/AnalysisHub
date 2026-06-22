@@ -1306,7 +1306,7 @@ export default function CollectionChecklist() {
           <p className="text-xs text-[#5a6488] mt-0.5">
             {currentKey === 'compliance'
               ? 'Audit readiness hunting · ISO 27001 / SOC 2 / PCI-DSS / NIST'
-              : PLAYBOOK_CHECKLISTS[currentKey] ? `Automated evidence collection for ${PLAYBOOKS.find(p => p.id === currentKey)?.title || currentKey}` : 'Digital Forensics & Incident Response · Thu thập chứng cứ từ máy mục tiêu'}
+              : PLAYBOOK_CHECKLISTS[currentKey] ? `Automated evidence collection for ${PLAYBOOKS.find(p => p.id === currentKey)?.title || currentKey}` : 'Digital Forensics & Incident Response · Collect evidence from the target host'}
           </p>
           {/* Profile switch */}
           <div className="flex border border-[#2a2f4a] rounded-lg overflow-hidden mt-2 w-fit flex-wrap">
@@ -1438,7 +1438,7 @@ export default function CollectionChecklist() {
       {/* ── Progress bar ── */}
       <div className="px-6 py-2 bg-[#0d0f18] border-b border-[#2a2f4a]">
         <div className="flex justify-between text-[11px] text-[#5a6488] mb-1">
-          <span>Tiến độ checklist</span>
+          <span>Checklist progress</span>
           <span className={platform === 'win' ? 'text-sky-400' : 'text-orange-400'}>
             {progressDone} / {progressTotal} ({progressPct}%)
           </span>
@@ -1576,12 +1576,12 @@ export default function CollectionChecklist() {
                                     )}
                                     {item.purpose && (
                                       <p className="text-[11px] text-[#8a93b8] mt-1 leading-snug">
-                                        <span className="text-[#5a6488]">▸ Phục vụ: </span>{item.purpose}
+                                        <span className="text-[#5a6488]">▸ Purpose: </span>{item.purpose}
                                       </p>
                                     )}
                                     {item.suggestedTools && item.suggestedTools.length > 0 && (
                                       <div className="flex items-center gap-1 flex-wrap mt-1">
-                                        <span className="text-[10px] text-[#5a6488]">🔧 Tool gợi ý:</span>
+                                        <span className="text-[10px] text-[#5a6488]">🔧 Suggested tools:</span>
                                         {item.suggestedTools.map((t) => (
                                           <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
                                             {t}

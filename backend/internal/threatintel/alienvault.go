@@ -60,7 +60,7 @@ func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) 
 
 	count := result.PulseInfo.Count
 	malicious := count > 0
-	summary := fmt.Sprintf("%d threat pulse(s) liên quan", count)
+	summary := fmt.Sprintf("%d related threat pulse(s)", count)
 
 	// Include up to 3 pulse names as labels
 	var labels []string

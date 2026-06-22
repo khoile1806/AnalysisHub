@@ -83,6 +83,13 @@ RUN apk add --no-cache ca-certificates tzdata && \
     addgroup -S appgroup && \
     adduser -S -h /home/appuser appuser -G appgroup
 
+# Maigret (optional) — powers the OSINT username collector (3000+ sites). Uses
+# apk-provided C-extension deps to avoid slow source builds. Best-effort: if the
+# install fails the OSINT "maigret" collector simply skips and the rest works.
+RUN apk add --no-cache python3 py3-pip py3-lxml py3-aiohttp py3-requests && \
+    (pip install --no-cache-dir --break-system-packages maigret \
+     || echo "[build] maigret install failed — OSINT maigret collector will skip at runtime")
+
 WORKDIR /app
 
 # Backend server binary

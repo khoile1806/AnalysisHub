@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ import (
 	"github.com/forensichub/backend/internal/database"
 	"github.com/forensichub/backend/internal/logger"
 	"github.com/forensichub/backend/internal/models"
+	"github.com/forensichub/backend/internal/osint"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
 	"github.com/forensichub/backend/internal/ws"
@@ -41,6 +43,12 @@ func main() {
 	// 2. Load application configuration
 	// ------------------------------------------------------------------ //
 	cfg := config.Load()
+
+	// Apply the project-wide egress proxy as early as possible (before any HTTP
+	// client makes a request). Every external fetch that uses the default
+	// transport or http.ProxyFromEnvironment then routes through it automatically;
+	// internal SIEM connectors keep their own proxy-less transports and bypass it.
+	applyOutboundProxy(cfg)
 
 	// ------------------------------------------------------------------ //
 	// 2.5 Initialise file-based logging
@@ -170,10 +178,30 @@ func main() {
 		slog.Info("threat intel: no API keys configured — IOC enrichment disabled")
 	}
 
+	// OSINT footprinting engine — passive entity intelligence (IP/domain/email/
+	// phone/username). Reputation collectors reuse the threat-intel API keys.
+	vtKey := ""
+	if len(cfg.VirusTotalKeys) > 0 {
+		vtKey = cfg.VirusTotalKeys[0]
+	}
+	osintEngine := osint.NewEngine(db, osint.Keys{
+		VirusTotal: vtKey,
+		Shodan:     cfg.ShodanKey,
+		AbuseIPDB:  cfg.AbuseIPDBKey,
+		AlienVault: cfg.AlienVaultKey,
+		HIBP:       cfg.OsintHIBPKey,
+		NumVerify:  cfg.OsintNumVerifyKey,
+		GitHub:     cfg.GitHubToken,
+		AbuseCh:    cfg.AbuseChKey,
+		Pulsedive:  cfg.PulsediveKey,
+		GreyNoise:  cfg.GreyNoiseKey,
+	}, cfg, enrichClient)
+	slog.Info("osint engine initialised")
+
 	// ------------------------------------------------------------------ //
 	// 8. Build Gin router
 	// ------------------------------------------------------------------ //
-	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient)
+	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient, osintEngine)
 
 	// ------------------------------------------------------------------ //
 	// 9. Start HTTP server with graceful shutdown
@@ -339,4 +367,26 @@ func seedScenarios(db *gorm.DB) error {
 		slog.Info("seeded hunting scenario", "name", sc.Name)
 	}
 	return nil
+}
+
+// applyOutboundProxy installs the project-wide egress proxy by exporting the
+// standard HTTP_PROXY/HTTPS_PROXY/NO_PROXY variables. Every HTTP client that
+// uses the default transport or http.ProxyFromEnvironment (OSINT, threat-intel,
+// CVE, news, AI) then routes through it automatically. Internal SIEM connectors
+// keep proxy-less transports and are unaffected. Must run before the first
+// outbound request so net/http caches the right config.
+func applyOutboundProxy(cfg *config.Config) {
+	p := strings.TrimSpace(cfg.OutboundProxy)
+	if p == "" {
+		return
+	}
+	for _, k := range []string{"HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"} {
+		_ = os.Setenv(k, p)
+	}
+	// Always keep loopback/local traffic (SIEM, Redis, DB health probes over
+	// HTTP) off the proxy, plus any operator-supplied exceptions.
+	noProxy := config.EffectiveNoProxy(cfg.OutboundNoProxy)
+	_ = os.Setenv("NO_PROXY", noProxy)
+	_ = os.Setenv("no_proxy", noProxy)
+	slog.Info("outbound proxy enabled for external fetches", "proxy", p, "no_proxy", noProxy)
 }

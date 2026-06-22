@@ -224,6 +224,20 @@ func (h *CasesHandler) GetCaseSummary(c *gin.Context) {
 		}
 	}
 
+	// OSINT investigations filed under this case. Only the root scans are
+	// listed (auto-pivot children are folded into their root's graph), but the
+	// totals count the whole graph so the analyst sees the real scope.
+	var osintRoots []models.OsintScan
+	h.DB.Where("case_id = ? AND parent_scan_id IS NULL", caseID).
+		Order("created_at desc").Find(&osintRoots)
+
+	var osintTotalScans, osintTotalFindings int64
+	h.DB.Model(&models.OsintScan{}).Where("case_id = ?", caseID).Count(&osintTotalScans)
+	h.DB.Model(&models.OsintFinding{}).
+		Where("scan_id IN (?)", h.DB.Model(&models.OsintScan{}).
+			Select("id").Where("case_id = ?", caseID)).
+		Count(&osintTotalFindings)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
@@ -232,6 +246,11 @@ func (h *CasesHandler) GetCaseSummary(c *gin.Context) {
 			"deployments":    deployments,
 			"jobs":           jobs,
 			"checklist_runs": checklistRuns,
+			"osint": gin.H{
+				"investigations":  osintRoots,
+				"total_scans":     osintTotalScans,
+				"total_findings":  osintTotalFindings,
+			},
 		},
 	})
 }

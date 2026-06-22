@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/sysinfo"
 	"github.com/forensichub/backend/internal/storage"
@@ -211,6 +214,83 @@ func (h *SystemHandler) GetHealth(c *gin.Context) {
 
 			// Per-agent resource telemetry
 			"agent_resources": agentResources,
+		},
+	})
+}
+
+// maskProxyURL strips any credentials from a proxy URL so the status endpoint
+// never leaks a username/password. Returns "" for empty, the scheme://host:port
+// form on success, or "configured" if it cannot be parsed.
+func maskProxyURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return "configured"
+	}
+	u.User = nil // drop userinfo entirely
+	return u.Scheme + "://" + u.Host
+}
+
+// GetProxyStatus GET /api/v1/system/proxy
+// Reports the EFFECTIVE egress-proxy configuration (read from the process env
+// applied at startup) without exposing any secret. Lets the test suite verify
+// the project-wide proxy plumbing is in place and safely masked.
+func (h *SystemHandler) GetProxyStatus(c *gin.Context) {
+	getEnvAny := func(keys ...string) string {
+		for _, k := range keys {
+			if v := strings.TrimSpace(os.Getenv(k)); v != "" {
+				return v
+			}
+		}
+		return ""
+	}
+
+	outbound := getEnvAny("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy")
+	tor := getEnvAny("OSINT_TOR_PROXY")
+
+	darkSources := 0
+	if v := strings.TrimSpace(os.Getenv("OSINT_DARKWEB_SOURCES")); v != "" {
+		for _, p := range strings.Split(v, ",") {
+			if strings.TrimSpace(p) != "" {
+				darkSources++
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"outbound_configured": outbound != "",
+			"outbound_proxy":      maskProxyURL(outbound),
+			"no_proxy":            getEnvAny("NO_PROXY", "no_proxy"),
+			"tor_configured":      tor != "",
+			"tor_proxy":           maskProxyURL(tor),
+			"darkweb_sources":     darkSources,
+		},
+	})
+}
+
+// ValidateProxy POST /api/v1/system/proxy/validate
+// Exercises the egress-proxy masking + NO_PROXY composition on a SAMPLE input
+// (not the live config), so the test suite can verify the logic deterministically
+// even when no real proxy is configured. Pure function — changes nothing.
+func (h *SystemHandler) ValidateProxy(c *gin.Context) {
+	var req struct {
+		ProxyURL string `json:"proxy_url"`
+		NoProxy  string `json:"no_proxy"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	masked := maskProxyURL(req.ProxyURL)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"masked_proxy":       masked,
+			"effective_no_proxy": config.EffectiveNoProxy(req.NoProxy),
+			"leaked":             strings.Contains(masked, "@"), // true would mean credentials survived masking
 		},
 	})
 }

@@ -56,7 +56,7 @@ func (c *EnrichClient) lookupAbuseIPDB(ctx context.Context, ip string) (Finding,
 	score := d.AbuseConfidenceScore
 	malicious := score >= 50
 
-	summary := fmt.Sprintf("Confidence score: %d/100 | %d report(s) từ %d user(s)",
+	summary := fmt.Sprintf("Confidence score: %d/100 | %d report(s) from %d user(s)",
 		score, d.TotalReports, d.NumDistinctUsers)
 
 	extra := make(map[string]string)

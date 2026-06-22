@@ -74,7 +74,7 @@ export default function PlaybooksPage() {
                 Run Playbook Checklist
               </Link>
               <p className="text-[11px] text-gray-500 text-center max-w-[200px]">
-                Mở giao diện thu thập chứng cứ tự động cho kịch bản này
+                Open the automated evidence-collection interface for this scenario
               </p>
             </div>
           </div>

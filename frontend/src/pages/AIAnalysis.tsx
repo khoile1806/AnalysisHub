@@ -250,11 +250,11 @@ function NewAnalysisModal({
                 )}
                 {isLargeFile && (
                   <div className="mt-3 rounded-md bg-amber-900/20 border border-amber-500/30 px-3 py-2 text-left">
-                    <p className="text-xs text-amber-300 font-medium">File lớn — {fileSizeMB.toFixed(0)} MB</p>
+                    <p className="text-xs text-amber-300 font-medium">Large file — {fileSizeMB.toFixed(0)} MB</p>
                     <p className="text-[11px] text-amber-400/70 mt-0.5">
-                      File sẽ được lưu đầy đủ lên server. Khi phân tích, hệ thống tự động lấy mẫu 2 MB
-                      (đầu + giữa + cuối) để trích xuất strings — không load toàn bộ vào RAM.
-                      Upload có thể mất vài phút.
+                      The full file is stored on the server. During analysis the system auto-samples 2 MB
+                      (head + middle + tail) to extract strings — it does not load the whole file into RAM.
+                      Upload may take a few minutes.
                     </p>
                   </div>
                 )}
@@ -387,7 +387,7 @@ function LiveActivityPanel({ logs, liveTokens, isStreaming }: {
         <div className="overflow-y-auto px-3 py-2 space-y-0.5 custom-scrollbar font-mono text-[11px]">
           <p className="text-[9px] text-gray-700 uppercase tracking-widest mb-1.5 select-none">Pipeline Log</p>
           {logs.length === 0 ? (
-            <p className="text-gray-700 italic text-center pt-3">Chờ bắt đầu…</p>
+            <p className="text-gray-700 italic text-center pt-3">Waiting to start…</p>
           ) : (
             logs.map((entry, i) => (
               <div key={i} className="flex items-start gap-1.5 leading-[1.6]">
@@ -404,7 +404,7 @@ function LiveActivityPanel({ logs, liveTokens, isStreaming }: {
         <div className="overflow-y-auto px-3 py-2 custom-scrollbar">
           <p className="text-[9px] text-gray-700 uppercase tracking-widest mb-1.5 select-none font-mono">AI Thinking</p>
           {!liveTokens && !isStreaming ? (
-            <p className="text-[11px] text-gray-700 italic font-mono text-center pt-3">AI chưa bắt đầu…</p>
+            <p className="text-[11px] text-gray-700 italic font-mono text-center pt-3">AI hasn't started yet…</p>
           ) : (
             <p className="text-[12px] text-violet-300/80 font-mono leading-[1.65] whitespace-pre-wrap break-words">
               {liveTokens}
@@ -564,7 +564,7 @@ function SessionPanel({ session, onDeleted }: { session: AnalysisSession; onDele
         <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">Chain of Work</h3>
         {steps.length > 0
           ? <AnalysisChain steps={steps} />
-          : <p className="text-xs text-gray-600 italic">Đang khởi tạo pipeline…</p>
+          : <p className="text-xs text-gray-600 italic">Initializing pipeline…</p>
         }
       </div>
 

@@ -442,7 +442,7 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	h.saveSteps(session.ID, steps)
 	h.sendSSE(c, "init", steps) // client renders full chain in pending state
 
-	h.sendLog(c, "info", fmt.Sprintf("Bắt đầu phân tích — nguồn: %s", session.SourceType))
+	h.sendLog(c, "info", fmt.Sprintf("Starting analysis — source: %s", session.SourceType))
 
 	// Helper to update and emit a step.
 	setStep := func(idx int, status, detail string) {
@@ -454,8 +454,8 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 
 	// ── Step: collect ──────────────────────────────────────────
 	collectIdx := h.stepIndex(steps, "collect")
-	setStep(collectIdx, "running", "đang đọc...")
-	h.sendLog(c, "info", fmt.Sprintf("Đọc dữ liệu từ nguồn [%s]", session.SourceType))
+	setStep(collectIdx, "running", "reading...")
+	h.sendLog(c, "info", fmt.Sprintf("Reading data from source [%s]", session.SourceType))
 
 	pipeline := analysis.NewPipeline(h.db, h.store)
 	content, collectErr := pipeline.Collect(analysis.Source{
@@ -465,39 +465,39 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	})
 	if collectErr != nil {
 		setStep(collectIdx, "failed", collectErr.Error())
-		h.sendLog(c, "warn", "Lỗi thu thập: "+collectErr.Error())
+		h.sendLog(c, "warn", "Collection error: "+collectErr.Error())
 		h.sendSSE(c, "error", gin.H{"message": collectErr.Error()})
 		h.db.Model(&session).Update("status", "failed")
 		return
 	}
 	sizeKB := float64(len(content)) / 1024
 	setStep(collectIdx, "done", fmt.Sprintf("%.1f KB", sizeKB))
-	h.sendLog(c, "success", fmt.Sprintf("Thu thập xong — %.1f KB dữ liệu", sizeKB))
+	h.sendLog(c, "success", fmt.Sprintf("Collected — %.1f KB of data", sizeKB))
 
 	// ── Step: parse_tools (offline reports) ───────────────────
 	if ptIdx := h.stepIndex(steps, "parse_tools"); ptIdx >= 0 {
-		setStep(ptIdx, "running", "đang phân tích tool outputs...")
-		h.sendLog(c, "info", "Phân tích từng tool trong báo cáo offline...")
+		setStep(ptIdx, "running", "analyzing tool outputs...")
+		h.sendLog(c, "info", "Analyzing each tool in the offline report...")
 		toolCount := strings.Count(content, "\n--- [")
 		setStep(ptIdx, "done", fmt.Sprintf("%d tools", toolCount))
-		h.sendLog(c, "success", fmt.Sprintf("Phân tích xong %d tools", toolCount))
+		h.sendLog(c, "success", fmt.Sprintf("Analyzed %d tools", toolCount))
 	}
 
 	// ── Step: aggregate (checklist batches) ────────────────────
 	if aggIdx := h.stepIndex(steps, "aggregate"); aggIdx >= 0 {
 		setStep(aggIdx, "running", "")
-		h.sendLog(c, "info", "Gộp output từ các checklist batches...")
-		setStep(aggIdx, "done", fmt.Sprintf("%.1f KB sau gộp", float64(len(content))/1024))
+		h.sendLog(c, "info", "Aggregating output from checklist batches...")
+		setStep(aggIdx, "done", fmt.Sprintf("%.1f KB after aggregation", float64(len(content))/1024))
 	}
 
 	// ── Step: extract strings (binary uploads) ─────────────────
 	if parseIdx := h.stepIndex(steps, "extract_strings"); parseIdx >= 0 {
 		setStep(parseIdx, "running", "")
-		h.sendLog(c, "info", "Trích xuất printable strings từ binary file...")
+		h.sendLog(c, "info", "Extracting printable strings from the binary file...")
 		extracted := analysis.ExtractStrings(content, 512*1024)
 		content = extracted
 		setStep(parseIdx, "done", fmt.Sprintf("%.1f KB strings", float64(len(content))/1024))
-		h.sendLog(c, "success", fmt.Sprintf("Trích xuất xong — %.1f KB strings", float64(len(content))/1024))
+		h.sendLog(c, "success", fmt.Sprintf("Extracted — %.1f KB of strings", float64(len(content))/1024))
 	}
 
 	// ── Step: extract_iocs + enrich (threat intel) ────────────
@@ -505,23 +505,23 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	if h.enrich != nil && h.enrich.Configured() {
 		iocIdx := h.stepIndex(steps, "extract_iocs")
 		setStep(iocIdx, "running", "")
-		h.sendLog(c, "info", "Trích xuất IOC từ dữ liệu (IP, hash, domain)...")
+		h.sendLog(c, "info", "Extracting IOCs from data (IP, hash, domain)...")
 		iocs := threatintel.ExtractIOCs(content)
 		total := iocs.Total()
 		if total == 0 {
-			setStep(iocIdx, "done", "Không phát hiện IOC đáng ngờ")
-			h.sendLog(c, "info", "Không có IOC nào được trích xuất — bỏ qua bước tra cứu")
+			setStep(iocIdx, "done", "No suspicious IOCs found")
+			h.sendLog(c, "info", "No IOCs extracted — skipping enrichment")
 			enrichIdx := h.stepIndex(steps, "enrich")
-			setStep(enrichIdx, "done", "Bỏ qua (không có IOC)")
+			setStep(enrichIdx, "done", "Skipped (no IOC)")
 		} else {
-			detail := fmt.Sprintf("Tìm thấy %d IOC (%d IP, %d hash, %d domain)",
+			detail := fmt.Sprintf("Found %d IOC(s) (%d IP, %d hash, %d domain)",
 				total, len(iocs.IPs), len(iocs.Hashes), len(iocs.Domains))
 			setStep(iocIdx, "done", detail)
 			h.sendLog(c, "success", detail)
 
 			enrichIdx := h.stepIndex(steps, "enrich")
-			setStep(enrichIdx, "running", fmt.Sprintf("đang tra cứu %d IOC...", total))
-			h.sendLog(c, "info", fmt.Sprintf("Tra cứu threat intel cho %d IOC (VT, AbuseIPDB, OTX, Shodan)...", total))
+			setStep(enrichIdx, "running", fmt.Sprintf("enriching %d IOC(s)...", total))
+			h.sendLog(c, "info", fmt.Sprintf("Enriching threat intel for %d IOC(s) (VT, AbuseIPDB, OTX, Shodan)...", total))
 
 			results := h.enrich.Enrich(ctx, iocs)
 			enrichSummary = threatintel.FormatSummary(results)
@@ -532,16 +532,16 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 					threats++
 				}
 			}
-			enrichDetail := fmt.Sprintf("%d/%d IOC có dấu hiệu độc hại", threats, len(results))
+			enrichDetail := fmt.Sprintf("%d/%d IOC(s) flagged malicious", threats, len(results))
 			setStep(enrichIdx, "done", enrichDetail)
-			h.sendLog(c, "success", "Tra cứu hoàn tất — "+enrichDetail)
+			h.sendLog(c, "success", "Enrichment complete — "+enrichDetail)
 		}
 	}
 
 	// ── Step: context ──────────────────────────────────────────
 	contextIdx := h.stepIndex(steps, "context")
 	setStep(contextIdx, "running", "")
-	h.sendLog(c, "info", "Xây dựng DFIR forensic prompt...")
+	h.sendLog(c, "info", "Building the DFIR forensic prompt...")
 	budget := analysis.EnvIntKB("AI_CONTENT_CAP_KB", 128) * 1024
 	truncated := false
 	if len(content) > budget {
@@ -551,13 +551,13 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	prompt := analysis.BuildDFIRPrompt(session.SourceType, content, enrichSummary, truncated)
 	promptKB := float64(len(prompt)) / 1024
 	setStep(contextIdx, "done", fmt.Sprintf("%.1f KB prompt", promptKB))
-	h.sendLog(c, "success", fmt.Sprintf("Prompt sẵn sàng — %.1f KB (~%d tokens)", promptKB, int(promptKB*250)))
+	h.sendLog(c, "success", fmt.Sprintf("Prompt ready — %.1f KB (~%d tokens)", promptKB, int(promptKB*250)))
 
 	// ── Step: analyze ──────────────────────────────────────────
 	analyzeIdx := h.stepIndex(steps, "analyze")
-	setStep(analyzeIdx, "running", "kết nối AI...")
-	h.sendLog(c, "info", fmt.Sprintf("Kết nối tới %s — model: %s", provider.Name, provider.Model))
-	h.sendLog(c, "ai", "Bắt đầu nhận tokens từ AI...")
+	setStep(analyzeIdx, "running", "connecting to AI...")
+	h.sendLog(c, "info", fmt.Sprintf("Connecting to %s — model: %s", provider.Name, provider.Model))
+	h.sendLog(c, "ai", "Starting to receive tokens from AI...")
 
 	tokenCh := make(chan string, 256)
 	var resultBuilder strings.Builder
@@ -584,9 +584,9 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 		// Emit a progress log every ~200 tokens
 		if tokenCount == 50 {
 			setStep(analyzeIdx, "running", "streaming…")
-			h.sendLog(c, "ai", "AI đang xử lý dữ liệu forensic...")
+			h.sendLog(c, "ai", "AI is processing the forensic data...")
 		} else if tokenCount%300 == 0 {
-			h.sendLog(c, "ai", fmt.Sprintf("Đã nhận %d tokens...", tokenCount))
+			h.sendLog(c, "ai", fmt.Sprintf("Received %d tokens...", tokenCount))
 		}
 		select {
 		case <-ctx.Done():
@@ -597,14 +597,14 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 
 	if aiErr := <-aiErrCh; aiErr != nil {
 		setStep(analyzeIdx, "failed", aiErr.Error())
-		h.sendLog(c, "warn", "Lỗi AI: "+aiErr.Error())
+		h.sendLog(c, "warn", "AI error: "+aiErr.Error())
 		h.sendSSE(c, "error", gin.H{"message": aiErr.Error()})
 		h.db.Model(&session).Update("status", "failed")
 		return
 	}
 	usage = <-usageCh
 	setStep(analyzeIdx, "done", fmt.Sprintf("%d tokens", tokenCount))
-	h.sendLog(c, "success", fmt.Sprintf("AI hoàn thành — %d tokens nhận được", tokenCount))
+	h.sendLog(c, "success", fmt.Sprintf("AI complete — %d tokens received", tokenCount))
 	if usage.Total() > 0 {
 		h.sendLog(c, "info", fmt.Sprintf("Token usage — input: %d, output: %d", usage.InputTokens, usage.OutputTokens))
 	}
@@ -613,7 +613,7 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	{
 		saveIdx := h.stepIndex(steps, "save")
 		setStep(saveIdx, "running", "")
-		h.sendLog(c, "info", "Lưu báo cáo vào database...")
+		h.sendLog(c, "info", "Saving the report to the database...")
 		// Strip <think>/<thinking> blocks before persisting — reasoning models
 		// (DeepSeek-R1, Qwen-thinking, etc.) interleave internal chain-of-thought
 		// inside the token stream using these tags. We keep them in liveTokens for
@@ -629,7 +629,7 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 			"tokens_used": usage.Total(),
 		})
 		setStep(saveIdx, "done", fmt.Sprintf("%d words", wordCount))
-		h.sendLog(c, "success", fmt.Sprintf("Báo cáo đã lưu — %d words", wordCount))
+		h.sendLog(c, "success", fmt.Sprintf("Report saved — %d words", wordCount))
 	}
 
 	h.sendSSE(c, "done", gin.H{})
@@ -689,14 +689,14 @@ func (h *AIHandler) stepIndex(steps []models.ChainStep, id string) int {
 
 func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.ChainStep {
 	collectLabel := map[string]string{
-		"job":            "Đọc output & artifact",
-		"checklist_run":  "Tải batches từ DB",
-		"elk_result":     "Tải IOC hit results",
-		"upload":         "Nhận file upload",
-		"offline_report": "Đọc báo cáo offline agent",
+		"job":            "Read output & artifact",
+		"checklist_run":  "Load batches from DB",
+		"elk_result":     "Load IOC hit results",
+		"upload":         "Receive uploaded file",
+		"offline_report": "Read offline agent report",
 	}[sourceType]
 	if collectLabel == "" {
-		collectLabel = "Thu thập dữ liệu"
+		collectLabel = "Collect data"
 	}
 
 	steps := []models.ChainStep{
@@ -705,7 +705,7 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 
 	// Offline report: parse tool-by-tool breakdown
 	if sourceType == "offline_report" {
-		steps = append(steps, models.ChainStep{ID: "parse_tools", Label: "Phân tích từng tool", Status: "pending"})
+		steps = append(steps, models.ChainStep{ID: "parse_tools", Label: "Analyze each tool", Status: "pending"})
 	}
 
 	// Binary upload needs strings extraction
@@ -713,27 +713,27 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 		ext := strings.ToLower(filepath.Ext(uploadPath))
 		isBinary := ext == ".raw" || ext == ".dmp" || ext == ".vmem" || ext == ".mem" || ext == ".bin"
 		if isBinary {
-			steps = append(steps, models.ChainStep{ID: "extract_strings", Label: "Trích xuất strings từ binary", Status: "pending"})
+			steps = append(steps, models.ChainStep{ID: "extract_strings", Label: "Extract strings from binary", Status: "pending"})
 		}
 	}
 
 	// Aggregate step for checklist runs (many batches)
 	if sourceType == "checklist_run" {
-		steps = append(steps, models.ChainStep{ID: "aggregate", Label: "Gộp kết quả batches", Status: "pending"})
+		steps = append(steps, models.ChainStep{ID: "aggregate", Label: "Aggregate batch results", Status: "pending"})
 	}
 
 	// Threat intel enrichment steps — only shown when keys are configured
 	if h.enrich != nil && h.enrich.Configured() {
 		steps = append(steps,
-			models.ChainStep{ID: "extract_iocs", Label: "Trích xuất IOC", Status: "pending"},
-			models.ChainStep{ID: "enrich", Label: "Tra cứu Threat Intel", Status: "pending"},
+			models.ChainStep{ID: "extract_iocs", Label: "Extract IOCs", Status: "pending"},
+			models.ChainStep{ID: "enrich", Label: "Enrich Threat Intel", Status: "pending"},
 		)
 	}
 
 	steps = append(steps,
-		models.ChainStep{ID: "context", Label: "Xây dựng DFIR prompt", Status: "pending"},
-		models.ChainStep{ID: "analyze", Label: "AI phân tích", Status: "pending"},
-		models.ChainStep{ID: "save", Label: "Lưu báo cáo", Status: "pending"},
+		models.ChainStep{ID: "context", Label: "Build DFIR prompt", Status: "pending"},
+		models.ChainStep{ID: "analyze", Label: "AI analysis", Status: "pending"},
+		models.ChainStep{ID: "save", Label: "Save report", Status: "pending"},
 	)
 	return steps
 }

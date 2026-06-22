@@ -29,7 +29,7 @@ func (c *EnrichClient) lookupShodan(ctx context.Context, ip string) (Finding, bo
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return Finding{Source: "Shodan", Summary: "IP không có trong Shodan index"}, true
+		return Finding{Source: "Shodan", Summary: "IP not in the Shodan index"}, true
 	}
 	if resp.StatusCode != 200 {
 		return Finding{}, false
@@ -59,7 +59,7 @@ func (c *EnrichClient) lookupShodan(ctx context.Context, ip string) (Finding, bo
 
 	vulnCount := len(result.Vulns)
 
-	summary := fmt.Sprintf("Ports mở: [%s]", strings.Join(portStrs, ", "))
+	summary := fmt.Sprintf("Open ports: [%s]", strings.Join(portStrs, ", "))
 	if vulnCount > 0 {
 		summary += fmt.Sprintf(" | %d CVE(s)", vulnCount)
 	}

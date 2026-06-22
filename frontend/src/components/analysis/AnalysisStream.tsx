@@ -138,7 +138,7 @@ export default function AnalysisStream({ content, isStreaming, placeholder }: Pr
           </div>
           {isStreaming && (
             <span className="flex items-center gap-1 text-[10px] text-violet-300/60 italic">
-              Đang phân tích, kết quả hiển thị sau khi hoàn thành…
+              Analyzing — results will appear when complete…
             </span>
           )}
         </div>
@@ -169,11 +169,11 @@ export default function AnalysisStream({ content, isStreaming, placeholder }: Pr
           <div className="flex flex-col items-center justify-center h-full min-h-[220px] gap-4">
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 text-violet-400 animate-spin" />
-              <span className="text-sm text-gray-500">AI đang phân tích dữ liệu…</span>
+              <span className="text-sm text-gray-500">AI is analyzing the data…</span>
             </div>
             <p className="text-xs text-gray-700 text-center max-w-xs">
-              Kết quả đầy đủ sẽ xuất hiện tại đây sau khi quá trình phân tích hoàn tất.
-              <br/>Theo dõi tiến trình tại khung <span className="text-violet-500">Live Activity</span> bên trên.
+              The full results will appear here once analysis completes.
+              <br/>Track progress in the <span className="text-violet-500">Live Activity</span> panel above.
             </p>
           </div>
         ) : content ? (
@@ -188,7 +188,7 @@ export default function AnalysisStream({ content, isStreaming, placeholder }: Pr
               <FileText className="h-5 w-5 text-gray-600" />
             </div>
             <p className="text-sm text-gray-600">
-              {placeholder ?? 'Báo cáo phân tích sẽ xuất hiện tại đây…'}
+              {placeholder ?? 'The analysis report will appear here…'}
             </p>
           </div>
         )}
@@ -200,10 +200,10 @@ export default function AnalysisStream({ content, isStreaming, placeholder }: Pr
         <div className="px-5 py-2 border-t border-gray-700/40 bg-[#0a0e18]/60 shrink-0 flex items-center gap-4">
           <span className="text-[10px] text-gray-600 font-mono flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Phân tích hoàn tất
+            Analysis complete
           </span>
           <span className="text-[10px] text-gray-700">·</span>
-          <span className="text-[10px] text-gray-600">Cuộn lên để xem toàn bộ báo cáo</span>
+          <span className="text-[10px] text-gray-600">Scroll up to view the full report</span>
         </div>
       )}
     </div>

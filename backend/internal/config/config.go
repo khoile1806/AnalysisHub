@@ -56,6 +56,43 @@ type Config struct {
 	// ShodanKey is the API key for https://www.shodan.io (internet-wide scanning DB).
 	ShodanKey string
 
+	// ── OSINT footprinting ───────────────────────────────────────────────
+	// The OSINT module's reputation collectors (VirusTotal, Shodan, AbuseIPDB)
+	// reuse the Threat Intelligence keys above. These are the extra keys/URLs
+	// it needs on top of that. All optional — a missing key skips that collector.
+	OsintHIBPKey      string // Have I Been Pwned (email breach exposure)
+	OsintNumVerifyKey string // NumVerify (phone metadata)
+	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
+	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
+	AbuseChKey    string
+	PulsediveKey  string
+	GreyNoiseKey  string
+
+	// ── Dark-web (Phase 3) ───────────────────────────────────────────────
+	// Enterprise aggregator API keys (seams — empty unless the org licenses one).
+	FlareKey    string
+	DarkOwlKey  string
+	Intel471Key string
+	// DarkWebSources are operator-configured source URLs the generic crawler
+	// fetches and scans for the org's own selectors. EMPTY by default — the tool
+	// ships with NO targets; pointing it at a source is the operator's
+	// responsibility and must be within their legal authority.
+	DarkWebSources []string
+	// TorProxy is an optional SOCKS5 proxy (e.g. socks5://127.0.0.1:9050) the
+	// dark-web crawler dials through to reach .onion / Tor sources. Empty =
+	// fall back to the project-wide OutboundProxy (or direct).
+	TorProxy string
+
+	// OutboundProxy is a project-wide egress proxy (http/https/socks5 URL) applied
+	// automatically to every EXTERNAL fetch (OSINT, threat-intel, CVE, news…).
+	// Internal SIEM connectors (ELK/Splunk/QRadar/OpenCTI) bypass it. Empty =
+	// direct. OutboundNoProxy is an optional comma-separated NO_PROXY list.
+	OutboundProxy   string
+	OutboundNoProxy string
+	APINumVerifyURL   string // NumVerify validate endpoint
+	APIIpApiURL       string // ip-api.com geolocation endpoint
+	APIWebArchiveURL  string // Wayback Machine CDX endpoint
+
 	// LogPath is the directory where date-stamped log files are written.
 	// Defaults to "data/logs" (relative to CWD) for local dev.
 	// In Docker set LOG_PATH=/app/data/logs via the compose environment block.
@@ -87,6 +124,22 @@ func Load() *Config {
 		AlienVaultKey:  getEnv("ALIENVAULT", ""),
 		ShodanKey:      getEnv("SHODAN", ""),
 
+		OsintHIBPKey:      getEnv("OSINT_HIBP_API_KEY", ""),
+		OsintNumVerifyKey: getEnv("OSINT_NUMVERIFY_API_KEY", ""),
+		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
+		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),
+		GreyNoiseKey:      getEnv("GREYNOISE_API_KEY", ""),
+		FlareKey:          getEnv("FLARE_API_KEY", ""),
+		DarkOwlKey:        getEnv("DARKOWL_API_KEY", ""),
+		Intel471Key:       getEnv("INTEL471_API_KEY", ""),
+		DarkWebSources:    parseCSV(getEnv("OSINT_DARKWEB_SOURCES", "")),
+		TorProxy:          getEnv("OSINT_TOR_PROXY", ""),
+		OutboundProxy:     getEnv("OUTBOUND_PROXY", ""),
+		OutboundNoProxy:   getEnv("OUTBOUND_NO_PROXY", ""),
+		APINumVerifyURL:   getEnv("API_NUMVERIFY_URL", "http://apilayer.net/api/validate"),
+		APIIpApiURL:       getEnv("API_IP_API_URL", "http://ip-api.com/json/"),
+		APIWebArchiveURL:  getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
+
 		LogPath: getEnv("LOG_PATH", "data/logs"),
 	}
 }
@@ -97,6 +150,36 @@ func Load() *Config {
 func parseOrigins(raw string) []string {
 	if raw == "" {
 		return []string{"http://localhost:3000", "http://127.0.0.1:3000"}
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if s := strings.TrimSpace(p); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// BaseNoProxy lists the hosts that must ALWAYS bypass the egress proxy
+// (loopback — DB/Redis/SIEM health probes over HTTP).
+const BaseNoProxy = "localhost,127.0.0.1,::1"
+
+// EffectiveNoProxy composes the NO_PROXY value: the mandatory loopback bypass
+// plus any operator-supplied exceptions. Shared by the startup proxy installer
+// and the proxy-validate endpoint so the two never drift.
+func EffectiveNoProxy(extra string) string {
+	out := BaseNoProxy
+	if e := strings.TrimSpace(extra); e != "" {
+		out += "," + e
+	}
+	return out
+}
+
+// parseCSV splits a comma-separated env value into trimmed, non-empty items.
+func parseCSV(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
 	}
 	parts := strings.Split(raw, ",")
 	out := make([]string, 0, len(parts))

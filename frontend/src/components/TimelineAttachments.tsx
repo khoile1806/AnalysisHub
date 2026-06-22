@@ -95,7 +95,7 @@ export function AttachmentsEditor({
   return (
     <div className="space-y-2 border border-gray-800 rounded-lg p-2.5 bg-gray-900/30">
       <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
-        <Paperclip className="h-3 w-3" /> Đính kèm (evidence / ảnh / link)
+        <Paperclip className="h-3 w-3" /> Attach (evidence / image / link)
       </div>
 
       {/* Current attachments */}
@@ -115,7 +115,7 @@ export function AttachmentsEditor({
       {available.length > 0 && (
         <select className="input text-xs py-1" value={pickEvidence}
           onChange={(e) => { if (e.target.value) addExisting(e.target.value) }}>
-          <option value="">+ Map evidence có sẵn…</option>
+          <option value="">+ Map existing evidence…</option>
           {available.map((e: CaseEvidence) => (
             <option key={e.id} value={e.id}>{e.host} · {e.file_name}</option>
           ))}
@@ -125,7 +125,7 @@ export function AttachmentsEditor({
       <div className="flex items-center gap-2">
         {/* Upload new */}
         <label className={`flex-1 flex items-center justify-center gap-1.5 border border-dashed border-gray-700 rounded px-2 py-1.5 cursor-pointer hover:border-emerald-500/50 text-[11px] text-gray-400 ${uploading ? 'opacity-60' : ''}`}>
-          <Upload className="h-3 w-3" /> {uploading ? 'Đang tải…' : 'Upload file/ảnh'}
+          <Upload className="h-3 w-3" /> {uploading ? 'Uploading…' : 'Upload file/image'}
           <input type="file" className="hidden" disabled={uploading}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.currentTarget.value = '' }} />
         </label>
@@ -134,7 +134,7 @@ export function AttachmentsEditor({
       {/* Add link */}
       <div className="flex items-center gap-1.5">
         <input className="input text-xs py-1 flex-1" placeholder="https://link…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
-        <input className="input text-xs py-1 w-28" placeholder="nhãn" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} />
+        <input className="input text-xs py-1 w-28" placeholder="label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} />
         <button onClick={addLink} disabled={!linkUrl.trim()} className="btn-secondary text-xs py-1 px-2 disabled:opacity-40"><Plus className="h-3 w-3" /></button>
       </div>
     </div>

@@ -8,6 +8,7 @@ import (
 	"github.com/forensichub/backend/internal/api/handlers"
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
+	"github.com/forensichub/backend/internal/osint"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
 	"github.com/forensichub/backend/internal/ws"
@@ -23,6 +24,7 @@ func NewRouter(
 	rdb *redis.Client,
 	cfg *config.Config,
 	enrich *threatintel.EnrichClient,
+	osintEngine *osint.Engine,
 ) *gin.Engine {
 	router := gin.New()
 	// Allow large multipart uploads (memory dumps, disk images) to be streamed
@@ -46,6 +48,7 @@ func NewRouter(
 		c.Set("hub", hub)
 		c.Set("storage", store)
 		c.Set("redis", rdb)
+		c.Set("osintEngine", osintEngine)
 		c.Set("jwtSecret", jwtSecret)
 		c.Set("nvdAPIKey", cfg.NVDAPIKey)
 		c.Set("githubToken", cfg.GitHubToken)
@@ -186,6 +189,30 @@ func NewRouter(
 		protected.GET("/qradar/hunt/stream", handlers.StreamQRadarAutoHunt)
 		protected.POST("/qradar/hunt/file-stream", handlers.StreamQRadarFileHunt)
 
+		// OSINT footprinting — passive entity intelligence (IP/domain/email/phone/username)
+		protected.POST("/osint", handlers.CreateOsintScan)
+		protected.POST("/osint/detect", handlers.DetectOsintTarget)
+		protected.GET("/osint", handlers.ListOsintScans)
+		protected.GET("/osint/:id", handlers.GetOsintScan)
+		protected.POST("/osint/:id/stop", handlers.StopOsintScan)
+		protected.DELETE("/osint/:id", handlers.DeleteOsintScan)
+		protected.GET("/osint/:id/findings", handlers.GetOsintFindings)
+		protected.GET("/osint/:id/stream", handlers.StreamOsintOutput)
+		protected.GET("/osint/:id/report", handlers.OsintReport)
+		protected.GET("/osint/:id/graph", handlers.GetOsintGraph)
+		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
+		protected.POST("/osint/promote-ioc", handlers.PromoteOsintIOC)
+
+		// OSINT watchlist — continuous monitoring (A4). Static "watches" segment
+		// sits alongside the "/osint/:id" param routes.
+		protected.GET("/osint/watches", handlers.ListOsintWatches)
+		protected.POST("/osint/watches", handlers.CreateOsintWatch)
+		protected.PATCH("/osint/watches/:id", handlers.UpdateOsintWatch)
+		protected.DELETE("/osint/watches/:id", handlers.DeleteOsintWatch)
+		protected.POST("/osint/watches/:id/run", handlers.RunOsintWatchNow)
+		protected.GET("/osint/watches/:id/alerts", handlers.ListOsintWatchAlerts)
+		protected.POST("/osint/watches/:id/alerts/seen", handlers.MarkOsintWatchAlertsSeen)
+
 		// CVE Collection
 		protected.GET("/cve-collection", handlers.GetCVECollection)
 		protected.GET("/cve-collection/stream", handlers.StreamCVECollection)
@@ -244,6 +271,8 @@ func NewRouter(
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
 		protected.POST("/cases/:id/evidence/:evidenceId/extract-timeline", aiHandler.ExtractTimelineFromEvidence)
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
+		// AI triage of an OSINT footprint (defensive summary + pivots)
+		protected.POST("/osint/:id/triage", aiHandler.TriageOsintScan)
 
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)
@@ -257,6 +286,8 @@ func NewRouter(
 		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)
 		protected.GET("/system/health", sysHandler.GetHealth)
 		protected.GET("/system/token-stats", sysHandler.GetTokenStats)
+		protected.GET("/system/proxy", sysHandler.GetProxyStatus)
+		protected.POST("/system/proxy/validate", sysHandler.ValidateProxy)
 	}
 
 	// Install scripts — handler validates the agent token inline.

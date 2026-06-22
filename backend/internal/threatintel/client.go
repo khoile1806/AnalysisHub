@@ -215,8 +215,8 @@ func FormatSummary(results []EnrichedIOC) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString("### Kết quả Threat Intelligence (tự động tra cứu)\n")
-	sb.WriteString(fmt.Sprintf("Đã tra cứu **%d IOC** tự động từ nội dung phân tích:\n\n", len(results)))
+	sb.WriteString("### Threat Intelligence Results (auto-enriched)\n")
+	sb.WriteString(fmt.Sprintf("Auto-enriched **%d IOC(s)** from the analyzed content:\n\n", len(results)))
 
 	for _, r := range results {
 		threatTag := "🟢 CLEAN"
@@ -231,7 +231,7 @@ func FormatSummary(results []EnrichedIOC) string {
 		sb.WriteString(fmt.Sprintf("**[%s] %s** — %s\n", strings.ToUpper(r.Type), r.IOC, threatTag))
 
 		if len(r.Findings) == 0 {
-			sb.WriteString("- Không có nguồn nào trả về dữ liệu\n")
+			sb.WriteString("- No source returned data\n")
 		}
 		for _, f := range r.Findings {
 			sb.WriteString(fmt.Sprintf("- **%s**: %s\n", f.Source, f.Summary))

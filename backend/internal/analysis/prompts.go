@@ -175,6 +175,34 @@ If nothing has a real timestamp, return [].
 %s`, existingEvents, evidence)
 }
 
+// ── OSINT triage ──────────────────────────────────────────────────────────────
+
+// BuildOsintTriagePrompt asks the model to triage an OSINT footprint from a
+// defensive/DFIR angle: what the entity is, whether it looks malicious, related
+// infrastructure to pivot on, and recommended next steps.
+func BuildOsintTriagePrompt(target, targetType, findings string) string {
+	return fmt.Sprintf(`Bạn là chuyên gia DFIR / Cyber Threat Intelligence. Dưới đây là kết quả OSINT footprinting cho %s "%s".
+
+Phân tích theo góc nhìn PHÒNG THỦ và trả về Markdown gồm:
+
+## Tóm tắt thực thể
+Thực thể này là gì (hạ tầng / dịch vụ / danh tính), đăng ký/sở hữu bởi ai, vị trí, đặc điểm chính.
+
+## Đánh giá rủi ro
+Có dấu hiệu độc hại không? Dựa trên reputation thực tế (VirusTotal / Shodan / AbuseIPDB), có nằm trong IOC store nội bộ không (nguồn "local_intel"), lộ lọt (HIBP)... Cho mức độ tổng thể: 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low — kèm lý do dựa trên số liệu.
+
+## Hạ tầng & pivot liên quan
+Các IOC/định danh liên quan đáng điều tra tiếp (subdomain, IP, certificate, email...).
+
+## Đề xuất hành động (DFIR)
+Bước tiếp theo cụ thể: thêm IOC nào vào watchlist, hunt gì trên SIEM/ELK, chặn gì.
+
+CHỈ dựa trên dữ liệu thực tế bên dưới — KHÔNG bịa thêm.
+
+=== DỮ LIỆU OSINT (%s) ===
+%s`, targetType, target, targetType, findings)
+}
+
 // ── Compliance ────────────────────────────────────────────────────────────────
 
 // AssessItem is one compliance check submitted for AI evaluation. JSON tags

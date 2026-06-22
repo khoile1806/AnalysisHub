@@ -42,7 +42,7 @@ func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Fi
 	if resp.StatusCode == 404 {
 		return Finding{
 			Source:  "VirusTotal",
-			Summary: "Không tìm thấy trong database VT",
+			Summary: "Not found in the VT database",
 			Score:   0,
 		}, true
 	}
@@ -82,14 +82,14 @@ func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Fi
 	stats := result.Data.Attributes.LastAnalysisStats
 	total := stats.Malicious + stats.Suspicious + stats.Harmless + stats.Undetected
 	if total == 0 {
-		return Finding{Source: "VirusTotal", Summary: "Chưa có dữ liệu phân tích trong VT", Score: 0}, true
+		return Finding{Source: "VirusTotal", Summary: "No analysis data in VT yet", Score: 0}, true
 	}
 
 	flagged := stats.Malicious + stats.Suspicious
 	score := (flagged * 100) / total
 	malicious := stats.Malicious > 2
 
-	summary := fmt.Sprintf("%d/%d engines phát hiện là malicious", stats.Malicious, total)
+	summary := fmt.Sprintf("%d/%d engines flagged it malicious", stats.Malicious, total)
 	if stats.Suspicious > 0 {
 		summary += fmt.Sprintf(" (%d suspicious)", stats.Suspicious)
 	}

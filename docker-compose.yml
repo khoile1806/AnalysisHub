@@ -26,11 +26,27 @@ services:
       timeout: 3s
       retries: 5
 
+  # Tor SOCKS5 proxy — used ONLY by the dark-web crawler to reach .onion / dark
+  # sources without exposing the real source IP. Reachable inside the compose
+  # network as tor:9050; also bound to 127.0.0.1:9050 so a locally-run backend
+  # can use it too. NOT exposed externally.
+  tor:
+    image: dperson/torproxy
+    container_name: forensichub_tor
+    ports:
+      - "127.0.0.1:9050:9050"
+    restart: unless-stopped
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     container_name: forensichub_backend
+    # Pull every key/setting from .env (VirusTotal, Shodan, abuse.ch, proxy, …)
+    # into the container. Explicit `environment:` entries below still win for the
+    # container-internal values (DB/Redis hostnames, Tor service name).
+    env_file:
+      - .env
     environment:
       - APP_ENV=${APP_ENV:-development}
       - SERVER_PORT=${SERVER_PORT:-8080}
@@ -45,6 +61,9 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - USE_HTTPS=${USE_HTTPS:-false}
       - LOG_PATH=/app/data/logs
+      # Dark-web crawler dials the in-stack Tor service (overrides any .env value,
+      # which uses 127.0.0.1 for local runs). General API traffic does NOT use Tor.
+      - OSINT_TOR_PROXY=socks5://tor:9050
     volumes:
       - storage_data:/app/storage
       - ./backend/data:/app/data
@@ -58,6 +77,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      tor:
+        condition: service_started
     restart: unless-stopped
 
   frontend:

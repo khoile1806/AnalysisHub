@@ -123,23 +123,23 @@ var Feeds = []Feed{
 	{Name: "MIT Cybersecurity", URL: "https://news.mit.edu/topic/mitcyber-security-rss.xml", Category: "high-quality"},
 	{Name: "NY Times Cybersecurity", URL: "https://www.nytimes.com/svc/collections/v1/publish/https://www.nytimes.com/spotlight/cybersecurity/rss.xml", Category: "high-quality"},
 
-	// ───────── 6. World News (Tin Tổng Hợp) ─────────
+	// ───────── 6. World News ─────────
 	// Vietnamese sources
-	{Name: "VNExpress Tin Mới Nhất", URL: "https://vnexpress.net/rss/tin-moi-nhat.rss", Category: "world-news", Language: "vi"},
-	{Name: "VNExpress Thế Giới", URL: "https://vnexpress.net/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
+	{Name: "VNExpress Latest", URL: "https://vnexpress.net/rss/tin-moi-nhat.rss", Category: "world-news", Language: "vi"},
+	{Name: "VNExpress World", URL: "https://vnexpress.net/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
 	{Name: "VNExpress Kinh Doanh", URL: "https://vnexpress.net/rss/kinh-doanh.rss", Category: "world-news", Language: "vi"},
-	{Name: "VNExpress Thời Sự", URL: "https://vnexpress.net/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
-	{Name: "Tuổi Trẻ Thế Giới", URL: "https://tuoitre.vn/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
-	{Name: "Tuổi Trẻ Kinh Doanh", URL: "https://tuoitre.vn/rss/kinh-doanh.rss", Category: "world-news", Language: "vi"},
-	{Name: "Tuổi Trẻ Chính Trị - Xã Hội", URL: "https://tuoitre.vn/rss/chinh-tri-xa-hoi.rss", Category: "world-news", Language: "vi"},
-	{Name: "Thanh Niên Thế Giới", URL: "https://thanhnien.vn/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
-	{Name: "Thanh Niên Thời Sự", URL: "https://thanhnien.vn/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
-	{Name: "VietnamNet Thời Sự", URL: "https://vietnamnet.vn/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
-	{Name: "VietnamNet Thế Giới", URL: "https://vietnamnet.vn/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
+	{Name: "VNExpress Current Affairs", URL: "https://vnexpress.net/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
+	{Name: "Tuoi Tre World", URL: "https://tuoitre.vn/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
+	{Name: "Tuoi Tre Business", URL: "https://tuoitre.vn/rss/kinh-doanh.rss", Category: "world-news", Language: "vi"},
+	{Name: "Tuoi Tre Politics & Society", URL: "https://tuoitre.vn/rss/chinh-tri-xa-hoi.rss", Category: "world-news", Language: "vi"},
+	{Name: "Thanh Nien World", URL: "https://thanhnien.vn/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
+	{Name: "Thanh Nien Current Affairs", URL: "https://thanhnien.vn/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
+	{Name: "VietnamNet Current Affairs", URL: "https://vietnamnet.vn/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
+	{Name: "VietnamNet World", URL: "https://vietnamnet.vn/rss/the-gioi.rss", Category: "world-news", Language: "vi"},
 	{Name: "VietnamNet Kinh Doanh", URL: "https://vietnamnet.vn/rss/kinh-doanh.rss", Category: "world-news", Language: "vi"},
-	{Name: "Người Lao Động Thời Sự", URL: "https://nld.com.vn/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
-	{Name: "BBC Tiếng Việt", URL: "https://feeds.bbci.co.uk/vietnamese/rss.xml", Category: "world-news", Language: "vi"},
-	{Name: "Báo Tin Tức (TTXVN)", URL: "https://baotintuc.vn/tin-moi-nhat.rss", Category: "world-news", Language: "vi"},
+	{Name: "Nguoi Lao Dong Current Affairs", URL: "https://nld.com.vn/rss/thoi-su.rss", Category: "world-news", Language: "vi"},
+	{Name: "BBC Vietnamese", URL: "https://feeds.bbci.co.uk/vietnamese/rss.xml", Category: "world-news", Language: "vi"},
+	{Name: "Bao Tin Tuc (TTXVN)", URL: "https://baotintuc.vn/tin-moi-nhat.rss", Category: "world-news", Language: "vi"},
 
 	// English sources
 	{Name: "BBC News World", URL: "https://feeds.bbci.co.uk/news/world/rss.xml", Category: "world-news", Language: "en"},

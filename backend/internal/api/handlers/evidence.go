@@ -38,7 +38,7 @@ func (h *EvidenceHandler) Upload(c *gin.Context) {
 
 	host := strings.TrimSpace(c.PostForm("host"))
 	if host == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "host is required — cho biết result này thuộc máy nào"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "host is required — specify which host this result belongs to"})
 		return
 	}
 	notes := strings.TrimSpace(c.PostForm("notes"))

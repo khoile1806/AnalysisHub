@@ -18,6 +18,8 @@ const JobDetailPage = lazy(() => import('@/pages/JobDetail'))
 const CVEPage = lazy(() => import('@/pages/CVE'))
 const OpenCTIPage = lazy(() => import('@/pages/OpenCTI'))
 const CVECollectionPage = lazy(() => import('@/pages/CVECollection'))
+const OsintPage = lazy(() => import('@/pages/Osint'))
+const OsintDetailPage = lazy(() => import('@/pages/OsintDetail'))
 const HuntingPage = lazy(() => import('@/pages/Hunting'))
 const CollectionChecklistPage = lazy(() => import('@/pages/CollectionChecklist'))
 const AIAnalysisPage = lazy(() => import('@/pages/AIAnalysis'))
@@ -74,9 +76,9 @@ class ChunkErrorBoundary extends React.Component<
             <span className="text-red-400 text-lg">!</span>
           </div>
           <div className="space-y-1">
-            <p className="text-gray-200 font-medium text-sm">Trang gặp lỗi khi hiển thị</p>
+            <p className="text-gray-200 font-medium text-sm">This page failed to render</p>
             <p className="text-gray-500 text-xs max-w-sm">
-              Thử bấm "Thử lại" để phục hồi, hoặc "Tải lại trang" nếu lỗi vẫn tiếp tục.
+              Click "Retry" to recover, or "Reload page" if the error persists.
             </p>
           </div>
           {/* Show error details in dev */}
@@ -91,13 +93,13 @@ class ChunkErrorBoundary extends React.Component<
               className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg border border-gray-700 transition"
               onClick={this.handleRetry}
             >
-              Thử lại
+              Retry
             </button>
             <button
               className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition"
               onClick={() => window.location.reload()}
             >
-              Tải lại trang
+              Reload page
             </button>
           </div>
         </div>
@@ -248,6 +250,26 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <CVECollectionPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/osint"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <OsintPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/osint/:id"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <OsintDetailPage />
               </Suspense>
             </ChunkErrorBoundary>
           }
