@@ -48,7 +48,7 @@ export function getErrorMessage(error: unknown): string {
 // Use these instead of new Date(x) when x could be null/undefined/invalid.
 // ──────────────────────────────────────────────────────────────────────────────
 
-export function safeDate(val: string | number | Date | null | undefined): Date | null {
+function safeDate(val: string | number | Date | null | undefined): Date | null {
   if (val == null || val === '') return null
   const d = new Date(val)
   return isNaN(d.getTime()) ? null : d

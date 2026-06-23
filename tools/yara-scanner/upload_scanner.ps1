@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Webshell Scanner Uploader for ForensicHub
+    YARA Scanner Uploader for ForensicHub
 #>
 
 param (
@@ -24,12 +24,12 @@ try {
 $headers = @{ Authorization = "Bearer $token" }
 
 # 2. Upload
-$bundlePath = Join-Path (Get-Location) "dist\webshell-scanner-bundle.zip"
+$bundlePath = Join-Path (Get-Location) "dist\yara-scanner-bundle.zip"
 if (-not (Test-Path $bundlePath)) {
     Write-Host "[!] Bundle not found at $bundlePath. Run bundle.py first." -ForegroundColor Red; exit 1
 }
 
-Write-Host "[*] Uploading Webshell Scanner bundle..." -ForegroundColor Cyan
+Write-Host "[*] Uploading YARA Scanner bundle..." -ForegroundColor Cyan
 
 $multipartBoundary = [System.Guid]::NewGuid().ToString()
 $contentType = "multipart/form-data; boundary=$multipartBoundary"
@@ -37,11 +37,11 @@ $LF = "`r`n"
 $bodyBuilder = New-Object System.Text.StringBuilder
 
 $metadata = @{
-    name = "Webshell Scanner"
+    name = "YARA Scanner"
     category = "triage"
     platform = "both"
-    executable_path = "{{OS}}/webshell-scanner{{EXT}}"
-    description = "Integrated Webshell Scanner - hunts for backdoors on Windows and Linux."
+    executable_path = "{{OS}}/yara-scanner{{EXT}}"
+    description = "Integrated YARA Scanner - hunts for backdoors on Windows and Linux."
 }
 
 foreach ($key in $metadata.Keys) {
@@ -51,7 +51,7 @@ foreach ($key in $metadata.Keys) {
 }
 
 $bodyBuilder.Append("--$multipartBoundary$LF") | Out-Null
-$bodyBuilder.Append("Content-Disposition: form-data; name=""file""; filename=""webshell-scanner-bundle.zip""$LF") | Out-Null
+$bodyBuilder.Append("Content-Disposition: form-data; name=""file""; filename=""yara-scanner-bundle.zip""$LF") | Out-Null
 $bodyBuilder.Append("Content-Type: application/octet-stream$LF$LF") | Out-Null
 
 $headerBytes = [System.Text.Encoding]::UTF8.GetBytes($bodyBuilder.ToString())
@@ -66,7 +66,7 @@ $fullBodyBytes = New-Object byte[] ($headerBytes.Length + $fileBytes.Length + $f
 try {
     $response = Invoke-RestMethod -Uri "$BaseUrl/tools" -Method Post -Headers $headers -ContentType $contentType -Body $fullBodyBytes
     if ($response.success) {
-        Write-Host "[+] Successfully uploaded Webshell Scanner" -ForegroundColor Green
+        Write-Host "[+] Successfully uploaded YARA Scanner" -ForegroundColor Green
     } else {
         Write-Host "[!] Upload failed: $($response.error)" -ForegroundColor Yellow
     }

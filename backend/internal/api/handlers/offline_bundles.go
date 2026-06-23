@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/forensichub/backend/internal/models"
+	"github.com/forensichub/backend/internal/storage"
 )
 
 // offlineBundleTool mirrors the JSON shape written to bundle.json inside
@@ -69,8 +70,9 @@ func GenerateOfflineBundle(c *gin.Context) {
 		Name     string   `json:"name"     binding:"required"`
 		ToolIDs  []string `json:"tool_ids" binding:"required,min=1"`
 		Platform string   `json:"platform"`
-		CaseID   string   `json:"case_id"`   // optional: link bundle to a case
-		CaseName string   `json:"case_name"` // optional: display name of the case
+		CaseID         string   `json:"case_id"`   // optional: link bundle to a case
+		CaseName       string   `json:"case_name"` // optional: display name of the case
+		CustomYaraRule string   `json:"custom_yara_rule"` // optional: custom YARA rule content
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -104,20 +106,35 @@ func GenerateOfflineBundle(c *gin.Context) {
 		CaseName:  req.CaseName,
 	}
 	for _, t := range tools {
+		args := t.Args
+		// If custom yara rule is provided, append the args for yara-scanner
+		if req.CustomYaraRule != "" && strings.Contains(strings.ToLower(t.Name), "webshell scanner") {
+			args += " --all-files --yara-rules custom_rules"
+		}
+
 		manifest.Tools = append(manifest.Tools, offlineBundleTool{
 			ID:             t.ID.String(),
 			Name:           t.Name,
 			Description:    t.Description,
 			FileName:       t.FileName,
 			ExecutablePath: t.ExecutablePath,
-			DefaultArgs:    t.Args,
+			DefaultArgs:    args,
 			Category:       t.Category,
 		})
 	}
 
-	// Derive a safe filename for the ZIP.
+	// Resolve where the pre-built offline-agent stubs live.
+	defaultsDir := os.Getenv("DEFAULTS_PATH")
+	if defaultsDir == "" {
+		defaultsDir = "/app/defaults"
+	}
+
+	// Derive a safe filename base.
 	safeBundle := safeZipName(req.Name)
 	ts := time.Now().Format("20060102")
+
+
+
 	zipName := fmt.Sprintf("offline-bundle-%s-%s.zip", safeBundle, ts)
 
 	c.Header("Content-Type", "application/zip")
@@ -133,6 +150,11 @@ func GenerateOfflineBundle(c *gin.Context) {
 		return
 	}
 
+	// 1.5 Custom YARA Rule if any
+	if req.CustomYaraRule != "" {
+		writeLauncher(zw, "custom_rules/custom.yar", req.CustomYaraRule)
+	}
+
 	// 2. Tool files — one subdirectory per tool.
 	// ZIP-based tools are extracted inline so the bundle ships ready-to-run
 	// files (the offline agent has no DownloadJob phase to extract archives).
@@ -144,15 +166,19 @@ func GenerateOfflineBundle(c *gin.Context) {
 	}
 
 	// 3. Pre-built offline agent binaries from /app/defaults/ (if available).
-	defaultsDir := os.Getenv("DEFAULTS_PATH")
-	if defaultsDir == "" {
-		defaultsDir = "/app/defaults"
-	}
 	addOfflineAgentBinaries(zw, defaultsDir, req.Platform)
 
 	// 4. Convenience launchers.
 	if req.Platform == "windows" || req.Platform == "both" {
 		bat := "@echo off\r\n" +
+			":: Request Administrator Privileges (Required for most forensics tools)\r\n" +
+			"net session >nul 2>&1\r\n" +
+			"if %errorLevel% neq 0 (\r\n" +
+			"    echo Requesting Administrative Privileges...\r\n" +
+			"    powershell -Command \"Start-Process -FilePath '%~f0' -Verb RunAs\"\r\n" +
+			"    exit /b\r\n" +
+			")\r\n" +
+			"cd /d \"%~dp0\"\r\n" +
 			"echo ForensicHub Offline Agent\r\n" +
 			"echo Bundle : " + req.Name + "\r\n"
 		if req.CaseName != "" {
@@ -190,6 +216,53 @@ func GenerateOfflineBundle(c *gin.Context) {
 	writeLauncher(zw, "README.txt", buildReadme(req.Name, req.Platform, req.CaseName, tools))
 
 	log.Printf("[offline-bundle] generated %q (%d tools, platform=%s)", req.Name, len(tools), req.Platform)
+}
+
+// generateSelfExtractingExe streams a single self-contained Windows executable:
+// the pre-built offline-agent stub with a ZIP payload (bundle.json + tools/)
+// appended to it. The agent opens its own file as a ZIP at startup, unpacks the
+// payload to a temp dir, and runs - so the operator just double-clicks ONE .exe,
+// no installer and no loose files. Go's archive/zip locates the appended ZIP's
+// end-of-central-directory from the end of the file, so the leading exe bytes are
+// transparently ignored on read.
+func generateSelfExtractingExe(c *gin.Context, db *gorm.DB, store *storage.LocalStorage,
+	defaultsDir string, manifest offlineBundleManifest, tools []models.Tool, exeName string) {
+	_ = db
+
+	stubPath := filepath.Join(defaultsDir, "agent-offline.exe")
+	stub, err := os.Open(stubPath)
+	if err != nil {
+		log.Printf("[offline-bundle] stub agent-offline.exe not found at %s: %v", stubPath, err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false,
+			"error": "windows offline-agent binary not available on the server (build it with `make build-offline-all` in agent/)"})
+		return
+	}
+	defer stub.Close()
+
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, exeName))
+	c.Status(http.StatusOK)
+
+	// 1. Write the agent stub executable.
+	if _, err := io.Copy(c.Writer, stub); err != nil {
+		log.Printf("[offline-bundle] write stub: %v", err)
+		return
+	}
+
+	// 2. Append the bundle payload as a ZIP (continues in the same stream).
+	zw := zip.NewWriter(c.Writer)
+	defer zw.Close()
+	if err := writeJSONEntry(zw, "bundle.json", manifest); err != nil {
+		log.Printf("[offline-bundle] write manifest: %v", err)
+		return
+	}
+	for _, t := range tools {
+		toolPath := store.GetToolPath(t.ID.String() + filepath.Ext(t.FileName))
+		if err := addToolToZip(zw, toolPath, t.ID.String(), t.FileName); err != nil {
+			log.Printf("[offline-bundle] add tool %s: %v", t.Name, err)
+		}
+	}
+	log.Printf("[offline-bundle] generated single-exe %q (%d tools)", exeName, len(tools))
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

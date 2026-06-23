@@ -1,6 +1,6 @@
-export type PlaybookPriority = 'critical' | 'high' | 'medium'
+type PlaybookPriority = 'critical' | 'high' | 'medium'
 
-export interface PlaybookChecklistItem {
+interface PlaybookChecklistItem {
   id: string
   subsection: string
   subsectionLabel: string

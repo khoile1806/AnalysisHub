@@ -1,5 +1,5 @@
 # PyInstaller spec — single-file binary bundling rules/ + templates/.
-# Run: pyinstaller build.spec  →  dist/webshell-scanner(.exe)
+# Run: pyinstaller build.spec  →  dist/yara-scanner(.exe)
 
 import os
 from PyInstaller.utils.hooks import collect_submodules
@@ -32,7 +32,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name="webshell-scanner",
+    name="yara-scanner",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -1,10 +1,10 @@
-export interface PlaybookStep {
+interface PlaybookStep {
   title: string
   content: string
   icon?: string
 }
 
-export interface PlaybookReference {
+interface PlaybookReference {
   title: string
   url: string
 }

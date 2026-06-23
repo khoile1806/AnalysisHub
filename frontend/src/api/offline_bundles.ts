@@ -6,6 +6,7 @@ export interface GenerateBundleRequest {
   platform: 'windows' | 'linux' | 'both'
   case_id?: string
   case_name?: string
+  custom_yara_rule?: string
 }
 
 // generateOfflineBundle sends a POST and triggers a ZIP file download.

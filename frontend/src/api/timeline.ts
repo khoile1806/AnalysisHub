@@ -1,7 +1,7 @@
 import apiClient from './client'
 
 export type TimelineSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info'
-export type TimelineSource = 'manual' | 'elk' | 'ai' | 'job'
+type TimelineSource = 'manual' | 'elk' | 'ai' | 'job'
 
 // An enrichment attached to a timeline node: an existing/uploaded evidence file
 // (possibly an image) or an external link.

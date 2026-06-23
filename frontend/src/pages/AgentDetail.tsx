@@ -10,7 +10,7 @@ import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { AgentTerminal } from '@/components/AgentTerminal'
 import { FileBrowser } from '@/components/FileBrowser'
-import { WebshellScanner } from '@/components/Agent/WebshellScanner'
+import { YaraScanner } from '@/components/Agent/YaraScanner'
 import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -794,7 +794,7 @@ export default function AgentDetailPage() {
       {activeTab === 'processes' && <ProcessesTab agent={agent} />}
       {activeTab === 'terminal'  && <AgentTerminal agent={agent} />}
       {activeTab === 'files'     && <FileBrowser agent={agent} />}
-      {activeTab === 'scanner'   && <WebshellScanner agent={agent} />}
+      {activeTab === 'scanner'   && <YaraScanner agent={agent} />}
     </div>
   )
 }

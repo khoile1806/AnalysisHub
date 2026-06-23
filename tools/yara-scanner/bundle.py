@@ -33,7 +33,7 @@ RUN pyinstaller build.spec --clean --noconfirm --distpath dist/linux
         f.write(dockerfile_content)
     
     try:
-        image_name = "webshell-scanner-build"
+        image_name = "yara-scanner-build"
         container_name = "temp_scanner_build"
         
         subprocess.run(["docker", "build", "-t", image_name, "-f", "Dockerfile.build", "."], check=True)
@@ -55,21 +55,21 @@ RUN pyinstaller build.spec --clean --noconfirm --distpath dist/linux
 
 def create_bundle():
     print(">>> Creating cross-platform ZIP bundle...")
-    bundle_path = "dist/webshell-scanner-bundle.zip"
+    bundle_path = "dist/yara-scanner-bundle.zip"
     with zipfile.ZipFile(bundle_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         # Add windows binary
-        win_exe = "dist/windows/webshell-scanner.exe"
+        win_exe = "dist/windows/yara-scanner.exe"
         if os.path.exists(win_exe):
             print(f"Adding {win_exe}")
-            zipf.write(win_exe, "windows/webshell-scanner.exe")
+            zipf.write(win_exe, "windows/yara-scanner.exe")
         else:
             print("Warning: Windows binary not found.")
         
         # Add linux binary
-        lin_exe = "dist/linux/webshell-scanner"
+        lin_exe = "dist/linux/yara-scanner"
         if os.path.exists(lin_exe):
             print(f"Adding {lin_exe}")
-            zipf.write(lin_exe, "linux/webshell-scanner")
+            zipf.write(lin_exe, "linux/yara-scanner")
         else:
             print("Warning: Linux binary not found.")
             

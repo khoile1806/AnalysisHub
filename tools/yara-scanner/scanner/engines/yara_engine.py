@@ -19,7 +19,7 @@ _SEVERITY_SCORE = {
 class YaraEngine:
     name = "yara"
 
-    def __init__(self, rules_path: Path | None = None) -> None:
+    def __init__(self, custom_rules_path: Path | None = None, base64_rules: str | None = None) -> None:
         try:
             import yara  # type: ignore[import-not-found]
         except ImportError:
@@ -27,16 +27,48 @@ class YaraEngine:
             self._rules = None
             return
 
-        rules_root = rules_path or (rules_dir() / "yara")
+        filepaths = {}
+        sources = {}
+
+        # 1. Built-in rules
+        rules_root = rules_dir() / "yara"
         files = sorted(rules_root.glob("*.yar")) + sorted(rules_root.glob("*.yara"))
-        if not files:
-            log.warning("No YARA rules found in %s; engine disabled", rules_root)
+        for f in files:
+            filepaths[f.stem] = str(f)
+
+        # 2. Custom rules from directory or file
+        if custom_rules_path and custom_rules_path.exists():
+            if custom_rules_path.is_dir():
+                custom_files = sorted(custom_rules_path.glob("*.yar")) + sorted(custom_rules_path.glob("*.yara"))
+                for f in custom_files:
+                    filepaths[f"custom_{f.stem}"] = str(f)
+            else:
+                filepaths[f"custom_{custom_rules_path.stem}"] = str(custom_rules_path)
+
+        # 3. Base64 rules
+        if base64_rules:
+            import base64
+            try:
+                decoded = base64.b64decode(base64_rules).decode('utf-8')
+                sources["custom_base64"] = decoded
+            except Exception as exc:
+                log.error("Failed to decode base64 YARA rule: %s", exc)
+
+        if not filepaths and not sources:
+            log.warning("No YARA rules found; engine disabled")
             self._rules = None
             return
 
-        filepaths = {f.stem: str(f) for f in files}
         try:
-            self._rules = yara.compile(filepaths=filepaths)
+            if sources:
+                # yara.compile does not accept both filepaths and sources.
+                # So we must read all filepaths into sources.
+                for ns, path in filepaths.items():
+                    with open(path, "r", encoding="utf-8") as f:
+                        sources[ns] = f.read()
+                self._rules = yara.compile(sources=sources)
+            else:
+                self._rules = yara.compile(filepaths=filepaths)
         except Exception as exc:  # noqa: BLE001
             log.error("Failed to compile YARA rules: %s", exc)
             self._rules = None

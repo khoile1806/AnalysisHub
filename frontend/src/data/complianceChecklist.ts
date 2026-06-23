@@ -13,7 +13,7 @@
 //
 // Shapes are structurally compatible with CollectionChecklist's ChecklistItem.
 
-export type CompliancePriority = 'critical' | 'high' | 'medium'
+type CompliancePriority = 'critical' | 'high' | 'medium'
 export type Framework = 'ISO 27001' | 'SOC 2' | 'PCI-DSS' | 'NIST'
 
 export interface ComplianceItem {

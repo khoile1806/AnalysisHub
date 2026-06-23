@@ -2,9 +2,9 @@ import apiClient from './client'
 import { useAuthStore } from '@/store/auth'
 
 export type OsintTargetType = 'ip' | 'domain' | 'email' | 'phone' | 'username' | 'hash' | 'wallet' | 'name'
-export type OsintStatus = 'pending' | 'running' | 'done' | 'stopped' | 'failed'
-export type OsintCollectorStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped'
-export type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical'
+type OsintStatus = 'pending' | 'running' | 'done' | 'stopped' | 'failed'
+type OsintCollectorStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped'
+type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical'
 
 export interface OsintCollector {
   id: string
@@ -123,7 +123,7 @@ export interface OsintGraphNode {
   findings: number
   root: boolean
 }
-export interface OsintGraphEdge {
+interface OsintGraphEdge {
   from: string
   to: string
   label: string

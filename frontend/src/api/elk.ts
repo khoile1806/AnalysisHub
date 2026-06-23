@@ -37,7 +37,7 @@ export interface ELKSearchResponse {
   }
 }
 
-export type HuntMode = 'lucene' | 'dsl'
+type HuntMode = 'lucene' | 'dsl'
 
 export interface ManualHuntPayload {
   mode: HuntMode
@@ -55,13 +55,13 @@ export interface AutoHuntProgress {
   total_hits: number
 }
 
-export interface AutoHuntHitsEvent {
+interface AutoHuntHitsEvent {
   batch: number
   bucket: string
   hits: ELKHit[]
 }
 
-export interface AutoHuntErrorEvent {
+interface AutoHuntErrorEvent {
   batch: number
   bucket: string
   error: string
@@ -90,7 +90,7 @@ export interface FileIOC {
   original?: string
 }
 
-export interface SkippedLine {
+interface SkippedLine {
   line_no: number
   line: string
   reason: string

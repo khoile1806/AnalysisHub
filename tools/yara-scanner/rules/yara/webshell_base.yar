@@ -14,7 +14,8 @@ rule WS_PHP_GenericEvalBase64
         $a = /eval\s*\(\s*base64_decode\s*\(/ nocase
         $b = /eval\s*\(\s*gzinflate\s*\(\s*base64_decode\s*\(/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_AssertSuperglobal
@@ -26,7 +27,8 @@ rule WS_PHP_AssertSuperglobal
     strings:
         $a = /assert\s*\(\s*\$_(GET|POST|REQUEST|COOKIE|SERVER)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_PregReplaceEval
@@ -38,7 +40,8 @@ rule WS_PHP_PregReplaceEval
     strings:
         $a = /preg_replace\s*\([^,]{1,200}\/[a-zA-Z]{0,5}e[a-zA-Z]{0,5}["']/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_KnownShellBanner
@@ -56,7 +59,8 @@ rule WS_PHP_KnownShellBanner
         $alfa = "ALFA TEaM" nocase
         $indox = "IndoXploit" nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_DirectExecSuperglobal
@@ -69,7 +73,8 @@ rule WS_PHP_DirectExecSuperglobal
         $a = /(system|shell_exec|passthru|exec|popen|proc_open)\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
         $b = /eval\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_ASP_EvalRequest
@@ -82,7 +87,8 @@ rule WS_ASP_EvalRequest
         $a = /(Eval|Execute|ExecuteGlobal)\s*\(\s*Request\.(Form|QueryString|Item)/ nocase
         $b = /Server\.CreateObject\s*\(\s*"WScript\.Shell"\s*\)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_JSP_RuntimeExecParam
@@ -95,7 +101,8 @@ rule WS_JSP_RuntimeExecParam
         $a = /Runtime\.getRuntime\s*\(\s*\)\.exec\s*\([^)]{0,200}request\.getParameter/
         $b = /new\s+ProcessBuilder\s*\([^)]{0,200}request\.getParameter/
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_Python_EvalExecRequest
@@ -108,7 +115,8 @@ rule WS_Python_EvalExecRequest
         $a = /(eval|exec)\s*\(\s*request\.(args|form|values|json)/ nocase
         $b = /subprocess\.(call|run|Popen|check_output)\s*\([^)]{0,200}shell\s*=\s*True[^)]{0,200}request\./
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_ReverseShellSocket
@@ -123,7 +131,8 @@ rule WS_PHP_ReverseShellSocket
         $sexec  = "shell_exec" nocase
         $binsh  = /['"]\s*\/bin\/(sh|bash)\s+-i\s*['"]/
     condition:
-        $fsock and ($popen or $sexec or $binsh)
+        ($fsock and ($popen or $sexec or $binsh)) and filesize < 5MB
+
 }
 
 rule WS_PHP_KnownReverseShellBanner
@@ -137,7 +146,8 @@ rule WS_PHP_KnownReverseShellBanner
         $b = "pentestmonkey@pentestmonkey.net" nocase
         $c = "pentestmonkey.net/tools" nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_HardcodedShellSpawn
@@ -150,7 +160,8 @@ rule WS_PHP_HardcodedShellSpawn
         $a = /['"]\s*\/bin\/(sh|bash)\s+-i\s*['"]/
         $b = /\$shell\s*=\s*['"]\/bin\/(sh|bash)/
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_FileDropper
@@ -163,7 +174,8 @@ rule WS_PHP_FileDropper
         $fpc = /file_put_contents\s*\([^,]{0,200},\s*\$_(GET|POST|REQUEST|COOKIE|FILES)/ nocase
         $fw  = /fwrite\s*\([^,]{0,200},\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_DynamicFuncCallSuperglobal
@@ -175,7 +187,8 @@ rule WS_PHP_DynamicFuncCallSuperglobal
     strings:
         $a = /\$_(GET|POST|REQUEST|COOKIE)\s*\[[^\]]{1,60}\]\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_CallUserFuncSuperglobal
@@ -188,7 +201,8 @@ rule WS_PHP_CallUserFuncSuperglobal
         $a = /call_user_func(_array)?\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
         $b = /call_user_func(_array)?\s*\(\s*\$\w+\s*,\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_ArrayHigherOrderSuperglobal
@@ -202,7 +216,8 @@ rule WS_PHP_ArrayHigherOrderSuperglobal
         $af = /array_filter\s*\([^,]{0,200},\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
         $us = /(usort|uasort|uksort)\s*\([^,]{0,200},\s*\$_(GET|POST|REQUEST|COOKIE)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_IncludeUserInput
@@ -215,7 +230,8 @@ rule WS_PHP_IncludeUserInput
         $a = /\b(include|require)(_once)?\s*\(\s*\$_(GET|POST|REQUEST|COOKIE|SERVER)/ nocase
         $b = /\b(include|require)(_once)?\s+\$_(GET|POST|REQUEST|COOKIE|SERVER)/ nocase
     condition:
-        any of them
+        (any of them) and filesize < 5MB
+
 }
 
 rule WS_PHP_HexObfuscatedFuncCall
@@ -231,7 +247,8 @@ rule WS_PHP_HexObfuscatedFuncCall
         $shell = /\\x73\\x68\\x65\\x6c\\x6c/         // "shell"
         $pack  = /pack\s*\(\s*["']H\*["']/
     condition:
-        any of ($sys, $exec, $eval, $shell) or $pack
+        (any of ($sys, $exec, $eval, $shell) or $pack) and filesize < 5MB
+
 }
 
 rule WS_PHP_PutenvLdPreload
@@ -244,7 +261,8 @@ rule WS_PHP_PutenvLdPreload
         $pe = /putenv\s*\(\s*["']LD_PRELOAD/ nocase
         $ml = /\bmail\s*\(/ nocase
     condition:
-        $pe and $ml
+        ($pe and $ml) and filesize < 5MB
+
 }
 
 rule WS_ASPX_ProcessStart
@@ -259,7 +277,8 @@ rule WS_ASPX_ProcessStart
         $new   = /new\s+Process\s*\(\)/ nocase
         $req   = /Request\.(Form|QueryString|Params|\[)/ nocase
     condition:
-        ($proc or $start or $new) and $req
+        (($proc or $start or $new) and $req) and filesize < 5MB
+
 }
 
 rule WS_ASPX_FileWrite
@@ -274,7 +293,8 @@ rule WS_ASPX_FileWrite
         $save  = /\.SaveToFile\s*\(/ nocase
         $write = /\.Write\s*\(/ nocase
     condition:
-        ($adodb or $fso) and ($save or $write)
+        (($adodb or $fso) and ($save or $write)) and filesize < 5MB
+
 }
 
 rule WS_JSP_ScriptEngineEval
@@ -290,5 +310,6 @@ rule WS_JSP_ScriptEngineEval
         $ev  = /\.eval\s*\(/ nocase
         $req = /request\.getParameter/ nocase
     condition:
-        ($se or $gs or $bs) and $ev and $req
+        (($se or $gs or $bs) and $ev and $req) and filesize < 5MB
+
 }

@@ -19,9 +19,9 @@ import { getErrorMessage } from '@/lib/utils'
 import TerminalOutput from '@/components/Terminal'
 import { useAuthStore } from '@/store/auth'
 
-export function WebshellScanner({ agent }: { agent: Agent }) {
+export function YaraScanner({ agent }: { agent: Agent }) {
   const qc = useQueryClient()
-  const [targetPath, setTargetPath] = useState<string>('C:\\inetpub\\wwwroot') // Default for IIS
+  const [targetPath, setTargetPath] = useState<string>(agent.os === 'windows' ? 'C:\\' : '/')
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'process' | 'report'>('process')
   const [output, setOutput] = useState<string[]>([])
@@ -31,6 +31,9 @@ export function WebshellScanner({ agent }: { agent: Agent }) {
   const [cpuLimit, setCpuLimit] = useState<number | ''>('')
   const [ramLimit, setRamLimit] = useState<number | ''>('')
   const [priority, setPriority] = useState<string>('normal')
+  const [isAdvanced, setIsAdvanced] = useState<boolean>(false)
+  const [customYaraName, setCustomYaraName] = useState<string>('')
+  const [customYaraBase64, setCustomYaraBase64] = useState<string>('')
 
   // Fetch scanner tool
   const { data: tools = [] } = useQuery<Tool[]>({
@@ -107,12 +110,18 @@ export function WebshellScanner({ agent }: { agent: Agent }) {
 
   const handleStartScan = () => {
     if (!scannerTool) {
-      toast.error('Webshell Scanner tool not found in library')
+      toast.error('YARA Scanner tool not found in library')
       return
     }
 
     let args = `scan "${targetPath}" --out report --format html,json`
     if (isDebug) args += " --verbose"
+    if (isAdvanced) {
+      args += " --all-files"
+      if (customYaraBase64) {
+        args += ` --yara-base64 ${customYaraBase64}`
+      }
+    }
     
     createJobMutation.mutate({
       agent_id: agent.id,
@@ -196,7 +205,7 @@ export function WebshellScanner({ agent }: { agent: Agent }) {
             <Shield className="h-6 w-6 text-emerald-500" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-100">Webshell Scanner</h1>
+            <h1 className="text-xl font-bold text-gray-100">YARA Scanner</h1>
             <p className="text-sm text-gray-400">Hunt for backdoors and malicious shells on {agent.name}</p>
           </div>
         </div>
@@ -211,9 +220,25 @@ export function WebshellScanner({ agent }: { agent: Agent }) {
                 className="input pl-9 h-10 w-[300px]"
                 value={targetPath}
                 onChange={(e) => setTargetPath(e.target.value)}
-                placeholder={agent.os === 'windows' ? 'C:\\inetpub\\wwwroot' : '/var/www/html'}
+                placeholder={agent.os === 'windows' ? 'C:\\' : '/'}
                 disabled={isScanning}
               />
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              {agent.os === 'windows' ? (
+                <>
+                  <button onClick={() => setTargetPath('C:\\')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">C:\</button>
+                  <button onClick={() => setTargetPath('C:\\inetpub\\wwwroot')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">IIS</button>
+                  <button onClick={() => setTargetPath('C:\\Users')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">Users</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setTargetPath('/')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">/</button>
+                  <button onClick={() => setTargetPath('/var/www')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">/var/www</button>
+                  <button onClick={() => setTargetPath('/home')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">/home</button>
+                  <button onClick={() => setTargetPath('/tmp')} className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">/tmp</button>
+                </>
+              )}
             </div>
           </div>
 
@@ -261,6 +286,70 @@ export function WebshellScanner({ agent }: { agent: Agent }) {
               </button>
             </div>
           </div>
+        </div>
+        {/* Advanced Options Toggle */}
+        <div className="w-full mt-2 pt-3 border-t border-gray-800 flex flex-col gap-3">
+          <label className="flex items-center gap-2 cursor-pointer w-fit text-sm text-gray-400 hover:text-gray-200 transition-colors">
+            <input 
+              type="checkbox" 
+              className="rounded border-gray-700 bg-gray-900 text-purple-500 focus:ring-purple-500/20"
+              checked={isAdvanced}
+              onChange={(e) => setIsAdvanced(e.target.checked)}
+              disabled={isScanning}
+            />
+            Advanced Mode (Scan all files + Custom YARA)
+          </label>
+          
+          {isAdvanced && (
+            <div className="flex items-center gap-4 bg-gray-900/80 p-3 rounded-lg border border-gray-800">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-gray-300">Custom YARA Rule</span>
+                <span className="text-[10px] text-gray-500">Upload a .yar file to scan alongside built-in rules</span>
+              </div>
+              <div className="flex-1 flex items-center gap-2">
+                <input 
+                  type="file" 
+                  accept=".yar,.yara"
+                  className="hidden"
+                  id="yara-upload"
+                  disabled={isScanning}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setCustomYaraName(file.name)
+                    const reader = new FileReader()
+                    reader.onload = (ev) => {
+                      const text = ev.target?.result as string
+                      setCustomYaraBase64(btoa(text))
+                    }
+                    reader.readAsText(file)
+                  }}
+                />
+                <label 
+                  htmlFor="yara-upload"
+                  className={`btn-secondary py-1.5 px-3 text-xs cursor-pointer ${isScanning ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  Choose File
+                </label>
+                {customYaraName && (
+                  <div className="flex items-center gap-2 bg-purple-500/10 text-purple-400 px-2 py-1 rounded text-xs border border-purple-500/20">
+                    <FileText className="w-3 h-3" />
+                    <span className="truncate max-w-[200px]">{customYaraName}</span>
+                    <button 
+                      onClick={() => {
+                        setCustomYaraName('')
+                        setCustomYaraBase64('')
+                      }}
+                      className="ml-2 text-purple-400 hover:text-purple-300"
+                      disabled={isScanning}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

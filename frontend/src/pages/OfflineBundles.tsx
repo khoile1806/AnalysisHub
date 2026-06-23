@@ -9,6 +9,7 @@ import {
   Info,
   CheckSquare,
   Square,
+  FileText,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { toolsApi } from '@/api/tools'
@@ -23,19 +24,19 @@ const PLATFORM_OPTIONS: { value: Platform; label: string; icon: React.ReactNode;
     value: 'windows',
     label: 'Windows',
     icon: <Monitor className="w-4 h-4" />,
-    desc: 'Includes agent-offline.exe + run.bat',
+    desc: 'ZIP: agent-offline.exe + run.bat',
   },
   {
     value: 'linux',
     label: 'Linux',
     icon: <Terminal className="w-4 h-4" />,
-    desc: 'Includes agent-offline-linux + run.sh',
+    desc: 'ZIP: agent-offline-linux + run.sh',
   },
   {
     value: 'both',
     label: 'Both',
     icon: <Globe className="w-4 h-4" />,
-    desc: 'Includes both Windows and Linux binaries',
+    desc: 'ZIP with Windows + Linux binaries',
   },
 ]
 
@@ -45,6 +46,8 @@ export default function OfflineBundles() {
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set())
   const [generating, setGenerating] = useState(false)
   const [search, setSearch] = useState('')
+  const [customYaraName, setCustomYaraName] = useState<string>('')
+  const [customYaraContent, setCustomYaraContent] = useState<string>('')
 
   const { data: tools = [], isLoading } = useQuery({
     queryKey: ['tools'],
@@ -91,6 +94,7 @@ export default function OfflineBundles() {
         name: bundleName.trim(),
         tool_ids: Array.from(selectedIDs),
         platform,
+        custom_yara_rule: customYaraContent || undefined,
       })
       toast.success('Bundle downloaded!', { id: tid })
     } catch (err) {
@@ -122,7 +126,7 @@ export default function OfflineBundles() {
               placeholder="Search tools…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-border/80"
+              className="flex-1 bg-gray-800 border border-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm outline-none focus:border-emerald-500/50"
             />
             <button
               onClick={toggleAll}
@@ -202,13 +206,13 @@ export default function OfflineBundles() {
           <div className="flex-1 px-6 py-5 space-y-6">
             {/* Bundle name */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Bundle Name</label>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">Bundle Name</label>
               <input
                 type="text"
                 placeholder="e.g. WebServer Hunting — Incident #42"
                 value={bundleName}
                 onChange={(e) => setBundleName(e.target.value)}
-                className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500/50 transition-colors"
+                className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500/50 transition-colors"
               />
             </div>
 
@@ -234,10 +238,58 @@ export default function OfflineBundles() {
               </div>
             </div>
 
+            {/* Custom YARA Rule */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">Custom YARA Rule (Optional)</label>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="file" 
+                  accept=".yar,.yara"
+                  className="hidden"
+                  id="offline-yara-upload"
+                  disabled={generating}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setCustomYaraName(file.name)
+                    const reader = new FileReader()
+                    reader.onload = (ev) => {
+                      setCustomYaraContent(ev.target?.result as string)
+                    }
+                    reader.readAsText(file)
+                  }}
+                />
+                <label 
+                  htmlFor="offline-yara-upload"
+                  className={`btn-secondary py-1.5 px-3 text-xs cursor-pointer ${generating ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  Choose .yar File
+                </label>
+                {customYaraName ? (
+                  <div className="flex items-center gap-2 bg-purple-500/10 text-purple-400 px-2 py-1 rounded text-xs border border-purple-500/20 flex-1">
+                    <FileText className="w-3 h-3" />
+                    <span className="truncate flex-1">{customYaraName}</span>
+                    <button 
+                      onClick={() => {
+                        setCustomYaraName('')
+                        setCustomYaraContent('')
+                      }}
+                      className="ml-2 text-purple-400 hover:text-purple-300"
+                      disabled={generating}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500 flex-1">Scans alongside built-in rules</span>
+                )}
+              </div>
+            </div>
+
             {/* Summary */}
-            <div className="bg-muted rounded-lg border border-border p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Bundle Contents</h3>
-              <div className="space-y-1.5 text-xs text-muted-foreground">
+            <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-200">Bundle Contents</h3>
+              <div className="space-y-1.5 text-xs text-gray-400">
                 {platform === 'windows' || platform === 'both' ? (
                   <div className="flex items-center gap-2">
                     <Monitor className="w-3.5 h-3.5 text-blue-400" />

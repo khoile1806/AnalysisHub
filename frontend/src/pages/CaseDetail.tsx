@@ -148,7 +148,7 @@ function OfflineBundleModal({
                       onClick={() => toggleTool(tool.id)}
                       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
                         i > 0 ? 'border-t border-border' : ''
-                      } ${selected ? 'bg-purple-500/5' : 'hover:bg-muted/50'}`}
+                      } ${selected ? 'bg-purple-500/5' : 'hover:bg-gray-800/50'}`}
                     >
                       <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
                         selected ? 'bg-purple-500 border-purple-500' : 'border-muted-foreground/40'

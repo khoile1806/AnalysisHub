@@ -13,7 +13,7 @@ export interface ToolResult {
   liveStatus: 'pending' | 'downloading' | 'running' | 'done' | 'failed'
 }
 
-export interface ToolPick {
+interface ToolPick {
   toolId: string
   args: string
 }

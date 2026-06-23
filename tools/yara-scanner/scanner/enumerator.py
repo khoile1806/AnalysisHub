@@ -40,6 +40,8 @@ def enumerate_targets(
     max_size_mb: float = 50.0,
     excludes: list[str] | None = None,
     follow_symlinks: bool = False,
+    all_files: bool = False,
+    extensions: list[str] | None = None,
 ) -> Iterator[Path]:
     """Walk targets and yield candidate file paths.
 
@@ -56,7 +58,7 @@ def enumerate_targets(
             continue
 
         if root.is_file():
-            if _accept_file(root, max_bytes, excludes):
+            if _accept_file(root, max_bytes, excludes, all_files, extensions):
                 yield root.resolve()
             continue
 
@@ -64,17 +66,19 @@ def enumerate_targets(
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
             for fname in filenames:
                 p = Path(dirpath) / fname
-                if _accept_file(p, max_bytes, excludes):
+                if _accept_file(p, max_bytes, excludes, all_files, extensions):
                     try:
                         yield p.resolve()
                     except OSError:
                         continue
 
 
-def _accept_file(path: Path, max_bytes: int, excludes: list[str]) -> bool:
-    ext = _ext(path)
-    if ext not in SCAN_EXTENSIONS:
-        return False
+def _accept_file(path: Path, max_bytes: int, excludes: list[str], all_files: bool, extensions: list[str] | None) -> bool:
+    if not all_files:
+        ext = _ext(path)
+        allowed = extensions if extensions is not None else SCAN_EXTENSIONS
+        if ext not in allowed:
+            return False
     try:
         st = path.stat()
     except OSError:

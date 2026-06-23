@@ -39,6 +39,12 @@ func (s *HTTPServer) Start() error {
 	mux.HandleFunc("/api/jobs/", s.handleJob)
 	mux.HandleFunc("/api/report", s.handleReport)
 
+	// Serve the entire bundle directory under /artifacts/ so tools' outputs (like HTML reports) can be viewed
+	if bDir, err := bundleDir(); err == nil {
+		fs := http.FileServer(http.Dir(bDir))
+		mux.Handle("/artifacts/", http.StripPrefix("/artifacts/", fs))
+	}
+
 	addr := fmt.Sprintf("127.0.0.1:%d", s.port)
 	srv := &http.Server{Addr: addr, Handler: mux, ReadTimeout: 30 * time.Second}
 	return srv.ListenAndServe()
@@ -241,8 +247,9 @@ func (s *HTTPServer) handleReport(w http.ResponseWriter, r *http.Request) {
 	ts := time.Now().Format("20060102-150405")
 	baseName := fmt.Sprintf("report-%s-%s", safeFilename(hostname), ts)
 
-	// Also persist to disk next to the binary.
-	dir, _ := bundleDir()
+	// Persist next to the .exe the operator launched (a user-visible location),
+	// not the temp extraction dir.
+	dir := outputDir()
 	switch format {
 	case "json":
 		data, err := json.MarshalIndent(rep, "", "  ")

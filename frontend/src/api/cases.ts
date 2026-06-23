@@ -12,7 +12,7 @@ export interface Case {
   updated_at: string
 }
 
-export interface CaseOsintSummary {
+interface CaseOsintSummary {
   investigations: OsintScan[]
   total_scans: number
   total_findings: number

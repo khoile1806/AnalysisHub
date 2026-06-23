@@ -289,33 +289,34 @@ func seedAdmin(db *gorm.DB, email, password string) error {
 	return nil
 }
 
-// seedTools checks if essential integrated tools (like Webshell Scanner) exist
+// seedTools checks if essential integrated tools (like YARA Scanner) exist
 // and registers them if missing, using pre-built bundles from /app/defaults.
 func seedTools(db *gorm.DB, store *storage.LocalStorage) error {
 	var count int64
-	db.Model(&models.Tool{}).Where("name LIKE ?", "%Webshell Scanner%").Count(&count)
+	db.Model(&models.Tool{}).Where("name LIKE ?", "%YARA Scanner%").Count(&count)
 	if count > 0 {
 		return nil
 	}
 
-	defaultPath := "/app/defaults/webshell-scanner.zip"
+	defaultPath := "/app/defaults/yara-scanner.zip"
 	if _, err := os.Stat(defaultPath); os.IsNotExist(err) {
 		return nil // No bundle to seed
 	}
 
-	slog.Info("seeding integrated Webshell Scanner")
+	slog.Info("seeding integrated YARA Scanner")
 
 	// 1. Create Tool Record
 	toolID := uuid.New()
 	tool := models.Tool{
 		ID:             toolID,
-		Name:           "Webshell Scanner",
+		Name:           "YARA Scanner",
 		Category:       "triage",
 		Platform:       "both",
 		Version:        "0.1.0",
 		Description:    "Integrated multi-engine webshell scanner (Auto-seeded).",
-		ExecutablePath: "{{OS}}/webshell-scanner{{EXT}}",
-		FileName:       "webshell-scanner.zip",
+		ExecutablePath: "{{OS}}/yara-scanner{{EXT}}",
+		FileName:       "yara-scanner.zip",
+		Args:           "scan ./ --out report",
 	}
 
 	// 2. Copy file to storage

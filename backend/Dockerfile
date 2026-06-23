@@ -1,5 +1,5 @@
 # Stage 0: Build agent binaries (online + offline, Windows + Linux)
-FROM golang:1.23-alpine AS agent-builder
+FROM golang:alpine AS agent-builder
 
 RUN apk add --no-cache git ca-certificates
 
@@ -29,7 +29,7 @@ RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 # ─────────────────────────────────────────────────────────────────────────── #
 
 # Stage 1: Build backend binary
-FROM golang:1.23-alpine AS builder
+FROM golang:alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -47,21 +47,21 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
-# Stage 1.5a: Build Webshell Scanner (Linux)
+# Stage 1.5a: Build YARA Scanner (Linux)
 FROM python:3.11-slim AS scanner-builder-linux
 
 RUN apt-get update && apt-get install -y binutils gcc libmagic1
 
 WORKDIR /scanner
-COPY ./tools/webshell-scanner .
+COPY ./tools/yara-scanner .
 RUN pip install . pyinstaller
 RUN pyinstaller build.spec --clean --noconfirm --distpath dist/linux
 
-# Stage 1.5b: Build Webshell Scanner (Windows)
+# Stage 1.5b: Build YARA Scanner (Windows)
 FROM tobix/pywine:3.11 AS scanner-builder-windows
 
 WORKDIR /wine-scanner
-COPY ./tools/webshell-scanner .
+COPY ./tools/yara-scanner .
 RUN wine python -m pip install . pyinstaller
 RUN wine pyinstaller build.spec --clean --noconfirm --distpath dist/windows
 
@@ -70,9 +70,9 @@ FROM alpine:3.19 AS scanner-bundler
 RUN apk add --no-cache zip
 WORKDIR /app/defaults
 RUN mkdir -p linux windows
-COPY --from=scanner-builder-linux /scanner/dist/linux/webshell-scanner linux/
-COPY --from=scanner-builder-windows /wine-scanner/dist/windows/webshell-scanner.exe windows/
-RUN zip -r webshell-scanner.zip linux/ windows/
+COPY --from=scanner-builder-linux /scanner/dist/linux/yara-scanner linux/
+COPY --from=scanner-builder-windows /wine-scanner/dist/windows/yara-scanner.exe windows/
+RUN zip -r yara-scanner.zip linux/ windows/
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
@@ -110,7 +110,7 @@ COPY --from=builder /build/data /app/data
 COPY ./docs /app/docs
 
 # Integrated Tools
-COPY --from=scanner-bundler /app/defaults/webshell-scanner.zip /app/defaults/webshell-scanner.zip
+COPY --from=scanner-bundler /app/defaults/yara-scanner.zip /app/defaults/yara-scanner.zip
 
 # Create required directories and fix ownership
 RUN mkdir -p /app/storage /app/agent-bins /app/defaults \

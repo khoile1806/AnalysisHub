@@ -126,6 +126,10 @@ def scan(
     exclude: Annotated[list[str] | None, typer.Option("--exclude", help="Glob exclude (repeatable)")] = None,
     max_size: Annotated[float, typer.Option("--max-size", help="Skip files larger than N MB")] = 50.0,
     progress: Annotated[str, typer.Option("--progress", help="auto|none|json")] = "auto",
+    all_files: Annotated[bool, typer.Option("--all-files", help="Scan all files, ignoring extension whitelist")] = False,
+    extensions: Annotated[str | None, typer.Option("--extensions", help="Comma-separated list of extensions to scan (e.g. .php,.exe)")] = None,
+    yara_rules: Annotated[Path | None, typer.Option("--yara-rules", help="Path to custom YARA rules directory or file")] = None,
+    yara_base64: Annotated[str | None, typer.Option("--yara-base64", help="Base64 encoded YARA rule string")] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Debug logging")] = False,
 ) -> None:
     logging.basicConfig(
@@ -148,6 +152,10 @@ def scan(
         excludes=exclude,
         max_size_mb=max_size,
         progress=progress,
+        all_files=all_files,
+        extensions=[e.strip().lower() for e in extensions.split(",")] if extensions else None,
+        yara_rules=yara_rules,
+        yara_base64=yara_base64,
     )
 
     report = run_scan(opts)

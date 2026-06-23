@@ -19,6 +19,35 @@ import (
 // window and to a temp log file; this goroutine tails that log file and
 // streams lines to outputCh so the dashboard receives real-time output.
 func runToolProcess(ctx context.Context, execPath string, args []string, req JobRequest, toolDir string, outputCh chan<- string) error {
+	// Automatically append -AcceptEula for known Sysinternals tools to prevent GUI hangs.
+	baseName := strings.ToLower(filepath.Base(execPath))
+	if isSysinternals(baseName) {
+		hasEula := false
+		for _, a := range args {
+			if strings.ToLower(a) == "-accepteula" || strings.ToLower(a) == "/accepteula" {
+				hasEula = true
+				break
+			}
+		}
+		if !hasEula {
+			args = append(args, "-AcceptEula")
+		}
+	}
+
+	// Automatically append /Q for DumpIt to prevent the Y/N prompt
+	if strings.HasPrefix(baseName, "dumpit") {
+		hasQuiet := false
+		for _, a := range args {
+			if strings.ToLower(a) == "/q" || strings.ToLower(a) == "-q" || strings.ToLower(a) == "/quiet" {
+				hasQuiet = true
+				break
+			}
+		}
+		if !hasQuiet {
+			args = append(args, "/Q")
+		}
+	}
+
 	tmp := os.TempDir()
 	logFile := filepath.Join(tmp, fmt.Sprintf("fhub_run_%s.log", req.JobID))
 	ps1File := filepath.Join(tmp, fmt.Sprintf("fhub_run_%s.ps1", req.JobID))
@@ -40,11 +69,11 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 	var toolLine string
 	switch ext {
 	case ".ps1":
-		toolLine = fmt.Sprintf("& %s %s", psSingleQuote(execPath), buildPSArgs(args))
+		toolLine = fmt.Sprintf("& %s %s | Out-String -Stream", psSingleQuote(execPath), buildPSArgs(args))
 	case ".bat", ".cmd":
 		toolLine = fmt.Sprintf("cmd.exe /c %s %s", psSingleQuote(execPath), strings.Join(args, " "))
 	default:
-		toolLine = fmt.Sprintf("& %s %s", psSingleQuote(execPath), buildPSArgs(args))
+		toolLine = fmt.Sprintf("& %s %s | Out-String -Stream", psSingleQuote(execPath), buildPSArgs(args))
 	}
 
 	// PS1 wrapper: run tool, tee output to log file so both the window and
@@ -178,4 +207,23 @@ func tailFile(ctx context.Context, path string, outputCh chan<- string, done <-c
 			// Re-scan for new lines written since last poll.
 		}
 	}
+}
+
+// isSysinternals checks if the filename belongs to a known Sysinternals tool that requires EULA.
+func isSysinternals(filename string) bool {
+	known := []string{
+		"tcpview", "tcpvcon", "procdump", "pslist", "pskill", "psloggedon",
+		"psexec", "psgetsid", "psinfo", "psping", "psservice", "pssuspend",
+		"autoruns", "autorunsc", "procmon", "handle", "listdlls", "accesschk",
+		"accessenum", "adexplorer", "bginfo", "contig", "coreinfo", "du",
+		"efsinfo", "logonsessions", "ntfsinfo", "pendmoves", "pipelist",
+		"portmon", "rammap", "sdelete", "shareenum", "shellrunas", "sigcheck",
+		"streams", "strings", "sync", "vmmap", "volumeid", "whois",
+	}
+	for _, k := range known {
+		if strings.HasPrefix(filename, k) {
+			return true
+		}
+	}
+	return false
 }

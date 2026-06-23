@@ -20,7 +20,9 @@ build-local:
 
 # ── Offline agent ────────────────────────────────────────────────────────────
 build-offline-windows:
-	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o agent-offline.exe ./cmd/offline-agent
+	# -H windowsgui → no console window flashes when the user double-clicks the
+	# single .exe; it opens straight into the native WebView2 application window.
+	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -H windowsgui" -o agent-offline.exe ./cmd/offline-agent
 
 build-offline-linux:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o agent-offline-linux ./cmd/offline-agent

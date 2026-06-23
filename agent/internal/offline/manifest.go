@@ -25,8 +25,8 @@ type BundleTool struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`
 	Description    string `json:"description"`
-	FileName       string `json:"file_name"`       // e.g. "webshell-scanner.zip"
-	ExecutablePath string `json:"executable_path"` // e.g. "linux/webshell-scanner" or "{{OS}}/tool{{EXT}}"
+	FileName       string `json:"file_name"`       // e.g. "yara-scanner.zip"
+	ExecutablePath string `json:"executable_path"` // e.g. "linux/yara-scanner" or "{{OS}}/tool{{EXT}}"
 	DefaultArgs    string `json:"default_args"`
 	Category       string `json:"category"`
 }
@@ -64,13 +64,32 @@ func ToolDir(toolID string) (string, error) {
 	return filepath.Join(dir, "tools", toolID), nil
 }
 
-// bundleDir returns the directory that contains the running binary (and
-// therefore bundle.json and the tools/ subdirectory).
+// bundleDir returns the directory that holds bundle.json and tools/. For a
+// single self-contained .exe this is the temp folder the embedded payload was
+// extracted into (set via SetBundleDir); otherwise it is the directory of the
+// running binary (legacy loose-files layout).
 func bundleDir() (string, error) {
+	if extractedDir != "" {
+		return extractedDir, nil
+	}
 	exe, err := os.Executable()
 	if err != nil {
 		// Fallback: use working directory.
 		return os.Getwd()
 	}
 	return filepath.Dir(exe), nil
+}
+
+// outputDir returns the directory where user-facing artefacts (reports) are
+// saved. It is always the real location of the .exe the user launched (NOT the
+// temp extraction dir), so a single self-contained .exe still drops its reports
+// right next to where the operator put it. Falls back to the working directory.
+func outputDir() string {
+	if exe, err := os.Executable(); err == nil {
+		return filepath.Dir(exe)
+	}
+	if wd, err := os.Getwd(); err == nil {
+		return wd
+	}
+	return "."
 }

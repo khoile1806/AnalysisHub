@@ -1,7 +1,7 @@
-# Webshell Scanner
+# YARA Scanner
 
 Multi-engine webshell scanner — Phase 1 MVP của
-[`webshell-scanner-plan.md`](../webshell-scanner-plan.md).
+[`yara-scanner-plan.md`](../yara-scanner-plan.md).
 
 Engine: **YARA** + **Pattern (regex)**. Output: `report.json` + `report.html`
 (self-contained, mở offline). Đóng gói thành single binary qua PyInstaller để
@@ -10,7 +10,7 @@ deploy lên ForensicHub agents (xem ROADMAP.md mục #2 — Multi-Agent Scanning
 ## Cài đặt (dev)
 
 ```bash
-cd webshell-scanner
+cd yara-scanner
 python -m venv .venv
 # Windows:
 .venv\Scripts\activate
@@ -46,8 +46,8 @@ Yêu cầu accuracy MVP: detection ≥ 80%, FP ≤ 5% trên fixture corpus.
 pip install pyinstaller
 pyinstaller build.spec
 # Output:
-#   dist/webshell-scanner.exe   (Windows)
-#   dist/webshell-scanner       (Linux)
+#   dist/yara-scanner.exe   (Windows)
+#   dist/yara-scanner       (Linux)
 ```
 
 Binary đã bundle `rules/` + `templates/`, không cần Python trên máy đích.
@@ -110,10 +110,10 @@ scanner/
 ## Roadmap
 
 Phase này (MVP) chỉ làm YARA + pattern. Các phase tiếp theo theo
-`webshell-scanner-plan.md`: entropy, AST PHP (`phply`), recursive deobfuscator,
+`yara-scanner-plan.md`: entropy, AST PHP (`phply`), recursive deobfuscator,
 taint analysis, differential scanning, ML layer, platform integration.
 
 Tích hợp ForensicHub: scanner sẽ được upload như **ZIP tool** với
-`executable_path = webshell-scanner.exe`. Tab Webshell Scanner mới sẽ chọn nhiều
+`executable_path = yara-scanner.exe`. Tab YARA Scanner mới sẽ chọn nhiều
 agent, dispatch job, agent upload `report.json` + `report.html` qua artifact
 endpoint hiện có. Chi tiết blueprint: plan riêng.

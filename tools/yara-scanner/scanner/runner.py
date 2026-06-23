@@ -29,6 +29,10 @@ class ScanOptions:
     excludes: list[str] | None = None
     max_size_mb: float = 50.0
     progress: str = "auto"  # auto | none | json
+    all_files: bool = False
+    extensions: list[str] | None = None
+    yara_rules: Path | None = None
+    yara_base64: str | None = None
 
 
 _SEVERITY_RANK = {"clean": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
@@ -45,7 +49,7 @@ def run_scan(
     engines: Iterable[Engine] | None = None,
     progress_cb: Callable[[dict], None] | None = None,
 ) -> ScanReport:
-    engines = list(engines) if engines is not None else _default_engines()
+    engines = list(engines) if engines is not None else _default_engines(opts.yara_rules, opts.yara_base64)
 
     report = ScanReport(
         scanner_version=__version__,
@@ -59,6 +63,8 @@ def run_scan(
         opts.targets,
         max_size_mb=opts.max_size_mb,
         excludes=opts.excludes,
+        all_files=opts.all_files,
+        extensions=opts.extensions,
     ))
     report.stats.total_files = len(files)
     _emit_progress(opts.progress, {"event": "start", "total": len(files)})
@@ -125,8 +131,8 @@ def run_scan(
     return report
 
 
-def _default_engines() -> list[Engine]:
-    return [YaraEngine(), PatternEngine()]
+def _default_engines(yara_rules: Path | None = None, yara_base64: str | None = None) -> list[Engine]:
+    return [YaraEngine(custom_rules_path=yara_rules, base64_rules=yara_base64), PatternEngine()]
 
 
 def _rules_version() -> str:

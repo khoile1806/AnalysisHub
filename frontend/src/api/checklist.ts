@@ -32,7 +32,7 @@ export interface ChecklistRun {
   updated_at: string
 }
 
-export interface BatchInput {
+interface BatchInput {
   batch_key: string
   batch_label: string
   item_ids: string[]

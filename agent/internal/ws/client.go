@@ -464,18 +464,18 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 			_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] %v", err), false)
 		}
 
-		// --- NEW: Automatic Artifact Upload for Webshell Scanner ---
+		// --- NEW: Automatic Artifact Upload for YARA Scanner ---
 		// Look for "report/report.html" and upload it before marking the job as
 		// done. Match on either ToolName (normalized — strips spaces/dashes so
-		// "Webshell Scanner", "webshell-scanner", "webshell_scanner" all hit) or
+		// "YARA Scanner", "yara-scanner", "yara_scanner" all hit) or
 		// FileName as a fallback.
 		toolNameNorm := strings.ToLower(msg.ToolName)
 		toolNameNorm = strings.ReplaceAll(toolNameNorm, " ", "")
 		toolNameNorm = strings.ReplaceAll(toolNameNorm, "-", "")
 		toolNameNorm = strings.ReplaceAll(toolNameNorm, "_", "")
-		isWebshellScanner := strings.Contains(toolNameNorm, "webshellscanner") ||
-			strings.Contains(strings.ToLower(msg.FileName), "webshell-scanner")
-		if isWebshellScanner {
+		isYaraScanner := strings.Contains(toolNameNorm, "webshellscanner") ||
+			strings.Contains(strings.ToLower(msg.FileName), "yara-scanner")
+		if isYaraScanner {
 			workDir := c.cfg.WorkDir
 			toolID := msg.ToolID
 			if toolID == "" {
@@ -485,7 +485,7 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 			reportPath := filepath.Join(workDir, "tools", toolID, "report", "report.html")
 
 			if _, statErr := os.Stat(reportPath); statErr == nil {
-				log.Printf("[job:%s] uploading webshell-scanner report: %s", msg.JobID, reportPath)
+				log.Printf("[job:%s] uploading yara-scanner report: %s", msg.JobID, reportPath)
 				if upErr := c.uploadArtifact(runCtx, msg.JobID, reportPath); upErr != nil {
 					log.Printf("[job:%s] artifact upload failed: %v", msg.JobID, upErr)
 					_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] report upload failed: %v", upErr), false)

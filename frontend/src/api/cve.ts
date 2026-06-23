@@ -16,7 +16,7 @@ export interface CveSummary {
   affected_products: string[]
 }
 
-export interface CveReference {
+interface CveReference {
   url: string
   source?: string
   tags?: string[]

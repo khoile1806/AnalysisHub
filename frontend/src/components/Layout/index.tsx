@@ -91,7 +91,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   jobs:      'Jobs',
   cve:       'Vulnerability Search',
   opencti:   'SIEM Threat Hunting',
-  'webshell-scanner': 'Webshell Scanner',
+  'yara-scanner': 'YARA Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
   'osint': 'OSINT',
