@@ -30,6 +30,29 @@ func newFinding(source, category, title, value string) models.OsintFinding {
 	}
 }
 
+// withSource sets the discovery-source link (where the trace can be verified)
+// on a finding and returns it. Empty/whitespace URLs are ignored.
+func withSource(f models.OsintFinding, sourceURL string) models.OsintFinding {
+	if s := strings.TrimSpace(sourceURL); s != "" {
+		f.SourceURL = s
+	}
+	return f
+}
+
+// stampSource sets sourceURL on every finding that doesn't already carry its own
+// discovery link, so a whole collector's output is traceable in one call.
+func stampSource(fs []models.OsintFinding, sourceURL string) []models.OsintFinding {
+	if strings.TrimSpace(sourceURL) == "" {
+		return fs
+	}
+	for i := range fs {
+		if fs[i].SourceURL == "" {
+			fs[i].SourceURL = sourceURL
+		}
+	}
+	return fs
+}
+
 // withRelated attaches pivot entities to a finding and returns it.
 func withRelated(f models.OsintFinding, rel ...RelatedEntity) models.OsintFinding {
 	cleaned := rel[:0]

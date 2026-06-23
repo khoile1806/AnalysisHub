@@ -61,9 +61,19 @@ func DetectOsintTarget(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
+	names := osint.CollectorNamesFor(ttype)
+	// Surface which collectors will be skipped for lack of an optional API key so
+	// the UI can preview the real coverage before the scan starts.
+	var skipped []string
+	if v, exists := c.Get("osintEngine"); exists {
+		if engine, ok := v.(*osint.Engine); ok {
+			skipped = engine.UnavailableCollectors(names)
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
-		"target_type": ttype,
-		"collectors":  osint.CollectorNamesFor(ttype),
+		"target_type":    ttype,
+		"collectors":     names,
+		"skipped_no_key": skipped,
 	}})
 }
 
@@ -366,6 +376,58 @@ func OsintReport(c *gin.Context) {
 
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+// OsintExport serves a scan's findings in a machine-readable interchange format
+// for IOC sharing / TIP ingestion. ?format=stix (STIX 2.1 bundle, default), csv,
+// or json.
+// GET /api/v1/osint/:id/export?format=stix|csv|json
+func OsintExport(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid scan ID"})
+		return
+	}
+	var scan models.OsintScan
+	if err := db.First(&scan, "id = ?", id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "scan not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "internal server error"})
+		return
+	}
+	var findings []models.OsintFinding
+	db.Where("scan_id = ?", id).Order("category, created_at").Find(&findings)
+
+	safe := strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '-'
+	}, scan.Name)
+	stamp := scan.CreatedAt.Format("2006-01-02")
+
+	switch strings.ToLower(c.DefaultQuery("format", "stix")) {
+	case "csv":
+		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="osint-%s-%s.csv"`, safe, stamp))
+		c.Data(http.StatusOK, "text/csv; charset=utf-8", osint.GenerateCSV(&scan, findings))
+	case "json":
+		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="osint-%s-%s.json"`, safe, stamp))
+		c.JSON(http.StatusOK, gin.H{"scan": scan, "findings": findings})
+	default: // stix
+		bundle, gerr := osint.GenerateSTIXBundle(&scan, findings)
+		if gerr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to build STIX bundle"})
+			return
+		}
+		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="osint-%s-%s-stix.json"`, safe, stamp))
+		c.Data(http.StatusOK, "application/json; charset=utf-8", bundle)
+	}
 }
 
 // StreamOsintOutput streams live progress for a scan via SSE.

@@ -75,7 +75,7 @@ func collectThreatFox(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 			"ThreatFox: "+strings.TrimSpace(joinNonEmpty(" / ", d.ThreatType, mal)),
 			fmt.Sprintf("confidence %d%% - first seen %s", d.ConfidenceLevel, d.FirstSeen))
 		f.Severity = "critical" // listed in ThreatFox = actively malicious infrastructure
-		out = append(out, f)
+		out = append(out, withSource(f, threatfoxURL(env.target)))
 		if i >= 9 {
 			break
 		}
@@ -117,15 +117,17 @@ func collectURLhaus(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 	}
 
 	var out []models.OsintFinding
+	hostURL := urlhausHostURL(env.target)
 	summary := newFinding("urlhaus", "reputation", "URLhaus: malicious URLs on this host",
 		fmt.Sprintf("%d malicious URL(s) recorded by URLhaus", len(r.URLs)))
 	summary.Severity = "critical"
-	out = append(out, summary)
+	out = append(out, withSource(summary, hostURL))
 	for i, u := range r.URLs {
 		f := newFinding("urlhaus", "reputation",
 			"Malicious URL ("+joinNonEmpty(", ", u.Threat, u.URLStatus)+")", u.URL)
 		f.Severity = "high"
-		out = append(out, f)
+		// Link to the safe URLhaus host page (not the live malicious URL).
+		out = append(out, withSource(f, hostURL))
 		if i >= 9 {
 			break
 		}
@@ -175,5 +177,5 @@ func collectMalwareBazaar(ctx context.Context, env *collectorEnv) ([]models.Osin
 		fmt.Sprintf("%s - %s (%s) first seen %s", sig, d.FileName, d.FileType, d.FirstSeen))
 	f.Severity = "critical"
 	env.emit("[+] malwarebazaar: known sample - " + sig)
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, malwareBazaarURL(env.target))}, nil
 }

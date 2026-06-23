@@ -144,7 +144,7 @@ func collectGravatar(ctx context.Context, env *collectorEnv) ([]models.OsintFind
 		}
 		out = append(out, newFinding("gravatar", "identity", title, link.Value))
 	}
-	return out, nil
+	return stampSource(out, "https://www.gravatar.com/"+hash+".json"), nil
 }
 
 // -- Have I Been Pwned (optional key) ------------------------------------------
@@ -194,6 +194,7 @@ func collectHIBP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding,
 	if len(breaches) > 0 {
 		summary.Severity = "high"
 	}
+	summary.SourceURL = "https://haveibeenpwned.com/account/" + url.PathEscape(env.target)
 	out = append(out, summary)
 	for _, b := range breaches {
 		title := b.Title
@@ -203,6 +204,10 @@ func collectHIBP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding,
 		f := newFinding("hibp", "breach", "Breach: "+title,
 			fmt.Sprintf("%s - exposed: %s", b.BreachDate, strings.Join(b.DataClasses, ", ")))
 		f.Severity = "high"
+		// Link to the breached site's HIBP detail page where it exists.
+		if b.Name != "" {
+			f.SourceURL = "https://haveibeenpwned.com/PwnedWebsites#" + url.PathEscape(b.Name)
+		}
 		out = append(out, f)
 	}
 	return out, nil

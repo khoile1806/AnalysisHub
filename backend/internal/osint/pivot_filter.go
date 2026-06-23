@@ -14,6 +14,69 @@ var placeholderDomains = map[string]bool{
 // placeholderTLDs never resolve to a real public host.
 var placeholderTLDs = []string{".test", ".example", ".invalid", ".localhost", ".local", ".internal"}
 
+// freeMailDomains are public e-mail providers. An e-mail at one of these maps to
+// a person, not to an organisation that owns the domain - so auto-pivoting into
+// the domain itself (e.g. "gmail.com") would explode the graph into the
+// provider's own infrastructure. They are recorded as findings but never
+// spawn a child scan.
+var freeMailDomains = map[string]bool{
+	"gmail.com": true, "googlemail.com": true, "yahoo.com": true, "ymail.com": true,
+	"rocketmail.com": true, "outlook.com": true, "hotmail.com": true, "live.com": true,
+	"msn.com": true, "aol.com": true, "icloud.com": true, "me.com": true, "mac.com": true,
+	"proton.me": true, "protonmail.com": true, "pm.me": true, "gmx.com": true, "gmx.net": true,
+	"mail.com": true, "zoho.com": true, "yandex.com": true, "yandex.ru": true, "qq.com": true,
+	"163.com": true, "126.com": true, "naver.com": true, "hey.com": true, "fastmail.com": true,
+	"tutanota.com": true, "tuta.io": true, "hushmail.com": true, "mail.ru": true,
+}
+
+// providerSuffixes are cloud / CDN / hosting / SaaS / social-platform domains.
+// A discovered host under one of these belongs to shared infrastructure or a
+// third-party platform - not to the investigation's subject - so it must not
+// spawn a child scan when reached from an IP or person root. (A domain-rooted
+// investigation is already namespace-constrained, so these only matter there
+// when the subject itself is on such a platform, which the namespace check
+// handles.)
+var providerSuffixes = []string{
+	// Cloud / hosting infrastructure
+	"amazonaws.com", "cloudfront.net", "elasticbeanstalk.com", "awsglobalaccelerator.com",
+	"azurewebsites.net", "azureedge.net", "azure-api.net", "cloudapp.azure.com", "windows.net",
+	"trafficmanager.net", "googleusercontent.com", "googlehosted.com", "appspot.com", "1e100.net",
+	"run.app", "web.app", "firebaseapp.com", "cloudfunctions.net",
+	"digitaloceanspaces.com", "ondigitalocean.app", "render.com", "onrender.com", "fly.dev",
+	"herokuapp.com", "herokudns.com", "netlify.app", "vercel.app", "pages.dev", "workers.dev",
+	"wpengine.com", "wordpress.com", "blogspot.com", "squarespace.com", "wixsite.com",
+	"oraclecloud.com", "linodeusercontent.com", "vultrusercontent.com",
+	// CDN / edge
+	"cloudflare.net", "cloudflare.com", "fastly.net", "akamai.net", "akamaiedge.net",
+	"akamaitechnologies.com", "edgekey.net", "edgesuite.net", "llnwd.net", "stackpathdns.com",
+	"cdn77.org", "bunnycdn.com", "b-cdn.net", "jsdelivr.net", "unpkg.com",
+	// Code / page hosting
+	"github.io", "githubusercontent.com", "gitlab.io", "readthedocs.io", "surge.sh",
+	// Social / platforms (pivoting a person into these as a *domain* is noise)
+	"facebook.com", "fbcdn.net", "twitter.com", "x.com", "instagram.com", "tiktok.com",
+	"linkedin.com", "youtube.com", "reddit.com", "pinterest.com", "tumblr.com", "medium.com",
+	"telegram.org", "t.me", "discord.com", "discord.gg", "whatsapp.com",
+}
+
+// isProviderDomain reports whether a domain belongs to a public e-mail provider,
+// cloud/CDN/hosting infrastructure, or a third-party platform - i.e. something
+// that should never be auto-pivoted as the subject's own asset.
+func isProviderDomain(domain string) bool {
+	d := strings.TrimRight(strings.ToLower(strings.TrimSpace(domain)), ".")
+	if d == "" {
+		return false
+	}
+	if freeMailDomains[d] {
+		return true
+	}
+	for _, suf := range providerSuffixes {
+		if d == suf || strings.HasSuffix(d, "."+suf) {
+			return true
+		}
+	}
+	return false
+}
+
 // pivotWorthy decides whether an auto-pivot into a discovered entity is likely
 // to yield meaningful results. It rejects reserved/placeholder domains and
 // high-entropy gibberish handles (e.g. "alskjdhlakjsdhakjs@example.com") so the
@@ -63,6 +126,20 @@ func pivotWorthy(value, ttype string) (bool, string) {
 // Person investigations (email/username/name) are not domain-constrained.
 func inPivotScope(rootTarget, rootType, value, ttype string) (bool, string) {
 	if rootType != TargetDomain {
+		// IP and person (email/username/name) roots aren't namespace-constrained,
+		// but must still not pivot into shared infrastructure or public providers
+		// (a co-hosted CDN tenant, a free-mail domain, a social platform), which is
+		// the main way these investigations drift out of scope.
+		switch ttype {
+		case TargetDomain:
+			if isProviderDomain(value) {
+				return false, "shared/provider/CDN domain - not the subject's asset"
+			}
+		case TargetEmail:
+			if _, d := emailParts(value); isProviderDomain(d) {
+				return false, "free-mail/provider domain - maps to a person, not an org"
+			}
+		}
 		return true, ""
 	}
 	root := strings.ToLower(strings.TrimSpace(rootTarget))

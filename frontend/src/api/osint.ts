@@ -90,6 +90,7 @@ export interface OsintFinding {
   title: string
   value: string
   data?: string
+  source_url?: string // link to where the trace was discovered (e.g. breach search)
   severity?: Severity
   confidence?: 'verified' | 'likely' | 'unverified' | ''
   verify_note?: string
@@ -108,6 +109,8 @@ export interface CreateOsintScanData {
 export interface DetectResult {
   target_type: OsintTargetType
   collectors: string[]
+  // Collectors that will be skipped because their optional API key is unset.
+  skipped_no_key?: string[]
 }
 
 // Investigation graph (auto-pivot): nodes are scans, edges are pivot links.
@@ -147,6 +150,8 @@ export const CATEGORY_LABELS: Record<string, string> = {
   geolocation:  'Geolocation',
   network:      'Network / ASN',
   ports:        'Exposed Services',
+  techstack:    'Technology Stack',
+  vulnerability: 'Known Vulnerabilities (CVE)',
   reputation:   'Reputation / Threat Intel',
   ransomware:   'Ransomware Leak-Site',
   darkweb:      'Dark-Web Exposure',
@@ -172,6 +177,7 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   gravatar:          'Gravatar',
   email_social:      'Email → Social Accounts',
   hibp:              'Have I Been Pwned',
+  xposed:            'XposedOrNot Breaches',
   phone_meta:        'Phone Metadata',
   numverify:         'NumVerify',
   social_search:     'Social Media Check',
@@ -192,6 +198,11 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   darkweb:           'Dark-Web Monitoring',
   reverse_ip:        'Reverse IP (co-hosted)',
   host_search:       'Subdomain Search',
+  subbrute:          'Subdomain Brute-force (DNS)',
+  typosquat:         'Look-alike / Typosquat Domains',
+  hashlookup:        'CIRCL Hashlookup (NSRL)',
+  webtech:           'Tech-Stack Fingerprint + CVE',
+  portscan:          'Active Port / Service Scan + CVE',
   blockchain:        'Blockchain Explorer',
   opencti:           'OpenCTI / IOC Store',
   local_intel:       'Local Threat-Intel Store',
@@ -272,6 +283,14 @@ export const osintApi = {
     const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
     const token = useAuthStore.getState().token ?? ''
     return `${base}/api/v1/osint/${id}/report?token=${encodeURIComponent(token)}`
+  },
+
+  // exportUrl builds a download link for the machine-readable export of a scan's
+  // indicators: STIX 2.1 bundle (default), CSV, or JSON, for TIP/MISP hand-off.
+  exportUrl: (id: string, format: 'stix' | 'csv' | 'json' = 'stix'): string => {
+    const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+    const token = useAuthStore.getState().token ?? ''
+    return `${base}/api/v1/osint/${id}/export?format=${format}&token=${encodeURIComponent(token)}`
   },
 
   // ── Watchlist (A4 continuous monitoring) ──────────────────────────────────

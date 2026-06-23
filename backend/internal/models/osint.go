@@ -135,6 +135,10 @@ type OsintFinding struct {
 	Title           string    `gorm:"not null"                                                                    json:"title"`
 	Value           string    `gorm:"type:text"                                                                   json:"value"`
 	Data            string    `gorm:"type:text"                                                                   json:"data,omitempty"` // optional extra JSON
+	// SourceURL is the link to where the trace was discovered (e.g. the breach
+	// search that surfaced a leaked credential), so an analyst can open the
+	// origin directly. Empty when the source has no addressable location.
+	SourceURL string `gorm:"type:text" json:"source_url,omitempty"`
 	Severity        string    `                                                                                   json:"severity,omitempty"` // info|low|medium|high|critical
 	// Confidence is the tool's self-verification verdict for the finding,
 	// computed by cross-checking it against the scan's other collectors:

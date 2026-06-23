@@ -236,7 +236,7 @@ func collectDarkWeb(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 			f := newFinding("darkweb", "darkweb",
 				fmt.Sprintf("Dark-web exposure (%s): %s", h.Source, h.Title), h.Snippet)
 			if h.URL != "" {
-				f.Data = toJSON(map[string]string{"source_url": h.URL})
+				f.SourceURL = h.URL // where the exposure was found (may be an onion address)
 			}
 			f.Severity = h.Severity
 			if f.Severity == "" {

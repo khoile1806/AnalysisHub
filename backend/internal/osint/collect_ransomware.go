@@ -30,12 +30,16 @@ func collectRansomwareWatch(ctx context.Context, env *collectorEnv) ([]models.Os
 	u := "https://api.ransomware.live/v2/searchvictims/" + url.PathEscape(keyword)
 	var victims []struct {
 		Victim      string `json:"victim"`
-		Group       string `json:"group_name"`
+		Group       string `json:"group"`      // ransomware group (was wrongly "group_name" -> blank)
 		Domain      string `json:"domain"`
 		Published   string `json:"published"`
+		Attackdate  string `json:"attackdate"`
 		Discovered  string `json:"discovered"`
 		Country     string `json:"country"`
 		Description string `json:"description"`
+		URL         string `json:"url"`        // ransomware.live clearweb victim page (verifiable)
+		ClaimURL    string `json:"claim_url"`  // group's DLS post (often an onion address)
+		Screenshot  string `json:"screenshot"` // clearweb screenshot of the leak post
 	}
 	status, err := httpGetJSON(ctx, rlRansomware, u, nil, &victims)
 	if err != nil {
@@ -64,11 +68,37 @@ func collectRansomwareWatch(ctx context.Context, env *collectorEnv) ([]models.Os
 		if when == "" {
 			when = v.Discovered
 		}
+		if when == "" {
+			when = v.Attackdate
+		}
+		group := v.Group
+		if group == "" {
+			group = "unknown group"
+		}
 		f := newFinding("ransomwatch", "ransomware",
-			fmt.Sprintf("RANSOMWARE LEAK-SITE LISTING - posted by %q", v.Group),
+			fmt.Sprintf("RANSOMWARE LEAK-SITE LISTING - posted by %q", group),
 			fmt.Sprintf("victim %q%s - published %s", v.Victim,
 				ifNonEmpty(v.Country, " ("+v.Country+")"), when))
 		f.Severity = "critical"
+		// Source of evidence: the ransomware.live clearweb victim page (viewable),
+		// else the group's DLS claim post, else the verifiable API record.
+		src := strings.TrimSpace(v.URL)
+		if src == "" {
+			src = strings.TrimSpace(v.ClaimURL)
+		}
+		if src == "" {
+			src = u
+		}
+		f = withSource(f, src)
+		// Keep the onion DLS post + screenshot as extra evidence on the finding.
+		evidence := map[string]string{"group": group}
+		if v.ClaimURL != "" {
+			evidence["dls_post"] = v.ClaimURL
+		}
+		if v.Screenshot != "" {
+			evidence["screenshot"] = v.Screenshot
+		}
+		f.Data = toJSON(evidence)
 		out = append(out, f)
 		if len(out) >= 15 {
 			break

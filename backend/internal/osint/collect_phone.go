@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/nyaruka/phonenumbers"
+
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -71,8 +73,11 @@ func lookupCountryCode(digits string) (string, string) {
 
 // -- Static metadata (dependency-free) -----------------------------------------
 
-// collectPhoneMeta derives country, calling code and E.164 form from the
-// number using a static country-code table.
+// collectPhoneMeta derives country, carrier, line type, geographic area and
+// timezone from the number using Google's libphonenumber metadata (via
+// nyaruka/phonenumbers) entirely offline - no API key, no network call. When
+// the number cannot be parsed (malformed / no country code) it falls back to
+// the static calling-code table so the collector still returns something useful.
 func collectPhoneMeta(_ context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	raw := strings.TrimSpace(env.target)
 	digits := onlyDigits(raw)
@@ -81,7 +86,95 @@ func collectPhoneMeta(_ context.Context, env *collectorEnv) ([]models.OsintFindi
 	if digits == "" {
 		return nil, fmt.Errorf("no digits in phone number")
 	}
+	e164 := "+" + digits
 
+	// Parse in E.164 form so libphonenumber infers the region from the country
+	// code (default region "ZZ" = unknown, which is correct for a +-prefixed num).
+	num, err := phonenumbers.Parse(e164, "ZZ")
+	if err != nil {
+		return phoneMetaStatic(digits), nil
+	}
+
+	var out []models.OsintFinding
+	out = append(out, newFinding("phone_meta", "identity", "E.164 format",
+		phonenumbers.Format(num, phonenumbers.E164)))
+	out = append(out, newFinding("phone_meta", "identity", "International format",
+		phonenumbers.Format(num, phonenumbers.INTERNATIONAL)))
+
+	valid := phonenumbers.IsValidNumber(num)
+	validity := newFinding("phone_meta", "identity", "Validity (libphonenumber)", "valid number plan")
+	if !valid {
+		validity.Value = "does not match any valid numbering plan"
+		validity.Severity = "low"
+	}
+	out = append(out, validity)
+
+	if region := phonenumbers.GetRegionCodeForNumber(num); region != "" {
+		country := phoneCountry[fmt.Sprintf("%d", num.GetCountryCode())]
+		label := region
+		if country != "" {
+			label = joinNonEmpty(" - ", region, country)
+		}
+		out = append(out, newFinding("phone_meta", "identity", "Region / country", label))
+	}
+	out = append(out, newFinding("phone_meta", "identity", "Country calling code",
+		fmt.Sprintf("+%d", num.GetCountryCode())))
+
+	if t := numberTypeString(phonenumbers.GetNumberType(num)); t != "" {
+		out = append(out, newFinding("phone_meta", "identity", "Line type", t))
+	}
+	if geo, gerr := phonenumbers.GetGeocodingForNumber(num, "en"); gerr == nil && geo != "" {
+		out = append(out, newFinding("phone_meta", "identity", "Geographic area", geo))
+	}
+	if carrier, cerr := phonenumbers.GetCarrierForNumber(num, "en"); cerr == nil && carrier != "" {
+		out = append(out, newFinding("phone_meta", "identity", "Carrier (offline)", carrier))
+	}
+	if tzs, terr := phonenumbers.GetTimezonesForNumber(num); terr == nil && len(tzs) > 0 {
+		out = append(out, newFinding("phone_meta", "identity", "Timezone(s)", strings.Join(tzs, ", ")))
+	}
+
+	if !valid {
+		f := newFinding("phone_meta", "identity", "Plausibility",
+			fmt.Sprintf("%d digit(s) - not a valid number for its region", len(digits)))
+		f.Severity = "low"
+		out = append(out, f)
+	}
+	return out, nil
+}
+
+// numberTypeString renders a libphonenumber number-type enum as a human label.
+func numberTypeString(t phonenumbers.PhoneNumberType) string {
+	switch t {
+	case phonenumbers.MOBILE:
+		return "mobile"
+	case phonenumbers.FIXED_LINE:
+		return "fixed line"
+	case phonenumbers.FIXED_LINE_OR_MOBILE:
+		return "fixed line or mobile"
+	case phonenumbers.TOLL_FREE:
+		return "toll-free"
+	case phonenumbers.PREMIUM_RATE:
+		return "premium rate"
+	case phonenumbers.SHARED_COST:
+		return "shared cost"
+	case phonenumbers.VOIP:
+		return "VoIP"
+	case phonenumbers.PERSONAL_NUMBER:
+		return "personal number"
+	case phonenumbers.PAGER:
+		return "pager"
+	case phonenumbers.UAN:
+		return "UAN (universal access)"
+	case phonenumbers.VOICEMAIL:
+		return "voicemail"
+	default:
+		return ""
+	}
+}
+
+// phoneMetaStatic is the dependency-free fallback used when libphonenumber
+// cannot parse the input: it derives country from the static calling-code table.
+func phoneMetaStatic(digits string) []models.OsintFinding {
 	var out []models.OsintFinding
 	out = append(out, newFinding("phone_meta", "identity", "E.164 format", "+"+digits))
 
@@ -100,8 +193,6 @@ func collectPhoneMeta(_ context.Context, env *collectorEnv) ([]models.OsintFindi
 		out = append(out, f)
 	}
 
-	// E.164 allows at most 15 digits; fewer than 8 is implausible for a real
-	// internationally-dialable number.
 	lenFinding := newFinding("phone_meta", "identity", "Plausibility",
 		fmt.Sprintf("%d digit(s)", len(digits)))
 	if len(digits) < 8 || len(digits) > 15 {
@@ -111,7 +202,7 @@ func collectPhoneMeta(_ context.Context, env *collectorEnv) ([]models.OsintFindi
 		lenFinding.Value += " - within the E.164 range"
 	}
 	out = append(out, lenFinding)
-	return out, nil
+	return out
 }
 
 // -- NumVerify (optional key) --------------------------------------------------

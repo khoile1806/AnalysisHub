@@ -39,8 +39,7 @@ func ValidateTarget(target, targetType string) error {
 		if ip == nil {
 			return fmt.Errorf("%q is not a valid IP address", t)
 		}
-		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-			ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		if !isPublicIP(ip) {
 			return fmt.Errorf("IP %s is private/loopback/link-local - not a public OSINT target", ip)
 		}
 	case TargetDomain:
@@ -55,4 +54,31 @@ func ValidateTarget(target, targetType string) error {
 		}
 	}
 	return nil
+}
+
+// isPublicIP reports whether ip is a globally-routable public address. It
+// rejects loopback, RFC1918 private, link-local, unspecified, multicast and
+// the IPv6 unique-local (fc00::/7) range. Collectors that resolve a domain
+// directly use it to drop internal addresses from findings — a public domain
+// that points at an internal IP (split-horizon DNS, DNS-rebinding, mis-config)
+// must not leak that address into the report or spawn an out-of-scope pivot.
+func isPublicIP(ip net.IP) bool {
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsInterfaceLocalMulticast() || ip.IsMulticast() {
+		return false
+	}
+	// IPv4 "this host on this network" (0.0.0.0/8) and 100.64.0.0/10 CGNAT.
+	if v4 := ip.To4(); v4 != nil {
+		if v4[0] == 0 {
+			return false
+		}
+		if v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+			return false
+		}
+	}
+	return true
 }

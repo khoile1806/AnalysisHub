@@ -87,7 +87,8 @@ func collectHashVirusTotal(ctx context.Context, env *collectorEnv) ([]models.Osi
 	}
 	u := "https://www.virustotal.com/api/v3/files/" + url.PathEscape(env.target)
 	var r vtDomainResponse // same {attributes:{last_analysis_stats,reputation}} shape
-	status, err := httpGetJSON(ctx, rlVT, u, map[string]string{"x-apikey": env.keys.VirusTotal}, &r)
+	status, err := cachedGetJSON(ctx, env.cache, "vt:hash:"+strings.ToLower(env.target), rlVT, u,
+		map[string]string{"x-apikey": env.keys.VirusTotal}, &r, ttlVirusTotal)
 	if err != nil {
 		return nil, err
 	}
@@ -115,5 +116,5 @@ func collectHashVirusTotal(ctx context.Context, env *collectorEnv) ([]models.Osi
 	case st.Suspicious > 0:
 		f.Severity = "medium"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, vtGUIURL(strings.ToLower(env.target), TargetHash))}, nil
 }

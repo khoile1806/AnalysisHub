@@ -94,7 +94,7 @@ func collectStealerIntel(ctx context.Context, env *collectorEnv) ([]models.Osint
 	} else {
 		env.emit("[*] stealer_intel: no info-stealer exposure found for this domain")
 	}
-	return out, nil
+	return stampSource(out, "https://www.hudsonrock.com/threat-intelligence-cybercrime-tools?domain="+url.QueryEscape(domain)), nil
 }
 
 // hudsonRockPost sends a rate-limited JSON POST and returns the (capped) body.

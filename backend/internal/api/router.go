@@ -199,6 +199,7 @@ func NewRouter(
 		protected.GET("/osint/:id/findings", handlers.GetOsintFindings)
 		protected.GET("/osint/:id/stream", handlers.StreamOsintOutput)
 		protected.GET("/osint/:id/report", handlers.OsintReport)
+		protected.GET("/osint/:id/export", handlers.OsintExport)
 		protected.GET("/osint/:id/graph", handlers.GetOsintGraph)
 		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
 		protected.POST("/osint/promote-ioc", handlers.PromoteOsintIOC)

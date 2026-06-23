@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Loader2, StopCircle, CheckCircle, XCircle, Clock,
   Fingerprint, ArrowRight, MinusCircle, Download, FileBarChart2,
-  ListTree, AlertTriangle, ShieldCheck, ShieldPlus, Sparkles,
+  ListTree, AlertTriangle, ShieldCheck, ShieldPlus, Sparkles, ExternalLink,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
@@ -431,10 +431,51 @@ const CONFIDENCE_COLOR: Record<string, string> = {
   unverified: 'bg-gray-800 text-gray-400 border-gray-700',
 }
 
+// FindingData renders a finding's extra JSON payload as readable key/value rows,
+// falling back to the raw string when it isn't an object.
+function FindingData({ data }: { data?: string }) {
+  if (!data) return null
+  let parsed: unknown
+  try { parsed = JSON.parse(data) } catch { /* not JSON */ }
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const entries = Object.entries(parsed as Record<string, unknown>)
+      .filter(([, v]) => v !== '' && v != null)
+    if (entries.length === 0) return null
+    return (
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+        {entries.map(([k, v]) => (
+          <span key={k} className="text-[10px] font-mono text-gray-500">
+            <span className="text-gray-600">{k}:</span> {String(v)}
+          </span>
+        ))}
+      </div>
+    )
+  }
+  return <div className="mt-1 text-[10px] font-mono text-gray-500 break-all">{data}</div>
+}
+
+// SourceLink shows a clickable link to where a trace was discovered.
+function SourceLink({ url }: { url?: string }) {
+  if (!url) return null
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded
+                 bg-blue-900/20 text-blue-300 border border-blue-800/40 hover:bg-blue-900/40 transition-colors"
+      title="Open where this was discovered"
+    >
+      <ExternalLink className="h-3 w-3" /> source
+    </a>
+  )
+}
+
 function FindingRow({ f, onPivot }: { f: OsintFinding; onPivot: (e: RelatedEntity) => void }) {
   const sev = f.severity ?? 'info'
   const related = parseRelated(f.related_entities)
   const conf = f.confidence || undefined
+  const sourceLabel = COLLECTOR_LABELS[f.source] ?? f.source
   return (
     <div className="flex items-start gap-3 py-2.5 px-3 border-b border-slate-800 last:border-0">
       <span className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase shrink-0 mt-0.5 border ${SEVERITY_COLOR[sev] ?? SEVERITY_COLOR.info}`}>
@@ -451,8 +492,18 @@ function FindingRow({ f, onPivot }: { f: OsintFinding; onPivot: (e: RelatedEntit
               {conf === 'verified' ? '✓ verified' : conf === 'likely' ? '~ likely' : '? unverified'}
             </span>
           )}
+          {sourceLabel && (
+            <span
+              className="text-[9px] px-1.5 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-slate-700"
+              title="Collector that produced this finding"
+            >
+              {sourceLabel}
+            </span>
+          )}
+          <SourceLink url={f.source_url} />
         </div>
         <FindingValue value={f.value} />
+        <FindingData data={f.data} />
         {f.verify_note && (
           <div className="mt-1 text-[11px] text-gray-500 italic">{f.verify_note}</div>
         )}
@@ -741,6 +792,28 @@ export default function OsintDetailPage() {
             >
               <Download className="h-4 w-4" />
               Report
+            </a>
+          )}
+          {scan.status !== 'pending' && (
+            <a
+              href={osintApi.exportUrl(scan.id, 'stix')}
+              download
+              className="btn-secondary flex items-center gap-2"
+              title="Export indicators as a STIX 2.1 bundle for MISP / OpenCTI / TIP ingestion"
+            >
+              <Download className="h-4 w-4" />
+              STIX
+            </a>
+          )}
+          {scan.status !== 'pending' && (
+            <a
+              href={osintApi.exportUrl(scan.id, 'csv')}
+              download
+              className="btn-secondary flex items-center gap-2"
+              title="Export findings as CSV"
+            >
+              <Download className="h-4 w-4" />
+              CSV
             </a>
           )}
           {isRunning && (

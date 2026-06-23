@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/forensichub/backend/internal/config"
@@ -29,6 +30,7 @@ type Engine struct {
 	keys   Keys
 	cfg    *config.Config
 	enrich *threatintel.EnrichClient
+	cache  *osintCache // optional Redis read-through cache for idempotent lookups
 
 	mu      sync.Mutex
 	running map[string]context.CancelFunc
@@ -41,12 +43,13 @@ type Engine struct {
 }
 
 // NewEngine builds the engine and recovers any scans left "running" by a crash.
-func NewEngine(db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.EnrichClient) *Engine {
+func NewEngine(db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.EnrichClient, rdb *redis.Client) *Engine {
 	e := &Engine{
 		db:      db,
 		keys:    keys,
 		cfg:     cfg,
 		enrich:  enrich,
+		cache:   newOsintCache(rdb),
 		running: make(map[string]context.CancelFunc),
 		subs:    make(map[string][]chan string),
 		history: make(map[string][]string),
@@ -204,6 +207,20 @@ func collectorTimeout(name string) time.Duration {
 	case "maigret":
 		// Maigret scans hundreds of sites; give it a generous budget.
 		return 150 * time.Second
+	case "portscan":
+		// Full 65535-port active sweep + banner grabs + rate-limited NVD lookups.
+		// A heavily-filtered host can make every probe wait the connect timeout,
+		// so the budget is generous; partial results are still saved on timeout.
+		return 600 * time.Second
+	case "webtech":
+		// Active fetch + banner grab, then rate-limited NVD CVE lookups per product.
+		return 120 * time.Second
+	case "typosquat":
+		// Resolves up to ~48 candidate domains.
+		return 60 * time.Second
+	case "subbrute":
+		// Resolves a ~250-name wordlist concurrently.
+		return 60 * time.Second
 	case "crtsh", "wayback", "social_search":
 		return 60 * time.Second
 	default:
@@ -233,6 +250,7 @@ func (e *Engine) runPipeline(ctx context.Context, scan *models.OsintScan, rows [
 		cfg:    e.cfg,
 		db:     db,
 		enrich: e.enrich,
+		cache:  e.cache,
 		emit:   func(l string) { e.emit(scanID, l) },
 	}
 

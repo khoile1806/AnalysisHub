@@ -1,7 +1,16 @@
 // Package osint implements entity footprinting: given a single identifier
-// (IP, domain, email, or phone number) it passively collects the traces that
-// identifier left across the internet from many open-source-intelligence
-// sources. It is backend-native - no external CLI tools, no forensic agent.
+// (IP, domain, email, phone, username, hash, wallet, or name) it collects the
+// traces that identifier left across the internet from many open-source-
+// intelligence sources. Most collectors are passive (third-party APIs, DNS,
+// certificate transparency). A few are actively probing - the "webtech"
+// collector fetches the target's web root to fingerprint its stack, and the
+// "portscan" collector runs a TCP-connect scan with banner grabbing - so it
+// reflects the host's current state and can match running services to known
+// CVEs. Active collectors only ever touch the validated public target (private/
+// loopback/link-local targets are rejected up-front by ValidateTarget). It is
+// backend-native: collectors are in-process HTTP/DNS/TCP calls, not a forensic
+// agent. The only optional external dependency is the Maigret CLI (username
+// "maigret" collector, when present on PATH); every other collector is pure Go.
 package osint
 
 import (
@@ -58,6 +67,7 @@ type collectorEnv struct {
 	cfg    *config.Config
 	db     *gorm.DB
 	enrich *threatintel.EnrichClient // shared multi-source reputation client (may be nil)
+	cache  *osintCache               // shared Redis read-through cache (may be nil)
 	emit   func(line string)
 }
 
@@ -153,7 +163,10 @@ func buildCollectors(targetType string) []collector {
 			{"rdap", collectDomainRDAP},
 			{"dns", collectDNS},
 			{"crtsh", collectCrtSh},
+			{"subbrute", collectSubBrute},
 			{"host_search", collectHostSearch},
+			{"typosquat", collectTyposquat},
+			{"webtech", collectWebTech},
 			{"wayback", collectWayback},
 			{"virustotal", collectDomainVirusTotal},
 			{"threatintel", collectThreatIntel},
@@ -174,6 +187,8 @@ func buildCollectors(targetType string) []collector {
 			{"reverse_ip", collectReverseIP},
 			{"rdap", collectIPRDAP},
 			{"geoip", collectGeoIP},
+			{"portscan", collectPortScan},
+			{"webtech", collectWebTech},
 			{"shodan_internetdb", collectShodanInternetDB},
 			{"shodan", collectShodan},
 			{"virustotal", collectIPVirusTotal},
@@ -188,6 +203,7 @@ func buildCollectors(targetType string) []collector {
 	case TargetHash:
 		return []collector{
 			{"virustotal", collectHashVirusTotal},
+			{"hashlookup", collectHashLookup},
 			{"threatintel", collectThreatIntel},
 			{"threatfox", collectThreatFox},
 			{"malwarebazaar", collectMalwareBazaar},
@@ -205,6 +221,7 @@ func buildCollectors(targetType string) []collector {
 			{"email_social", collectEmailSocialMedia},
 			{"github_intel", collectGitHubIntel},
 			{"hibp", collectHIBP},
+			{"xposed", collectXposedOrNot},
 			{"breach_leak", collectBreachLeak},
 			{"darkweb", collectDarkWeb},
 			{"search_links", collectSearchLinks},

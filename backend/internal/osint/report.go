@@ -22,6 +22,8 @@ var reportCategoryOrder = []struct{ Key, Label string }{
 	{"geolocation", "Geolocation"},
 	{"network", "Network / ASN"},
 	{"ports", "Exposed Services"},
+	{"techstack", "Technology Stack"},
+	{"vulnerability", "Known Vulnerabilities (CVE)"},
 	{"reputation", "Reputation / Threat Intel"},
 	{"ransomware", "Ransomware Leak-Site"},
 	{"darkweb", "Dark-Web Exposure"},
@@ -32,11 +34,14 @@ var reportCategoryOrder = []struct{ Key, Label string }{
 }
 
 type reportFinding struct {
-	Source   string
-	Title    string
-	Value    string
-	Severity string
-	Related  []RelatedEntity
+	Source     string
+	Title      string
+	Value      string
+	Severity   string
+	Confidence string
+	VerifyNote string
+	SourceURL  string
+	Related    []RelatedEntity
 }
 
 type reportGroup struct {
@@ -86,11 +91,14 @@ func GenerateHTMLReport(scan *models.OsintScan, findings []models.OsintFinding) 
 	byCat := map[string][]reportFinding{}
 	for _, f := range findings {
 		rf := reportFinding{
-			Source:   f.Source,
-			Title:    f.Title,
-			Value:    f.Value,
-			Severity: strings.ToLower(strings.TrimSpace(f.Severity)),
-			Related:  parseRelatedEntities(f.RelatedEntities),
+			Source:     f.Source,
+			Title:      f.Title,
+			Value:      f.Value,
+			Severity:   strings.ToLower(strings.TrimSpace(f.Severity)),
+			Confidence: f.Confidence,
+			VerifyNote: f.VerifyNote,
+			SourceURL:  f.SourceURL,
+			Related:    parseRelatedEntities(f.RelatedEntities),
 		}
 		if rf.Severity == "" {
 			rf.Severity = "info"
@@ -239,6 +247,9 @@ a:hover{text-decoration:underline}
 .sev-info{background:rgba(107,114,128,.15);color:#8b949e;border:1px solid rgba(107,114,128,.3);padding:2px 7px;border-radius:4px;font-family:monospace;font-size:10px;text-transform:uppercase;font-weight:700;white-space:nowrap}
 .pivots{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px}
 .pivot{font-family:monospace;font-size:10px;background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.25);border-radius:4px;padding:2px 7px}
+.conf{font-family:monospace;font-size:10px;color:#f59e0b;text-transform:uppercase}
+.src-link{margin-top:3px}.src-link a{font-family:monospace;font-size:11px;color:#60a5fa;word-break:break-all}
+.vnote{margin-top:3px;font-size:11px;color:#6b7280;font-style:italic}
 .hl-card{background:#0d1117;border:1px solid #1e2937;border-left:3px solid #f97316;border-radius:8px;padding:13px 15px;margin-bottom:8px}
 .hl-head{display:flex;align-items:center;gap:10px;margin-bottom:5px}
 .hl-title{font-weight:600;color:#e6edf3;font-size:13px}
@@ -330,8 +341,10 @@ footer{border-top:1px solid #1e2937;padding-top:14px;text-align:center;font-size
         <td><span class="{{sevClass .Severity}}">{{upper .Severity}}</span></td>
         <td class="src">{{.Source}}</td>
         <td>
-          <div class="t-muted" style="margin-bottom:3px">{{.Title}}</div>
+          <div class="t-muted" style="margin-bottom:3px">{{.Title}}{{if .Confidence}} <span class="conf">[{{.Confidence}}]</span>{{end}}</div>
           <div class="val mono">{{if isURL .Value}}<a href="{{.Value}}" target="_blank" rel="noreferrer">{{.Value}}</a>{{else}}{{.Value}}{{end}}</div>
+          {{if .SourceURL}}<div class="src-link"><a href="{{.SourceURL}}" target="_blank" rel="noreferrer">↗ source: {{.SourceURL}}</a></div>{{end}}
+          {{if .VerifyNote}}<div class="vnote">{{.VerifyNote}}</div>{{end}}
           {{if .Related}}<div class="pivots">{{range .Related}}<span class="pivot">{{.Type}}: {{.Value}}</span>{{end}}</div>{{end}}
         </td>
       </tr>

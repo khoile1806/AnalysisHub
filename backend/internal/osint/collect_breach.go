@@ -283,6 +283,9 @@ func collectBreachLeak(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 		q = "@" + strings.ToLower(q)
 	}
 	api := "https://api.proxynova.com/comb?start=0&limit=25&query=" + url.QueryEscape(q)
+	// sourceURL is the addressable origin of the leak data, attached to every
+	// credential finding so the analyst can open exactly where it was discovered.
+	sourceURL := "https://api.proxynova.com/comb?query=" + url.QueryEscape(q)
 	var r struct {
 		Count int      `json:"count"`
 		Lines []string `json:"lines"`
@@ -307,6 +310,7 @@ func collectBreachLeak(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 	summary := newFinding("breach_leak", "breach", "Credential-dump exposure",
 		fmt.Sprintf("identifier appears in %d leaked credential line(s)", r.Count))
 	summary.Severity = "critical"
+	summary.SourceURL = sourceURL
 	out = append(out, summary)
 
 	seenEmail := make(map[string]bool)
@@ -318,6 +322,7 @@ func collectBreachLeak(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 		f := newFinding("breach_leak", "breach", "Leaked credential", ident+" : "+masked)
 		f.Severity = "high"
 		f.VerifyNote = pwMeta // password length + character classes (no plaintext)
+		f.SourceURL = sourceURL // where this credential was discovered
 		// When the leaked identifier is an e-mail (e.g. a username query that hit
 		// "alice@corp.com:..."), that address de-anonymises the target.
 		if emailRe.MatchString(ident) && !strings.EqualFold(ident, q) && !seenEmail[ident] {

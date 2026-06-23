@@ -51,6 +51,18 @@ func fetchRDAP(ctx context.Context, url string) (*rdapResponse, int, error) {
 	return &r, status, nil
 }
 
+// fetchRDAPCached is fetchRDAP with a Redis read-through cache. Registration
+// data changes on the order of days, so caching it cuts repeated rdap.org
+// round-trips for re-runs, watches and auto-pivots.
+func fetchRDAPCached(ctx context.Context, env *collectorEnv, key, url string) (*rdapResponse, int, error) {
+	var r rdapResponse
+	status, err := cachedGetJSON(ctx, env.cache, key, rlRDAP, url, nil, &r, ttlRDAP)
+	if err != nil {
+		return nil, status, err
+	}
+	return &r, status, nil
+}
+
 // parseVCard extracts the formatted name, e-mail and organisation from a
 // jCard (RFC 7095) array as embedded in an RDAP entity.
 func parseVCard(vcard []interface{}) (fn, email, org string) {

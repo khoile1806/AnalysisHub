@@ -99,5 +99,6 @@ func collectURLScan(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 		}
 	}
 	env.emit(fmt.Sprintf("[+] urlscan: %d page(s), %d possible impersonation(s)", len(out)-1, impersonation))
-	return out, nil
+	// Verify on the urlscan.io search page rather than the live (possibly malicious) URL.
+	return stampSource(out, "https://urlscan.io/search/#page.domain%3A"+url.QueryEscape(target)), nil
 }

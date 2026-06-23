@@ -33,7 +33,7 @@ func collectReverseDNS(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 		f := newFinding("reverse_dns", "dns", "PTR record", h)
 		out = append(out, withRelated(f, RelatedEntity{Type: TargetDomain, Value: h}))
 	}
-	return out, nil
+	return stampSource(out, "https://dns.google/query?name="+url.QueryEscape(env.target)), nil
 }
 
 // -- RDAP (IP network) ---------------------------------------------------------
@@ -42,7 +42,7 @@ func collectReverseDNS(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 // of an IP via RDAP.
 func collectIPRDAP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	u := "https://rdap.org/ip/" + url.PathEscape(env.target)
-	r, status, err := fetchRDAP(ctx, u)
+	r, status, err := fetchRDAPCached(ctx, env, "rdap:ip:"+env.target, u)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func collectIPRDAP(ctx context.Context, env *collectorEnv) ([]models.OsintFindin
 		out = append(out, newFinding("rdap", "network",
 			fmt.Sprintf("Network %s", role), label))
 	})
-	return out, nil
+	return stampSource(out, "https://rdap.org/ip/"+url.PathEscape(env.target)), nil
 }
 
 // -- GeoIP (ip-api.com, free) --------------------------------------------------
@@ -104,7 +104,7 @@ func collectGeoIP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding
 	u := env.cfg.APIIpApiURL + url.PathEscape(env.target) +
 		"?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query"
 	var r ipAPIResponse
-	status, err := httpGetJSON(ctx, rlIPAPI, u, nil, &r)
+	status, err := cachedGetJSON(ctx, env.cache, "geoip:ip:"+env.target, rlIPAPI, u, nil, &r, ttlGeoIP)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func collectGeoIP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding
 	if r.AS != "" {
 		out = append(out, newFinding("geoip", "network", "Autonomous System", r.AS))
 	}
-	return out, nil
+	return stampSource(out, ipAPIViewerURL(env.target)), nil
 }
 
 // -- Shodan InternetDB (free, no key) ------------------------------------------
@@ -158,7 +158,7 @@ type internetDBResponse struct {
 func collectShodanInternetDB(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	u := "https://internetdb.shodan.io/" + url.PathEscape(env.target)
 	var r internetDBResponse
-	status, err := httpGetJSON(ctx, nil, u, nil, &r)
+	status, err := cachedGetJSON(ctx, env.cache, "internetdb:ip:"+env.target, nil, u, nil, &r, ttlInternetDB)
 	if err != nil {
 		return nil, err
 	}
@@ -203,9 +203,10 @@ func collectShodanInternetDB(ctx context.Context, env *collectorEnv) ([]models.O
 		}
 		f := newFinding("shodan_internetdb", "reputation", "Known vulnerability", v)
 		f.Severity = "high"
-		out = append(out, f)
+		// A CVE id links straight to its authoritative NVD record.
+		out = append(out, withSource(f, "https://nvd.nist.gov/vuln/detail/"+url.PathEscape(v)))
 	}
-	return out, nil
+	return stampSource(out, shodanHostURL(env.target)), nil
 }
 
 // -- Shodan host API (optional key) --------------------------------------------
@@ -228,7 +229,8 @@ func collectShodan(ctx context.Context, env *collectorEnv) ([]models.OsintFindin
 	u := "https://api.shodan.io/shodan/host/" + url.PathEscape(env.target) +
 		"?key=" + url.QueryEscape(env.keys.Shodan)
 	var r shodanHostResponse
-	status, err := httpGetJSON(ctx, nil, u, nil, &r)
+	// Cache key excludes the API key in the URL so the secret is never stored.
+	status, err := cachedGetJSON(ctx, env.cache, "shodan:ip:"+env.target, nil, u, nil, &r, ttlShodan)
 	if err != nil {
 		return nil, err
 	}
@@ -276,9 +278,9 @@ func collectShodan(ctx context.Context, env *collectorEnv) ([]models.OsintFindin
 	for _, v := range parseShodanVulns(r.Vulns) {
 		f := newFinding("shodan", "reputation", "Known vulnerability (Shodan)", v)
 		f.Severity = "high"
-		out = append(out, f)
+		out = append(out, withSource(f, "https://nvd.nist.gov/vuln/detail/"+url.PathEscape(v)))
 	}
-	return out, nil
+	return stampSource(out, shodanHostURL(env.target)), nil
 }
 
 // parseShodanVulns copes with Shodan returning "vulns" either as a string
@@ -314,7 +316,8 @@ func collectIPVirusTotal(ctx context.Context, env *collectorEnv) ([]models.Osint
 	}
 	u := "https://www.virustotal.com/api/v3/ip_addresses/" + url.PathEscape(env.target)
 	var r vtDomainResponse // same {attributes:{last_analysis_stats,reputation}} shape
-	status, err := httpGetJSON(ctx, rlVT, u, map[string]string{"x-apikey": env.keys.VirusTotal}, &r)
+	status, err := cachedGetJSON(ctx, env.cache, "vt:ip:"+env.target, rlVT, u,
+		map[string]string{"x-apikey": env.keys.VirusTotal}, &r, ttlVirusTotal)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +342,7 @@ func collectIPVirusTotal(ctx context.Context, env *collectorEnv) ([]models.Osint
 	case st.Suspicious > 0:
 		f.Severity = "medium"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, vtGUIURL(env.target, TargetIP))}, nil
 }
 
 // -- AbuseIPDB (optional key) --------------------------------------------------
@@ -397,5 +400,5 @@ func collectAbuseIPDB(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 		df := newFinding("abuseipdb", "network", "Associated domain", d.Domain)
 		out = append(out, withRelated(df, RelatedEntity{Type: TargetDomain, Value: d.Domain}))
 	}
-	return out, nil
+	return stampSource(out, abuseIPDBURL(env.target)), nil
 }

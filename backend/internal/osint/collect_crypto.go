@@ -55,7 +55,7 @@ func collectBlockstream(ctx context.Context, env *collectorEnv) ([]models.OsintF
 	} else {
 		f.Severity = "low"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, "https://blockstream.info/address/"+url.PathEscape(env.target))}, nil
 }
 
 func collectEthplorer(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
@@ -88,5 +88,5 @@ func collectEthplorer(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	} else {
 		f.Severity = "low"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, "https://etherscan.io/address/"+url.PathEscape(env.target))}, nil
 }

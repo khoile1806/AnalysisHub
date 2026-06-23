@@ -55,7 +55,7 @@ func collectReverseIP(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 		}
 	}
 	env.emit(fmt.Sprintf("[+] reverse_ip: %d co-hosted domain(s)", len(out)))
-	return out, nil
+	return stampSource(out, u), nil
 }
 
 // collectHostSearch enumerates a domain's subdomains + their resolved IPs
@@ -106,5 +106,5 @@ func collectHostSearch(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 		}
 	}
 	env.emit(fmt.Sprintf("[+] host_search: %d subdomain(s)", len(out)))
-	return out, nil
+	return stampSource(out, u), nil
 }

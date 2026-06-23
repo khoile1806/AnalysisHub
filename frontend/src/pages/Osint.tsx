@@ -140,8 +140,15 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
                     Detected type: <span className="uppercase font-bold">{detected.target_type}</span>
                   </p>
                   <p className="text-gray-500">
-                    Collectors: {detected.collectors.map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
+                    Collectors: {detected.collectors
+                      .filter(c => !(detected.skipped_no_key ?? []).includes(c))
+                      .map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
                   </p>
+                  {(detected.skipped_no_key?.length ?? 0) > 0 && (
+                    <p className="text-amber-500/80">
+                      Skipped (no API key): {detected.skipped_no_key!.map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
+                    </p>
+                  )}
                 </div>
               )}
               {detectError && (

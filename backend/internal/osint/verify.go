@@ -35,6 +35,7 @@ func (e *Engine) corroborateFindings(scan *models.OsintScan) {
 		gravatar     bool
 		knownIOC     bool
 		hibpNames    []string
+		xposedNames  []string
 		githubEmails = map[string]bool{}
 		comboLines   int
 	)
@@ -50,6 +51,10 @@ func (e *Engine) corroborateFindings(scan *models.OsintScan) {
 		case "hibp":
 			if strings.HasPrefix(f.Title, "Breach: ") {
 				hibpNames = append(hibpNames, strings.TrimPrefix(f.Title, "Breach: "))
+			}
+		case "xposed":
+			if strings.HasPrefix(f.Title, "Breach: ") {
+				xposedNames = append(xposedNames, strings.TrimPrefix(f.Title, "Breach: "))
 			}
 		case "local_intel":
 			if strings.Contains(f.Title, "KNOWN IOC") {
@@ -89,6 +94,12 @@ func (e *Engine) corroborateFindings(scan *models.OsintScan) {
 		if len(hibpNames) > 0 {
 			score += 2
 			notes = append(notes, "HIBP breach: "+strings.Join(dedupeStrings(hibpNames), ", "))
+		}
+		if len(xposedNames) > 0 {
+			// XposedOrNot is an independent breach database; agreement with (or
+			// in addition to) HIBP raises confidence without any paid API.
+			score += 2
+			notes = append(notes, "XposedOrNot breach: "+strings.Join(dedupeStrings(xposedNames), ", "))
 		}
 		if gravatar {
 			score++
@@ -185,6 +196,9 @@ var tiSources = map[string]bool{
 	"virustotal": true, "threatintel": true, "threatfox": true, "urlhaus": true,
 	"malwarebazaar": true, "abuseipdb": true, "pulsedive": true, "greynoise": true,
 	"shodan": true, "ransomwatch": true,
+	// A match in the local IOC store is independent, high-trust corroboration
+	// that the indicator is already known-bad.
+	"local_intel": true,
 }
 
 // corroborateThreats cross-checks the threat verdict across the reputation

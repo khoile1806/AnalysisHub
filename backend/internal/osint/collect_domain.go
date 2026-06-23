@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/forensichub/backend/internal/models"
 )
@@ -25,7 +27,8 @@ const waybackCap = 40
 // nameservers, contacts) for a domain via RDAP.
 func collectDomainRDAP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	u := "https://rdap.org/domain/" + url.PathEscape(env.target)
-	r, status, err := fetchRDAP(ctx, u)
+	srcURL := u // the RDAP record itself is the verifiable source
+	r, status, err := fetchRDAPCached(ctx, env, "rdap:domain:"+env.target, u)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +88,7 @@ func collectDomainRDAP(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 	if len(out) == 0 {
 		env.emit("[*] rdap: record found but no extractable fields")
 	}
-	return out, nil
+	return stampSource(out, srcURL), nil
 }
 
 // -- DNS records ---------------------------------------------------------------
@@ -103,6 +106,16 @@ func collectDNS(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, 
 			kind := "A record"
 			if ip.IP.To4() == nil {
 				kind = "AAAA record"
+			}
+			// A public domain resolving to an internal address is a finding worth
+			// flagging, but never a public-OSINT pivot target - record it without a
+			// related entity so auto-pivot can't reach into private space.
+			if !isPublicIP(ip.IP) {
+				f := newFinding("dns", "dns", kind+" (non-public)", s)
+				f.Severity = "low"
+				f.VerifyNote = "resolves to a private/reserved address - not pivoted"
+				out = append(out, f)
+				continue
 			}
 			f := newFinding("dns", "dns", kind, s)
 			out = append(out, withRelated(f, RelatedEntity{Type: TargetIP, Value: s}))
@@ -142,6 +155,7 @@ func collectDNS(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, 
 	}
 
 	// TXT (apex) - surfaces SPF, verification tokens, etc.
+	hasSPF := false
 	if txts, err := r.LookupTXT(ctx, host); err == nil {
 		for _, t := range txts {
 			t = strings.TrimSpace(t)
@@ -151,24 +165,75 @@ func collectDNS(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, 
 			title := "TXT record"
 			if strings.HasPrefix(strings.ToLower(t), "v=spf1") {
 				title = "SPF policy"
+				hasSPF = true
 			}
 			out = append(out, newFinding("dns", "dns", title, t))
 		}
 	}
 
 	// DMARC lives on the _dmarc subdomain.
+	hasDMARC := false
+	dmarcPolicy := ""
 	if dmarc, err := r.LookupTXT(ctx, "_dmarc."+host); err == nil {
 		for _, t := range dmarc {
 			if strings.Contains(strings.ToLower(t), "v=dmarc1") {
+				hasDMARC = true
+				dmarcPolicy = dmarcPolicyOf(t)
 				out = append(out, newFinding("dns", "dns", "DMARC policy", strings.TrimSpace(t)))
 			}
 		}
 	}
 
+	// Grade how easily mail can be spoofed from this domain. Missing/weak SPF and
+	// DMARC are a phishing-impersonation risk the analyst should see at a glance.
+	out = append(out, emailSpoofPosture(hasSPF, hasDMARC, dmarcPolicy))
+
 	if len(out) == 0 {
 		env.emit("[*] dns: domain did not resolve any records")
 	}
-	return out, nil
+	// Every DNS record is independently verifiable through a public DoH resolver.
+	return stampSource(out, "https://dns.google/query?name="+url.QueryEscape(host)), nil
+}
+
+// dmarcPolicyOf extracts the p= policy token (none|quarantine|reject) from a
+// DMARC record, or "" if absent.
+func dmarcPolicyOf(record string) string {
+	for _, tag := range strings.Split(record, ";") {
+		tag = strings.TrimSpace(strings.ToLower(tag))
+		if strings.HasPrefix(tag, "p=") {
+			return strings.TrimSpace(strings.TrimPrefix(tag, "p="))
+		}
+	}
+	return ""
+}
+
+// emailSpoofPosture turns the SPF/DMARC state into a single graded finding.
+func emailSpoofPosture(hasSPF, hasDMARC bool, policy string) models.OsintFinding {
+	switch {
+	case !hasSPF && !hasDMARC:
+		f := newFinding("dns", "dns", "Email spoofing posture",
+			"no SPF and no DMARC - the domain can be trivially spoofed in phishing")
+		f.Severity = "high"
+		return f
+	case !hasDMARC || policy == "none" || policy == "":
+		detail := "SPF present but DMARC missing"
+		if hasDMARC {
+			detail = "DMARC policy is p=none (monitor only) - spoofed mail is not rejected"
+		}
+		f := newFinding("dns", "dns", "Email spoofing posture", detail+" - impersonation possible")
+		f.Severity = "medium"
+		return f
+	case policy == "quarantine":
+		f := newFinding("dns", "dns", "Email spoofing posture",
+			"SPF + DMARC p=quarantine - spoofed mail is quarantined")
+		f.Severity = "low"
+		return f
+	default: // reject
+		f := newFinding("dns", "dns", "Email spoofing posture",
+			"SPF + DMARC p=reject - strong anti-spoofing posture")
+		f.Severity = "info"
+		return f
+	}
 }
 
 // -- Certificate Transparency (crt.sh) -----------------------------------------
@@ -177,64 +242,169 @@ type crtShRow struct {
 	NameValue string `json:"name_value"`
 }
 
-// collectCrtSh enumerates subdomains from Certificate Transparency logs.
-func collectCrtSh(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
-	q := url.Values{}
-	q.Set("q", "%."+env.target)
-	q.Set("output", "json")
-	u := "https://crt.sh/?" + q.Encode()
+// rlCertSpotter paces the certspotter fallback CT source.
+var rlCertSpotter = newRateLimiter(2 * time.Second)
 
-	body, status, err := httpGetBody(ctx, rlCrtSh, u, nil)
-	if err != nil {
+// collectCrtSh enumerates subdomains from Certificate Transparency logs (crt.sh,
+// with a certspotter fallback when crt.sh is down or empty), then resolves each
+// discovered hostname so the report distinguishes live infrastructure from stale
+// CT entries and feeds resolved IPs into the investigation graph.
+func collectCrtSh(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
+	target := strings.ToLower(env.target)
+	subs, src, err := ctSubdomains(ctx, env, target)
+	if err != nil && len(subs) == 0 {
 		return nil, err
 	}
-	if status != 200 {
-		return nil, fmt.Errorf("crt.sh returned HTTP %d", status)
-	}
-
-	var rows []crtShRow
-	if err := json.Unmarshal(body, &rows); err != nil {
-		return nil, fmt.Errorf("crt.sh decode: %w", err)
-	}
-
-	target := strings.ToLower(env.target)
-	seen := map[string]bool{}
-	var subs []string
-	for _, row := range rows {
-		for _, name := range strings.Split(row.NameValue, "\n") {
-			h := strings.ToLower(strings.TrimSpace(name))
-			if h == "" || strings.HasPrefix(h, "*.") {
-				continue
-			}
-			if h != target && !strings.HasSuffix(h, "."+target) {
-				continue
-			}
-			if seen[h] {
-				continue
-			}
-			seen[h] = true
-			subs = append(subs, h)
-		}
+	if len(subs) == 0 {
+		env.emit("[*] crtsh: no subdomains in CT logs")
+		return nil, nil
 	}
 	sort.Strings(subs)
 
-	var out []models.OsintFinding
-	out = append(out, newFinding("crtsh", "certificate", "Subdomains in CT logs",
-		fmt.Sprintf("%d unique hostname(s) seen in Certificate Transparency", len(subs))))
-
 	capped := subs
+	truncated := false
 	if len(capped) > crtShCap {
 		capped = capped[:crtShCap]
-		env.emit(fmt.Sprintf("[*] crtsh: %d subdomains found, recording first %d", len(subs), crtShCap))
+		truncated = true
+		env.emit(fmt.Sprintf("[*] crtsh: %d subdomains found (%s), resolving first %d", len(subs), src, crtShCap))
 	}
+
+	// Resolve the discovered hostnames concurrently so live ones are marked and
+	// their public IPs become pivots.
+	live := resolveHosts(ctx, capped)
+
+	liveCount := 0
+	for _, ips := range live {
+		if len(ips) > 0 {
+			liveCount++
+		}
+	}
+
+	var out []models.OsintFinding
+	summary := fmt.Sprintf("%d unique hostname(s) in Certificate Transparency (%s); %d resolve live",
+		len(subs), src, liveCount)
+	if truncated {
+		summary += fmt.Sprintf(" — first %d resolved", crtShCap)
+	}
+	out = append(out, newFinding("crtsh", "certificate", "Subdomains in CT logs", summary))
+
 	for _, h := range capped {
 		if h == target {
 			continue
 		}
-		f := newFinding("crtsh", "certificate", "Subdomain", h)
-		out = append(out, withRelated(f, RelatedEntity{Type: TargetDomain, Value: h}))
+		ips := live[h]
+		rels := []RelatedEntity{{Type: TargetDomain, Value: h}}
+		val := h
+		if len(ips) > 0 {
+			val = h + " -> " + strings.Join(ips, ", ")
+			for _, ip := range ips {
+				rels = append(rels, RelatedEntity{Type: TargetIP, Value: ip})
+			}
+		} else {
+			val = h + " (no DNS / not live)"
+		}
+		f := newFinding("crtsh", "certificate", "Subdomain", val)
+		out = append(out, withRelated(f, rels...))
 	}
-	return out, nil
+	return stampSource(out, crtShURL(env.target)), nil
+}
+
+// ctSubdomains returns the in-scope subdomains for target from Certificate
+// Transparency: crt.sh first, falling back to certspotter when crt.sh errors or
+// yields nothing. The returned label names which source(s) produced the data.
+func ctSubdomains(ctx context.Context, env *collectorEnv, target string) (subs []string, source string, err error) {
+	seen := map[string]bool{}
+	add := func(name string) {
+		h := strings.ToLower(strings.TrimSpace(name))
+		h = strings.TrimPrefix(h, "*.")
+		if h == "" || (h != target && !strings.HasSuffix(h, "."+target)) || seen[h] {
+			return
+		}
+		seen[h] = true
+		subs = append(subs, h)
+	}
+
+	// crt.sh
+	q := url.Values{}
+	q.Set("q", "%."+target)
+	q.Set("output", "json")
+	body, status, cerr := httpGetBody(ctx, rlCrtSh, "https://crt.sh/?"+q.Encode(), nil)
+	if cerr == nil && status == 200 {
+		var rows []crtShRow
+		if json.Unmarshal(body, &rows) == nil {
+			for _, row := range rows {
+				for _, name := range strings.Split(row.NameValue, "\n") {
+					add(name)
+				}
+			}
+			if len(subs) > 0 {
+				return subs, "crt.sh", nil
+			}
+		}
+	} else if cerr != nil {
+		err = cerr
+	}
+
+	// Fallback: certspotter (free, no key).
+	cs := "https://api.certspotter.com/v1/issuances?domain=" + url.QueryEscape(target) +
+		"&include_subdomains=true&expand=dns_names"
+	var issuances []struct {
+		DNSNames []string `json:"dns_names"`
+	}
+	if st, ferr := httpGetJSON(ctx, rlCertSpotter, cs, nil, &issuances); ferr == nil && st == 200 {
+		for _, is := range issuances {
+			for _, name := range is.DNSNames {
+				add(name)
+			}
+		}
+		if len(subs) > 0 {
+			return subs, "certspotter", nil
+		}
+	}
+	return subs, "crt.sh+certspotter", err
+}
+
+// resolveHosts concurrently resolves hostnames to their public A/AAAA addresses,
+// returning a map of host -> []ip (only globally-routable IPs). Bounded so a
+// large CT result set can't fan out unboundedly.
+func resolveHosts(ctx context.Context, hosts []string) map[string][]string {
+	out := make(map[string][]string, len(hosts))
+	var mu sync.Mutex
+	sem := make(chan struct{}, 25)
+	var wg sync.WaitGroup
+	resolver := &net.Resolver{}
+	for _, h := range hosts {
+		wg.Add(1)
+		go func(host string) {
+			defer wg.Done()
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				return
+			}
+			defer func() { <-sem }()
+			// Per-lookup deadline so one slow DNS answer can't dominate the budget.
+			lctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			addrs, err := resolver.LookupIPAddr(lctx, host)
+			cancel()
+			if err != nil || len(addrs) == 0 {
+				return
+			}
+			var ips []string
+			for _, a := range addrs {
+				if isPublicIP(a.IP) {
+					ips = append(ips, a.IP.String())
+				}
+			}
+			if len(ips) > 0 {
+				mu.Lock()
+				out[host] = ips
+				mu.Unlock()
+			}
+		}(h)
+	}
+	wg.Wait()
+	return out
 }
 
 // -- Wayback Machine -----------------------------------------------------------
@@ -289,7 +459,7 @@ func collectWayback(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 		}
 		out = append(out, newFinding("wayback", "historical", "Archived URL", val))
 	}
-	return out, nil
+	return stampSource(out, "https://web.archive.org/web/*/"+url.PathEscape(env.target)+"/*"), nil
 }
 
 // -- VirusTotal (optional key) -------------------------------------------------
@@ -316,7 +486,8 @@ func collectDomainVirusTotal(ctx context.Context, env *collectorEnv) ([]models.O
 	}
 	u := "https://www.virustotal.com/api/v3/domains/" + url.PathEscape(env.target)
 	var r vtDomainResponse
-	status, err := httpGetJSON(ctx, rlVT, u, map[string]string{"x-apikey": env.keys.VirusTotal}, &r)
+	status, err := cachedGetJSON(ctx, env.cache, "vt:domain:"+env.target, rlVT, u,
+		map[string]string{"x-apikey": env.keys.VirusTotal}, &r, ttlVirusTotal)
 	if err != nil {
 		return nil, err
 	}
@@ -341,5 +512,5 @@ func collectDomainVirusTotal(ctx context.Context, env *collectorEnv) ([]models.O
 	case st.Suspicious > 0:
 		f.Severity = "medium"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, vtGUIURL(env.target, TargetDomain))}, nil
 }

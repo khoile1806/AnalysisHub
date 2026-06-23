@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -62,6 +63,12 @@ type Config struct {
 	// it needs on top of that. All optional — a missing key skips that collector.
 	OsintHIBPKey      string // Have I Been Pwned (email breach exposure)
 	OsintNumVerifyKey string // NumVerify (phone metadata)
+	// Active port scan (the "portscan" collector) tuning. By default the scanner
+	// sweeps the FULL TCP range (1-65535) so nothing is missed; operators on slow
+	// links can shrink the range or concurrency to throttle it.
+	OsintPortScanMax         int // highest TCP port to scan (default 65535)
+	OsintPortScanConcurrency int // simultaneous connect probes per host (default 800)
+	OsintPortScanMaxHosts    int // how many hosts may be full-scanned at once engine-wide (default 2)
 	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
 	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
 	AbuseChKey    string
@@ -126,6 +133,9 @@ func Load() *Config {
 
 		OsintHIBPKey:      getEnv("OSINT_HIBP_API_KEY", ""),
 		OsintNumVerifyKey: getEnv("OSINT_NUMVERIFY_API_KEY", ""),
+		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),
+		OsintPortScanConcurrency: getEnvInt("OSINT_PORTSCAN_CONCURRENCY", 800),
+		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),
 		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
 		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),
 		GreyNoiseKey:      getEnv("GREYNOISE_API_KEY", ""),
@@ -218,6 +228,16 @@ func loadVirusTotalKeys() []string {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+// getEnvInt reads an integer env var, returning fallback when unset or invalid.
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			return n
+		}
 	}
 	return fallback
 }

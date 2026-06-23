@@ -52,17 +52,18 @@ func collectThreatIntel(ctx context.Context, env *collectorEnv) ([]models.OsintF
 				verdict = "SUSPICIOUS"
 			}
 		}
+		vtURL := vtGUIURL(env.target, env.ttype)
 		summary := newFinding("threatintel", "reputation",
 			fmt.Sprintf("Threat-intel consensus: %s (max score %d)", verdict, r.MaxScore),
 			fmt.Sprintf("%d source(s) returned data", len(r.Findings)))
 		summary.Severity = scoreSeverity(r.MaxScore, r.Threat)
-		out = append(out, summary)
+		out = append(out, withSource(summary, vtURL))
 
 		for _, f := range r.Findings {
 			ff := newFinding("threatintel", "reputation",
 				f.Source+": "+f.Summary, joinLabels(f.Labels))
 			ff.Severity = scoreSeverity(f.Score, f.Malicious)
-			out = append(out, ff)
+			out = append(out, withSource(ff, reputationSourceURL(f.Source, env.target, env.ttype)))
 		}
 	}
 	if len(out) == 0 {
@@ -142,26 +143,39 @@ func collectPulsedive(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	case "low":
 		f.Severity = "low"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, pulsediveURL(env.target))}, nil
 }
 
 // collectGreyNoise classifies an IP using GreyNoise's community API: is it
 // internet-background-noise (mass scanner), a known-benign service (RIOT), or
 // flagged malicious. This is a strong false-positive reducer for IP targets.
+// The community endpoint is open to unauthenticated use (with a daily limit), so
+// no key is required; a configured key only raises the rate limit.
 func collectGreyNoise(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
-	if env.keys.GreyNoise == "" {
-		return nil, errNoAPIKey
-	}
 	u := "https://api.greynoise.io/v3/community/" + url.PathEscape(env.target)
-	body, status, err := httpGetBody(ctx, rlGreyNoise, u, map[string]string{"key": env.keys.GreyNoise})
+	headers := map[string]string{}
+	if env.keys.GreyNoise != "" {
+		headers["key"] = env.keys.GreyNoise // optional - raises the community rate limit
+	}
+	body, status, err := httpGetBody(ctx, rlGreyNoise, u, headers)
 	if err != nil {
 		return nil, err
 	}
 	if status == 401 || status == 403 {
+		// Without a key the endpoint is open, so this only happens with a bad key
+		// or once the keyless daily limit is hit - degrade quietly, don't fail.
+		if env.keys.GreyNoise == "" {
+			env.emit("[*] greynoise: community lookup limit reached (set GREYNOISE_API_KEY to raise it)")
+			return nil, nil
+		}
 		return nil, fmt.Errorf("GreyNoise rejected the API key (HTTP %d)", status)
 	}
 	if status == 404 {
 		env.emit("[*] greynoise: IP not observed by GreyNoise")
+		return nil, nil
+	}
+	if status == 429 {
+		env.emit("[*] greynoise: rate-limited")
 		return nil, nil
 	}
 	if status < 200 || status >= 300 {
@@ -197,5 +211,5 @@ func collectGreyNoise(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	default:
 		f.Severity = "low"
 	}
-	return []models.OsintFinding{f}, nil
+	return []models.OsintFinding{withSource(f, greynoiseURL(env.target))}, nil
 }
