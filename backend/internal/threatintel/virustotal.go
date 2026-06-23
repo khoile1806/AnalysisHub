@@ -2,6 +2,7 @@ package threatintel
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +24,8 @@ func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Fi
 		endpoint = vtBase + "/files/" + ioc
 	case "domain":
 		endpoint = vtBase + "/domains/" + ioc
+	case "url":
+		endpoint = vtBase + "/urls/" + base64.RawURLEncoding.EncodeToString([]byte(ioc))
 	default:
 		return Finding{}, false
 	}

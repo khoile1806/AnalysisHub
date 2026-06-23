@@ -17,16 +17,25 @@ import (
 	"time"
 )
 
+type cacheEntry struct {
+	result    EnrichedIOC
+	expiresAt time.Time
+}
+
 // IOCSet holds extracted indicators of compromise from raw content.
 type IOCSet struct {
 	IPs     []string
 	Hashes  []string // MD5 / SHA1 / SHA256 (lower-cased)
 	Domains []string
+	URLs    []string
+	Emails  []string
+	BTCs    []string
+	XMRs    []string
 }
 
 // Total returns the total number of IOCs across all categories.
 func (s IOCSet) Total() int {
-	return len(s.IPs) + len(s.Hashes) + len(s.Domains)
+	return len(s.IPs) + len(s.Hashes) + len(s.Domains) + len(s.URLs) + len(s.Emails) + len(s.BTCs) + len(s.XMRs)
 }
 
 // Finding is a single threat-intel result from one data source.
@@ -57,6 +66,9 @@ type EnrichClient struct {
 	alienVault string
 	shodan     string
 	hc         *http.Client
+
+	cacheMu sync.RWMutex
+	cache   map[string]cacheEntry
 }
 
 // New creates an EnrichClient. Pass empty strings for keys you don't have;
@@ -74,6 +86,7 @@ func New(vtKeys []string, abuseIPDB, alienVault, shodan string) *EnrichClient {
 		alienVault: strings.TrimSpace(alienVault),
 		shodan:     strings.TrimSpace(shodan),
 		hc:         &http.Client{Timeout: 15 * time.Second},
+		cache:      make(map[string]cacheEntry),
 	}
 }
 
@@ -112,6 +125,18 @@ func (c *EnrichClient) Enrich(ctx context.Context, iocs IOCSet) []EnrichedIOC {
 	for _, d := range iocs.Domains {
 		jobs = append(jobs, job{d, "domain"})
 	}
+	for _, u := range iocs.URLs {
+		jobs = append(jobs, job{u, "url"})
+	}
+	for _, e := range iocs.Emails {
+		jobs = append(jobs, job{e, "email"})
+	}
+	for _, b := range iocs.BTCs {
+		jobs = append(jobs, job{b, "btc"})
+	}
+	for _, x := range iocs.XMRs {
+		jobs = append(jobs, job{x, "xmr"})
+	}
 	if len(jobs) > maxIOCs {
 		jobs = jobs[:maxIOCs]
 	}
@@ -136,6 +161,14 @@ func (c *EnrichClient) Enrich(ctx context.Context, iocs IOCSet) []EnrichedIOC {
 }
 
 func (c *EnrichClient) enrichOne(ctx context.Context, ioc, itype string) EnrichedIOC {
+	cacheKey := itype + ":" + ioc
+	c.cacheMu.RLock()
+	if entry, ok := c.cache[cacheKey]; ok && time.Now().Before(entry.expiresAt) {
+		c.cacheMu.RUnlock()
+		return entry.result
+	}
+	c.cacheMu.RUnlock()
+
 	result := EnrichedIOC{IOC: ioc, Type: itype}
 
 	var mu sync.Mutex
@@ -203,6 +236,13 @@ func (c *EnrichClient) enrichOne(ctx context.Context, ioc, itype string) Enriche
 	sort.Slice(result.Findings, func(i, j int) bool {
 		return result.Findings[i].Score > result.Findings[j].Score
 	})
+
+	c.cacheMu.Lock()
+	c.cache[cacheKey] = cacheEntry{
+		result:    result,
+		expiresAt: time.Now().Add(24 * time.Hour),
+	}
+	c.cacheMu.Unlock()
 
 	return result
 }

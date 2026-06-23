@@ -35,8 +35,10 @@ export default function CVENewsTab({ category }: CVENewsTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [langFilter, setLangFilter] = useState<LangFilter>('all')
   const [torPrompt, setTorPrompt] = useState<NewsArticle | null>(null)
+  const [dangerPrompt, setDangerPrompt] = useState<NewsArticle | null>(null)
   const queryClient = useQueryClient()
   const isDarkweb = category === 'darkweb'
+  const isVNTarget = category === 'vn-target'
   const isWorldNews = category === 'world-news'
 
   const { data: articles = [], isLoading, isError, error } = useQuery({
@@ -174,29 +176,56 @@ export default function CVENewsTab({ category }: CVENewsTabProps) {
         </div>
       )}
 
+      {isVNTarget && (
+        <div className="card border-red-700/50 bg-red-950/20 p-3 text-xs text-red-300 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div>
+            This tab contains links to potential threats targeting Vietnam. Clicks on <strong>high-risk links</strong> are blocked to prevent accidental infection. Please copy the URL and investigate in a safe sandbox environment.
+          </div>
+        </div>
+      )}
+
       {filtered.length > 0 && (
         <div className="grid gap-3">
-          {filtered.map((a) => (
-            <ArticleCard
-              key={a.id}
-              article={a}
-              onIntercept={isDarkweb ? () => setTorPrompt(a) : undefined}
-            />
-          ))}
+          {filtered.map((a) => {
+            let interceptFn: (() => void) | undefined = undefined
+            if (isDarkweb) {
+              interceptFn = () => setTorPrompt(a)
+            } else if (isVNTarget && isHighRisk(a)) {
+              interceptFn = () => setDangerPrompt(a)
+            }
+
+            return (
+              <ArticleCard
+                key={a.id}
+                article={a}
+                onIntercept={interceptFn}
+                isDanger={isVNTarget && isHighRisk(a)}
+              />
+            )
+          })}
         </div>
       )}
 
       <TorLinkPrompt article={torPrompt} onClose={() => setTorPrompt(null)} />
+      <DangerLinkPrompt article={dangerPrompt} onClose={() => setDangerPrompt(null)} />
     </div>
   )
+}
+
+function isHighRisk(article: NewsArticle): boolean {
+  const text = `${article.title} ${article.description} ${article.tags?.join(' ') || ''}`.toLowerCase()
+  return /(malware|ransomware|phishing|apt|exploit|trojan|botnet|cve-|backdoor|0-day|zero-day|payload)/i.test(text)
 }
 
 function ArticleCard({
   article,
   onIntercept,
+  isDanger,
 }: {
   article: NewsArticle
   onIntercept?: () => void
+  isDanger?: boolean
 }) {
   const published = article.published ? safeFormatDate(article.published) : ''
 
@@ -216,7 +245,7 @@ function ArticleCard({
       onClick={handleClick}
       onAuxClick={onIntercept ? (e) => { e.preventDefault(); onIntercept() } : undefined}
       onContextMenu={onIntercept ? (e) => e.preventDefault() : undefined}
-      className="card p-4 hover:border-emerald-700/50 transition-colors block group"
+      className={`card p-4 hover:border-emerald-700/50 transition-colors block group ${isDanger ? 'border-red-900/30 bg-red-950/10 hover:border-red-700/50' : ''}`}
     >
       <div className="flex gap-4">
         {article.image_url && (
@@ -373,3 +402,93 @@ function safeFormatDate(iso: string): string {
   if (isNaN(d.getTime())) return iso
   return formatDistanceToNow(d, { addSuffix: true })
 }
+
+function DangerLinkPrompt({
+  article,
+  onClose,
+}: {
+  article: NewsArticle | null
+  onClose: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!article) return
+    setCopied(false)
+  }, [article])
+
+  if (!article) return null
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(article.link)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback
+    }
+  }
+
+  return (
+    <Dialog open={!!article} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            High Risk Link Blocked
+          </DialogTitle>
+          <DialogDescription>
+            The system has blocked automatic navigation to this link because it is classified as high-risk (e.g., contains malware, phishing, or exploit references).
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div>
+            <label className="label mb-1">Title</label>
+            <p className="text-sm text-gray-200">{article.title}</p>
+          </div>
+
+          <div>
+            <label className="label mb-1">URL</label>
+            <div className="flex items-center gap-2 bg-gray-950 border border-gray-800 rounded-md px-3 py-2">
+              <code className="flex-1 text-xs text-red-400 font-mono break-all">
+                {article.link}
+              </code>
+              <button
+                onClick={handleCopy}
+                className="btn-secondary flex-shrink-0 !px-2 !py-1"
+                title="Copy URL"
+              >
+                {copied ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-[11px]">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span className="text-[11px]">Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="text-xs text-gray-400 bg-gray-950/60 border border-red-900/30 rounded-md p-3 space-y-1.5">
+            <div className="font-semibold text-red-400">Security Warning:</div>
+            <p>
+              Please investigate this URL only within an isolated Sandbox or Virtual Machine.
+              Do not open this link on your host machine unless you know what you are doing.
+            </p>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button className="btn-secondary" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
+  )
+}
+

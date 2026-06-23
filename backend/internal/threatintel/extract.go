@@ -4,6 +4,7 @@ import (
 	"net"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 var (
@@ -25,6 +26,11 @@ var (
 			`gov|edu|mil|int|mobi|name|pro|tel|travel|museum|coop|aero|` +
 			`tk|pw|ga|cf|ml|gq)\b`,
 	)
+
+	reURL   = regexp.MustCompile(`(?i)\bhttps?://[^\s/$.?#].[^\s]*\b`)
+	reEmail = regexp.MustCompile(`(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b`)
+	reBTC   = regexp.MustCompile(`\b(?:1|3)[1-9A-HJ-NP-Za-km-z]{25,34}\b|\bbc1[a-zA-HJ-NP-Z0-9]{39,59}\b`)
+	reXMR   = regexp.MustCompile(`\b(?:4|8)[0-9a-zA-Z]{94,105}\b`)
 )
 
 // privateRanges lists CIDR blocks that should never be reported as suspicious
@@ -66,19 +72,33 @@ func isPrivateIP(ipStr string) bool {
 
 // safeDomains lists suffixes that are almost certainly benign and should be
 // dropped from extraction to reduce noise.
-var safeDomains = []string{
-	"microsoft.com", "windows.com", "windowsupdate.com", "live.com",
-	"google.com", "googleapis.com", "gstatic.com", "youtube.com",
-	"amazon.com", "amazonaws.com",
-	"apple.com", "icloud.com",
-	"cloudflare.com",
-	"github.com", "githubusercontent.com",
-	"digicert.com", "verisign.com", "symantec.com",
-	"w3.org", "schema.org",
+var (
+	safeDomainsMu sync.RWMutex
+	safeDomains   = []string{
+		"microsoft.com", "windows.com", "windowsupdate.com", "live.com",
+		"google.com", "googleapis.com", "gstatic.com", "youtube.com",
+		"amazon.com", "amazonaws.com",
+		"apple.com", "icloud.com",
+		"cloudflare.com",
+		"github.com", "githubusercontent.com",
+		"digicert.com", "verisign.com", "symantec.com",
+		"w3.org", "schema.org",
+	}
+)
+
+func SetSafeDomains(domains []string) {
+	safeDomainsMu.Lock()
+	defer safeDomainsMu.Unlock()
+	safeDomains = make([]string, len(domains))
+	for i, d := range domains {
+		safeDomains[i] = strings.ToLower(strings.TrimSpace(d))
+	}
 }
 
 func isCommonSafe(d string) bool {
 	d = strings.ToLower(d)
+	safeDomainsMu.RLock()
+	defer safeDomainsMu.RUnlock()
 	for _, s := range safeDomains {
 		if d == s || strings.HasSuffix(d, "."+s) {
 			return true
@@ -94,6 +114,10 @@ func ExtractIOCs(content string) IOCSet {
 	ipMap     := make(map[string]struct{})
 	hashMap   := make(map[string]struct{})
 	domainMap := make(map[string]struct{})
+	urlMap    := make(map[string]struct{})
+	emailMap  := make(map[string]struct{})
+	btcMap    := make(map[string]struct{})
+	xmrMap    := make(map[string]struct{})
 
 	// IPs — skip private ranges and the unspecified address
 	for _, m := range reIPv4.FindAllString(content, -1) {
@@ -137,6 +161,19 @@ func ExtractIOCs(content string) IOCSet {
 		}
 	}
 
+	for _, m := range reURL.FindAllString(content, -1) {
+		urlMap[m] = struct{}{}
+	}
+	for _, m := range reEmail.FindAllString(content, -1) {
+		emailMap[strings.ToLower(m)] = struct{}{}
+	}
+	for _, m := range reBTC.FindAllString(content, -1) {
+		btcMap[m] = struct{}{}
+	}
+	for _, m := range reXMR.FindAllString(content, -1) {
+		xmrMap[m] = struct{}{}
+	}
+
 	// Convert maps → slices with caps
 	result := IOCSet{}
 	for ip := range ipMap {
@@ -156,6 +193,30 @@ func ExtractIOCs(content string) IOCSet {
 			break
 		}
 		result.Domains = append(result.Domains, d)
+	}
+	for u := range urlMap {
+		if len(result.URLs) >= 5 {
+			break
+		}
+		result.URLs = append(result.URLs, u)
+	}
+	for e := range emailMap {
+		if len(result.Emails) >= 5 {
+			break
+		}
+		result.Emails = append(result.Emails, e)
+	}
+	for b := range btcMap {
+		if len(result.BTCs) >= 5 {
+			break
+		}
+		result.BTCs = append(result.BTCs, b)
+	}
+	for x := range xmrMap {
+		if len(result.XMRs) >= 5 {
+			break
+		}
+		result.XMRs = append(result.XMRs, x)
 	}
 	return result
 }
