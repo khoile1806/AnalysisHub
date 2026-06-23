@@ -180,7 +180,7 @@ export default function CVENewsTab({ category }: CVENewsTabProps) {
         <div className="card border-red-700/50 bg-red-950/20 p-3 text-xs text-red-300 flex items-start gap-2">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <div>
-            This tab contains links to potential threats targeting Vietnam. Clicks on <strong>high-risk links</strong> are blocked to prevent accidental infection. Please copy the URL and investigate in a safe sandbox environment.
+            This tab contains links to potential threats targeting Vietnam. Clicks on <strong>all links</strong> are blocked to prevent accidental infection. Please copy the URL and investigate in a safe sandbox environment.
           </div>
         </div>
       )}
@@ -191,7 +191,7 @@ export default function CVENewsTab({ category }: CVENewsTabProps) {
             let interceptFn: (() => void) | undefined = undefined
             if (isDarkweb) {
               interceptFn = () => setTorPrompt(a)
-            } else if (isVNTarget && isHighRisk(a)) {
+            } else if (isVNTarget) {
               interceptFn = () => setDangerPrompt(a)
             }
 
@@ -200,7 +200,7 @@ export default function CVENewsTab({ category }: CVENewsTabProps) {
                 key={a.id}
                 article={a}
                 onIntercept={interceptFn}
-                isDanger={isVNTarget && isHighRisk(a)}
+                isDanger={isVNTarget}
               />
             )
           })}
@@ -211,11 +211,6 @@ export default function CVENewsTab({ category }: CVENewsTabProps) {
       <DangerLinkPrompt article={dangerPrompt} onClose={() => setDangerPrompt(null)} />
     </div>
   )
-}
-
-function isHighRisk(article: NewsArticle): boolean {
-  const text = `${article.title} ${article.description} ${article.tags?.join(' ') || ''}`.toLowerCase()
-  return /(malware|ransomware|phishing|apt|exploit|trojan|botnet|cve-|backdoor|0-day|zero-day|payload)/i.test(text)
 }
 
 function ArticleCard({
@@ -438,7 +433,7 @@ function DangerLinkPrompt({
             High Risk Link Blocked
           </DialogTitle>
           <DialogDescription>
-            The system has blocked automatic navigation to this link because it is classified as high-risk (e.g., contains malware, phishing, or exploit references).
+            The system has blocked automatic navigation to this link for your safety.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
