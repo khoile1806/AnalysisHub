@@ -166,6 +166,7 @@ func buildCollectors(targetType string) []collector {
 			{"subbrute", collectSubBrute},
 			{"host_search", collectHostSearch},
 			{"typosquat", collectTyposquat},
+			{"cloud", collectCloud},
 			{"webtech", collectWebTech},
 			{"wayback", collectWayback},
 			{"virustotal", collectDomainVirusTotal},

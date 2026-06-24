@@ -9,9 +9,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/models"
+	"github.com/forensichub/backend/internal/osint"
 )
 
 // osintTypeToIOC maps an OSINT target type to the IOC-store Type name used by
@@ -254,4 +256,146 @@ func GetOsintCorrelations(c *gin.Context) {
 	sort.Slice(out, func(i, j int) bool { return out[i].Count > out[j].Count })
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": out})
+}
+
+// ExportOsintGraph serialises the whole investigation graph (entities + pivot
+// and shared-indicator relationships) into GraphML so an analyst can import it
+// into Maltego, Gephi, yEd or Cytoscape for deeper link analysis. GraphML is an
+// open standard every major graph tool reads, which is why it is offered instead
+// of the proprietary native Maltego format.
+//
+// GET /api/v1/osint/:id/graph/export?format=graphml
+func ExportOsintGraph(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid scan id"})
+		return
+	}
+	var scan models.OsintScan
+	if err := db.First(&scan, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "scan not found"})
+		return
+	}
+	root := scan.ID
+	if scan.RootScanID != nil {
+		root = *scan.RootScanID
+	}
+
+	var scans []models.OsintScan
+	db.Where("root_scan_id = ? OR id = ?", root, root).
+		Order("depth asc, created_at asc").Find(&scans)
+	if len(scans) == 0 {
+		scans = []models.OsintScan{scan}
+	}
+
+	// Findings count per scan in a single grouped query (no per-node N+1).
+	ids := make([]uuid.UUID, len(scans))
+	for i := range scans {
+		ids[i] = scans[i].ID
+	}
+	type fcRow struct {
+		ScanID uuid.UUID
+		N      int
+	}
+	var fcRows []fcRow
+	db.Model(&models.OsintFinding{}).
+		Select("scan_id, count(*) as n").
+		Where("scan_id IN ?", ids).
+		Group("scan_id").Scan(&fcRows)
+	findingCount := make(map[uuid.UUID]int, len(fcRows))
+	for _, r := range fcRows {
+		findingCount[r.ScanID] = r.N
+	}
+
+	nodes := make([]osint.GraphNode, 0, len(scans))
+	edges := make([]osint.GraphEdge, 0)
+	for i := range scans {
+		s := &scans[i]
+		nodes = append(nodes, osint.GraphNode{
+			ID: s.ID.String(), Label: s.Target, Type: s.TargetType,
+			Status: string(s.Status), Depth: s.Depth, Findings: findingCount[s.ID],
+			Root: s.ID == root, Exposure: s.ExposureScore, Grade: s.ExposureGrade,
+		})
+		if s.ParentScanID != nil {
+			edges = append(edges, osint.GraphEdge{
+				From: s.ParentScanID.String(), To: s.ID.String(), Label: s.PivotFrom, Rel: "pivot",
+			})
+		}
+	}
+
+	// Shared-indicator (correlation) edges: a value that appears as the target of
+	// one scan and a discovered related entity of another links those entities.
+	edges = append(edges, correlationEdges(db, scans)...)
+
+	graphml, gerr := osint.GenerateGraphML(nodes, edges)
+	if gerr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to build GraphML"})
+		return
+	}
+
+	safe := strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '-'
+	}, scan.Name)
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="osint-graph-%s.graphml"`, safe))
+	c.Data(http.StatusOK, "application/graphml+xml; charset=utf-8", graphml)
+}
+
+// correlationEdges builds shared-indicator links between the investigation's
+// scans. For each value referenced by two or more scans it emits a star of
+// edges from the first referencing scan to the others (linear, not a clique),
+// so the link is visible without exploding the edge count.
+func correlationEdges(db *gorm.DB, scans []models.OsintScan) []osint.GraphEdge {
+	valueToScans := make(map[string][]string)
+	add := func(value, scanID string) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return
+		}
+		for _, existing := range valueToScans[value] {
+			if existing == scanID {
+				return
+			}
+		}
+		valueToScans[value] = append(valueToScans[value], scanID)
+	}
+	for i := range scans {
+		s := &scans[i]
+		sid := s.ID.String()
+		add(s.Target, sid)
+		var findings []models.OsintFinding
+		db.Where("scan_id = ? AND related_entities <> ''", s.ID).Find(&findings)
+		for _, f := range findings {
+			var rels []struct {
+				Type  string `json:"type"`
+				Value string `json:"value"`
+			}
+			if json.Unmarshal([]byte(f.RelatedEntities), &rels) != nil {
+				continue
+			}
+			for _, r := range rels {
+				add(r.Value, sid)
+			}
+		}
+	}
+
+	var out []osint.GraphEdge
+	for value, sids := range valueToScans {
+		if len(sids) < 2 {
+			continue
+		}
+		for _, to := range sids[1:] {
+			if sids[0] == to {
+				continue
+			}
+			out = append(out, osint.GraphEdge{From: sids[0], To: to, Label: value, Rel: "correlation"})
+		}
+	}
+	return out
 }

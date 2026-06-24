@@ -35,11 +35,26 @@ type Engine struct {
 	mu      sync.Mutex
 	running map[string]context.CancelFunc
 
+	// scanSem bounds how many scans execute concurrently across the whole engine
+	// (root + auto-pivot children alike). A scan is accepted immediately but waits
+	// here for a slot before its collectors run, so a wide/deep pivot graph can't
+	// exhaust sockets, goroutines or third-party rate limits.
+	scanSem chan struct{}
+
 	subMu sync.Mutex
 	subs  map[string][]chan string
 
 	histMu  sync.Mutex
 	history map[string][]string
+}
+
+// maxConcurrentScans resolves the engine-wide concurrent-scan limit from config,
+// defaulting to 6 when unset.
+func maxConcurrentScans(cfg *config.Config) int {
+	if cfg != nil && cfg.OsintMaxConcurrentScans > 0 {
+		return cfg.OsintMaxConcurrentScans
+	}
+	return 6
 }
 
 // NewEngine builds the engine and recovers any scans left "running" by a crash.
@@ -51,6 +66,7 @@ func NewEngine(db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.E
 		enrich:  enrich,
 		cache:   newOsintCache(rdb),
 		running: make(map[string]context.CancelFunc),
+		scanSem: make(chan struct{}, maxConcurrentScans(cfg)),
 		subs:    make(map[string][]chan string),
 		history: make(map[string][]string),
 	}
@@ -194,6 +210,28 @@ func (e *Engine) StartScan(scan *models.OsintScan, collectors []models.OsintColl
 			delete(e.running, scan.ID.String())
 			e.mu.Unlock()
 		}()
+		// Wait for an engine-wide execution slot. The scan stays "pending" while
+		// queued; if it is stopped or the engine shuts down before a slot frees,
+		// abort cleanly instead of running.
+		if e.scanSem != nil {
+			// Fast path: a slot is free right now.
+			select {
+			case e.scanSem <- struct{}{}:
+				defer func() { <-e.scanSem }()
+			default:
+				// All slots busy - tell subscribers the scan is queued, then wait.
+				e.emit(scan.ID.String(), "[*] Queued - waiting for a free scan slot...")
+				select {
+				case e.scanSem <- struct{}{}:
+					defer func() { <-e.scanSem }()
+				case <-ctx.Done():
+					e.finalizeScan(scan, models.OsintStopped)
+					e.emit(scan.ID.String(), "[!] Scan stopped before it started (was queued)")
+					e.emit(scan.ID.String(), "__DONE__")
+					return
+				}
+			}
+		}
 		e.runPipeline(ctx, scan, collectors)
 	}()
 	return nil
@@ -221,6 +259,10 @@ func collectorTimeout(name string) time.Duration {
 	case "subbrute":
 		// Resolves a ~250-name wordlist concurrently.
 		return 60 * time.Second
+	case "cloud":
+		// Probes up to ~120 bucket candidates across S3/GCS/Azure, bounded
+		// concurrency; a generous budget covers slow cloud edge responses.
+		return 120 * time.Second
 	case "crtsh", "wayback", "social_search":
 		return 60 * time.Second
 	default:

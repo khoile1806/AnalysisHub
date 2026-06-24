@@ -4,14 +4,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
+  Image as ImageIcon, Upload, ScanSearch,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
   osintApi, COLLECTOR_LABELS,
-  type OsintScan, type OsintTargetType, type DetectResult,
+  type OsintScan, type OsintTargetType, type DetectResult, type ImageExtraction,
 } from '@/api/osint'
+import { analysisApi } from '@/api/analysis'
 import { casesApi } from '@/api/cases'
 import { getErrorMessage } from '@/lib/utils'
 import {
@@ -229,6 +231,142 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
   )
 }
 
+// ---- OCR → Pivot Modal (extract IOCs from an image) ------------------------
+
+function ImageExtractModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate()
+  const [file, setFile] = useState<File | null>(null)
+  const [providerId, setProviderId] = useState('')
+  const [result, setResult] = useState<ImageExtraction | null>(null)
+  const [started, setStarted] = useState<Record<string, boolean>>({})
+
+  // Vision extraction needs an Anthropic (Claude) provider; only those are offered.
+  const { data: providers = [] } = useQuery({
+    queryKey: ['ai-providers'],
+    queryFn: analysisApi.listProviders,
+    enabled: open,
+  })
+  const claude = providers.filter(p => p.is_active && p.provider_type === 'anthropic')
+
+  const reset = () => { setFile(null); setProviderId(''); setResult(null); setStarted({}) }
+
+  const extractMut = useMutation({
+    mutationFn: () => osintApi.extractImage(file!, providerId),
+    onSuccess: (d) => {
+      setResult(d)
+      if (d.candidates.length === 0) toast('No scannable indicators found in the image', { icon: '🔍' })
+      else toast.success(`${d.candidates.length} indicator(s) extracted`)
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  const scanMut = useMutation({
+    mutationFn: (target: string) => osintApi.create({ target }),
+    onSuccess: (scan) => { toast.success('Investigation started'); onClose(); reset(); navigate(`/osint/${scan.id}`) },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  const handleClose = () => { if (extractMut.isPending) return; reset(); onClose() }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Extract indicators from an image</DialogTitle>
+          <DialogDescription>
+            OCR a ransom note, phishing screenshot or chat capture with a Claude vision model, then launch a footprinting scan against any wallet, email, domain, IP or hash it contains.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div>
+            <label className="label">Image</label>
+            <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-dashed border-gray-700 bg-gray-900/40 p-4 hover:border-emerald-700 transition-colors">
+              <Upload className="h-5 w-5 text-gray-500" />
+              <span className="text-sm text-gray-300 truncate">
+                {file ? file.name : 'Choose a PNG, JPEG, GIF or WebP (≤ 5 MB)'}
+              </span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                className="hidden"
+                onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null) }}
+                disabled={extractMut.isPending}
+              />
+            </label>
+          </div>
+          <div>
+            <label className="label">Claude vision provider</label>
+            {claude.length === 0 ? (
+              <a href="/ai-providers" className="text-xs text-yellow-400 underline">Configure an Anthropic (Claude) AI provider</a>
+            ) : (
+              <select
+                className="input w-full"
+                value={providerId}
+                onChange={(e) => setProviderId(e.target.value)}
+                disabled={extractMut.isPending}
+              >
+                <option value="">Select provider…</option>
+                {claude.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+          </div>
+
+          {result && (
+            <div className="space-y-3">
+              <div>
+                <p className="label">Extracted indicators</p>
+                {result.candidates.length === 0 ? (
+                  <p className="text-xs text-gray-500">No scannable indicators detected.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {result.candidates.map((cand) => {
+                      const Icon = TYPE_ICON[cand.type] ?? Fingerprint
+                      return (
+                        <div key={cand.value} className="flex items-center gap-2 rounded border border-slate-700 bg-gray-900/40 px-3 py-2">
+                          <Icon className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                          <span className="font-mono text-xs text-emerald-400 truncate flex-1">{cand.value}</span>
+                          <span className="text-[10px] font-mono text-gray-600 uppercase">{cand.type}</span>
+                          <button
+                            className="btn-primary text-xs px-2 py-1 disabled:opacity-50"
+                            disabled={scanMut.isPending || started[cand.value]}
+                            onClick={() => { setStarted(s => ({ ...s, [cand.value]: true })); scanMut.mutate(cand.value) }}
+                          >
+                            <Search className="h-3 w-3" /> Scan
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+              {result.ocr_text && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-gray-500 hover:text-gray-300">OCR transcript</summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-words rounded bg-gray-900/60 p-3 text-gray-400 max-h-48 overflow-auto">{result.ocr_text}</pre>
+                </details>
+              )}
+            </div>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <button type="button" className="btn-secondary" onClick={handleClose} disabled={extractMut.isPending}>
+            Close
+          </button>
+          <button
+            type="button"
+            className="btn-primary flex items-center gap-2"
+            disabled={!file || !providerId || extractMut.isPending}
+            onClick={() => extractMut.mutate()}
+          >
+            {extractMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanSearch className="h-4 w-4" />}
+            {extractMut.isPending ? 'Extracting…' : 'Extract'}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ---- Page -------------------------------------------------------------------
 
 function TabButton({ active, onClick, icon: Icon, label }: {
@@ -255,6 +393,7 @@ export default function OsintPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<OsintTab>('investigations')
   const [newOpen, setNewOpen] = useState(false)
+  const [imageOpen, setImageOpen] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const { data: scans = [], isLoading } = useQuery({
@@ -284,9 +423,14 @@ export default function OsintPage() {
           </p>
         </div>
         {tab === 'investigations' && (
-          <button className="btn-primary flex items-center gap-2" onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4" /> New Investigation
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary flex items-center gap-2" onClick={() => setImageOpen(true)} title="Extract IOCs from an image (ransom note, screenshot) via OCR">
+              <ImageIcon className="h-4 w-4" /> From Image
+            </button>
+            <button className="btn-primary flex items-center gap-2" onClick={() => setNewOpen(true)}>
+              <Plus className="h-4 w-4" /> New Investigation
+            </button>
+          </div>
         )}
       </div>
 
@@ -355,6 +499,7 @@ export default function OsintPage() {
       )}
 
       <NewScanModal open={newOpen} onClose={() => setNewOpen(false)} />
+      <ImageExtractModal open={imageOpen} onClose={() => setImageOpen(false)} />
 
       <Dialog open={!!deleting} onOpenChange={o => !o && setDeleting(null)}>
         <DialogContent className="max-w-sm">

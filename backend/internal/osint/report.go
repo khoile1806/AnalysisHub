@@ -24,6 +24,7 @@ var reportCategoryOrder = []struct{ Key, Label string }{
 	{"ports", "Exposed Services"},
 	{"techstack", "Technology Stack"},
 	{"vulnerability", "Known Vulnerabilities (CVE)"},
+	{"cloud_exposure", "Cloud Storage Exposure"},
 	{"reputation", "Reputation / Threat Intel"},
 	{"ransomware", "Ransomware Leak-Site"},
 	{"darkweb", "Dark-Web Exposure"},

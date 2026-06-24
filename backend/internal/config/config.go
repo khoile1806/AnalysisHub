@@ -69,6 +69,16 @@ type Config struct {
 	OsintPortScanMax         int // highest TCP port to scan (default 65535)
 	OsintPortScanConcurrency int // simultaneous connect probes per host (default 800)
 	OsintPortScanMaxHosts    int // how many hosts may be full-scanned at once engine-wide (default 2)
+	// OsintMaxConcurrentScans bounds how many OSINT scans execute at once across
+	// the whole engine. Every scan - a root investigation or an auto-pivot child -
+	// queues through this limit, so a deep/wide pivot graph can't exhaust sockets,
+	// goroutines or third-party rate limits. Queued scans stay "pending" until a
+	// slot frees. (default 6)
+	OsintMaxConcurrentScans int
+	// Cloud-storage exposure ("cloud" collector). The collector permutes bucket
+	// names from the target domain and probes public S3/GCS/Azure endpoints. The
+	// candidate count is capped so the active probe stays bounded.
+	OsintCloudMaxCandidates int // max bucket-name candidates probed (default 120)
 	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
 	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
 	AbuseChKey    string
@@ -136,6 +146,8 @@ func Load() *Config {
 		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),
 		OsintPortScanConcurrency: getEnvInt("OSINT_PORTSCAN_CONCURRENCY", 800),
 		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),
+		OsintCloudMaxCandidates:  getEnvInt("OSINT_CLOUD_MAX_CANDIDATES", 120),
+		OsintMaxConcurrentScans:  getEnvInt("OSINT_MAX_CONCURRENT_SCANS", 6),
 		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
 		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),
 		GreyNoiseKey:      getEnv("GREYNOISE_API_KEY", ""),

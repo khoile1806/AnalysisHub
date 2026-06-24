@@ -71,6 +71,18 @@ func exposureScore(fs []models.OsintFinding) int {
 			case "medium":
 				attack += 3
 			}
+		case "cloud_exposure":
+			// Misconfigured public cloud storage is direct, high-impact attack
+			// surface - an open bucket leaks data at rest, a sensitive file in one
+			// is effectively a breach.
+			switch f.Severity {
+			case "critical": // sensitive file (.env/.sql/keys) in a public bucket
+				attack += 12
+			case "high": // anonymously-listable bucket
+				attack += 8
+			case "low": // bucket/account merely exists
+				attack += 1
+			}
 		case "reputation":
 			// Known CVEs from infrastructure scanners are attack surface, not a
 			// malicious-reputation verdict - route them to their own bucket so they

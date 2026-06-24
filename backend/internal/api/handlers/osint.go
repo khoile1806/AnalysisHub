@@ -286,7 +286,10 @@ func StopOsintScan(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "internal server error"})
 		return
 	}
-	if scan.Status != models.OsintRunning {
+	// A scan that is running, OR queued for an execution slot (still "pending" in
+	// the DB but accepted by the engine), can be stopped. Only a truly terminal
+	// scan is rejected.
+	if scan.Status != models.OsintRunning && !engine.IsRunning(id.String()) {
 		c.JSON(http.StatusConflict, gin.H{"success": false, "error": fmt.Sprintf("scan is not running (status: %s)", scan.Status)})
 		return
 	}

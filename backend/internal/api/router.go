@@ -201,6 +201,7 @@ func NewRouter(
 		protected.GET("/osint/:id/report", handlers.OsintReport)
 		protected.GET("/osint/:id/export", handlers.OsintExport)
 		protected.GET("/osint/:id/graph", handlers.GetOsintGraph)
+		protected.GET("/osint/:id/graph/export", handlers.ExportOsintGraph)
 		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
 		protected.POST("/osint/promote-ioc", handlers.PromoteOsintIOC)
 
@@ -274,6 +275,8 @@ func NewRouter(
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
 		// AI triage of an OSINT footprint (defensive summary + pivots)
 		protected.POST("/osint/:id/triage", aiHandler.TriageOsintScan)
+		// OCR → pivot: extract IOCs from an uploaded image (ransom note, screenshot)
+		protected.POST("/osint/extract-image", aiHandler.ExtractOsintFromImage)
 
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)

@@ -816,6 +816,17 @@ export default function OsintDetailPage() {
               CSV
             </a>
           )}
+          {scan.status !== 'pending' && (
+            <a
+              href={osintApi.graphExportUrl(scan.id)}
+              download
+              className="btn-secondary flex items-center gap-2"
+              title="Export the investigation graph as GraphML for Maltego / Gephi / yEd / Cytoscape"
+            >
+              <Download className="h-4 w-4" />
+              GraphML
+            </a>
+          )}
           {isRunning && (
             <button
               className="btn-danger flex items-center gap-2"

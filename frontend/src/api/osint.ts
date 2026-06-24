@@ -141,6 +141,13 @@ export interface OsintCorrelation {
   entities: { id: string; target: string; type: OsintTargetType }[]
 }
 
+// ImageExtraction is the result of OCR + IOC extraction on an uploaded image:
+// the OCR transcript plus validated, scannable OSINT target candidates.
+export interface ImageExtraction {
+  ocr_text: string
+  candidates: { value: string; type: OsintTargetType }[]
+}
+
 // CATEGORY_LABELS maps a finding category to its display heading.
 export const CATEGORY_LABELS: Record<string, string> = {
   registration: 'Registration / WHOIS',
@@ -152,6 +159,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   ports:        'Exposed Services',
   techstack:    'Technology Stack',
   vulnerability: 'Known Vulnerabilities (CVE)',
+  cloud_exposure: 'Cloud Storage Exposure',
   reputation:   'Reputation / Threat Intel',
   ransomware:   'Ransomware Leak-Site',
   darkweb:      'Dark-Web Exposure',
@@ -200,6 +208,7 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   host_search:       'Subdomain Search',
   subbrute:          'Subdomain Brute-force (DNS)',
   typosquat:         'Look-alike / Typosquat Domains',
+  cloud:             'Cloud Storage Exposure (S3/GCS/Azure)',
   hashlookup:        'CIRCL Hashlookup (NSRL)',
   webtech:           'Tech-Stack Fingerprint + CVE',
   portscan:          'Active Port / Service Scan + CVE',
@@ -291,6 +300,27 @@ export const osintApi = {
     const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
     const token = useAuthStore.getState().token ?? ''
     return `${base}/api/v1/osint/${id}/export?format=${format}&token=${encodeURIComponent(token)}`
+  },
+
+  // graphExportUrl builds a download link for the whole investigation graph as
+  // GraphML, importable into Maltego / Gephi / yEd / Cytoscape for link analysis.
+  graphExportUrl: (id: string): string => {
+    const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+    const token = useAuthStore.getState().token ?? ''
+    return `${base}/api/v1/osint/${id}/graph/export?format=graphml&token=${encodeURIComponent(token)}`
+  },
+
+  // extractImage runs OCR + IOC extraction on an uploaded image (ransom note,
+  // phishing screenshot) via a Claude vision provider and returns scannable
+  // candidates the analyst can launch footprinting scans against.
+  extractImage: async (file: File, providerId: string): Promise<ImageExtraction> => {
+    const form = new FormData()
+    form.append('image', file)
+    form.append('provider_id', providerId)
+    const { data } = await apiClient.post<ApiResponse<ImageExtraction>>('/osint/extract-image', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data
   },
 
   // ── Watchlist (A4 continuous monitoring) ──────────────────────────────────
