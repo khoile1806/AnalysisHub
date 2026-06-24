@@ -128,7 +128,7 @@ type OsintCollector struct {
 // operator can launch a fresh investigation against in one click.
 type OsintFinding struct {
 	ID              uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"                              json:"id"`
-	ScanID          uuid.UUID `gorm:"type:uuid;not null;index:idx_osint_finding_scan;index:idx_osint_finding_dedupe,priority:1" json:"scan_id"`
+	ScanID          uuid.UUID `gorm:"type:uuid;not null;index:idx_osint_finding_scan" json:"scan_id"`
 	CollectorID     uuid.UUID `gorm:"type:uuid"                                                                   json:"collector_id"`
 	Source          string    `gorm:"not null"                                                                    json:"source"`   // rdap|dns|crtsh|geoip|...
 	Category        string    `gorm:"not null"                                                                    json:"category"` // registration|dns|certificate|geolocation|ports|reputation|breach|historical|identity
@@ -147,8 +147,13 @@ type OsintFinding struct {
 	Confidence      string    `                                                                                   json:"confidence,omitempty"`
 	VerifyNote      string    `gorm:"type:text"                                                                   json:"verify_note,omitempty"`
 	RelatedEntities string    `gorm:"type:text"                                                                   json:"related_entities,omitempty"` // JSON [{type,value}]
-	// DedupeKey is sha256 hex of (source|category|value|title) — collapses the
-	// same trace surfaced twice within one scan to a single row.
-	DedupeKey string    `gorm:"type:varchar(64);index:idx_osint_finding_dedupe,priority:2" json:"-"`
+	// DedupeKey is sha256 hex of (source|category|title|value) — collapses the
+	// same trace surfaced twice within one scan to a single row. The composite
+	// UNIQUE index (scan_id, dedupe_key) lets concurrent collectors insert with
+	// ON CONFLICT DO NOTHING without ever creating a duplicate. It is created and
+	// maintained by raw SQL in database.Init (not an AutoMigrate tag) so that, on
+	// an existing database, a pre-existing non-unique index is reliably replaced
+	// and a failure to build it can never abort application startup.
+	DedupeKey string    `gorm:"type:varchar(64)" json:"-"`
 	CreatedAt time.Time `                                                                  json:"created_at"`
 }

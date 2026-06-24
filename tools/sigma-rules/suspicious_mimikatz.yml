@@ -1,0 +1,11 @@
+title: Suspicious Mimikatz Execution
+description: Detects the execution of mimikatz from command line.
+level: high
+logsource:
+    product: windows
+    service: sysmon
+detection:
+    selection:
+        EventID: 4688
+        Message|contains: 'mimikatz'
+    condition: selection

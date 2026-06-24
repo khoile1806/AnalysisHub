@@ -76,6 +76,9 @@ func NewRouter(
 	protected := v1.Group("/")
 	protected.Use(middleware.AuthMiddleware(jwtSecret, db), middleware.AuditMiddleware())
 	{
+		// Hunting (Sigma Engine)
+		protected.POST("/hunting/sigma/scan", handlers.SigmaScan)
+
 		// Tools
 		protected.GET("/tools", handlers.ListTools)
 		protected.POST("/tools", handlers.UploadTool)
@@ -93,6 +96,10 @@ func NewRouter(
 		protected.GET("/agents/:id/installer", handlers.GetAgentInstaller)
 		protected.GET("/agents/:id/monitor", handlers.GetAgentMonitor)
 		protected.POST("/agents/:id/cleanup", handlers.CleanupAgent)
+		protected.POST("/agents/:id/registry", handlers.AgentRegistryParse)
+		protected.POST("/agents/:id/evtx", handlers.AgentEvtxParse)
+		protected.POST("/agents/:id/mft", handlers.AgentMFTParse)
+		protected.POST("/agents/:id/prefetch", handlers.AgentPrefetchParse)
 
 		// Filesystem browser
 		protected.GET("/agents/:id/fs", handlers.ListAgentFS)
@@ -220,6 +227,11 @@ func NewRouter(
 		protected.GET("/cve-collection/stream", handlers.StreamCVECollection)
 		protected.POST("/cve-collection", handlers.AddToCVECollection)
 		protected.DELETE("/cve-collection/:id", handlers.DeleteFromCVECollection)
+
+		// Volatility Memory Analysis
+		protected.GET("/memory/dumps", handlers.ListMemoryDumps)
+		protected.POST("/memory/upload", handlers.UploadMemoryDump)
+		protected.DELETE("/memory/dumps/:filename", handlers.DeleteMemoryDump)
 
 		// News (used by CVE → News tab inside ForensicHub).
 		protected.GET("/news", handlers.GetNews)

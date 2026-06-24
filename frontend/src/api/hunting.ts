@@ -111,4 +111,17 @@ export const huntingApi = {
   deleteDeployment: async (id: string): Promise<void> => {
     await apiClient.delete(`/hunting/deployments/${id}`)
   },
+
+  scanSigma: async (events: any[]): Promise<SigmaAlert[]> => {
+    // Sigma scan returns raw json object with "alerts" array
+    const { data } = await apiClient.post<{alerts: SigmaAlert[]}>('/hunting/sigma/scan', events)
+    return data.alerts || []
+  },
+}
+
+export interface SigmaAlert {
+  rule_title: string
+  rule_level: string
+  rule_description: string
+  event: any
 }

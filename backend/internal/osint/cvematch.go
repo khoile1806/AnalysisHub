@@ -20,38 +20,7 @@ var rlNVD = newRateLimiter(6 * time.Second)
 // widely-vulnerable product cannot flood the report. Highest CVSS first.
 const maxCVEFindings = 12
 
-// productCPE maps a detected product name (lowercased, as it appears in a banner
-// or Server header) to its NVD CPE vendor:product pair. Only well-known products
-// with an unambiguous CPE are listed - matching the right CPE is what keeps the
-// CVE results accurate instead of noisy keyword hits.
-var productCPE = map[string][2]string{
-	"nginx":            {"nginx", "nginx"},
-	"apache":           {"apache", "http_server"},
-	"httpd":            {"apache", "http_server"},
-	"apache httpd":     {"apache", "http_server"},
-	"tomcat":           {"apache", "tomcat"},
-	"apache tomcat":    {"apache", "tomcat"},
-	"openssh":          {"openbsd", "openssh"},
-	"lighttpd":         {"lighttpd", "lighttpd"},
-	"php":              {"php", "php"},
-	"wordpress":        {"wordpress", "wordpress"},
-	"drupal":           {"drupal", "drupal"},
-	"joomla":           {"joomla", "joomla"},
-	"openssl":          {"openssl", "openssl"},
-	"mysql":            {"oracle", "mysql"},
-	"mariadb":          {"mariadb", "mariadb"},
-	"postgresql":       {"postgresql", "postgresql"},
-	"exim":             {"exim", "exim"},
-	"postfix":          {"postfix", "postfix"},
-	"proftpd":          {"proftpd", "proftpd"},
-	"pure-ftpd":        {"pureftpd", "pure-ftpd"},
-	"dovecot":          {"dovecot", "dovecot"},
-	"jenkins":          {"jenkins", "jenkins"},
-	"grafana":          {"grafana", "grafana"},
-	"elasticsearch":    {"elastic", "elasticsearch"},
-	"redis":            {"redis", "redis"},
-	"mongodb":          {"mongodb", "mongodb"},
-}
+// productCPE map has been removed in favor of Dynamic Fuzzy Matching (Keyword Search).
 
 // versionRe extracts a dotted numeric version (e.g. "1.18.0", "8.2", "2.4.49")
 // from a banner or header value. Suffixes like "p1" or "-Ubuntu" are dropped so
@@ -78,6 +47,7 @@ type nvdCVEResponse struct {
 				V30 []nvdMetric `json:"cvssMetricV30"`
 				V2  []nvdMetric `json:"cvssMetricV2"`
 			} `json:"metrics"`
+			CisaExploitAdd string `json:"cisaExploitAdd"`
 		} `json:"cve"`
 	} `json:"vulnerabilities"`
 }
@@ -92,30 +62,22 @@ type nvdMetric struct {
 
 // cveHit is one matched CVE with its score, used for sorting before emission.
 type cveHit struct {
-	id    string
-	score float64
-	sev   string
-	desc  string
+	id     string
+	score  float64
+	sev    string
+	desc   string
+	isKEV  bool
 }
 
-// lookupCVEs queries NVD for CVEs affecting product@version and returns them as
-// findings (category "vulnerability"), highest CVSS first. It is the bridge from
-// "what software is running" to "what known holes it has". Results are cached so
-// repeated scans and watches don't re-hit the rate-limited NVD API. An empty
-// product/version, an unmapped product, or any NVD error yields no findings (and
-// no error) - CVE matching is best-effort enrichment, never a scan-failing step.
+// lookupCVEs queries NVD for CVEs affecting product@version using Fuzzy Matching
+// (Keyword Search). Results are cached.
 func lookupCVEs(ctx context.Context, env *collectorEnv, sourceLabel, product, version string) []models.OsintFinding {
 	product = strings.ToLower(strings.TrimSpace(product))
 	version = extractVersion(version)
 	if product == "" || version == "" {
 		return nil
 	}
-	cpePair, ok := productCPE[product]
-	if !ok {
-		return nil
-	}
-	vendor, prod := cpePair[0], cpePair[1]
-	return cveByCPE(ctx, env, sourceLabel, vendor, prod, version)
+	return cveByKeyword(ctx, env, sourceLabel, product, version)
 }
 
 // parseCPEVendorProduct extracts the vendor and product from a CPE 2.3 string
@@ -133,25 +95,28 @@ func parseCPEVendorProduct(cpe string) (vendor, product string, ok bool) {
 	return vendor, product, true
 }
 
-// cveByCPE queries NVD for CVEs affecting the exact vendor:product@version and
-// returns them as findings (highest CVSS first), cached. It is the shared core
-// behind both the productCPE-map matcher and the Wappalyzer CPE-driven matcher.
-func cveByCPE(ctx context.Context, env *collectorEnv, sourceLabel, vendor, prod, version string) []models.OsintFinding {
-	version = extractVersion(version)
-	if vendor == "" || prod == "" || version == "" {
+// cveByKeyword queries NVD for CVEs affecting product@version using Fuzzy Matching
+// via keywordSearch, returning findings (highest CVSS first), cached.
+func cveByKeyword(ctx context.Context, env *collectorEnv, sourceLabel, prod, version string) []models.OsintFinding {
+	if prod == "" || version == "" {
 		return nil
 	}
-	cpe := fmt.Sprintf("cpe:2.3:a:%s:%s:%s:*:*:*:*:*:*:*", vendor, prod, version)
+	keyword := fmt.Sprintf("%s %s", prod, version)
 
 	base := env.cfg.APINvdURL
 	if base == "" {
 		base = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 	}
-	u := base + "?resultsPerPage=20&virtualMatchString=" + url.QueryEscape(cpe)
+	u := base + "?resultsPerPage=20&keywordSearch=" + url.QueryEscape(keyword)
 
 	headers := map[string]string{}
 	if env.cfg.NVDAPIKey != "" {
 		headers["apiKey"] = env.cfg.NVDAPIKey
+		// If an API key is provided, the NVD rate limit increases from 5 req/30s to 50 req/30s.
+		// Dynamically adjust the shared rate limiter to allow faster lookups (600ms spacing).
+		rlNVD.mu.Lock()
+		rlNVD.interval = 600 * time.Millisecond
+		rlNVD.mu.Unlock()
 	}
 
 	// Cap each NVD call so a slow/throttled response can't drain the collector's
@@ -160,7 +125,8 @@ func cveByCPE(ctx context.Context, env *collectorEnv, sourceLabel, vendor, prod,
 	defer cancel()
 
 	var r nvdCVEResponse
-	status, err := cachedGetJSON(nctx, env.cache, "nvd:"+vendor+":"+prod+":"+version, rlNVD, u, headers, &r, ttlNVD)
+	cacheKey := "nvd_kw:" + prod + ":" + version
+	status, err := cachedGetJSON(nctx, env.cache, cacheKey, rlNVD, u, headers, &r, ttlNVD)
 	if err != nil || status != 200 || len(r.Vulnerabilities) == 0 {
 		return nil
 	}
@@ -176,7 +142,8 @@ func cveByCPE(ctx context.Context, env *collectorEnv, sourceLabel, vendor, prod,
 				break
 			}
 		}
-		hits = append(hits, cveHit{id: c.ID, score: score, sev: sev, desc: desc})
+		isKEV := c.CisaExploitAdd != ""
+		hits = append(hits, cveHit{id: c.ID, score: score, sev: sev, desc: desc, isKEV: isKEV})
 	}
 	// Highest CVSS first so the most serious CVEs lead the report.
 	sort.Slice(hits, func(i, j int) bool { return hits[i].score > hits[j].score })
@@ -201,12 +168,18 @@ func cveByCPE(ctx context.Context, env *collectorEnv, sourceLabel, vendor, prod,
 
 	for _, h := range hits {
 		title := h.id
+		if h.isKEV {
+			title = fmt.Sprintf("[KEV] %s", h.id)
+		}
 		if h.score > 0 {
-			title = fmt.Sprintf("%s (CVSS %.1f)", h.id, h.score)
+			title = fmt.Sprintf("%s (CVSS %.1f)", title, h.score)
 		}
 		f := newFinding(sourceLabel, "vulnerability", title, truncate(h.desc, 280))
 		f.Severity = cvssToSeverity(h.score, h.sev)
-		f.Data = toJSON(map[string]interface{}{"cve": h.id, "cvss": h.score, "product": prettyProduct, "version": version})
+		if h.isKEV {
+			f.Severity = "critical"
+		}
+		f.Data = toJSON(map[string]interface{}{"cve": h.id, "cvss": h.score, "product": prettyProduct, "version": version, "kev": h.isKEV})
 		f = withSource(f, "https://nvd.nist.gov/vuln/detail/"+h.id) // verifiable CVE record
 		out = append(out, f)
 	}

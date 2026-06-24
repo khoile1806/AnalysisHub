@@ -37,18 +37,6 @@ func collectThreatFox(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 		"query":       "search_ioc",
 		"search_term": env.target,
 	})
-	body, status, err := httpPostBody(ctx, rlAbuseCh,
-		"https://threatfox-api.abuse.ch/api/v1/", "application/json", reqBody, abuseChHeaders(env))
-	if err != nil {
-		return nil, err
-	}
-	if status == 401 || status == 403 {
-		return nil, errNoAPIKey // needs a free abuse.ch Auth-Key
-	}
-	if status < 200 || status >= 300 {
-		return nil, fmt.Errorf("ThreatFox returned HTTP %d", status)
-	}
-
 	var r struct {
 		QueryStatus string `json:"query_status"`
 		Data        []struct {
@@ -60,7 +48,18 @@ func collectThreatFox(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 			FirstSeen       string `json:"first_seen"`
 		} `json:"data"`
 	}
-	if json.Unmarshal(body, &r) != nil || r.QueryStatus != "ok" || len(r.Data) == 0 {
+	status, err := cachedPostJSON(ctx, env.cache, "threatfox:"+strings.ToLower(env.target), rlAbuseCh,
+		"https://threatfox-api.abuse.ch/api/v1/", "application/json", reqBody, abuseChHeaders(env), &r, ttlReputation)
+	if err != nil {
+		return nil, err
+	}
+	if status == 401 || status == 403 {
+		return nil, errNoAPIKey // needs a free abuse.ch Auth-Key
+	}
+	if status < 200 || status >= 300 {
+		return nil, fmt.Errorf("ThreatFox returned HTTP %d", status)
+	}
+	if r.QueryStatus != "ok" || len(r.Data) == 0 {
 		env.emit("[*] threatfox: indicator not present in ThreatFox")
 		return nil, nil
 	}
@@ -89,19 +88,6 @@ func collectThreatFox(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 func collectURLhaus(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	form := url.Values{}
 	form.Set("host", env.target)
-	body, status, err := httpPostBody(ctx, rlAbuseCh,
-		"https://urlhaus-api.abuse.ch/v1/host/", "application/x-www-form-urlencoded",
-		[]byte(form.Encode()), abuseChHeaders(env))
-	if err != nil {
-		return nil, err
-	}
-	if status == 401 || status == 403 {
-		return nil, errNoAPIKey
-	}
-	if status < 200 || status >= 300 {
-		return nil, fmt.Errorf("URLhaus returned HTTP %d", status)
-	}
-
 	var r struct {
 		QueryStatus string `json:"query_status"`
 		URLs        []struct {
@@ -111,7 +97,19 @@ func collectURLhaus(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 			DateAdded string `json:"date_added"`
 		} `json:"urls"`
 	}
-	if json.Unmarshal(body, &r) != nil || r.QueryStatus != "ok" || len(r.URLs) == 0 {
+	status, err := cachedPostJSON(ctx, env.cache, "urlhaus:"+strings.ToLower(env.target), rlAbuseCh,
+		"https://urlhaus-api.abuse.ch/v1/host/", "application/x-www-form-urlencoded",
+		[]byte(form.Encode()), abuseChHeaders(env), &r, ttlReputation)
+	if err != nil {
+		return nil, err
+	}
+	if status == 401 || status == 403 {
+		return nil, errNoAPIKey
+	}
+	if status < 200 || status >= 300 {
+		return nil, fmt.Errorf("URLhaus returned HTTP %d", status)
+	}
+	if r.QueryStatus != "ok" || len(r.URLs) == 0 {
 		env.emit("[*] urlhaus: host not present in URLhaus")
 		return nil, nil
 	}
@@ -142,19 +140,6 @@ func collectMalwareBazaar(ctx context.Context, env *collectorEnv) ([]models.Osin
 	form := url.Values{}
 	form.Set("query", "get_info")
 	form.Set("hash", env.target)
-	body, status, err := httpPostBody(ctx, rlAbuseCh,
-		"https://mb-api.abuse.ch/api/v1/", "application/x-www-form-urlencoded",
-		[]byte(form.Encode()), abuseChHeaders(env))
-	if err != nil {
-		return nil, err
-	}
-	if status == 401 || status == 403 {
-		return nil, errNoAPIKey
-	}
-	if status < 200 || status >= 300 {
-		return nil, fmt.Errorf("MalwareBazaar returned HTTP %d", status)
-	}
-
 	var r struct {
 		QueryStatus string `json:"query_status"`
 		Data        []struct {
@@ -164,7 +149,19 @@ func collectMalwareBazaar(ctx context.Context, env *collectorEnv) ([]models.Osin
 			FirstSeen string `json:"first_seen"`
 		} `json:"data"`
 	}
-	if json.Unmarshal(body, &r) != nil || r.QueryStatus != "ok" || len(r.Data) == 0 {
+	status, err := cachedPostJSON(ctx, env.cache, "mb:"+strings.ToLower(env.target), rlAbuseCh,
+		"https://mb-api.abuse.ch/api/v1/", "application/x-www-form-urlencoded",
+		[]byte(form.Encode()), abuseChHeaders(env), &r, ttlHashLookup)
+	if err != nil {
+		return nil, err
+	}
+	if status == 401 || status == 403 {
+		return nil, errNoAPIKey
+	}
+	if status < 200 || status >= 300 {
+		return nil, fmt.Errorf("MalwareBazaar returned HTTP %d", status)
+	}
+	if r.QueryStatus != "ok" || len(r.Data) == 0 {
 		env.emit("[*] malwarebazaar: hash not present in MalwareBazaar")
 		return nil, nil
 	}

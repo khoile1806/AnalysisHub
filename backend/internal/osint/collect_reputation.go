@@ -2,7 +2,6 @@ package osint
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -110,7 +109,8 @@ func collectPulsedive(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 		} `json:"threats"`
 		Error string `json:"error"`
 	}
-	status, err := httpGetJSON(ctx, rlPulsedive, u, nil, &r)
+	// Cached by indicator (the API key in the URL doesn't change the verdict).
+	status, err := cachedGetJSON(ctx, env.cache, "pulsedive:"+strings.ToLower(env.target), rlPulsedive, u, nil, &r, ttlReputation)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,14 @@ func collectGreyNoise(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	if env.keys.GreyNoise != "" {
 		headers["key"] = env.keys.GreyNoise // optional - raises the community rate limit
 	}
-	body, status, err := httpGetBody(ctx, rlGreyNoise, u, headers)
+	var r struct {
+		Noise          bool   `json:"noise"`
+		Riot           bool   `json:"riot"`
+		Classification string `json:"classification"`
+		Name           string `json:"name"`
+		LastSeen       string `json:"last_seen"`
+	}
+	status, err := cachedGetJSON(ctx, env.cache, "greynoise:"+strings.ToLower(env.target), rlGreyNoise, u, headers, &r, ttlReputation)
 	if err != nil {
 		return nil, err
 	}
@@ -180,16 +187,6 @@ func collectGreyNoise(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	}
 	if status < 200 || status >= 300 {
 		return nil, fmt.Errorf("GreyNoise returned HTTP %d", status)
-	}
-	var r struct {
-		Noise          bool   `json:"noise"`
-		Riot           bool   `json:"riot"`
-		Classification string `json:"classification"`
-		Name           string `json:"name"`
-		LastSeen       string `json:"last_seen"`
-	}
-	if json.Unmarshal(body, &r) != nil {
-		return nil, fmt.Errorf("could not decode GreyNoise response")
 	}
 
 	detail := fmt.Sprintf("classification: %s", r.Classification)

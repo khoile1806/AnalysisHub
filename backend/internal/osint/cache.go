@@ -25,6 +25,9 @@ const (
 	ttlHashLookup = 7 * 24 * time.Hour // file reputation is effectively static
 	ttlTyposquat  = 12 * time.Hour
 	ttlNVD        = 24 * time.Hour // CVE lists for a fixed product@version change slowly
+	ttlReputation = 6 * time.Hour  // abuse.ch / pulsedive / greynoise / abuseipdb verdicts
+	ttlCrtSh      = 6 * time.Hour   // CT-log subdomain set grows slowly
+	ttlWayback    = 24 * time.Hour  // archived-URL history is effectively append-only
 )
 
 // osintCache is a thin TTL cache over Redis for idempotent third-party lookups
@@ -120,6 +123,64 @@ func cachedGetJSON(ctx context.Context, c *osintCache, key string, rl *rateLimit
 		stored := body
 		if status != 200 {
 			stored = nil // no need to retain a not-found body
+		}
+		c.set(ctx, key, status, stored, ttl)
+	}
+	return status, nil
+}
+
+// cachedGetBody is httpGetBody with a Redis read-through cache keyed by `key`,
+// for collectors that parse the raw body themselves (e.g. crt.sh, Wayback). A
+// nil cache or empty key transparently disables caching.
+func cachedGetBody(ctx context.Context, c *osintCache, key string, rl *rateLimiter,
+	url string, headers map[string]string, ttl time.Duration) ([]byte, int, error) {
+
+	if status, body, hit := c.get(ctx, key); hit {
+		return body, status, nil
+	}
+	body, status, err := httpGetBody(ctx, rl, url, headers)
+	if err != nil {
+		return body, status, err
+	}
+	if cacheableStatus(status) {
+		stored := body
+		if status != 200 {
+			stored = nil
+		}
+		c.set(ctx, key, status, stored, ttl)
+	}
+	return body, status, nil
+}
+
+// cachedPostJSON is httpPostBody with a Redis read-through cache keyed by `key`.
+// Used for the abuse.ch feeds, whose APIs are POST-only; the key must capture the
+// query (endpoint + indicator) so distinct lookups don't collide. A "no result"
+// 200 is cached too, so a negative lookup isn't repeated within the TTL.
+func cachedPostJSON(ctx context.Context, c *osintCache, key string, rl *rateLimiter,
+	url, contentType string, reqBody []byte, headers map[string]string, out interface{}, ttl time.Duration) (int, error) {
+
+	if status, body, hit := c.get(ctx, key); hit {
+		if status == 200 && out != nil && len(body) > 0 {
+			_ = json.Unmarshal(body, out)
+		}
+		return status, nil
+	}
+	body, status, err := httpPostBody(ctx, rl, url, contentType, reqBody, headers)
+	if err != nil {
+		return status, err
+	}
+	if status >= 200 && status < 300 && out != nil && len(body) > 0 {
+		// Best-effort decode: the abuse.ch feeds return a non-array "data"/"urls"
+		// field on a no-result query, which is a JSON type mismatch but NOT a real
+		// error. encoding/json still populates the fields that do match (notably
+		// query_status), so let the caller decide from query_status instead of
+		// failing the whole collector on the expected no-result shape.
+		_ = json.Unmarshal(body, out)
+	}
+	if cacheableStatus(status) {
+		stored := body
+		if status != 200 {
+			stored = nil
 		}
 		c.set(ctx, key, status, stored, ttl)
 	}

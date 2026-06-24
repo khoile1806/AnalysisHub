@@ -73,4 +73,24 @@ export const agentsApi = {
   cleanup: async (id: string): Promise<void> => {
     await apiClient.post(`/agents/${id}/cleanup`, {})
   },
+
+  parseRegistry: async (id: string, root: string, path: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/registry`, { root, path })
+    return data
+  },
+
+  parseEvtx: async (id: string, logName: string, eventId: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/evtx`, { log_name: logName, event_id: eventId })
+    return data
+  },
+
+  parseMFT: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/mft`)
+    return data
+  },
+
+  parsePrefetch: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/prefetch`)
+    return data
+  }
 }

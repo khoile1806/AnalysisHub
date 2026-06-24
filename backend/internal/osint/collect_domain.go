@@ -252,11 +252,16 @@ var rlCertSpotter = newRateLimiter(2 * time.Second)
 func collectCrtSh(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	target := strings.ToLower(env.target)
 	subs, src, err := ctSubdomains(ctx, env, target)
-	if err != nil && len(subs) == 0 {
-		return nil, err
-	}
 	if len(subs) == 0 {
-		env.emit("[*] crtsh: no subdomains in CT logs")
+		// CT enumeration is best-effort: crt.sh is frequently slow or unreachable
+		// and certspotter (its fallback) can also be empty. A transient failure
+		// here must not fail the collector - subdomains still come from subbrute
+		// and host_search - so degrade to a clean "no data" result.
+		if err != nil {
+			env.emit("[*] crtsh: CT lookup unavailable (" + err.Error() + ") - skipping")
+		} else {
+			env.emit("[*] crtsh: no subdomains in CT logs")
+		}
 		return nil, nil
 	}
 	sort.Strings(subs)
@@ -328,7 +333,7 @@ func ctSubdomains(ctx context.Context, env *collectorEnv, target string) (subs [
 	q := url.Values{}
 	q.Set("q", "%."+target)
 	q.Set("output", "json")
-	body, status, cerr := httpGetBody(ctx, rlCrtSh, "https://crt.sh/?"+q.Encode(), nil)
+	body, status, cerr := cachedGetBody(ctx, env.cache, "crtsh:"+target, rlCrtSh, "https://crt.sh/?"+q.Encode(), nil, ttlCrtSh)
 	if cerr == nil && status == 200 {
 		var rows []crtShRow
 		if json.Unmarshal(body, &rows) == nil {
@@ -351,7 +356,7 @@ func ctSubdomains(ctx context.Context, env *collectorEnv, target string) (subs [
 	var issuances []struct {
 		DNSNames []string `json:"dns_names"`
 	}
-	if st, ferr := httpGetJSON(ctx, rlCertSpotter, cs, nil, &issuances); ferr == nil && st == 200 {
+	if st, ferr := cachedGetJSON(ctx, env.cache, "certspotter:"+target, rlCertSpotter, cs, nil, &issuances, ttlCrtSh); ferr == nil && st == 200 {
 		for _, is := range issuances {
 			for _, name := range is.DNSNames {
 				add(name)
@@ -420,7 +425,7 @@ func collectWayback(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 	q.Set("fl", "original,timestamp,statuscode")
 	u := env.cfg.APIWebArchiveURL + "?" + q.Encode()
 
-	body, status, err := httpGetBody(ctx, nil, u, nil)
+	body, status, err := cachedGetBody(ctx, env.cache, "wayback:"+strings.ToLower(env.target), nil, u, nil, ttlWayback)
 	if err != nil {
 		return nil, err
 	}

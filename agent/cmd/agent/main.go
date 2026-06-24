@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -16,9 +17,34 @@ import (
 
 	"github.com/forensichub/agent/internal/config"
 	"github.com/forensichub/agent/internal/ws"
+	"github.com/forensichub/agent/internal/parser"
 )
 
 func main() {
+	// Check for elevated subprocess commands first
+	if len(os.Args) >= 3 && os.Args[1] == "scan-mft" {
+		outPath := os.Args[2]
+		res, err := parser.ParseMFT()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-prefetch" {
+		outPath := os.Args[2]
+		res, err := parser.ParsePrefetch()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+
 	// The standard logger is bridged to slog later.
 
 	// ------------------------------------------------------------------

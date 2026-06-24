@@ -271,6 +271,23 @@ func (h *Hub) handleAgentMessage(msg agentInbound) {
 			}
 		}
 
+	case "artifact_data":
+		if am.JobID == "" {
+			return
+		}
+
+		h.mu.RLock()
+		subs := make([]chan string, len(h.subscribers[am.JobID]))
+		copy(subs, h.subscribers[am.JobID])
+		h.mu.RUnlock()
+
+		for _, ch := range subs {
+			select {
+			case ch <- am.Data:
+			default:
+			}
+		}
+
 	case "realtime_data":
 		if am.DataType == "" || am.Payload == "" {
 			return

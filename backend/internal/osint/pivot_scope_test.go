@@ -42,6 +42,46 @@ func TestInPivotScopeNonDomainRoots(t *testing.T) {
 	}
 }
 
+// TestIsGenericReverseDNS guards the false-positive/out-of-scope fix: ISP and
+// hosting auto-generated PTR names must be recognised so an IP root doesn't
+// pivot into the provider's addressing scheme, while a real asset hostname is
+// left investigable.
+func TestIsGenericReverseDNS(t *testing.T) {
+	generic := []struct{ host, ip string }{
+		{"static.5.6.7.8.clients.your-host.de", "5.6.7.8"},
+		{"dynamic-203-0-113-9.dsl.example-isp.net", "203.0.113.9"},
+		{"dsl-189-160-12-34.prod-infinitum.com.mx", ""},
+		{"host-198-51-100-2.pool.example.net", "198.51.100.2"},
+		{"203.0.113.9.in-addr.arpa", "203.0.113.9"},
+	}
+	for _, g := range generic {
+		if !isGenericReverseDNS(g.host, g.ip) {
+			t.Errorf("expected %q (ip %q) to be generic reverse-DNS", g.host, g.ip)
+		}
+	}
+	real := []struct{ host, ip string }{
+		{"api.victimcorp.com", "5.6.7.8"},
+		{"mail.acme.org", ""},
+		{"shop.example.co.uk", "198.51.100.2"},
+	}
+	for _, r := range real {
+		if isGenericReverseDNS(r.host, r.ip) {
+			t.Errorf("expected %q (ip %q) to NOT be generic reverse-DNS", r.host, r.ip)
+		}
+	}
+}
+
+// TestInPivotScopeIPRootGenericRDNS confirms an IP root rejects a pivot into a
+// generic ISP/hosting reverse-DNS host.
+func TestInPivotScopeIPRootGenericRDNS(t *testing.T) {
+	if ok, _ := inPivotScope("5.6.7.8", TargetIP, "static.5.6.7.8.clients.your-host.de", TargetDomain); ok {
+		t.Error("IP root should not pivot into a generic reverse-DNS host")
+	}
+	if ok, _ := inPivotScope("5.6.7.8", TargetIP, "api.victimcorp.com", TargetDomain); !ok {
+		t.Error("IP root should still pivot into a real co-hosted asset")
+	}
+}
+
 // TestInPivotScopeDomainRootUnchanged confirms the (already tight) domain-root
 // namespace rule still holds and is not loosened by the provider logic.
 func TestInPivotScopeDomainRootUnchanged(t *testing.T) {

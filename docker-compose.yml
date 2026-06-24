@@ -42,6 +42,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: forensichub_backend
+    user: root
     # Pull every key/setting from .env (VirusTotal, Shodan, abuse.ch, proxy, …)
     # into the container. Explicit `environment:` entries below still win for the
     # container-internal values (DB/Redis hostnames, Tor service name).
@@ -79,6 +80,17 @@ services:
         condition: service_healthy
       tor:
         condition: service_started
+    restart: unless-stopped
+
+  volatility_sandbox:
+    build:
+      context: ./volatility
+      dockerfile: Dockerfile
+    container_name: forensichub_volatility
+    ports:
+      - "7681:7681"
+    volumes:
+      - storage_data:/app/storage
     restart: unless-stopped
 
   frontend:

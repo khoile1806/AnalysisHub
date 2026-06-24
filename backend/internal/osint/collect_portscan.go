@@ -117,6 +117,16 @@ func collectPortScan(ctx context.Context, env *collectorEnv) ([]models.OsintFind
 	}
 	env.emit(fmt.Sprintf("[*] portscan: full TCP sweep 1-%d (%d concurrent)", maxPort, concurrency))
 
+	// Calibrate the per-port connect timeout to the host's measured latency. This
+	// only ever LOWERS the timeout below the 2s default, and only when the host
+	// gives definitive responses (open/refused) - a silent/filtered host keeps the
+	// full 2s budget so a slow open port is never missed.
+	const defConnTimeout = 2 * time.Second
+	connTimeout := calibrateTimeout(ctx, ip, defConnTimeout)
+	if connTimeout < defConnTimeout {
+		env.emit(fmt.Sprintf("[*] portscan: host responsive - adaptive connect timeout %s", connTimeout))
+	}
+
 	var (
 		mu      sync.Mutex
 		results []portResult
@@ -133,7 +143,7 @@ func collectPortScan(ctx context.Context, env *collectorEnv) ([]models.OsintFind
 				if ctx.Err() != nil {
 					return
 				}
-				if res, isOpen := probePort(ctx, ip, p); isOpen {
+				if res, isOpen := probePort(ctx, ip, p, connTimeout); isOpen {
 					mu.Lock()
 					results = append(results, res)
 					mu.Unlock()
@@ -305,10 +315,50 @@ func inferOS(results []portResult) (models.OsintFinding, bool) {
 	return models.OsintFinding{}, false
 }
 
+// calibrateTimeout probes a small mixed set of ports to learn the host's TCP
+// response latency, then returns a per-port connect timeout for the full sweep.
+// Both an accepted connection and a "connection refused" are definitive
+// responses that yield a latency sample; silent (filtered) ports yield none.
+// With fewer than three samples the host is treated as unresponsive and the
+// full default timeout is kept, so a slow open port on a filtered host is never
+// missed. Otherwise the timeout is set to 10x the median observed latency,
+// clamped to [750ms, def].
+func calibrateTimeout(ctx context.Context, ip string, def time.Duration) time.Duration {
+	probes := []int{80, 443, 22, 21, 25, 53, 3389, 8080, 1, 7, 13, 113, 65000, 65001, 65002}
+	var lat []time.Duration
+	for _, p := range probes {
+		if ctx.Err() != nil {
+			break
+		}
+		start := time.Now()
+		d := net.Dialer{Timeout: def}
+		conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(ip, strconv.Itoa(p)))
+		el := time.Since(start)
+		if err == nil {
+			conn.Close()
+			lat = append(lat, el)
+		} else if strings.Contains(strings.ToLower(err.Error()), "refused") {
+			lat = append(lat, el) // host answered (port closed) - a valid RTT sample
+		}
+	}
+	if len(lat) < 3 {
+		return def // unresponsive/filtered host - keep the full no-miss budget
+	}
+	sort.Slice(lat, func(i, j int) bool { return lat[i] < lat[j] })
+	t := lat[len(lat)/2] * 10
+	if floor := 750 * time.Millisecond; t < floor {
+		t = floor
+	}
+	if t > def {
+		t = def
+	}
+	return t
+}
+
 // probePort attempts a TCP connection and, on success, grabs a service banner.
-func probePort(ctx context.Context, ip string, port int) (portResult, bool) {
+func probePort(ctx context.Context, ip string, port int, connTimeout time.Duration) (portResult, bool) {
 	addr := net.JoinHostPort(ip, strconv.Itoa(port))
-	d := net.Dialer{Timeout: 2 * time.Second}
+	d := net.Dialer{Timeout: connTimeout}
 	conn, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return portResult{}, false

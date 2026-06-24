@@ -57,6 +57,15 @@ func maxConcurrentScans(cfg *config.Config) int {
 	return 6
 }
 
+// cohostPivotMax resolves the shared-hosting co-host pivot threshold, defaulting
+// to 5 when unset.
+func cohostPivotMax(cfg *config.Config) int {
+	if cfg != nil && cfg.OsintCohostPivotMax > 0 {
+		return cfg.OsintCohostPivotMax
+	}
+	return 5
+}
+
 // NewEngine builds the engine and recovers any scans left "running" by a crash.
 func NewEngine(db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.EnrichClient, rdb *redis.Client) *Engine {
 	e := &Engine{
@@ -101,17 +110,20 @@ func (e *Engine) recoverStuckScans() {
 // Subscribe returns a channel pre-loaded with the scan's output history so a
 // late subscriber (refresh / navigation) sees all prior output immediately.
 func (e *Engine) Subscribe(scanID string) chan string {
-	ch := make(chan string, 512)
-
 	e.histMu.Lock()
 	hist := e.history[scanID]
-	for _, line := range hist {
-		select {
-		case ch <- line:
-		default:
-		}
-	}
 	histLen := len(hist)
+	// Size the buffer to fit the entire replayed history plus live-line headroom,
+	// so a late subscriber to a chatty scan (e.g. a long portscan) never silently
+	// loses the start of its log to a full channel.
+	bufSize := histLen + 256
+	if bufSize < 512 {
+		bufSize = 512
+	}
+	ch := make(chan string, bufSize)
+	for _, line := range hist {
+		ch <- line // guaranteed to fit: bufSize >= histLen
+	}
 	e.histMu.Unlock()
 
 	e.mu.Lock()
@@ -174,6 +186,22 @@ func (e *Engine) DeleteHistory(scanID string) {
 	e.histMu.Unlock()
 }
 
+// historyTTL is how long a finished scan's output buffer is retained in memory
+// for SSE replay (page refresh) before it is freed. Without this, the history
+// map grows unbounded across every scan and auto-pivot child for the life of the
+// process; the durable record lives in the database, not this buffer.
+const historyTTL = 15 * time.Minute
+
+// scheduleHistoryCleanup frees a finished scan's in-memory output buffer after a
+// grace period, unless the scan has been started again in the meantime.
+func (e *Engine) scheduleHistoryCleanup(scanID string) {
+	time.AfterFunc(historyTTL, func() {
+		if !e.IsRunning(scanID) {
+			e.DeleteHistory(scanID)
+		}
+	})
+}
+
 // IsRunning reports whether a scan is currently executing.
 func (e *Engine) IsRunning(scanID string) bool {
 	e.mu.Lock()
@@ -228,6 +256,7 @@ func (e *Engine) StartScan(scan *models.OsintScan, collectors []models.OsintColl
 					e.finalizeScan(scan, models.OsintStopped)
 					e.emit(scan.ID.String(), "[!] Scan stopped before it started (was queued)")
 					e.emit(scan.ID.String(), "__DONE__")
+					e.scheduleHistoryCleanup(scan.ID.String())
 					return
 				}
 			}
@@ -329,6 +358,7 @@ func (e *Engine) runPipeline(ctx context.Context, scan *models.OsintScan, rows [
 		}
 	}
 	e.emit(scanID, "__DONE__")
+	e.scheduleHistoryCleanup(scanID)
 }
 
 // autoPivot expands the investigation graph: it reads the related entities this
@@ -387,6 +417,44 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 	}
 	parentID := parent.ID
 
+	// Shared-hosting guard: an IP that hosts many domains is shared infrastructure,
+	// so its co-hosted domains are other tenants - keep them as findings but don't
+	// pivot into them (otherwise an IP root explodes into unrelated sites).
+	suppressedCohost := map[string]bool{}
+	if parent.TargetType == TargetIP {
+		var cohosts []string
+		for i := range findings {
+			if findings[i].Source == "reverse_ip" {
+				cohosts = append(cohosts, strings.ToLower(strings.TrimSpace(findings[i].Value)))
+			}
+		}
+		if len(cohosts) > cohostPivotMax(e.cfg) {
+			for _, c := range cohosts {
+				suppressedCohost[c] = true
+			}
+			e.emit(parentID.String(), fmt.Sprintf(
+				"[*] auto-pivot: %d co-hosted domains on %s - treating as shared hosting, not pivoting tenants",
+				len(cohosts), parent.Target))
+		}
+	}
+
+	// Resolve, in one query, which candidate targets are already in this graph,
+	// so the per-pivot loop doesn't run an N+1 of COUNT queries.
+	candVals := make([]string, 0, len(pivots))
+	for _, p := range pivots {
+		candVals = append(candVals, p.value)
+	}
+	alreadyInGraph := map[string]bool{}
+	if len(candVals) > 0 {
+		var existing []string
+		e.db.Model(&models.OsintScan{}).
+			Where("(root_scan_id = ? OR id = ?) AND target IN ?", rootID, rootID, candVals).
+			Pluck("target", &existing)
+		for _, t := range existing {
+			alreadyInGraph[t] = true
+		}
+	}
+
 	for _, p := range pivots {
 		ttype := p.ttype
 		if ttype == "" {
@@ -412,12 +480,14 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 			continue
 		}
 
+		// Skip co-hosted tenants of a shared IP (recorded as findings, not scanned).
+		if suppressedCohost[strings.ToLower(p.value)] {
+			e.emit(parentID.String(), fmt.Sprintf("[*] auto-pivot skip %s (%s) - co-hosted on shared IP", p.value, ttype))
+			continue
+		}
+
 		// Skip if this target was already investigated in this graph.
-		var count int64
-		e.db.Model(&models.OsintScan{}).
-			Where("(root_scan_id = ? OR id = ?) AND target = ?", rootID, rootID, p.value).
-			Count(&count)
-		if count > 0 {
+		if alreadyInGraph[p.value] {
 			continue
 		}
 
@@ -443,8 +513,11 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 		collectors := make([]models.OsintCollector, len(names))
 		for i, n := range names {
 			collectors[i] = models.OsintCollector{ScanID: child.ID, Name: n, Status: models.OsintCollectorPending}
-			e.db.Create(&collectors[i])
 		}
+		if len(collectors) > 0 {
+			e.db.Create(&collectors) // single batch insert
+		}
+		alreadyInGraph[p.value] = true
 		e.emit(parentID.String(), fmt.Sprintf("[*] auto-pivot -> %s (%s) - depth %d", p.value, ttype, child.Depth))
 		_ = e.StartScan(&child, collectors)
 	}

@@ -3,6 +3,7 @@ package osint
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,6 +58,12 @@ func buildDarkWebProviders(cfg *config.Config) []DarkWebProvider {
 		&aggregatorSeam{name: "DarkOwl", key: cfg.DarkOwlKey},
 		&aggregatorSeam{name: "Intel471", key: cfg.Intel471Key},
 	}
+	if cfg.OsintHIBPKey != "" {
+		ps = append(ps, &hibpProvider{key: cfg.OsintHIBPKey})
+	}
+	if cfg.OsintDehashedKey != "" {
+		ps = append(ps, &dehashedProvider{key: cfg.OsintDehashedKey})
+	}
 	if len(cfg.DarkWebSources) > 0 {
 		ps = append(ps, newCrawlerProvider(cfg.DarkWebSources, cfg.TorProxy))
 	}
@@ -77,6 +84,141 @@ func (a *aggregatorSeam) Search(ctx context.Context, selectors []string) ([]Dark
 	// Seam: wire the licensed vendor API here. Until then a configured key is a
 	// no-op rather than an error, so it never breaks a scan.
 	return nil, nil
+}
+
+// ── HIBP Provider ────────────────────────────────────────────────────────────
+
+type hibpProvider struct {
+	key string
+}
+
+func (p *hibpProvider) Name() string    { return "HaveIBeenPwned" }
+func (p *hibpProvider) Configured() bool { return strings.TrimSpace(p.key) != "" }
+func (p *hibpProvider) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {
+	var hits []DarkWebHit
+	for _, sel := range selectors {
+		// HIBP mainly works for email addresses or phone numbers.
+		if !strings.Contains(sel, "@") {
+			continue // Skip non-emails for now to avoid spamming the API
+		}
+		
+		target := fmt.Sprintf("https://haveibeenpwned.com/api/v3/breachedaccount/%s?truncateResponse=false", url.PathEscape(sel))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("User-Agent", "ForensicHub-OSINT")
+		req.Header.Set("hibp-api-key", p.key)
+
+		// Respect the 1.5s rate limit of HIBP
+		time.Sleep(1600 * time.Millisecond)
+
+		resp, err := osintHTTPClient.Do(req)
+		if err != nil {
+			continue
+		}
+		
+		if resp.StatusCode == 200 {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			var breaches []struct {
+				Name        string `json:"Name"`
+				Title       string `json:"Title"`
+				Description string `json:"Description"`
+			}
+			if err := json.Unmarshal(body, &breaches); err == nil {
+				for _, b := range breaches {
+					hits = append(hits, DarkWebHit{
+						Source:   "HIBP",
+						Title:    fmt.Sprintf("Breach: %s", b.Title),
+						Snippet:  b.Description,
+						URL:      "https://haveibeenpwned.com/PwnedWebsites#" + b.Name,
+						Severity: "high",
+					})
+				}
+			}
+		} else {
+			resp.Body.Close()
+		}
+	}
+	return hits, nil
+}
+
+// ── Dehashed Provider ────────────────────────────────────────────────────────
+
+type dehashedProvider struct {
+	key string
+}
+
+func (p *dehashedProvider) Name() string    { return "Dehashed" }
+func (p *dehashedProvider) Configured() bool { return strings.TrimSpace(p.key) != "" }
+func (p *dehashedProvider) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {
+	var hits []DarkWebHit
+	
+	// Dehashed key is usually "email:apikey" or just "apikey" depending on config.
+	// For this integration we expect the standard "email:apikey" format in the ENV.
+	creds := strings.SplitN(p.key, ":", 2)
+	var authEmail, authKey string
+	if len(creds) == 2 {
+		authEmail = creds[0]
+		authKey = creds[1]
+	} else {
+		return nil, fmt.Errorf("dehashed api key must be in format email:apikey")
+	}
+
+	for _, sel := range selectors {
+		// Dehashed can search for domain, email, ip, etc.
+		target := fmt.Sprintf("https://api.dehashed.com/search?query=%s", url.QueryEscape(fmt.Sprintf(`"%s"`, sel)))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Accept", "application/json")
+		req.SetBasicAuth(authEmail, authKey)
+
+		// Gentle rate limiting
+		time.Sleep(500 * time.Millisecond)
+
+		resp, err := osintHTTPClient.Do(req)
+		if err != nil {
+			continue
+		}
+
+		if resp.StatusCode == 200 {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			var result struct {
+				Entries []struct {
+					Email    string `json:"email"`
+					Password string `json:"password"`
+					Hash     string `json:"hashed_password"`
+					Database string `json:"database_name"`
+				} `json:"entries"`
+			}
+			if err := json.Unmarshal(body, &result); err == nil {
+				for i, entry := range result.Entries {
+					if i >= 10 {
+						break // limit to top 10 to avoid noise
+					}
+					var snippetParts []string
+					if entry.Email != "" { snippetParts = append(snippetParts, "Email: "+entry.Email) }
+					if entry.Password != "" { snippetParts = append(snippetParts, "Password: "+entry.Password) }
+					if entry.Hash != "" { snippetParts = append(snippetParts, "Hash: "+entry.Hash) }
+					
+					hits = append(hits, DarkWebHit{
+						Source:   "Dehashed",
+						Title:    fmt.Sprintf("Leak in %s", entry.Database),
+						Snippet:  strings.Join(snippetParts, " | "),
+						URL:      "https://dehashed.com",
+						Severity: "critical", // Passwords/hashes are critical
+					})
+				}
+			}
+		} else {
+			resp.Body.Close()
+		}
+	}
+	return hits, nil
 }
 
 // crawlerProvider fetches operator-configured source URLs and reports where any

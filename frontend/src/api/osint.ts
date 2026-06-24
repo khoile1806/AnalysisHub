@@ -186,6 +186,7 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   email_social:      'Email → Social Accounts',
   hibp:              'Have I Been Pwned',
   xposed:            'XposedOrNot Breaches',
+  leakcheck:         'LeakCheck (breaches)',
   phone_meta:        'Phone Metadata',
   numverify:         'NumVerify',
   social_search:     'Social Media Check',

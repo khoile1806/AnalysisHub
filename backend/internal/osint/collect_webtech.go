@@ -127,7 +127,12 @@ func collectWebTech(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 
 			if version != "" && cveDone < 5 {
 				if vendor, product, ok := parseCPEVendorProduct(info.CPE); ok {
-					if cves := cveByCPE(ctx, env, "webtech", vendor, product, version); len(cves) > 0 {
+					if cves := lookupCVEs(ctx, env, "webtech", vendor+" "+product, version); len(cves) > 0 {
+						out = append(out, cves...)
+						cveDone++
+					}
+				} else {
+					if cves := lookupCVEs(ctx, env, "webtech", base, version); len(cves) > 0 {
 						out = append(out, cves...)
 						cveDone++
 					}
@@ -324,26 +329,9 @@ func splitServerToken(s string) (name, version string) {
 }
 
 // cpeKeyFor maps a server/header product name to a productCPE key, or "".
+// Now just returns the lowercased name since productCPE is removed and we use Fuzzy Matching.
 func cpeKeyFor(name string) string {
-	n := strings.ToLower(strings.TrimSpace(name))
-	switch {
-	case strings.Contains(n, "nginx"):
-		return "nginx"
-	case strings.Contains(n, "apache") || n == "httpd":
-		return "apache"
-	case strings.Contains(n, "tomcat"):
-		return "tomcat"
-	case strings.Contains(n, "openssh"):
-		return "openssh"
-	case strings.Contains(n, "lighttpd"):
-		return "lighttpd"
-	case strings.Contains(n, "php"):
-		return "php"
-	}
-	if _, ok := productCPE[n]; ok {
-		return n
-	}
-	return ""
+	return strings.ToLower(strings.TrimSpace(name))
 }
 
 // securityHeaderPosture grades the presence of the key browser-security headers.

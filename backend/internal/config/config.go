@@ -62,6 +62,7 @@ type Config struct {
 	// reuse the Threat Intelligence keys above. These are the extra keys/URLs
 	// it needs on top of that. All optional — a missing key skips that collector.
 	OsintHIBPKey      string // Have I Been Pwned (email breach exposure)
+	OsintDehashedKey  string // Dehashed (data leak exposure)
 	OsintNumVerifyKey string // NumVerify (phone metadata)
 	// Active port scan (the "portscan" collector) tuning. By default the scanner
 	// sweeps the FULL TCP range (1-65535) so nothing is missed; operators on slow
@@ -79,6 +80,10 @@ type Config struct {
 	// names from the target domain and probes public S3/GCS/Azure endpoints. The
 	// candidate count is capped so the active probe stays bounded.
 	OsintCloudMaxCandidates int // max bucket-name candidates probed (default 120)
+	// OsintCohostPivotMax is the most co-hosted domains an IP may have before the
+	// IP is treated as shared hosting and its co-hosted domains are recorded as
+	// findings but NOT auto-pivoted (they are other tenants, not the subject).
+	OsintCohostPivotMax int // default 5
 	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
 	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
 	AbuseChKey    string
@@ -141,12 +146,14 @@ func Load() *Config {
 		AlienVaultKey:  getEnv("ALIENVAULT", ""),
 		ShodanKey:      getEnv("SHODAN", ""),
 
-		OsintHIBPKey:      getEnv("OSINT_HIBP_API_KEY", ""),
-		OsintNumVerifyKey: getEnv("OSINT_NUMVERIFY_API_KEY", ""),
+		OsintHIBPKey:             getEnv("HIBP_API_KEY", ""),
+		OsintDehashedKey:         getEnv("DEHASHED_API_KEY", ""),
+		OsintNumVerifyKey:        getEnv("OSINT_NUMVERIFY_API_KEY", ""),
 		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),
 		OsintPortScanConcurrency: getEnvInt("OSINT_PORTSCAN_CONCURRENCY", 800),
 		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),
 		OsintCloudMaxCandidates:  getEnvInt("OSINT_CLOUD_MAX_CANDIDATES", 120),
+		OsintCohostPivotMax:      getEnvInt("OSINT_COHOST_PIVOT_MAX", 5),
 		OsintMaxConcurrentScans:  getEnvInt("OSINT_MAX_CONCURRENT_SCANS", 6),
 		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
 		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),

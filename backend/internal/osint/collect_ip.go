@@ -367,10 +367,10 @@ func collectAbuseIPDB(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	u := "https://api.abuseipdb.com/api/v2/check?maxAgeInDays=90&ipAddress=" +
 		url.QueryEscape(env.target)
 	var r abuseIPDBResponse
-	status, err := httpGetJSON(ctx, nil, u, map[string]string{
+	status, err := cachedGetJSON(ctx, env.cache, "abuseipdb:"+env.target, nil, u, map[string]string{
 		"Key":    env.keys.AbuseIPDB,
 		"Accept": "application/json",
-	}, &r)
+	}, &r, ttlReputation)
 	if err != nil {
 		return nil, err
 	}

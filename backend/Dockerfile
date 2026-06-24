@@ -73,6 +73,7 @@ RUN mkdir -p linux windows
 COPY --from=scanner-builder-linux /scanner/dist/linux/yara-scanner linux/
 COPY --from=scanner-builder-windows /wine-scanner/dist/windows/yara-scanner.exe windows/
 RUN zip -r yara-scanner.zip linux/ windows/
+RUN wget -qO winpmem.exe https://github.com/Velocidex/WinPmem/releases/download/v4.0.rc1/winpmem_mini_x64_rc2.exe
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
@@ -109,8 +110,9 @@ COPY --from=builder /build/data /app/data
 # Copy documentation for playbooks
 COPY ./docs /app/docs
 
-# Integrated Tools
+# Default integrated tools (e.g. YARA Scanner bundle, WinPmem)
 COPY --from=scanner-bundler /app/defaults/yara-scanner.zip /app/defaults/yara-scanner.zip
+COPY --from=scanner-bundler /app/defaults/winpmem.exe      /app/defaults/winpmem.exe
 
 # Create required directories and fix ownership
 RUN mkdir -p /app/storage /app/agent-bins /app/defaults \

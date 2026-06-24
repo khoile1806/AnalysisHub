@@ -22,6 +22,7 @@ import (
 	"github.com/forensichub/backend/internal/api/handlers"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/database"
+	"github.com/forensichub/backend/internal/hunting/sigma"
 	"github.com/forensichub/backend/internal/logger"
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/osint"
@@ -43,6 +44,9 @@ func main() {
 	// 2. Load application configuration
 	// ------------------------------------------------------------------ //
 	cfg := config.Load()
+
+	// Initialize Sigma Engine
+	sigma.Init("tools/sigma-rules")
 
 	// Apply the project-wide egress proxy as early as possible (before any HTTP
 	// client makes a request). Every external fetch that uses the default
@@ -294,52 +298,89 @@ func seedAdmin(db *gorm.DB, email, password string) error {
 func seedTools(db *gorm.DB, store *storage.LocalStorage) error {
 	var count int64
 	db.Model(&models.Tool{}).Where("name LIKE ?", "%YARA Scanner%").Count(&count)
-	if count > 0 {
-		return nil
+	if count == 0 {
+		defaultPath := "/app/defaults/yara-scanner.zip"
+		if _, err := os.Stat(defaultPath); !os.IsNotExist(err) {
+			slog.Info("seeding integrated YARA Scanner")
+
+			toolID := uuid.New()
+			tool := models.Tool{
+				ID:             toolID,
+				Name:           "YARA Scanner",
+				Category:       "triage",
+				Platform:       "both",
+				Version:        "0.1.0",
+				Description:    "Integrated multi-engine webshell scanner (Auto-seeded).",
+				ExecutablePath: "{{OS}}/yara-scanner{{EXT}}",
+				FileName:       "yara-scanner.zip",
+				Args:           "scan ./ --out report",
+			}
+
+			src, err := os.Open(defaultPath)
+			if err == nil {
+				defer src.Close()
+				info, _ := src.Stat()
+				tool.FileSize = info.Size()
+
+				storedName := toolID.String() + ".zip"
+				if _, err := store.SaveTool(storedName, src); err != nil {
+					slog.Error("failed to save tool file", "error", err)
+				} else {
+					if err := db.Create(&tool).Error; err != nil {
+						slog.Error("failed to create tool record", "error", err)
+					} else {
+						slog.Info("integrated tool registered successfully", "name", tool.Name)
+					}
+				}
+			}
+		}
 	}
 
-	defaultPath := "/app/defaults/yara-scanner.zip"
-	if _, err := os.Stat(defaultPath); os.IsNotExist(err) {
-		return nil // No bundle to seed
+
+
+	// Seed Memory Dump Tool
+	var memCount int64
+	db.Model(&models.Tool{}).Where("name = ?", "Live Memory Capture (WinPmem)").Count(&memCount)
+	if memCount == 0 {
+		memTool := models.Tool{
+			ID:             uuid.New(),
+			Name:           "Live Memory Capture (WinPmem)",
+			Category:       "memory",
+			Platform:       "windows",
+			Version:        "4.0.1",
+			Description:    "Captures raw physical memory from the target machine and streams it back.",
+			ExecutablePath: "winpmem.exe",
+			FileName:       "winpmem.exe",
+			Args:           "memdump.raw", // Save to file so agent can upload it
+		}
+
+		pmemPath := "/app/defaults/winpmem.exe"
+		src, err := os.Open(pmemPath)
+		if err == nil {
+			defer src.Close()
+			info, _ := src.Stat()
+			memTool.FileSize = info.Size()
+
+			storedName := memTool.ID.String() + ".exe"
+			if _, err := store.SaveTool(storedName, src); err != nil {
+				slog.Error("failed to save winpmem file", "error", err)
+			} else {
+				if err := db.Create(&memTool).Error; err != nil {
+					slog.Error("failed to create winpmem tool record", "error", err)
+				} else {
+					slog.Info("seeded Live Memory Capture tool record with default binary")
+				}
+			}
+		} else {
+			// fallback without file if running locally outside docker
+			db.Create(&memTool)
+			slog.Info("seeded Live Memory Capture tool record (no default binary found)")
+		}
+	} else {
+		// Update args if it already exists (migration from previous version)
+		db.Model(&models.Tool{}).Where("name = ?", "Live Memory Capture (WinPmem)").Update("args", "memdump.raw")
 	}
 
-	slog.Info("seeding integrated YARA Scanner")
-
-	// 1. Create Tool Record
-	toolID := uuid.New()
-	tool := models.Tool{
-		ID:             toolID,
-		Name:           "YARA Scanner",
-		Category:       "triage",
-		Platform:       "both",
-		Version:        "0.1.0",
-		Description:    "Integrated multi-engine webshell scanner (Auto-seeded).",
-		ExecutablePath: "{{OS}}/yara-scanner{{EXT}}",
-		FileName:       "yara-scanner.zip",
-		Args:           "scan ./ --out report",
-	}
-
-	// 2. Copy file to storage
-	src, err := os.Open(defaultPath)
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	info, _ := src.Stat()
-	tool.FileSize = info.Size()
-
-	storedName := toolID.String() + ".zip"
-	if _, err := store.SaveTool(storedName, src); err != nil {
-		return fmt.Errorf("save tool file: %w", err)
-	}
-
-	// 3. Save to DB
-	if err := db.Create(&tool).Error; err != nil {
-		return fmt.Errorf("create tool record: %w", err)
-	}
-
-	slog.Info("integrated tool registered successfully", "name", tool.Name)
 	return nil
 }
 

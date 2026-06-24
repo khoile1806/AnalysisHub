@@ -2,7 +2,6 @@ package ws
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -26,6 +26,7 @@ import (
 	"github.com/forensichub/agent/internal/executor"
 	"github.com/forensichub/agent/internal/fs"
 	"github.com/forensichub/agent/internal/monitor"
+	"github.com/forensichub/agent/internal/parser"
 	"github.com/forensichub/agent/internal/terminal"
 	"github.com/gorilla/websocket"
 
@@ -130,15 +131,23 @@ type Client struct {
 	// terminalSessions tracks live PTY sessions keyed by sessionID.
 	terminalSessions   map[string]*terminal.Session
 	terminalSessionsMu sync.Mutex
+
+	spooler *Spooler
 }
 
 // NewClient creates a Client for the supplied configuration. Call Run() to
 // start the connection loop.
 func NewClient(cfg *config.Config) *Client {
+	sp, err := NewSpooler(cfg.WorkDir)
+	if err != nil {
+		log.Printf("[ws] warning: could not initialize spooler: %v", err)
+	}
+
 	return &Client{
 		cfg:              cfg,
 		runningJobs:      make(map[string]context.CancelFunc),
 		terminalSessions: make(map[string]*terminal.Session),
+		spooler:          sp,
 	}
 }
 
@@ -218,11 +227,19 @@ func (c *Client) connect(ctx context.Context) error {
 		return fmt.Errorf("register: %w", err)
 	}
 
+	// Flush any spooled messages from when we were offline.
+	if c.spooler != nil {
+		go c.spooler.DequeueAll(func(msg outboundMsg) error {
+			// Write directly using the unspooled message, bypassing the spooling logic
+			return c.writeJSONDirect(msg)
+		})
+	}
+
 	// Start periodic realtime data streaming.
 	// Pass conn so goroutines can close it on write error to force a reconnect.
 	streamCtx, cancelStream := context.WithCancel(ctx)
-	go c.streamRealtime(streamCtx, conn, "processes", 3*time.Second)
-	go c.streamRealtime(streamCtx, conn, "netstat", 3*time.Second)
+	go c.streamRealtime(streamCtx, conn, "processes", 1*time.Second)
+	go c.streamRealtime(streamCtx, conn, "netstat", 1*time.Second)
 	go c.streamRealtime(streamCtx, conn, "sysinfo", 30*time.Second)
 	defer cancelStream()
 
@@ -332,6 +349,14 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			c.handleShellClose(msg)
 		case "fs_request":
 			go c.handleFsRequest(msg)
+		case "edge_parse_registry":
+			go c.handleEdgeParseRegistry(msg)
+		case "edge_parse_evtx":
+			go c.handleEdgeParseEvtx(msg)
+		case "edge_parse_mft":
+			go c.handleEdgeParseMFT(msg)
+		case "edge_parse_prefetch":
+			go c.handleEdgeParsePrefetch(msg)
 		case "ping":
 			c.handlePing()
 		case "cleanup":
@@ -495,6 +520,46 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 				}
 			} else {
 				log.Printf("[job:%s] report not found at %s", msg.JobID, reportPath)
+			}
+		}
+
+		isMemDump := strings.Contains(toolNameNorm, "winpmem") || strings.Contains(toolNameNorm, "memdump")
+		if isMemDump {
+			workDir := c.cfg.WorkDir
+			toolID := msg.ToolID
+			if toolID == "" {
+				toolID = executor.SanitizeFilename(msg.ToolName)
+			}
+			toolDir := filepath.Join(workDir, "tools", toolID)
+			
+			var dumpFile string
+			var maxSize int64
+			filepath.Walk(toolDir, func(path string, info os.FileInfo, err error) error {
+				if err != nil || info.IsDir() {
+					return nil
+				}
+				ext := strings.ToLower(filepath.Ext(path))
+				if ext == ".raw" || ext == ".mem" || ext == ".zip" {
+					if info.Size() > maxSize {
+						maxSize = info.Size()
+						dumpFile = path
+					}
+				}
+				return nil
+			})
+
+			if dumpFile != "" {
+				log.Printf("[job:%s] uploading memory dump: %s", msg.JobID, dumpFile)
+				_ = c.sendOutput(msg.JobID, fmt.Sprintf("[+] Uploading memory dump (%.2f MB)...", float64(maxSize)/(1024*1024)), false)
+				if upErr := c.uploadArtifact(runCtx, msg.JobID, dumpFile); upErr != nil {
+					log.Printf("[job:%s] artifact upload failed: %v", msg.JobID, upErr)
+					_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] memory dump upload failed: %v", upErr), false)
+				} else {
+					log.Printf("[job:%s] memory dump uploaded successfully", msg.JobID)
+					_ = c.sendOutput(msg.JobID, "[+] Memory dump uploaded successfully", false)
+				}
+			} else {
+				log.Printf("[job:%s] memory dump file not found in %s", msg.JobID, toolDir)
 			}
 		}
 
@@ -729,6 +794,173 @@ func (c *Client) handleFsRequest(msg inboundMsg) {
 	}
 }
 
+// handleEdgeParseMFT triggers the UAC prompt to parse the MFT.
+func (c *Client) handleEdgeParseMFT(msg inboundMsg) {
+	if msg.JobID == "" {
+		return
+	}
+	log.Printf("[edge_mft:%s] requesting elevated MFT scan", msg.JobID)
+	_ = c.sendOutput(msg.JobID, "[*] Requesting Administrator privileges (UAC) for Raw Disk Access...", false)
+	
+	exe, _ := os.Executable()
+	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("mft_%s.json", msg.JobID))
+	
+	err := executor.RunElevatedAndWait(exe, "scan-mft \""+tmpFile+"\"")
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] UAC failed or denied: %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+
+	b, err := os.ReadFile(tmpFile)
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] Failed to read MFT results: %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+	os.Remove(tmpFile)
+
+	_ = c.writeJSON(outboundMsg{
+		Type:  "artifact_data",
+		JobID: msg.JobID,
+		Data:  string(b),
+	})
+
+	_ = c.sendOutput(msg.JobID, "[+] MFT Edge Forensic Scan complete.", false)
+	_ = c.sendOutput(msg.JobID, "", true)
+}
+
+// handleEdgeParsePrefetch triggers the UAC prompt to parse the Prefetch.
+func (c *Client) handleEdgeParsePrefetch(msg inboundMsg) {
+	if msg.JobID == "" {
+		return
+	}
+	log.Printf("[edge_prefetch:%s] requesting elevated Prefetch scan", msg.JobID)
+	_ = c.sendOutput(msg.JobID, "[*] Requesting Administrator privileges (UAC) for Prefetch Directory...", false)
+	
+	exe, _ := os.Executable()
+	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("pf_%s.json", msg.JobID))
+	
+	err := executor.RunElevatedAndWait(exe, "scan-prefetch \""+tmpFile+"\"")
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] UAC failed or denied: %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+
+	b, err := os.ReadFile(tmpFile)
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] Failed to read Prefetch results: %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+	os.Remove(tmpFile)
+
+	_ = c.writeJSON(outboundMsg{
+		Type:  "artifact_data",
+		JobID: msg.JobID,
+		Data:  string(b),
+	})
+
+	_ = c.sendOutput(msg.JobID, "[+] Prefetch Edge Forensic Scan complete.", false)
+	_ = c.sendOutput(msg.JobID, "", true)
+}
+
+// handleEdgeParseRegistry parses a Windows registry key and sends back the artifact.
+// The path should be in FsPath, e.g. "HKLM\Software\Microsoft\Windows\CurrentVersion\Run"
+func (c *Client) handleEdgeParseRegistry(msg inboundMsg) {
+	if msg.JobID == "" || msg.FsPath == "" {
+		log.Printf("[edge_registry] missing job_id or fs_path")
+		return
+	}
+
+	parts := strings.SplitN(msg.FsPath, "\\", 2)
+	if len(parts) != 2 {
+		_ = c.sendOutput(msg.JobID, "[agent error] invalid registry path format. Expected ROOT\\Path", false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+
+	root := parts[0]
+	path := parts[1]
+
+	log.Printf("[edge_registry:%s] parsing %s\\%s", msg.JobID, root, path)
+	jsonData, err := parser.ParseRegistry(root, path)
+
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+
+	// Send the JSON result as artifact_data
+	err = c.writeJSON(outboundMsg{
+		Type:  "artifact_data",
+		JobID: msg.JobID,
+		Data:  jsonData,
+	})
+	if err != nil {
+		log.Printf("[edge_registry:%s] send error: %v", msg.JobID, err)
+	}
+
+	// Mark the job as done
+	_ = c.sendOutput(msg.JobID, "[+] Registry parsing complete.", false)
+	_ = c.sendOutput(msg.JobID, "", true)
+}
+
+// handleEdgeParseEvtx runs a PowerShell script to query Windows Event Logs by ID and returns JSON.
+func (c *Client) handleEdgeParseEvtx(msg inboundMsg) {
+	if msg.JobID == "" || msg.Args == "" {
+		log.Printf("[edge_evtx] missing job_id or args")
+		return
+	}
+
+	// Args format: LogName|EventID
+	parts := strings.SplitN(msg.Args, "|", 2)
+	if len(parts) != 2 {
+		_ = c.sendOutput(msg.JobID, "[agent error] invalid evtx args format. Expected LogName|EventID", false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+
+	logName := parts[0]
+	eventID := parts[1]
+
+	log.Printf("[edge_evtx:%s] querying %s for EventID %s", msg.JobID, logName, eventID)
+
+	// Build the PowerShell command with try/catch to gracefully handle missing logs or empty results
+	psCmd := fmt.Sprintf(`try { $evts = Get-WinEvent -FilterHashtable @{LogName='%s'; Id=%s} -MaxEvents 100 -ErrorAction Stop; if ($evts) { $evts | Select-Object TimeCreated, Id, LevelDisplayName, Message | ConvertTo-Json -Compress } else { "[]" } } catch { "[]" }`, logName, eventID)
+
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCmd)
+	out, err := cmd.CombinedOutput()
+
+	jsonData := strings.TrimSpace(string(out))
+	if err != nil && jsonData == "" {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
+
+	if jsonData == "" {
+		jsonData = "[]" // Empty array if no events found
+	}
+
+	// Send the JSON result as artifact_data
+	err = c.writeJSON(outboundMsg{
+		Type:  "artifact_data",
+		JobID: msg.JobID,
+		Data:  jsonData,
+	})
+	if err != nil {
+		log.Printf("[edge_evtx:%s] send error: %v", msg.JobID, err)
+	}
+
+	// Mark the job as done
+	_ = c.sendOutput(msg.JobID, "[+] EVTX parsing complete.", false)
+	_ = c.sendOutput(msg.JobID, "", true)
+}
+
+
 // handlePing responds to a server ping with a pong.
 func (c *Client) handlePing() {
 	if err := c.writeJSON(outboundMsg{Type: "pong"}); err != nil {
@@ -903,10 +1135,38 @@ func (c *Client) sendOutput(jobID, data string, done bool) error {
 }
 
 // writeJSON serialises msg and sends it over the WebSocket connection.
-// It holds the write mutex for the duration of the send so concurrent
-// goroutines do not corrupt the connection (gorilla/websocket is not
-// safe for concurrent writes).
+// It will enqueue the message into the spooler if offline and the message is spoolable.
 func (c *Client) writeJSON(msg outboundMsg) error {
+	spoolable := msg.Type == "output" || msg.Type == "job_status" || msg.Type == "artifact_data"
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
+	if c.conn == nil {
+		if c.spooler != nil && spoolable {
+			log.Printf("[spooler] offline, spooling msg type %s", msg.Type)
+			return c.spooler.Enqueue(msg)
+		}
+		return fmt.Errorf("not connected")
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+
+	c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	err = c.conn.WriteMessage(websocket.TextMessage, data)
+	if err != nil && c.spooler != nil && spoolable {
+		log.Printf("[spooler] write error %v, spooling msg type %s", err, msg.Type)
+		c.spooler.Enqueue(msg)
+	}
+	return err
+}
+
+// writeJSONDirect writes JSON without going through the spooler logic.
+// Used by DequeueAll to prevent infinite spooling loops.
+func (c *Client) writeJSONDirect(msg outboundMsg) error {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
 
@@ -1008,19 +1268,24 @@ func (c *Client) uploadArtifact(ctx context.Context, jobID, filePath string) err
 	}
 	defer f.Close()
 
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	part, err := w.CreateFormFile("file", filepath.Base(filePath))
-	if err != nil {
-		return fmt.Errorf("create form file: %w", err)
-	}
-	if _, err := io.Copy(part, f); err != nil {
-		return fmt.Errorf("copy file to form: %w", err)
-	}
-	_ = w.Close()
+	pr, pw := io.Pipe()
+	w := multipart.NewWriter(pw)
+
+	go func() {
+		defer pw.Close()
+		part, err := w.CreateFormFile("file", filepath.Base(filePath))
+		if err != nil {
+			log.Printf("[upload] form file error: %v", err)
+			return
+		}
+		if _, err := io.Copy(part, f); err != nil {
+			log.Printf("[upload] copy error: %v", err)
+		}
+		w.Close()
+	}()
 
 	uploadURL := fmt.Sprintf("%s/api/v1/jobs/%s/artifact", c.cfg.ServerURL, jobID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, &b)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, pr)
 	if err != nil {
 		return fmt.Errorf("build upload request: %w", err)
 	}

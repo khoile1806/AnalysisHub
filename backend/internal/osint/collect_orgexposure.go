@@ -28,7 +28,12 @@ var rlHudsonRock = newRateLimiter(2 * time.Second)
 // parties have appeared in stealer logs. For a bank this is the highest-value
 // signal - a stealer-infected customer leaks live banking session cookies.
 func collectStealerIntel(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
-	if env.ttype != TargetDomain {
+	switch env.ttype {
+	case TargetDomain:
+		// handled by the domain sweep below
+	case TargetEmail, TargetUsername:
+		return stealerByIdentifier(ctx, env)
+	default:
 		return nil, nil
 	}
 	domain := strings.ToLower(strings.TrimSpace(env.target))
@@ -38,6 +43,12 @@ func collectStealerIntel(ctx context.Context, env *collectorEnv) ([]models.Osint
 		map[string]string{"domain": domain})
 	if err != nil {
 		return nil, err
+	}
+	if status == 404 {
+		// Hudson Rock returns 404 when the domain has no records in its stealer-log
+		// dataset - that is a clean "no exposure" result, not a collector failure.
+		env.emit("[*] stealer_intel: domain not found in Hudson Rock stealer logs")
+		return nil, nil
 	}
 	if status == 429 {
 		return nil, fmt.Errorf("Hudson Rock rate-limited (HTTP 429)")
@@ -95,6 +106,89 @@ func collectStealerIntel(ctx context.Context, env *collectorEnv) ([]models.Osint
 		env.emit("[*] stealer_intel: no info-stealer exposure found for this domain")
 	}
 	return stampSource(out, "https://www.hudsonrock.com/threat-intelligence-cybercrime-tools?domain="+url.QueryEscape(domain)), nil
+}
+
+// stealerByIdentifier queries Hudson Rock's free Cavalier API for an individual
+// e-mail or username appearing in info-stealer logs - the strongest single
+// signal that an account's live credentials and session cookies are already in
+// criminal hands. Free, no API key. Surfaces only metadata (date, OS, machine),
+// never leaked secrets.
+func stealerByIdentifier(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
+	id := strings.ToLower(strings.TrimSpace(env.target))
+	if id == "" {
+		return nil, nil
+	}
+	endpoint := "https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-email"
+	payload := map[string]string{"email": id}
+	viewer := "https://www.hudsonrock.com/threat-intelligence-cybercrime-tools?email=" + url.QueryEscape(id)
+	if env.ttype == TargetUsername {
+		endpoint = "https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-username"
+		payload = map[string]string{"username": id}
+		viewer = "https://www.hudsonrock.com/threat-intelligence-cybercrime-tools?username=" + url.QueryEscape(id)
+	}
+
+	body, status, err := hudsonRockPost(ctx, endpoint, payload)
+	if err != nil {
+		return nil, err
+	}
+	if status == 404 {
+		env.emit("[*] stealer_intel: identifier not found in Hudson Rock stealer logs")
+		return nil, nil
+	}
+	if status == 429 {
+		return nil, fmt.Errorf("Hudson Rock rate-limited (HTTP 429)")
+	}
+	if status < 200 || status >= 300 {
+		return nil, fmt.Errorf("Hudson Rock returned HTTP %d", status)
+	}
+
+	var r struct {
+		Message  string `json:"message"`
+		Stealers []struct {
+			DateCompromised string `json:"date_compromised"`
+			ComputerName    string `json:"computer_name"`
+			OperatingSystem string `json:"operating_system"`
+			MalwarePath     string `json:"malware_path"`
+			IP              string `json:"ip"`
+		} `json:"stealers"`
+	}
+	// Best-effort decode: the free endpoint's nested shape varies, so a type
+	// mismatch on an inner field must not fail the collector.
+	_ = json.Unmarshal(body, &r)
+
+	if len(r.Stealers) == 0 {
+		env.emit("[*] stealer_intel: identifier not found in Hudson Rock stealer logs")
+		return nil, nil
+	}
+
+	out := make([]models.OsintFinding, 0, len(r.Stealers)+1)
+	summary := newFinding("stealer_intel", "breach", "Info-stealer exposure (Hudson Rock)",
+		fmt.Sprintf("identifier found in %d info-stealer log(s)", len(r.Stealers)))
+	summary.Severity = "critical" // a stealer-infected host means live credentials/cookies
+	out = append(out, summary)
+
+	const maxEntries = 10
+	for i := range r.Stealers {
+		if i >= maxEntries {
+			break
+		}
+		s := r.Stealers[i]
+		detail := joinNonEmpty(" - ", s.DateCompromised, s.OperatingSystem, s.ComputerName)
+		if detail == "" {
+			detail = "stealer log entry"
+		}
+		f := newFinding("stealer_intel", "breach", "Info-stealer log entry", detail)
+		f.Severity = "high"
+		f.Data = toJSON(map[string]string{
+			"date_compromised": s.DateCompromised,
+			"operating_system": s.OperatingSystem,
+			"computer_name":    s.ComputerName,
+			"malware_path":     s.MalwarePath,
+		})
+		out = append(out, f)
+	}
+	env.emit(fmt.Sprintf("[+] stealer_intel: %s found in %d stealer log(s)", id, len(r.Stealers)))
+	return stampSource(out, viewer), nil
 }
 
 // hudsonRockPost sends a rate-limited JSON POST and returns the (capped) body.

@@ -41,9 +41,10 @@ export function YaraScanner({ agent }: { agent: Agent }) {
     queryFn: () => toolsApi.list()
   })
 
-  const scannerCandidates = tools.filter(t =>
-    t.name.toLowerCase().replace(/[\s_-]/g, '').includes('webshellscanner')
-  )
+  const scannerCandidates = tools.filter(t => {
+    const norm = t.name.toLowerCase().replace(/[\s_-]/g, '')
+    return norm.includes('yarascanner') || norm.includes('webshellscanner')
+  })
   const compatible = scannerCandidates.filter(
     t => t.platform === agent.os || t.platform === 'both'
   )
@@ -197,20 +198,21 @@ export function YaraScanner({ agent }: { agent: Agent }) {
   const hasReport = activeJob?.status === 'done' && activeJob.artifact_path
 
   return (
-    <div className="flex flex-col h-[700px] gap-6">
+    <div className="flex flex-col h-full min-h-[700px] gap-4">
       {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 bg-gray-900/50 rounded-xl border border-gray-800 backdrop-blur-sm shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 p-4 bg-gray-900/50 rounded-xl border border-gray-800 backdrop-blur-sm shrink-0">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
           <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
             <Shield className="h-6 w-6 text-emerald-500" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-100">YARA Scanner</h1>
-            <p className="text-sm text-gray-400">Hunt for backdoors and malicious shells on {agent.name}</p>
+            <p className="text-xs text-gray-400">Hunt for backdoors and shells on {agent.name}</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-end justify-end gap-3 flex-1">
           {/* Path Input */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold ml-1">Scan Path</label>
@@ -255,7 +257,7 @@ export function YaraScanner({ agent }: { agent: Agent }) {
           </div>
 
           {/* Start Button */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 ml-auto md:ml-0">
             <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold ml-1">Actions</label>
             <div className="flex items-center gap-2">
               <button 
@@ -287,8 +289,9 @@ export function YaraScanner({ agent }: { agent: Agent }) {
             </div>
           </div>
         </div>
+        </div>
         {/* Advanced Options Toggle */}
-        <div className="w-full mt-2 pt-3 border-t border-gray-800 flex flex-col gap-3">
+        <div className="w-full pt-2 border-t border-gray-800/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <label className="flex items-center gap-2 cursor-pointer w-fit text-sm text-gray-400 hover:text-gray-200 transition-colors">
             <input 
               type="checkbox" 

@@ -223,7 +223,9 @@ func buildCollectors(targetType string) []collector {
 			{"github_intel", collectGitHubIntel},
 			{"hibp", collectHIBP},
 			{"xposed", collectXposedOrNot},
+			{"leakcheck", collectLeakCheck},
 			{"breach_leak", collectBreachLeak},
+			{"stealer_intel", collectStealerIntel},
 			{"darkweb", collectDarkWeb},
 			{"search_links", collectSearchLinks},
 			{"local_intel", collectLocalThreatIntel},
@@ -246,7 +248,9 @@ func buildCollectors(targetType string) []collector {
 			{"maigret", collectMaigret},
 			{"github_intel", collectGitHubIntel},
 			{"social_search", collectSocialMedia},
+			{"leakcheck", collectLeakCheck},
 			{"breach_leak", collectBreachLeak},
+			{"stealer_intel", collectStealerIntel},
 			{"search_links", collectSearchLinks},
 		}
 	}

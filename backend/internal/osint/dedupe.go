@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/forensichub/backend/internal/models"
 )
@@ -71,6 +72,14 @@ func withRelated(f models.OsintFinding, rel ...RelatedEntity) models.OsintFindin
 	return f
 }
 
+// normValue canonicalises a finding's value for the dedupe key: lower-cased,
+// trimmed, made valid UTF-8, and with any trailing dots stripped so a hostname
+// surfaced as "ex.com." and "ex.com" collapses to one row.
+func normValue(s string) string {
+	s = strings.ToValidUTF8(strings.ToLower(strings.TrimSpace(s)), "")
+	return strings.TrimRight(s, ".")
+}
+
 // dedupeKey is a deterministic identity for a finding within one scan, so the
 // same trace surfaced twice (e.g. a hostname seen by both crt.sh and Shodan)
 // collapses to a single row.
@@ -79,56 +88,61 @@ func dedupeKey(f *models.OsintFinding) string {
 		strings.ToLower(strings.TrimSpace(f.Source)),
 		strings.ToLower(strings.TrimSpace(f.Category)),
 		strings.ToLower(strings.TrimSpace(f.Title)),
-		strings.ToLower(strings.TrimSpace(f.Value)),
+		normValue(f.Value),
 	}
 	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
 	return hex.EncodeToString(sum[:])
 }
 
-// persistFindings dedupes in-memory, then skips inserts whose key already
-// exists for this scan. Mirrors recon.persistFindings. Returns rows inserted.
+// onConflictDedupe is the ON CONFLICT clause that makes inserts idempotent on
+// the unique (scan_id, dedupe_key) index: a row another collector already
+// inserted (even concurrently) is silently ignored instead of duplicated.
+var onConflictDedupe = clause.OnConflict{
+	Columns:   []clause.Column{{Name: "scan_id"}, {Name: "dedupe_key"}},
+	DoNothing: true,
+}
+
+// persistFindings dedupes in-memory, then bulk-inserts with ON CONFLICT DO
+// NOTHING so concurrent collectors can never create a duplicate and the whole
+// batch is written in a handful of round-trips. Returns rows actually inserted.
 func persistFindings(db *gorm.DB, findings []models.OsintFinding) int {
 	if len(findings) == 0 {
 		return 0
 	}
 
-	// 1. In-batch dedupe.
+	// In-batch dedupe so we don't ship known-duplicate rows to the database.
 	seen := make(map[string]bool, len(findings))
 	uniq := findings[:0]
-	for _, f := range findings {
-		k := dedupeKey(&f)
+	for i := range findings {
+		k := dedupeKey(&findings[i])
 		if k == "" || seen[k] {
 			continue
 		}
 		seen[k] = true
-		f.DedupeKey = k
-		uniq = append(uniq, f)
+		findings[i].DedupeKey = k
+		uniq = append(uniq, findings[i])
 	}
 	if len(uniq) == 0 {
 		return 0
 	}
 
-	// 2. Cross-collector dedupe - one query for all keys in this scan.
-	scanID := uniq[0].ScanID
-	keys := make([]string, 0, len(uniq))
-	for _, f := range uniq {
-		keys = append(keys, f.DedupeKey)
+	// Bulk insert; the unique index + DoNothing collapses cross-collector and
+	// cross-goroutine duplicates at the database, with no read-then-write race.
+	res := db.Clauses(onConflictDedupe).CreateInBatches(uniq, 100)
+	if res.Error == nil {
+		return int(res.RowsAffected)
 	}
-	var existing []string
-	db.Model(&models.OsintFinding{}).
-		Where("scan_id = ? AND dedupe_key IN ?", scanID, keys).
-		Pluck("dedupe_key", &existing)
-	existingSet := make(map[string]bool, len(existing))
-	for _, k := range existing {
-		existingSet[k] = true
-	}
-
+	// Fallback: a malformed row (or, in a degraded deployment, a missing unique
+	// index that makes ON CONFLICT invalid) must never drop the whole batch or
+	// silently lose findings. Insert row by row, preferring the idempotent path
+	// and falling back to a plain insert so a finding is always persisted.
 	inserted := 0
 	for i := range uniq {
-		if existingSet[uniq[i].DedupeKey] {
+		if db.Clauses(onConflictDedupe).Create(&uniq[i]).Error == nil {
+			inserted++
 			continue
 		}
-		if err := db.Create(&uniq[i]).Error; err == nil {
+		if db.Create(&uniq[i]).Error == nil {
 			inserted++
 		}
 	}

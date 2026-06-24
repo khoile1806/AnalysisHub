@@ -77,6 +77,58 @@ func isProviderDomain(domain string) bool {
 	return false
 }
 
+// genericRDNSMarkers are tokens that ISPs and hosting providers embed in
+// auto-generated reverse-DNS / PTR hostnames (e.g. "static.5.6.7.8.clients.your-host.de",
+// "dynamic-203-0-113-9.dsl.example-isp.net"). Such a hostname names the provider's
+// addressing scheme, not the subject's asset, so it must not spawn a child scan.
+var genericRDNSMarkers = []string{
+	"static", "dynamic", "dyn", "dhcp", "dsl", "pppoe", "ppp", "pool",
+	"broadband", "cable", "fibre", "fiber", "wireless", "clients", "client",
+	"customer", "cust", "subscriber", "unassigned", "no-reverse", "in-addr",
+	"dedicated", "colo", "rdns", "reverse",
+}
+
+// isGenericReverseDNS reports whether host looks like an ISP/hosting
+// auto-generated reverse-DNS name for ip, rather than a real, investigable asset.
+// It fires when the hostname embeds the IP's octets (dotted, dashed, or reversed)
+// or carries a strong provider marker alongside a digit group.
+func isGenericReverseDNS(host, ip string) bool {
+	h := strings.ToLower(strings.TrimSpace(host))
+	if h == "" {
+		return false
+	}
+	if oct := strings.Split(strings.TrimSpace(ip), "."); len(oct) == 4 {
+		dotted := strings.Join(oct, ".")
+		dashed := strings.Join(oct, "-")
+		revDashed := oct[3] + "-" + oct[2] + "-" + oct[1] + "-" + oct[0]
+		for _, p := range []string{dotted, dashed, revDashed} {
+			if p != "" && strings.Contains(h, p) {
+				return true
+			}
+		}
+	}
+	hasDigitRun, run := false, 0
+	for _, r := range h {
+		if r >= '0' && r <= '9' {
+			if run++; run >= 2 {
+				hasDigitRun = true
+				break
+			}
+		} else {
+			run = 0
+		}
+	}
+	if !hasDigitRun {
+		return false
+	}
+	for _, m := range genericRDNSMarkers {
+		if strings.Contains(h, m) {
+			return true
+		}
+	}
+	return false
+}
+
 // pivotWorthy decides whether an auto-pivot into a discovered entity is likely
 // to yield meaningful results. It rejects reserved/placeholder domains and
 // high-entropy gibberish handles (e.g. "alskjdhlakjsdhakjs@example.com") so the
@@ -134,6 +186,9 @@ func inPivotScope(rootTarget, rootType, value, ttype string) (bool, string) {
 		case TargetDomain:
 			if isProviderDomain(value) {
 				return false, "shared/provider/CDN domain - not the subject's asset"
+			}
+			if rootType == TargetIP && isGenericReverseDNS(value, rootTarget) {
+				return false, "generic ISP/hosting reverse-DNS host - not the subject's asset"
 			}
 		case TargetEmail:
 			if _, d := emailParts(value); isProviderDomain(d) {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield } from 'lucide-react'
+import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield, Database, HardDrive } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
 import { casesApi } from '@/api/cases'
@@ -11,6 +11,9 @@ import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { AgentTerminal } from '@/components/AgentTerminal'
 import { FileBrowser } from '@/components/FileBrowser'
 import { YaraScanner } from '@/components/Agent/YaraScanner'
+import { RegistryViewer } from '@/components/Agent/RegistryViewer'
+import { EvtxViewer } from '@/components/Agent/EvtxViewer'
+import { EdgeForensics } from '@/components/Agent/EdgeForensics'
 import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -521,7 +524,7 @@ function NetworkTab({ agent }: { agent: Agent }) {
           )}
         </div>
       </div>
-      <p className="text-xs text-gray-600">Updated every 3 seconds · {conns?.length ?? 0} connections</p>
+      <p className="text-xs text-gray-600">Updated every 1 second · {conns?.length ?? 0} connections</p>
     </div>
   )
 }
@@ -582,13 +585,13 @@ function ProcessesTab({ agent }: { agent: Agent }) {
           )}
         </div>
       </div>
-      <p className="text-xs text-gray-600">Updated every 3 seconds · {sorted?.length ?? 0} processes · sorted by memory</p>
+      <p className="text-xs text-gray-600">Updated every 1 second · {sorted?.length ?? 0} processes · sorted by memory</p>
     </div>
   )
 }
 
 // ---- Main Page ----
-type TabId = 'jobs' | 'sysinfo' | 'network' | 'processes' | 'terminal' | 'files' | 'scanner'
+type TabId = 'jobs' | 'sysinfo' | 'network' | 'processes' | 'terminal' | 'files' | 'scanner' | 'registry' | 'evtx' | 'edge-forensics'
 
 const TABS: { id: TabId; label: string; icon: typeof Server }[] = [
   { id: 'jobs',      label: 'Jobs',        icon: ClipboardList },
@@ -598,6 +601,9 @@ const TABS: { id: TabId; label: string; icon: typeof Server }[] = [
   { id: 'terminal',  label: 'Terminal',    icon: TerminalIcon },
   { id: 'files',     label: 'Files',       icon: FolderTree },
   { id: 'scanner',   label: 'Scanner',     icon: Shield as any },
+  { id: 'registry',  label: 'Registry Viewer', icon: Database as any },
+  { id: 'evtx',      label: 'EVTX Logs',   icon: Server as any },
+  { id: 'edge-forensics', label: 'Edge Forensics', icon: HardDrive as any },
 ]
 
 export default function AgentDetailPage() {
@@ -795,6 +801,9 @@ export default function AgentDetailPage() {
       {activeTab === 'terminal'  && <AgentTerminal agent={agent} />}
       {activeTab === 'files'     && <FileBrowser agent={agent} />}
       {activeTab === 'scanner'   && <YaraScanner agent={agent} />}
+      {activeTab === 'registry'  && <RegistryViewer agent={agent} />}
+      {activeTab === 'evtx'      && <EvtxViewer agent={agent} />}
+      {activeTab === 'edge-forensics' && <EdgeForensics agent={agent} />}
     </div>
   )
 }

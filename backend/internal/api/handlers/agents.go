@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -658,3 +659,234 @@ fi
 echo ""
 echo "[+] Done! Agent '{{.AgentName}}' should appear online in the dashboard shortly."
 `
+
+// AgentRegistryParse triggers the edge_parse_registry command on the agent.
+//
+// POST /api/v1/agents/:id/registry
+// Body: {"root": "HKLM", "path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"}
+func AgentRegistryParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	var req struct {
+		Root string `json:"root" binding:"required"`
+		Path string `json:"path" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	// Create a virtual job ID to subscribe to output
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:   "edge_parse_registry",
+		JobID:  reqID,
+		FsPath: req.Root + "\\" + req.Path,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	// Wait for the JSON response or error
+	select {
+	case result := <-outCh:
+		if strings.HasPrefix(result, "[agent error]") {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": strings.TrimPrefix(result, "[agent error] ")})
+			return
+		}
+		c.Data(http.StatusOK, "application/json", []byte(result))
+	case <-c.Request.Context().Done():
+		c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+	}
+}
+
+// AgentEvtxParse triggers the edge_parse_evtx command on the agent.
+//
+// POST /api/v1/agents/:id/evtx
+// Body: {"log_name": "Security", "event_id": "4624"}
+func AgentEvtxParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	var req struct {
+		LogName string `json:"log_name" binding:"required"`
+		EventID string `json:"event_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	// Create a virtual job ID to subscribe to output
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_evtx",
+		JobID: reqID,
+		Args:  req.LogName + "|" + req.EventID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	// Wait for the JSON response or error
+	select {
+	case result := <-outCh:
+		if strings.HasPrefix(result, "[agent error]") {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": strings.TrimPrefix(result, "[agent error] ")})
+			return
+		}
+		c.Data(http.StatusOK, "application/json", []byte(result))
+	case <-c.Request.Context().Done():
+		c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+	}
+}
+
+// AgentMFTParse triggers the edge_parse_mft command on the agent.
+func AgentMFTParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_mft",
+		JobID: reqID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData string
+	var agentError string
+
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentPrefetchParse triggers the edge_parse_prefetch command on the agent.
+func AgentPrefetchParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_prefetch",
+		JobID: reqID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData string
+	var agentError string
+
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+

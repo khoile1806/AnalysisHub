@@ -44,6 +44,20 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		slog.Warn("could not create pgcrypto extension (may already exist)", "error", result.Error)
 	}
 
+	// Pre-migrate: on a database that predates the dedupe key, backfill any empty
+	// dedupe_key and collapse pre-existing duplicate findings so the UNIQUE index
+	// built below can be created cleanly. The hash mirrors osint.dedupeKey:
+	// sha256(source|category|title|value) lower/trimmed, value trailing-dot stripped.
+	if db.Migrator().HasTable("osint_findings") {
+		db.Exec(`UPDATE osint_findings SET dedupe_key = encode(digest(
+			lower(btrim(source)) || '|' || lower(btrim(category)) || '|' ||
+			lower(btrim(title)) || '|' || rtrim(lower(btrim(coalesce(value, ''))), '.'),
+			'sha256'), 'hex')
+			WHERE dedupe_key IS NULL OR dedupe_key = ''`)
+		db.Exec(`DELETE FROM osint_findings a USING osint_findings b
+			WHERE a.scan_id = b.scan_id AND a.dedupe_key = b.dedupe_key AND a.ctid > b.ctid`)
+	}
+
 	// AutoMigrate all models in dependency order
 	if err := db.AutoMigrate(
 		&models.User{},
@@ -83,6 +97,20 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	// new columns are added by AutoMigrate.
 	db.Exec(`UPDATE elk_configs SET name = COALESCE(NULLIF(name, ''), 'Default'), is_active = TRUE WHERE name IS NULL OR name = ''`)
 	db.Exec(`UPDATE open_cti_configs SET name = COALESCE(NULLIF(name, ''), 'Default'), is_active = TRUE WHERE name IS NULL OR name = ''`)
+
+	// Ensure the OSINT findings dedupe index exists and is UNIQUE on
+	// (scan_id, dedupe_key). This is done in raw SQL rather than an AutoMigrate
+	// tag so it is robust on existing databases: any pre-existing non-unique
+	// index of the same name is dropped first, then the unique one is (re)created.
+	// Both steps are best-effort — a failure here (e.g. residual duplicates) is
+	// logged and must NOT abort startup, so the rest of the platform stays up.
+	// The OSINT dedupe path also degrades gracefully when the index is absent.
+	if err := db.Exec(`DROP INDEX IF EXISTS idx_osint_finding_dedupe`).Error; err != nil {
+		slog.Warn("could not drop legacy OSINT dedupe index", "error", err)
+	}
+	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_osint_finding_dedupe ON osint_findings (scan_id, dedupe_key)`).Error; err != nil {
+		slog.Warn("could not create unique OSINT dedupe index; finding dedupe will run in best-effort mode", "error", err)
+	}
 
 	slog.Info("migrations applied successfully")
 	return db, nil

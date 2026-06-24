@@ -5,6 +5,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -31,13 +34,15 @@ func (e *Engine) corroborateFindings(scan *models.OsintScan) {
 
 	// Gather scan-wide corroboration signals from sibling collectors.
 	var (
-		mxValid      bool
-		gravatar     bool
-		knownIOC     bool
-		hibpNames    []string
-		xposedNames  []string
-		githubEmails = map[string]bool{}
-		comboLines   int
+		mxValid        bool
+		gravatar       bool
+		knownIOC       bool
+		stealerHit     bool
+		hibpNames      []string
+		xposedNames    []string
+		leakcheckNames []string
+		githubEmails   = map[string]bool{}
+		comboLines     int
 	)
 	for i := range fs {
 		f := &fs[i]
@@ -55,6 +60,16 @@ func (e *Engine) corroborateFindings(scan *models.OsintScan) {
 		case "xposed":
 			if strings.HasPrefix(f.Title, "Breach: ") {
 				xposedNames = append(xposedNames, strings.TrimPrefix(f.Title, "Breach: "))
+			}
+		case "leakcheck":
+			if strings.HasPrefix(f.Title, "Breach: ") {
+				leakcheckNames = append(leakcheckNames, strings.TrimPrefix(f.Title, "Breach: "))
+			}
+		case "stealer_intel":
+			// An info-stealer hit on this very identity is strong, independent
+			// corroboration that its leaked credentials are real and live.
+			if strings.HasPrefix(f.Title, "Info-stealer exposure") {
+				stealerHit = true
 			}
 		case "local_intel":
 			if strings.Contains(f.Title, "KNOWN IOC") {
@@ -100,6 +115,17 @@ func (e *Engine) corroborateFindings(scan *models.OsintScan) {
 			// in addition to) HIBP raises confidence without any paid API.
 			score += 2
 			notes = append(notes, "XposedOrNot breach: "+strings.Join(dedupeStrings(xposedNames), ", "))
+		}
+		if len(leakcheckNames) > 0 {
+			// LeakCheck is another independent, key-less breach index.
+			score += 2
+			notes = append(notes, "LeakCheck breach: "+strings.Join(dedupeStrings(leakcheckNames), ", "))
+		}
+		if stealerHit {
+			// Appearing in info-stealer logs is the strongest corroboration: the
+			// credentials were exfiltrated from an infected machine, not guessed.
+			score += 2
+			notes = append(notes, "appears in info-stealer logs (Hudson Rock)")
 		}
 		if gravatar {
 			score++
@@ -245,6 +271,10 @@ func (e *Engine) corroborateThreats(fs []models.OsintFinding) {
 	note := fmt.Sprintf("threat verdict corroborated by %d source(s): %s",
 		len(srcs), strings.Join(srcs, ", "))
 
+	// All matching findings get the same verdict and note, so collect their IDs
+	// and write them in a single UPDATE instead of one query per finding. The
+	// note is appended to any existing verify_note in SQL via a CASE expression.
+	var ids []uuid.UUID
 	for i := range fs {
 		f := &fs[i]
 		if !tiSources[f.Source] {
@@ -256,13 +286,18 @@ func (e *Engine) corroborateThreats(fs []models.OsintFinding) {
 		if f.Severity != "critical" && f.Severity != "high" && f.Severity != "medium" {
 			continue
 		}
-		newNote := note
-		if f.VerifyNote != "" {
-			newNote = f.VerifyNote + " | " + note
-		}
-		e.db.Model(&models.OsintFinding{}).Where("id = ?", f.ID).
-			Updates(map[string]interface{}{"confidence": verdict, "verify_note": newNote})
+		ids = append(ids, f.ID)
 	}
+	if len(ids) == 0 {
+		return
+	}
+	e.db.Model(&models.OsintFinding{}).Where("id IN ?", ids).
+		Updates(map[string]interface{}{
+			"confidence": verdict,
+			"verify_note": gorm.Expr(
+				"CASE WHEN verify_note IS NULL OR verify_note = '' THEN ? ELSE verify_note || ' | ' || ? END",
+				note, note),
+		})
 }
 
 func sortedKeys(m map[string]bool) []string {

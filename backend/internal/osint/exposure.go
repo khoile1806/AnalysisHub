@@ -49,7 +49,7 @@ func exposureScore(fs []models.OsintFinding) int {
 				if f.Title == "Leaked credential" {
 					breach += confWeight(f.Confidence, 6, 3, 1)
 				}
-			case "hibp", "xposed":
+			case "hibp", "xposed", "leakcheck":
 				// A named breach from a reputable breach database is real, durable
 				// exposure - credit it even when the combolist source is silent.
 				if strings.HasPrefix(f.Title, "Breach: ") {

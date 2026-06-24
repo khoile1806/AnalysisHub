@@ -42,8 +42,8 @@ func TestCpeKeyFor(t *testing.T) {
 	if cpeKeyFor("Apache") != "apache" {
 		t.Error("apache key")
 	}
-	if cpeKeyFor("cloudflare") != "" {
-		t.Error("unknown product should map to empty cpe key")
+	if cpeKeyFor("cloudflare") != "cloudflare" {
+		t.Error("unknown product should map to its lowercase name")
 	}
 }
 
