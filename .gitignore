@@ -44,6 +44,7 @@ agent/forensichub-agent-darwin-arm64
 # ── Backend compiled outputs ────────────────────────────────────────────────
 backend/bin/
 backend/server
+backend/data
 
 # ── Frontend build & dependencies ───────────────────────────────────────────
 frontend/dist/

@@ -1,5 +1,345 @@
 [
   {
+    "id": "GHSA-vhcc-wfm4-93ww",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:43Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w826-vj56-vqh9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:43Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wf4x-cm6m-6wpw",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:43Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-x2xc-9pfh-8g6q",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:42Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-26h7-ghcj-373h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:41Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-2j9j-p8f4-hwp3",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:40Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-2mp2-fxxh-hv2j",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:39Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-665r-cj9v-w263",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:38Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-76p3-3v32-9xxh",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:38Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-95m4-5hjq-cmvv",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:38Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9m96-3qwq-4728",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:37Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-gp4w-ghc6-9x53",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:37Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-h8rj-w8q4-6g6r",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:36Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jmxg-xc7h-vhvv",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:35Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pjmw-5mrc-f36h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qcjh-44gv-7799",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:33Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xq85-jg4p-xf7w",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:48Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:32Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-4c8m-6fwx-m7xq",
+    "description": "Concrete CMS contains a CSRF vulnerability",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-21T21:30:38Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-prxr-vjgc-2cq9",
+    "description": "Concrete CMS is Vulnerable to Cross-Site Request Forgery",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-21T21:30:38Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6401",
+    "description": "Malicious code in zenith-utils (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:05:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T18:56:30Z",
+    "source": "CIRCL"
+  },
+  {
     "id": "CVE-2026-52949",
     "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/ttm: Fix ttm_bo_shrink() infinite LRU walk on backup failure\n\nApply the same fix as b2ed01e7ad (\"drm/ttm: Fix ttm_bo_swapout()\ninfinite LRU walk on swapout failure\") to the ttm_bo_shrink() path.\n\nMove del_bulk_move from before the backup to after success only,\nusing ttm_resource_del_bulk_move_unevictable() since the resource\nis now unevictable once fully backed up.",
     "severity": "none",
