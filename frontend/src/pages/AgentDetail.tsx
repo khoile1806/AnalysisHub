@@ -31,6 +31,17 @@ interface NetConn { proto: string; local: string; remote: string; state: string 
 interface DiskInfo { name: string; total_gb: number; free_gb: number }
 interface SysInfo { cpu_model: string; cpu_cores: number; ram_total_mb: number; ram_free_mb: number; disks: DiskInfo[] }
 
+// ---- Keep Alive Tab Wrapper ----
+function KeepAliveTab({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(active)
+  useEffect(() => {
+    if (active && !mounted) setMounted(true)
+  }, [active, mounted])
+
+  if (!mounted) return null
+  return <div className={active ? 'block' : 'hidden'} style={{ height: '100%' }}>{children}</div>
+}
+
 // ---- Create Job Modal (pre-filled with agentId) ----
 function CreateJobModal({ agentId, open, onClose }: { agentId: string; open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
@@ -794,16 +805,16 @@ export default function AgentDetailPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'jobs'      && <JobsTab agent={agent} />}
-      {activeTab === 'sysinfo'   && <SysInfoTab agent={agent} />}
-      {activeTab === 'network'   && <NetworkTab agent={agent} />}
-      {activeTab === 'processes' && <ProcessesTab agent={agent} />}
-      {activeTab === 'terminal'  && <AgentTerminal agent={agent} />}
-      {activeTab === 'files'     && <FileBrowser agent={agent} />}
-      {activeTab === 'scanner'   && <YaraScanner agent={agent} />}
-      {activeTab === 'registry'  && <RegistryViewer agent={agent} />}
-      {activeTab === 'evtx'      && <EvtxViewer agent={agent} />}
-      {activeTab === 'edge-forensics' && <EdgeForensics agent={agent} />}
+      <KeepAliveTab active={activeTab === 'jobs'}><JobsTab agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'sysinfo'}><SysInfoTab agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'network'}><NetworkTab agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'processes'}><ProcessesTab agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'terminal'}><AgentTerminal agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'files'}><FileBrowser agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'scanner'}><YaraScanner agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'registry'}><RegistryViewer agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'evtx'}><EvtxViewer agent={agent} /></KeepAliveTab>
+      <KeepAliveTab active={activeTab === 'edge-forensics'}><EdgeForensics agent={agent} /></KeepAliveTab>
     </div>
   )
 }

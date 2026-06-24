@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useMemo, type FormEvent, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Search, ExternalLink, Star, Bug, AlertTriangle, GitBranch, ShieldAlert, FilterX } from 'lucide-react'
 import { cveApi, type CveSummary, type Severity } from '@/api/cve'
@@ -12,17 +12,11 @@ import {
   DialogDescription,
   DialogBody,
 } from '@/components/ui/dialog'
+import { useUiStore } from '@/store/uiStore'
 
 const SEVERITY_OPTIONS: Severity[] = ['critical', 'high', 'medium', 'low', 'none']
 
-interface CveFilters {
-  severities: Set<Severity>
-  onlyKev: boolean
-  cvssMin: number
-  epssPercentileMin: number
-}
-
-const DEFAULT_FILTERS: CveFilters = {
+const DEFAULT_FILTERS = {
   severities: new Set<Severity>(),
   onlyKev: false,
   cvssMin: 0,
@@ -30,12 +24,22 @@ const DEFAULT_FILTERS: CveFilters = {
 }
 
 export default function CVEPage() {
-  const [input, setInput] = useState('')
-  const [versionInput, setVersionInput] = useState('')
-  const [query, setQuery] = useState('')
-  const [version, setVersion] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [filters, setFilters] = useState<CveFilters>(DEFAULT_FILTERS)
+  const {
+    cveInput: input,
+    cveVersionInput: versionInput,
+    cveQuery: query,
+    cveVersion: version,
+    cveSelectedId: selectedId,
+    cveFilters: filters,
+    setCveState
+  } = useUiStore()
+
+  const setInput = (val: string) => setCveState({ cveInput: val })
+  const setVersionInput = (val: string) => setCveState({ cveVersionInput: val })
+  const setQuery = (val: string) => setCveState({ cveQuery: val })
+  const setVersion = (val: string) => setCveState({ cveVersion: val })
+  const setSelectedId = (val: string | null) => setCveState({ cveSelectedId: val })
+  const setFilters = (val: any) => setCveState({ cveFilters: typeof val === 'function' ? val(filters) : val })
 
   const search = useQuery({
     queryKey: ['cve', 'search', query, version],
@@ -62,7 +66,7 @@ export default function CVEPage() {
     filters.epssPercentileMin > 0
 
   const toggleSeverity = (s: Severity) => {
-    setFilters((prev) => {
+    setFilters((prev: any) => {
       const next = new Set(prev.severities)
       if (next.has(s)) next.delete(s)
       else next.add(s)
@@ -214,7 +218,7 @@ export default function CVEPage() {
                 step={0.5}
                 value={filters.cvssMin}
                 onChange={(e) =>
-                  setFilters((p) => ({ ...p, cvssMin: parseFloat(e.target.value) }))
+                  setFilters((p: any) => ({ ...p, cvssMin: parseFloat(e.target.value) }))
                 }
                 className="w-40 accent-emerald-500"
               />
@@ -233,7 +237,7 @@ export default function CVEPage() {
                 step={5}
                 value={filters.epssPercentileMin}
                 onChange={(e) =>
-                  setFilters((p) => ({ ...p, epssPercentileMin: parseInt(e.target.value, 10) }))
+                  setFilters((p: any) => ({ ...p, epssPercentileMin: parseInt(e.target.value, 10) }))
                 }
                 className="w-40 accent-emerald-500"
               />
@@ -244,7 +248,7 @@ export default function CVEPage() {
               <input
                 type="checkbox"
                 checked={filters.onlyKev}
-                onChange={(e) => setFilters((p) => ({ ...p, onlyKev: e.target.checked }))}
+                onChange={(e) => setFilters((p: any) => ({ ...p, onlyKev: e.target.checked }))}
                 className="accent-red-500"
               />
               <ShieldAlert className="h-3.5 w-3.5 text-red-400" />

@@ -245,16 +245,17 @@ function PrefetchTable({ data }: { data: PrefetchEntry[] }) {
 export function EdgeForensics({ agent }: { agent: Agent }) {
   const [activeTab, setActiveTab] = useState<'mft' | 'prefetch'>('mft')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<MFTEntry[] | PrefetchEntry[] | null>(null)
+  const [mftResults, setMftResults] = useState<MFTEntry[] | null>(null)
+  const [prefetchResults, setPrefetchResults] = useState<PrefetchEntry[] | null>(null)
 
   const handleMftScan = async () => {
     setLoading(true)
-    setResults(null)
+    setMftResults(null)
     try {
       toast('Requesting UAC Elevation on Agent...', { icon: '🛡️' })
       const data = await agentsApi.parseMFT(agent.id)
       const arr: MFTEntry[] = Array.isArray(data) ? data : [data]
-      setResults(arr)
+      setMftResults(arr)
       toast.success(`MFT scan complete — ${arr.length} entries`)
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err.message || 'MFT Scan failed')
@@ -265,12 +266,12 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
 
   const handlePrefetchScan = async () => {
     setLoading(true)
-    setResults(null)
+    setPrefetchResults(null)
     try {
       toast('Requesting UAC Elevation on Agent...', { icon: '🛡️' })
       const data = await agentsApi.parsePrefetch(agent.id)
       const arr: PrefetchEntry[] = Array.isArray(data) ? data : [data]
-      setResults(arr)
+      setPrefetchResults(arr)
       toast.success(`Prefetch scan complete — ${arr.length} entries`)
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err.message || 'Prefetch Scan failed')
@@ -285,7 +286,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       <div className="border-b border-gray-800 bg-[#1C1C1E] p-4 flex items-center justify-between">
         <div className="flex gap-4">
           <button
-            onClick={() => { setActiveTab('mft'); setResults(null) }}
+            onClick={() => setActiveTab('mft')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
               activeTab === 'mft' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
             }`}
@@ -294,7 +295,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
             MFT Scan
           </button>
           <button
-            onClick={() => { setActiveTab('prefetch'); setResults(null) }}
+            onClick={() => setActiveTab('prefetch')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
               activeTab === 'prefetch' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
             }`}
@@ -350,15 +351,24 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
             )}
 
             {/* Results */}
-            {results && results.length > 0 && (
+            {activeTab === 'mft' && mftResults && mftResults.length > 0 && (
               <div className="mt-2 border-t border-gray-800 pt-6">
-                {activeTab === 'mft'
-                  ? <MFTTable data={results as MFTEntry[]} />
-                  : <PrefetchTable data={results as PrefetchEntry[]} />}
+                <MFTTable data={mftResults} />
+              </div>
+            )}
+            {activeTab === 'prefetch' && prefetchResults && prefetchResults.length > 0 && (
+              <div className="mt-2 border-t border-gray-800 pt-6">
+                <PrefetchTable data={prefetchResults} />
               </div>
             )}
 
-            {results && results.length === 0 && (
+            {activeTab === 'mft' && mftResults && mftResults.length === 0 && (
+              <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12">
+                <Search className="h-8 w-8 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">Scan completed — no entries found.</p>
+              </div>
+            )}
+            {activeTab === 'prefetch' && prefetchResults && prefetchResults.length === 0 && (
               <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12">
                 <Search className="h-8 w-8 text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">Scan completed — no entries found.</p>
@@ -366,7 +376,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
             )}
 
             {/* Empty state */}
-            {!results && !loading && agent.status === 'online' && (
+            {((activeTab === 'mft' && !mftResults) || (activeTab === 'prefetch' && !prefetchResults)) && !loading && agent.status === 'online' && (
               <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-lg">
                 <Search className="h-8 w-8 text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-400 text-sm">Click "Run Scan" to trigger the UAC prompt on the agent.</p>

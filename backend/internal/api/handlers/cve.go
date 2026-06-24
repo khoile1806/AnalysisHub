@@ -379,34 +379,14 @@ func searchNVD(ctx context.Context, c *gin.Context, keyword string, limit int) (
 		paramVal = strings.TrimSpace(keyword)
 	}
 
-	metaParams := url.Values{}
-	metaParams.Set(paramKey, paramVal)
-	metaParams.Set("resultsPerPage", "1")
-	metaRaw, status, err := fetchNVD(ctx, c, metaParams)
-	if err != nil {
-		return nil, err
-	}
-	if status != http.StatusOK {
-		return nil, fmt.Errorf("NVD meta status %d", status)
-	}
-	var meta struct {
-		TotalResults int `json:"totalResults"`
-	}
-	if err := json.Unmarshal(metaRaw, &meta); err != nil {
-		return nil, err
-	}
-
-	startIdx := meta.TotalResults - limit
-	if startIdx < 0 {
-		startIdx = 0
-	}
-
+	// NVD API 2.0 sorts results by published date ascending.
+	// To get the newest CVEs efficiently, we fetch up to 2000 results (max allowed) in ONE request.
+	// For most keywords (like "jquery" which has ~150 results), this gets all CVEs in a single API call,
+	// avoiding the severe 30-second latency of making two sequential NVD requests.
 	params := url.Values{}
 	params.Set(paramKey, paramVal)
-	params.Set("resultsPerPage", strconv.Itoa(limit))
-	if startIdx > 0 {
-		params.Set("startIndex", strconv.Itoa(startIdx))
-	}
+	params.Set("resultsPerPage", "2000")
+
 	raw, status, err := fetchNVD(ctx, c, params)
 	if err != nil {
 		return nil, err
@@ -414,6 +394,44 @@ func searchNVD(ctx context.Context, c *gin.Context, keyword string, limit int) (
 	if status != http.StatusOK {
 		return nil, fmt.Errorf("NVD search status %d", status)
 	}
+
+	var meta struct {
+		TotalResults int `json:"totalResults"`
+	}
+	if err := json.Unmarshal(raw, &meta); err != nil {
+		return nil, err
+	}
+
+	// If the keyword matched 2000 or fewer CVEs, we already have everything.
+	if meta.TotalResults <= 2000 {
+		summaries, err := parseNVDSummaries(raw)
+		if err != nil {
+			return nil, err
+		}
+		if len(summaries) > limit {
+			summaries = summaries[:limit]
+		}
+		return summaries, nil
+	}
+
+	// If there are > 2000 results (e.g. "windows"), our first page contains the OLDEST CVEs.
+	// We must make a second request fetching the LAST page to get the NEWEST ones.
+	startIdx := meta.TotalResults - limit
+	if startIdx < 0 {
+		startIdx = 0
+	}
+
+	params.Set("resultsPerPage", strconv.Itoa(limit))
+	params.Set("startIndex", strconv.Itoa(startIdx))
+	
+	raw, status, err = fetchNVD(ctx, c, params)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("NVD search status %d", status)
+	}
+	
 	return parseNVDSummaries(raw)
 }
 

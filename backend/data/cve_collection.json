@@ -1,5 +1,294 @@
 [
   {
+    "id": "GHSA-fqg3-8w8r-8g94",
+    "description": "Concrete CMS has an unauthorized file access issue",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-22T00:31:16Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:32Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "DRUPAL-CONTRIB-2026-062",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:46:12.000Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-66rg-92q4-6m8q",
+    "description": "Concrete CMS is vulnerable to unauthorized file deletion",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-22T00:31:16Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "DRUPAL-CONTRIB-2026-063",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:48:15.000Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:30Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "DRUPAL-CONTRIB-2026-064",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:49:32.000Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:29Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-chfm-cm6h-q5x7",
+    "description": "Concrete CMS is subject to Insecure Direct Object Reference (IDOR) in the Express Entry Detail block",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-22T00:31:16Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:29Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-p8p9-5953-h9jw",
+    "description": "Concrete CMS is vulnerable to IDOR in AddMessage/UpdateMessage",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-22T00:31:16Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T20:06:28Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-99r5-v2c8-64wh",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:14Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-fwhp-9prf-4wq9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:13Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-gj9x-pqvx-p5mh",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:12Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j2v8-v4c8-53mp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:12Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j8wh-h47x-6xr8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:11Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jp54-xjfc-9fqx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:11Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m2xr-rm39-xmjv",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:10Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-p9wq-vwq5-7wv7",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:10Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r2jg-mcxg-628g",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r4jc-xrhv-v4rj",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-24T19:23:08Z",
+    "source": "CIRCL"
+  },
+  {
     "id": "GHSA-vhcc-wfm4-93ww",
     "description": "",
     "severity": "none",

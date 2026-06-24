@@ -55,7 +55,7 @@ func RunElevatedAndWait(exe string, args string) error {
 	sei.LpVerb = verb
 	sei.LpFile = exe16
 	sei.LpParameters = args16
-	sei.NShow = windows.SW_HIDE
+	sei.NShow = windows.SW_NORMAL
 
 	ret, _, err := procShellExecuteEx.Call(uintptr(unsafe.Pointer(&sei)))
 	if ret == 0 {

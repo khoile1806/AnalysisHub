@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, Trash2, Terminal as TerminalIcon, Cpu, RefreshCw, FileWarning } from 'lucide-react'
+import { Upload, Trash2, Terminal as TerminalIcon, Cpu, RefreshCw, Server, MemoryStick, Database, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/auth'
+import { useUiStore } from '@/store/uiStore'
 
 interface DumpFile {
   name: string
@@ -22,6 +23,11 @@ export default function MemoryAnalysis() {
   const queryClient = useQueryClient()
   const [isUploading, setIsUploading] = useState(false)
   const [terminalUrl, setTerminalUrl] = useState<string>('')
+  const [isDragging, setIsDragging] = useState(false)
+  
+  // State to toggle sidebar and make console bigger
+  const isSidebarOpen = useUiStore(s => s.memorySidebarOpen)
+  const setIsSidebarOpen = useUiStore(s => s.setMemorySidebarOpen)
 
   // Initialize terminal URL to point to the ttyd server
   useState(() => {
@@ -57,10 +63,7 @@ export default function MemoryAnalysis() {
     onError: (err: Error) => toast.error(`Delete failed: ${err.message}`)
   })
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const handleFile = async (file: File) => {
     setIsUploading(true)
     const formData = new FormData()
     formData.append('file', file)
@@ -81,99 +84,190 @@ export default function MemoryAnalysis() {
       toast.error(err.message || 'Upload failed')
     } finally {
       setIsUploading(false)
-      if (e.target) e.target.value = ''
     }
   }
 
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFile(file)
+  }
+
   return (
-    <div className="p-6 h-full flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 flex flex-col bg-[#09090b] overflow-hidden rounded-xl border border-white/5 shadow-2xl">
+      
+      {/* Top Header - Slimmer to save space */}
+      <div className="h-16 shrink-0 border-b border-white/5 bg-[#121214] flex items-center justify-between px-4 z-20 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-purple-500/20 flex items-center justify-center border border-purple-500/30">
-            <Cpu className="h-5 w-5 text-purple-400" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.15)]">
+            <Cpu className="h-5 w-5 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Memory Analysis</h1>
-            <p className="text-sm text-gray-400">Interactive Volatility 2 & 3 Sandbox</p>
+            <h1 className="text-xl font-bold text-white tracking-tight leading-none">Memory Analysis</h1>
+            <p className="text-xs text-gray-400 mt-1">Interactive Sandbox Environment</p>
           </div>
         </div>
+        
+        {/* Toggle Sidebar Button */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+            isSidebarOpen 
+              ? 'bg-white/5 text-gray-300 hover:bg-white/10' 
+              : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20'
+          }`}
+        >
+          {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+          {isSidebarOpen ? 'Hide Files' : 'Manage Dumps'}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
-        {/* Left Column: File Management */}
-        <div className="col-span-1 flex flex-col gap-4 overflow-y-auto pr-2">
-          <div className="bg-[#1C1C1E] border border-gray-800 rounded-xl p-4 flex flex-col gap-4">
-            <h2 className="text-lg font-semibold text-gray-200">Upload Dump</h2>
-            <div className="relative border-2 border-dashed border-gray-700 rounded-lg p-6 hover:border-purple-500/50 transition-colors bg-[#151515] text-center">
-              <input
-                type="file"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-                accept=".raw,.mem,.vmem,.bin"
-              />
-              <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
-                {isUploading ? (
-                  <RefreshCw className="h-8 w-8 text-purple-500 animate-spin" />
-                ) : (
-                  <Upload className="h-8 w-8 text-gray-500" />
-                )}
-                <span className="text-sm text-gray-400 font-medium">
-                  {isUploading ? 'Uploading...' : 'Drag & Drop or Click to Upload'}
-                </span>
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden min-h-0 relative">
+        
+        {/* Left Sidebar (Collapsible) */}
+        <div 
+          className={`flex-shrink-0 flex flex-col border-r border-white/5 bg-[#121214] z-10 transition-all duration-300 ease-in-out ${
+            isSidebarOpen ? 'w-80 xl:w-96 translate-x-0' : 'w-0 -translate-x-full overflow-hidden border-r-0'
+          }`}
+        >
+          {isSidebarOpen && (
+            <div className="flex flex-col h-full w-80 xl:w-96">
+              {/* Upload Card */}
+              <div className="p-4 border-b border-white/5 relative overflow-hidden shrink-0">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
+                <h2 className="text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                  Workspace Dumps
+                </h2>
+                
+                <label
+                  className={`relative flex flex-col items-center justify-center py-6 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
+                    isDragging 
+                      ? 'border-indigo-500 bg-indigo-500/10 scale-[1.02]' 
+                      : 'border-white/10 hover:border-indigo-500/50 hover:bg-white/[0.02]'
+                  }`}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                >
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleFile(file)
+                      e.target.value = ''
+                    }}
+                    disabled={isUploading}
+                    accept=".raw,.mem,.vmem,.bin,.dmp"
+                  />
+                  
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="h-6 w-6 text-indigo-400 animate-spin mb-2" />
+                      <p className="text-sm font-medium text-indigo-300">Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-2.5 bg-indigo-500/10 rounded-full mb-2 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                        <Upload className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-300 text-center">Drop dump here</p>
+                    </>
+                  )}
+                </label>
+              </div>
+
+              {/* Dumps List Card */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-[#151518] shrink-0">
+                  <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider">Available Files</h2>
+                  <button 
+                    onClick={() => refetch()} 
+                    className="p-1 text-gray-500 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                    title="Refresh List"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-20 text-gray-500 text-sm">Loading...</div>
+                  ) : dumps.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-32 text-gray-500 text-sm gap-2">
+                      <MemoryStick className="h-6 w-6 opacity-40" />
+                      <span>No dumps available</span>
+                    </div>
+                  ) : (
+                    dumps.map(d => (
+                      <div key={d.name} className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
+                        <div className="min-w-0 flex-1 flex items-center gap-3">
+                          <div className="p-1.5 bg-gray-800/50 rounded-md text-gray-400 group-hover:text-indigo-400 transition-colors">
+                            <Server className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-200 truncate pr-2" title={d.name}>{d.name}</p>
+                            <p className="text-[11px] text-gray-500">{formatBytes(d.size)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteDump.mutate(d.name)}
+                          className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-md opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                          title="Delete Dump"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-[#1C1C1E] border border-gray-800 rounded-xl p-4 flex flex-col gap-4 flex-1">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-200">Sandbox Dumps</h2>
-              <button onClick={() => refetch()} className="p-1.5 hover:bg-white/5 rounded-md text-gray-400 hover:text-white transition-colors">
-                <RefreshCw className="h-4 w-4" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-              {isLoading ? (
-                <div className="text-center py-4 text-gray-500">Loading...</div>
-              ) : dumps.length === 0 ? (
-                <div className="text-center py-8 flex flex-col items-center gap-2 text-gray-500 border border-dashed border-gray-800 rounded-lg">
-                  <FileWarning className="h-8 w-8 opacity-50" />
-                  <p className="text-sm">No memory dumps uploaded</p>
-                </div>
-              ) : (
-                dumps.map(d => (
-                  <div key={d.name} className="flex items-center justify-between p-3 rounded-lg bg-[#252528] border border-gray-700 hover:border-gray-600 group">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-200 truncate">{d.name}</p>
-                      <p className="text-xs text-gray-500">{formatBytes(d.size)}</p>
-                    </div>
-                    <button
-                      onClick={() => deleteDump.mutate(d.name)}
-                      className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
-                      title="Delete Dump"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Right Column: Web Terminal */}
-        <div className="col-span-1 lg:col-span-3 bg-[#1C1C1E] border border-gray-800 rounded-xl flex flex-col overflow-hidden">
-          <div className="flex items-center gap-2 bg-[#252528] px-4 py-2 border-b border-gray-800">
-            <TerminalIcon className="h-4 w-4 text-purple-400" />
-            <span className="text-sm font-medium text-gray-200">Volatility Interactive Console</span>
-            <div className="ml-auto text-xs text-gray-500 flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-gray-800 border border-gray-700">vol2</span>
-              <span className="px-2 py-0.5 rounded bg-gray-800 border border-gray-700">vol3</span>
+        {/* Right Area (Terminal) - Expands to full width when sidebar is closed */}
+        <div className="flex-1 flex flex-col bg-black relative">
+          
+          {/* Terminal Header */}
+          <div className="h-10 bg-[#121214] border-b border-white/5 flex items-center px-4 justify-between shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <TerminalIcon className="h-4 w-4 text-emerald-400" />
+                <span className="text-sm font-mono text-gray-300 tracking-wider">root@sandbox:~#</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400/80 mr-2">Online</span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] uppercase font-mono font-bold tracking-wider">
+                vol2
+              </span>
+              <span className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] uppercase font-mono font-bold tracking-wider">
+                vol3
+              </span>
             </div>
           </div>
-          <div className="flex-1 relative bg-black">
-            <iframe
+          
+          {/* Terminal Body */}
+          <div className="flex-1 bg-black relative">
+             <iframe
               src={terminalUrl}
               className="absolute inset-0 w-full h-full border-none"
               title="Volatility Terminal"
@@ -181,6 +275,7 @@ export default function MemoryAnalysis() {
             />
           </div>
         </div>
+
       </div>
     </div>
   )

@@ -85,17 +85,36 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 	}
 
 	ps1 := fmt.Sprintf(
-		"# ForensicHub: %s [%s]\r\n$ErrorActionPreference = 'Continue'\r\n%s%s 2>&1 | Tee-Object -FilePath %s\r\n",
+		"param([switch]$Elevated)\r\n"+
+			"# ForensicHub: %s [%s]\r\n"+
+			"$ErrorActionPreference = 'Continue'\r\n"+
+			"if ($Elevated) {\r\n"+
+			"    %s%s 2>&1 | Tee-Object -FilePath %s -Append\r\n"+
+			"    exit\r\n"+
+			"}\r\n"+
+			"try {\r\n"+
+			"    %s%s 2>&1 | Tee-Object -FilePath %s\r\n"+
+			"} catch {\r\n"+
+			"    $msg = $_.Exception.Message\r\n"+
+			"    if ($msg -match 'elevation' -or $msg -match 'supported') {\r\n"+
+			"        Write-Output '[Agent] Tool requires elevation. Prompting UAC...' | Out-File -FilePath %s -Append -Encoding UTF8\r\n"+
+			"        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Normal', '-File', $PSCommandPath, '-Elevated')\r\n"+
+			"        Start-Process powershell -ArgumentList $argList -WorkingDirectory $pwd.Path -Verb RunAs -Wait\r\n"+
+			"    } else {\r\n"+
+			"        throw\r\n"+
+			"    }\r\n"+
+			"}\r\n",
 		req.ToolName, req.JobID,
-		softLimitSnippet,
-		toolLine,
-		psSingleQuote(logFile),
+		softLimitSnippet, toolLine, psSingleQuote(logFile), // Elevated
+		softLimitSnippet, toolLine, psSingleQuote(logFile), // Try
+		psSingleQuote(logFile),                             // Catch
 	)
 	if err := os.WriteFile(ps1File, []byte(ps1), 0o600); err != nil {
 		return fmt.Errorf("executor: write PS1 wrapper: %w", err)
 	}
 
 	// Batch launcher: open a new titled window and wait for it to exit.
+	// This works identically to before, while the ps1File handles dynamic elevation.
 	safeTitle := strings.ReplaceAll(req.ToolName, `"`, `'`)
 	bat := fmt.Sprintf(
 		"@echo off\r\nstart \"%s [%s]\" /wait powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%s\"\r\n",

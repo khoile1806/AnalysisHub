@@ -311,9 +311,9 @@ export default function Layout() {
         <main 
           ref={mainRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto overflow-x-hidden bg-grid-pattern bg-grid bg-gray-950 p-4 sm:p-6 relative"
+          className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden bg-grid-pattern bg-grid bg-gray-950 p-4 sm:p-6 relative"
         >
-          <div className="max-w-full">
+          <div className="max-w-full flex-1 flex flex-col">
             <Outlet />
           </div>
           
