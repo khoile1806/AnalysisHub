@@ -63,7 +63,7 @@ const NAV_GROUPS = [
   {
     label: 'Analysis',
     items: [
-      { to: '/memory',      icon: Cpu,          label: 'Memory Analysis' },
+      { to: '/sandbox',     icon: Cpu,          label: 'Sandbox Analysis' },
       { to: '/ai-analysis', icon: BrainCircuit, label: 'AI Analysis' },
       { to: '/opencti',     icon: ShieldAlert,  label: 'SIEM Threat Hunting' },
     ]
@@ -100,7 +100,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'collection-checklist': 'Evidence & Compliance',
   'playbooks': 'Playbooks',
   'ai-analysis': 'AI Analysis',
-  'memory':      'Memory Analysis',
+  'sandbox':     'Sandbox Analysis',
   'ai-providers': 'AI Providers',
   'test-cases':     'Test Cases',
   'system-health':  'System Health',

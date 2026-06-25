@@ -1,7 +1,10 @@
 package osint
 
-import "strings"
+import (
+	"strings"
 
+	"github.com/forensichub/backend/internal/config"
+)
 // placeholderDomains are reserved/test domains (RFC 2606 + common throwaways)
 // that carry no real footprint — auto-pivoting into them only wastes scans.
 var placeholderDomains = map[string]bool{
@@ -61,7 +64,7 @@ var providerSuffixes = []string{
 // isProviderDomain reports whether a domain belongs to a public e-mail provider,
 // cloud/CDN/hosting infrastructure, or a third-party platform - i.e. something
 // that should never be auto-pivoted as the subject's own asset.
-func isProviderDomain(domain string) bool {
+func isProviderDomain(cfg *config.Config, domain string) bool {
 	d := strings.TrimRight(strings.ToLower(strings.TrimSpace(domain)), ".")
 	if d == "" {
 		return false
@@ -69,7 +72,11 @@ func isProviderDomain(domain string) bool {
 	if freeMailDomains[d] {
 		return true
 	}
-	for _, suf := range providerSuffixes {
+	suffixes := providerSuffixes
+	if cfg != nil && len(cfg.OsintProviderSuffixes) > 0 {
+		suffixes = cfg.OsintProviderSuffixes
+	}
+	for _, suf := range suffixes {
 		if d == suf || strings.HasSuffix(d, "."+suf) {
 			return true
 		}
@@ -92,7 +99,7 @@ var genericRDNSMarkers = []string{
 // auto-generated reverse-DNS name for ip, rather than a real, investigable asset.
 // It fires when the hostname embeds the IP's octets (dotted, dashed, or reversed)
 // or carries a strong provider marker alongside a digit group.
-func isGenericReverseDNS(host, ip string) bool {
+func isGenericReverseDNS(cfg *config.Config, host, ip string) bool {
 	h := strings.ToLower(strings.TrimSpace(host))
 	if h == "" {
 		return false
@@ -121,7 +128,11 @@ func isGenericReverseDNS(host, ip string) bool {
 	if !hasDigitRun {
 		return false
 	}
-	for _, m := range genericRDNSMarkers {
+	markers := genericRDNSMarkers
+	if cfg != nil && len(cfg.OsintRDNSMarkers) > 0 {
+		markers = cfg.OsintRDNSMarkers
+	}
+	for _, m := range markers {
 		if strings.Contains(h, m) {
 			return true
 		}
@@ -176,7 +187,7 @@ func pivotWorthy(value, ttype string) (bool, string) {
 // co-hosted domains (other tenants on a shared IP) are recorded as findings but
 // must NOT spawn child scans, or the graph fills with out-of-scope noise.
 // Person investigations (email/username/name) are not domain-constrained.
-func inPivotScope(rootTarget, rootType, value, ttype string) (bool, string) {
+func inPivotScope(cfg *config.Config, rootTarget, rootType, value, ttype string) (bool, string) {
 	if rootType != TargetDomain {
 		// IP and person (email/username/name) roots aren't namespace-constrained,
 		// but must still not pivot into shared infrastructure or public providers
@@ -184,14 +195,14 @@ func inPivotScope(rootTarget, rootType, value, ttype string) (bool, string) {
 		// the main way these investigations drift out of scope.
 		switch ttype {
 		case TargetDomain:
-			if isProviderDomain(value) {
+			if isProviderDomain(cfg, value) {
 				return false, "shared/provider/CDN domain - not the subject's asset"
 			}
-			if rootType == TargetIP && isGenericReverseDNS(value, rootTarget) {
+			if rootType == TargetIP && isGenericReverseDNS(cfg, value, rootTarget) {
 				return false, "generic ISP/hosting reverse-DNS host - not the subject's asset"
 			}
 		case TargetEmail:
-			if _, d := emailParts(value); isProviderDomain(d) {
+			if _, d := emailParts(value); isProviderDomain(cfg, d) {
 				return false, "free-mail/provider domain - maps to a person, not an org"
 			}
 		}

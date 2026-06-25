@@ -80,14 +80,14 @@ func NewEngine(db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.E
 		history: make(map[string][]string),
 	}
 	e.recoverStuckScans()
+	e.resumePendingScans()
 	e.startWatchScheduler()
 	return e
 }
 
 // recoverStuckScans marks scans/collectors left running after a restart as
-// failed so they can be re-run or deleted.
+// pending so they can be re-run by the persistent queue.
 func (e *Engine) recoverStuckScans() {
-	now := time.Now()
 	var ids []string
 	e.db.Model(&models.OsintScan{}).
 		Where("status = ?", models.OsintRunning).
@@ -98,11 +98,40 @@ func (e *Engine) recoverStuckScans() {
 	e.db.Model(&models.OsintCollector{}).
 		Where("scan_id IN ? AND status IN ?", ids,
 			[]string{string(models.OsintCollectorRunning), string(models.OsintCollectorPending)}).
-		Updates(map[string]interface{}{"status": models.OsintCollectorFailed, "finished_at": now})
+		Updates(map[string]interface{}{
+			"status":      models.OsintCollectorPending,
+			"started_at":  nil,
+			"finished_at": nil,
+			"error":       "",
+		})
 	res := e.db.Model(&models.OsintScan{}).
 		Where("status = ?", models.OsintRunning).
-		Updates(map[string]interface{}{"status": models.OsintFailed, "finished_at": now})
-	log.Printf("[osint] recovered %d stuck scan(s) on startup", res.RowsAffected)
+		Updates(map[string]interface{}{
+			"status":      models.OsintPending,
+			"finished_at": nil,
+		})
+	log.Printf("[osint] recovered and requeued %d stuck scan(s) on startup", res.RowsAffected)
+}
+
+// resumePendingScans fetches all pending scans from the database and starts them.
+// This acts as a persistent queue that resumes scans after a server restart.
+func (e *Engine) resumePendingScans() {
+	var scans []models.OsintScan
+	e.db.Preload("Collectors").Where("status = ?", models.OsintPending).Find(&scans)
+
+	count := 0
+	for i := range scans {
+		s := &scans[i]
+		if !e.IsRunning(s.ID.String()) {
+			count++
+			if err := e.StartScan(s, s.Collectors); err != nil {
+				log.Printf("[osint] failed to resume scan %s: %v", s.ID, err)
+			}
+		}
+	}
+	if count > 0 {
+		log.Printf("[osint] resumed %d pending scan(s) from persistent queue", count)
+	}
 }
 
 // -- SSE subscription ----------------------------------------------------------
@@ -469,7 +498,7 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 		}
 		// Keep the investigation in scope - a domain hunt must not pivot into
 		// registrar contacts, provider domains or co-hosted tenants.
-		if ok, reason := inPivotScope(rootTarget, rootType, p.value, ttype); !ok {
+		if ok, reason := inPivotScope(e.cfg, rootTarget, rootType, p.value, ttype); !ok {
 			e.emit(parentID.String(), fmt.Sprintf("[*] auto-pivot skip %s (%s) - %s", p.value, ttype, reason))
 			continue
 		}

@@ -18,7 +18,7 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-export default function MemoryAnalysis() {
+export default function SandboxAnalysis() {
   const token = useAuthStore(s => s.token)
   const queryClient = useQueryClient()
   const [isUploading, setIsUploading] = useState(false)
@@ -114,8 +114,8 @@ export default function MemoryAnalysis() {
             <Cpu className="h-5 w-5 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight leading-none">Memory Analysis</h1>
-            <p className="text-xs text-gray-400 mt-1">Interactive Sandbox Environment</p>
+            <h1 className="text-xl font-bold text-white tracking-tight leading-none">Sandbox Analysis</h1>
+            <p className="text-xs text-gray-400 mt-1">Kali Linux Sandbox Environment</p>
           </div>
         </div>
         
@@ -129,7 +129,7 @@ export default function MemoryAnalysis() {
           }`}
         >
           {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
-          {isSidebarOpen ? 'Hide Files' : 'Manage Dumps'}
+          {isSidebarOpen ? 'Hide Files' : 'Manage Sandbox Files'}
         </button>
       </div>
 
@@ -149,7 +149,7 @@ export default function MemoryAnalysis() {
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
                 <h2 className="text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
                   <Database className="w-3.5 h-3.5 text-indigo-400" />
-                  Workspace Dumps
+                  Sandbox Files
                 </h2>
                 
                 <label
@@ -247,7 +247,7 @@ export default function MemoryAnalysis() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <TerminalIcon className="h-4 w-4 text-emerald-400" />
-                <span className="text-sm font-mono text-gray-300 tracking-wider">root@sandbox:~#</span>
+                <span className="text-sm font-mono text-gray-300 tracking-wider">root@kali:~#</span>
               </div>
             </div>
             

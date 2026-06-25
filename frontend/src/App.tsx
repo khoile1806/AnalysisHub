@@ -28,7 +28,7 @@ const TestCasesPage = lazy(() => import('@/pages/TestCases'))
 const SystemHealthPage = lazy(() => import('@/pages/SystemHealth'))
 const OfflineBundlesPage = lazy(() => import('@/pages/OfflineBundles'))
 const PlaybooksPage = lazy(() => import('@/pages/Playbooks'))
-const MemoryAnalysisPage = lazy(() => import('@/pages/MemoryAnalysis'))
+const SandboxAnalysisPage = lazy(() => import('@/pages/SandboxAnalysis'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -166,11 +166,11 @@ export default function App() {
           }
         />
         <Route
-          path="/memory"
+          path="/sandbox"
           element={
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
-                <MemoryAnalysisPage />
+                <SandboxAnalysisPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

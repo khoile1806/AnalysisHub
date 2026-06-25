@@ -88,6 +88,8 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.OsintFinding{},
 		&models.OsintWatch{},
 		&models.OsintWatchAlert{},
+		&models.CanaryToken{},
+		&models.CanaryHit{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

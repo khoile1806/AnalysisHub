@@ -10,13 +10,13 @@ func TestIsProviderDomain(t *testing.T) {
 		"sub.medium.com", "t.me",
 	}
 	for _, d := range providers {
-		if !isProviderDomain(d) {
+		if !isProviderDomain(nil, d) {
 			t.Errorf("expected %q to be a provider/free-mail/platform domain", d)
 		}
 	}
 	owned := []string{"acmecorp.com", "bank.example", "victim.org", "shop.acme.co.uk"}
 	for _, d := range owned {
-		if isProviderDomain(d) {
+		if isProviderDomain(nil, d) {
 			t.Errorf("expected %q to NOT be a provider domain", d)
 		}
 	}
@@ -26,18 +26,18 @@ func TestIsProviderDomain(t *testing.T) {
 // person roots must not pivot into shared infrastructure / free-mail / platforms.
 func TestInPivotScopeNonDomainRoots(t *testing.T) {
 	// IP root pivoting into a CDN tenant must be rejected.
-	if ok, _ := inPivotScope("1.2.3.4", TargetIP, "d999.cloudfront.net", TargetDomain); ok {
+	if ok, _ := inPivotScope(nil, "1.2.3.4", TargetIP, "d999.cloudfront.net", TargetDomain); ok {
 		t.Error("IP root should not pivot into a CDN domain")
 	}
 	// IP root pivoting into a real co-hosted domain is allowed.
-	if ok, _ := inPivotScope("1.2.3.4", TargetIP, "realcorp.com", TargetDomain); !ok {
+	if ok, _ := inPivotScope(nil, "1.2.3.4", TargetIP, "realcorp.com", TargetDomain); !ok {
 		t.Error("IP root should pivot into a non-provider co-hosted domain")
 	}
 	// Email root: free-mail domain pivot rejected, company domain allowed.
-	if ok, _ := inPivotScope("a@gmail.com", TargetEmail, "alice@gmail.com", TargetEmail); ok {
+	if ok, _ := inPivotScope(nil, "a@gmail.com", TargetEmail, "alice@gmail.com", TargetEmail); ok {
 		t.Error("email root should not pivot into a free-mail domain")
 	}
-	if ok, _ := inPivotScope("a@x.com", TargetEmail, "bob@acmecorp.com", TargetEmail); !ok {
+	if ok, _ := inPivotScope(nil, "a@x.com", TargetEmail, "bob@acmecorp.com", TargetEmail); !ok {
 		t.Error("email root should pivot into a company-domain e-mail")
 	}
 }
@@ -55,7 +55,7 @@ func TestIsGenericReverseDNS(t *testing.T) {
 		{"203.0.113.9.in-addr.arpa", "203.0.113.9"},
 	}
 	for _, g := range generic {
-		if !isGenericReverseDNS(g.host, g.ip) {
+		if !isGenericReverseDNS(nil, g.host, g.ip) {
 			t.Errorf("expected %q (ip %q) to be generic reverse-DNS", g.host, g.ip)
 		}
 	}
@@ -65,7 +65,7 @@ func TestIsGenericReverseDNS(t *testing.T) {
 		{"shop.example.co.uk", "198.51.100.2"},
 	}
 	for _, r := range real {
-		if isGenericReverseDNS(r.host, r.ip) {
+		if isGenericReverseDNS(nil, r.host, r.ip) {
 			t.Errorf("expected %q (ip %q) to NOT be generic reverse-DNS", r.host, r.ip)
 		}
 	}
@@ -74,10 +74,10 @@ func TestIsGenericReverseDNS(t *testing.T) {
 // TestInPivotScopeIPRootGenericRDNS confirms an IP root rejects a pivot into a
 // generic ISP/hosting reverse-DNS host.
 func TestInPivotScopeIPRootGenericRDNS(t *testing.T) {
-	if ok, _ := inPivotScope("5.6.7.8", TargetIP, "static.5.6.7.8.clients.your-host.de", TargetDomain); ok {
+	if ok, _ := inPivotScope(nil, "5.6.7.8", TargetIP, "static.5.6.7.8.clients.your-host.de", TargetDomain); ok {
 		t.Error("IP root should not pivot into a generic reverse-DNS host")
 	}
-	if ok, _ := inPivotScope("5.6.7.8", TargetIP, "api.victimcorp.com", TargetDomain); !ok {
+	if ok, _ := inPivotScope(nil, "5.6.7.8", TargetIP, "api.victimcorp.com", TargetDomain); !ok {
 		t.Error("IP root should still pivot into a real co-hosted asset")
 	}
 }
@@ -85,10 +85,10 @@ func TestInPivotScopeIPRootGenericRDNS(t *testing.T) {
 // TestInPivotScopeDomainRootUnchanged confirms the (already tight) domain-root
 // namespace rule still holds and is not loosened by the provider logic.
 func TestInPivotScopeDomainRootUnchanged(t *testing.T) {
-	if ok, _ := inPivotScope("acme.com", TargetDomain, "api.acme.com", TargetDomain); !ok {
+	if ok, _ := inPivotScope(nil, "acme.com", TargetDomain, "api.acme.com", TargetDomain); !ok {
 		t.Error("subdomain of root should stay in scope")
 	}
-	if ok, _ := inPivotScope("acme.com", TargetDomain, "evil.org", TargetDomain); ok {
+	if ok, _ := inPivotScope(nil, "acme.com", TargetDomain, "evil.org", TargetDomain); ok {
 		t.Error("unrelated domain should be out of scope for a domain root")
 	}
 }

@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"net/smtp"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/forensichub/backend/internal/models"
 )
@@ -64,6 +66,38 @@ func collectEmailValidate(ctx context.Context, env *collectorEnv) ([]models.Osin
 	}
 	out = append(out, newFinding("email_validate", "identity", "Mail exchanger",
 		strings.Join(hosts, ", ")))
+
+	// Active SMTP verification
+	smtpFinding := newFinding("email_validate", "identity", "SMTP mailbox verification", "unverified (could not connect to MX)")
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	for _, mx := range hosts {
+		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(mx, "25"))
+		if err != nil {
+			continue
+		}
+		client, err := smtp.NewClient(conn, mx)
+		if err != nil {
+			conn.Close()
+			continue
+		}
+		
+		client.Hello("forensichub.local")
+		client.Mail("ping@forensichub.local")
+		err = client.Rcpt(env.target)
+		if err == nil {
+			smtpFinding.Value = "mailbox confirmed deliverable (SMTP 250 OK)"
+			smtpFinding.Confidence = "verified"
+			smtpFinding.Severity = "info"
+		} else {
+			smtpFinding.Value = fmt.Sprintf("mailbox rejected (SMTP error: %v)", err)
+			smtpFinding.Confidence = "unverified"
+			smtpFinding.Severity = "medium"
+		}
+		client.Close()
+		break
+	}
+	out = append(out, smtpFinding)
+
 	return out, nil
 }
 

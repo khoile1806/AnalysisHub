@@ -22,6 +22,13 @@ type Config struct {
 	// (e.g. "http://192.168.1.10:8080"). When set, it overrides the
 	// Host-header-derived URL used in install scripts and job dispatch.
 	PublicURL string
+	// CanaryBaseURL is the public base URL used to build canary-token links
+	// (e.g. "https://promo-event.io"). It is deliberately decoupled from
+	// PublicURL so operators can front canary links with a separate / disposable
+	// domain (or reverse proxy / tunnel) and avoid leaking the real ForensicHub
+	// host to whoever clicks the link. When empty the per-token override (if any)
+	// or the request-derived host is used.
+	CanaryBaseURL string
 	// UseHTTPS, when true, forces the automatically-derived server URL to
 	// use https:// even if the request appears to be plain http.
 	UseHTTPS bool
@@ -84,6 +91,11 @@ type Config struct {
 	// IP is treated as shared hosting and its co-hosted domains are recorded as
 	// findings but NOT auto-pivoted (they are other tenants, not the subject).
 	OsintCohostPivotMax int // default 5
+	
+	// Configurable auto-pivot filter lists. If empty, the engine uses its built-in defaults.
+	OsintProviderSuffixes []string
+	OsintRDNSMarkers      []string
+	
 	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
 	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
 	AbuseChKey    string
@@ -134,6 +146,7 @@ func Load() *Config {
 		AdminPassword: getEnv("ADMIN_PASSWORD", "ChangeMe!2024"),
 		AppEnv:        getEnv("APP_ENV", "development"),
 		PublicURL:      getEnv("PUBLIC_URL", ""),
+		CanaryBaseURL:  getEnv("CANARY_BASE_URL", ""),
 		UseHTTPS:       getEnv("USE_HTTPS", "false") == "true",
 		AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "")),
 		NVDAPIKey:        getEnv("NVD_API_KEY", ""),
@@ -155,6 +168,8 @@ func Load() *Config {
 		OsintCloudMaxCandidates:  getEnvInt("OSINT_CLOUD_MAX_CANDIDATES", 120),
 		OsintCohostPivotMax:      getEnvInt("OSINT_COHOST_PIVOT_MAX", 5),
 		OsintMaxConcurrentScans:  getEnvInt("OSINT_MAX_CONCURRENT_SCANS", 6),
+		OsintProviderSuffixes:    parseCSV(getEnv("OSINT_PROVIDER_SUFFIXES", "")),
+		OsintRDNSMarkers:         parseCSV(getEnv("OSINT_RDNS_MARKERS", "")),
 		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
 		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),
 		GreyNoiseKey:      getEnv("GREYNOISE_API_KEY", ""),

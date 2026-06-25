@@ -37,12 +37,43 @@ services:
       - "127.0.0.1:9050:9050"
     restart: unless-stopped
 
+  # Cloudflare Tunnel — fronts the OSINT canary links so the real server IP is
+  # NEVER exposed to whoever clicks them. cloudflared dials OUT to Cloudflare (no
+  # inbound port opened on your host); Cloudflare serves your public hostname and
+  # forwards requests to the backend over the tunnel.
+  #
+  # One-time setup (Cloudflare Zero Trust dashboard):
+  #   1. Networks → Tunnels → Create a tunnel (Cloudflared) → copy the token.
+  #   2. .env:  CLOUDFLARE_TUNNEL_TOKEN=<token>
+  #   3. Add a Public Hostname to the tunnel, e.g. canary.yourdomain.com,
+  #      Service = HTTP → backend:8080. (Recommended: restrict Path to /c/* so
+  #      only the canary endpoint is reachable on that domain.)
+  #   4. .env:  CANARY_BASE_URL=https://canary.yourdomain.com
+  #
+  # Opt-in: only starts with the "tunnel" profile so a normal `docker compose up`
+  # is unaffected when no token is configured:
+  #   docker compose --profile tunnel up -d
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: forensichub_cloudflared
+    profiles: [ "tunnel" ]
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     container_name: forensichub_backend
     user: root
+    # Publish the backend on a host port so canary links (/c/<slug>) are reachable
+    # directly at CANARY_BASE_URL (http://<host>:43888). Container listens on 8080.
+    ports:
+      - "${CANARY_PORT:-43888}:8080"
     # Pull every key/setting from .env (VirusTotal, Shodan, abuse.ch, proxy, …)
     # into the container. Explicit `environment:` entries below still win for the
     # container-internal values (DB/Redis hostnames, Tor service name).
@@ -59,6 +90,9 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@forensichub.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
       - PUBLIC_URL=${PUBLIC_URL:-}
+      # Public base URL for canary links — set to your Cloudflare Tunnel hostname
+      # so generated links front through the tunnel instead of the real host.
+      - CANARY_BASE_URL=${CANARY_BASE_URL:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - USE_HTTPS=${USE_HTTPS:-false}
       - LOG_PATH=/app/data/logs
@@ -91,6 +125,7 @@ services:
       - "7681:7681"
     volumes:
       - storage_data:/app/storage
+    privileged: true
     restart: unless-stopped
 
   frontend:

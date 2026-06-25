@@ -1,9 +1,15 @@
-FROM ubuntu:20.04
+FROM kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python 2, Python 3, and build dependencies
 RUN apt-get update && apt-get install -y \
+    kali-linux-core \
+    kali-tools-top10 \
+    net-tools \
+    iputils-ping \
+    nmap \
+    sqlmap \
     python2 \
     python2-dev \
     python3 \
@@ -17,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libffi-dev \
     libsnappy-dev \
+    libcrypt-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install ttyd statically compiled binary
@@ -40,7 +47,7 @@ RUN git clone https://github.com/volatilityfoundation/volatility.git && \
 # Install Volatility 3
 RUN git clone https://github.com/volatilityfoundation/volatility3.git && \
     cd volatility3 && \
-    pip3 install .
+    pip3 install --break-system-packages .
 
 # Setup quick aliases using wrapper scripts
 RUN echo '#!/bin/bash\npython2 /opt/volatility/vol.py "$@"' > /usr/local/bin/vol2 && \

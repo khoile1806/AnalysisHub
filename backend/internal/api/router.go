@@ -298,6 +298,20 @@ func NewRouter(
 		protected.GET("/cases/:id/compliance/snapshots", complianceHandler.ListSnapshots)
 		protected.PATCH("/compliance/findings/:id", complianceHandler.UpdateFinding)
 
+		// Canary Tokens — administrator tracking / honeytoken links. CRUD +
+		// per-token hit log live behind auth; the public redirect endpoint
+		// (/c/:slug) is registered separately below.
+		canaryHandler := handlers.NewCanaryHandler(db)
+		protected.GET("/canary/tokens", canaryHandler.ListCanaryTokens)
+		protected.POST("/canary/tokens", canaryHandler.CreateCanaryToken)
+		protected.POST("/canary/tokens/bulk", canaryHandler.BulkCreateCanaryTokens)
+		protected.GET("/canary/tokens/:id", canaryHandler.GetCanaryToken)
+		protected.PATCH("/canary/tokens/:id", canaryHandler.UpdateCanaryToken)
+		protected.DELETE("/canary/tokens/:id", canaryHandler.DeleteCanaryToken)
+		protected.GET("/canary/tokens/:id/hits", canaryHandler.ListCanaryHits)
+		protected.DELETE("/canary/tokens/:id/hits", canaryHandler.DeleteCanaryHits)
+		protected.POST("/canary/tokens/:id/hits/:hitId/scan", canaryHandler.ScanCanaryHit)
+
 		// System — health check and usage statistics
 		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)
 		protected.GET("/system/health", sysHandler.GetHealth)
@@ -305,6 +319,14 @@ func NewRouter(
 		protected.GET("/system/proxy", sysHandler.GetProxyStatus)
 		protected.POST("/system/proxy/validate", sysHandler.ValidateProxy)
 	}
+
+	// Public canary endpoint — no auth so the tracking link works for any
+	// visitor. GET records IP / User-Agent / Geo then redirects (or serves the
+	// data-collecting interstitial); POST receives that interstitial's client
+	// report. Mounted at the root (not under /api/v1) so links stay short.
+	canaryPublic := handlers.NewCanaryHandler(db)
+	router.GET("/c/:slug", canaryPublic.ServeCanary)
+	router.POST("/c/:slug", canaryPublic.CollectCanary)
 
 	// Install scripts — handler validates the agent token inline.
 	v1.GET("/agents/:id/install.ps1", handlers.GetAgentInstallScript)

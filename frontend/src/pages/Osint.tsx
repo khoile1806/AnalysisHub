@@ -4,9 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
-  Image as ImageIcon, Upload, ScanSearch,
+  Image as ImageIcon, Upload, ScanSearch, Link2,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
+import { CanaryPanel } from './CanaryTokens'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
@@ -386,7 +387,7 @@ function TabButton({ active, onClick, icon: Icon, label }: {
   )
 }
 
-type OsintTab = 'investigations' | 'watchlist'
+type OsintTab = 'investigations' | 'watchlist' | 'canary'
 
 export default function OsintPage() {
   const qc = useQueryClient()
@@ -438,9 +439,12 @@ export default function OsintPage() {
       <div className="flex gap-1 border-b border-slate-800">
         <TabButton active={tab === 'investigations'} onClick={() => setTab('investigations')} icon={Fingerprint} label="Investigations" />
         <TabButton active={tab === 'watchlist'} onClick={() => setTab('watchlist')} icon={RadioTower} label="Watchlist" />
+        <TabButton active={tab === 'canary'} onClick={() => setTab('canary')} icon={Link2} label="Canary Tokens" />
       </div>
 
-      {tab === 'watchlist' ? (
+      {tab === 'canary' ? (
+        <CanaryPanel />
+      ) : tab === 'watchlist' ? (
         <WatchlistPanel />
       ) : (
       <>

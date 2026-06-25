@@ -81,30 +81,59 @@ var (
 // HTTP status. A non-2xx status is NOT an error here - collectors decide what
 // each status means (e.g. 404 from Shodan InternetDB just means "no data").
 func httpGetBody(ctx context.Context, rl *rateLimiter, url string, headers map[string]string) ([]byte, int, error) {
-	if rl != nil {
-		if err := rl.wait(ctx); err != nil {
+	var lastStatus int
+	var lastErr error
+	var respBody []byte
+
+	delays := []time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
+	maxAttempts := len(delays) + 1
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if rl != nil {
+			if err := rl.wait(ctx); err != nil {
+				return nil, 0, err
+			}
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
 			return nil, 0, err
 		}
+		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("Accept", "application/json")
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+
+		resp, err := osintHTTPClient.Do(req)
+		if err != nil {
+			lastErr = err
+			lastStatus = 0
+		} else {
+			lastStatus = resp.StatusCode
+			body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
+			resp.Body.Close()
+			if readErr != nil {
+				lastErr = fmt.Errorf("read body: %w", readErr)
+			} else {
+				respBody = body
+				lastErr = nil
+			}
+
+			// Don't retry on success or non-retriable client errors
+			if lastStatus != 429 && lastStatus < 500 {
+				return respBody, lastStatus, lastErr
+			}
+		}
+
+		if attempt < maxAttempts-1 {
+			select {
+			case <-ctx.Done():
+				return nil, 0, ctx.Err()
+			case <-time.After(delays[attempt]):
+			}
+		}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, 0, err
-	}
-	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Accept", "application/json")
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	resp, err := osintHTTPClient.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
-	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)
-	}
-	return body, resp.StatusCode, nil
+	return respBody, lastStatus, lastErr
 }
 
 // httpGetJSON does a rate-limited GET and decodes a 2xx JSON body into out.
@@ -126,33 +155,62 @@ func httpGetJSON(ctx context.Context, rl *rateLimiter, url string, headers map[s
 // body, returning the (capped) response body and HTTP status. Non-2xx is not an
 // error - the caller decides what each status means.
 func httpPostBody(ctx context.Context, rl *rateLimiter, url, contentType string, body []byte, headers map[string]string) ([]byte, int, error) {
-	if rl != nil {
-		if err := rl.wait(ctx); err != nil {
+	var lastStatus int
+	var lastErr error
+	var respBody []byte
+
+	delays := []time.Duration{1 * time.Second, 2 * time.Second, 4 * time.Second}
+	maxAttempts := len(delays) + 1
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if rl != nil {
+			if err := rl.wait(ctx); err != nil {
+				return nil, 0, err
+			}
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if err != nil {
 			return nil, 0, err
 		}
+		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("Accept", "application/json")
+		if contentType != "" {
+			req.Header.Set("Content-Type", contentType)
+		}
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+
+		resp, err := osintHTTPClient.Do(req)
+		if err != nil {
+			lastErr = err
+			lastStatus = 0
+		} else {
+			lastStatus = resp.StatusCode
+			b, readErr := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
+			resp.Body.Close()
+			if readErr != nil {
+				lastErr = fmt.Errorf("read body: %w", readErr)
+			} else {
+				respBody = b
+				lastErr = nil
+			}
+
+			// Don't retry on success or non-retriable client errors
+			if lastStatus != 429 && lastStatus < 500 {
+				return respBody, lastStatus, lastErr
+			}
+		}
+
+		if attempt < maxAttempts-1 {
+			select {
+			case <-ctx.Done():
+				return nil, 0, ctx.Err()
+			case <-time.After(delays[attempt]):
+			}
+		}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, 0, err
-	}
-	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Accept", "application/json")
-	if contentType != "" {
-		req.Header.Set("Content-Type", contentType)
-	}
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	resp, err := osintHTTPClient.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
-	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)
-	}
-	return b, resp.StatusCode, nil
+	return respBody, lastStatus, lastErr
 }
 
 // toJSON marshals v to a compact JSON string, or "" on error. Used to fill
