@@ -20,6 +20,7 @@ import (
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/models"
+	"github.com/forensichub/backend/internal/notify"
 	"github.com/forensichub/backend/internal/osint"
 )
 
@@ -39,10 +40,18 @@ type canaryTokenView struct {
 	models.CanaryToken
 	Link           string `json:"link"`
 	UniqueVisitors int    `json:"unique_visitors"`
+	// DownloadURL is the authenticated path to fetch the served artefact for
+	// non-link tokens (the real image, or the weaponised document). Empty for
+	// "link" tokens and "image" tokens with no uploaded file (blank pixel).
+	DownloadURL string `json:"download_url,omitempty"`
 }
 
 func (h *CanaryHandler) view(c *gin.Context, t models.CanaryToken) canaryTokenView {
-	return canaryTokenView{CanaryToken: t, Link: h.canaryBase(c, t) + "/c/" + t.Slug}
+	v := canaryTokenView{CanaryToken: t, Link: h.canaryBase(c, t) + "/c/" + t.Slug}
+	if len(t.FileData) > 0 {
+		v.DownloadURL = "/api/v1/canary/tokens/" + t.ID.String() + "/file"
+	}
+	return v
 }
 
 // canaryBase resolves the public base URL for a token's link, in priority order:
@@ -116,9 +125,10 @@ func (h *CanaryHandler) ListCanaryTokens(c *gin.Context) {
 // POST /api/v1/canary/tokens
 func (h *CanaryHandler) CreateCanaryToken(c *gin.Context) {
 	var input struct {
-		Name            string `json:"name" binding:"required"`
-		TargetURL       string `json:"target_url" binding:"required"`
-		Description     string `json:"description"`
+		Name            string  `json:"name" binding:"required"`
+		Kind            string  `json:"kind"`       // link (default) | image (blank pixel)
+		TargetURL       string  `json:"target_url"` // required for kind=link
+		Description     string  `json:"description"`
 		Slug            string  `json:"slug"`     // optional custom slug
 		BaseURL         string  `json:"base_url"` // optional per-token link domain
 		CaseID          *string `json:"case_id"`  // optional Case to attach to
@@ -130,6 +140,12 @@ func (h *CanaryHandler) CreateCanaryToken(c *gin.Context) {
 		return
 	}
 
+	kind := canaryKind(input.Kind)
+	if kind == "document" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "document tokens are created via file upload"})
+		return
+	}
+
 	caseID, ok := h.resolveCaseID(c, input.CaseID)
 	if !ok {
 		return
@@ -137,15 +153,26 @@ func (h *CanaryHandler) CreateCanaryToken(c *gin.Context) {
 
 	// Collection is OPT-IN: default to a transparent 302 (stealth) unless the
 	// operator explicitly enables it. RequestLocation implies CollectDetails (the
-	// interstitial is what runs the geolocation call).
+	// interstitial is what runs the geolocation call). Only "link" tokens use the
+	// interstitial — an image is fetched without a JS context.
 	collectDetails := input.CollectDetails != nil && *input.CollectDetails
 	requestLocation := input.RequestLocation != nil && *input.RequestLocation
 	if requestLocation {
 		collectDetails = true
 	}
+	if kind != "link" {
+		collectDetails, requestLocation = false, false
+	}
 
+	// A link token must redirect somewhere; an image token's redirect target is
+	// optional (it serves a pixel, it doesn't redirect).
 	target := normalizeURL(input.TargetURL)
-	if !validRedirectTarget(target) {
+	if kind == "link" {
+		if !validRedirectTarget(target) {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "target_url must be a valid http(s) URL"})
+			return
+		}
+	} else if target != "" && !validRedirectTarget(target) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "target_url must be a valid http(s) URL"})
 		return
 	}
@@ -184,6 +211,7 @@ func (h *CanaryHandler) CreateCanaryToken(c *gin.Context) {
 	tok := models.CanaryToken{
 		Slug:            slug,
 		Name:            strings.TrimSpace(input.Name),
+		Kind:            kind,
 		TargetURL:       target,
 		BaseURL:         baseURL,
 		CaseID:          caseID,
@@ -198,6 +226,229 @@ func (h *CanaryHandler) CreateCanaryToken(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": h.view(c, tok)})
+}
+
+// canaryKind normalises a requested token kind, defaulting to "link".
+func canaryKind(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "image":
+		return "image"
+	case "document", "doc", "docx":
+		return "document"
+	default:
+		return "link"
+	}
+}
+
+// canaryFileMaxBytes caps an uploaded image / document for a file-based token.
+const canaryFileMaxBytes = 12 << 20 // 12 MB
+
+// canaryImageTypes is the set of real-image media types accepted for an image
+// token (served back verbatim so the bait displays correctly).
+var canaryImageTypes = map[string]bool{
+	"image/png": true, "image/jpeg": true, "image/gif": true, "image/webp": true,
+	"image/bmp": true, "image/x-icon": true,
+}
+
+// CreateCanaryFileToken mints an image or document token from a REAL uploaded
+// file. For kind=image the uploaded image is stored and served verbatim at the
+// public link (so an embedded bait image renders correctly while every view is
+// recorded). For kind=document the uploaded .docx is weaponised with a remote
+// beacon image and returned for download; opening it in Word fetches the beacon.
+// POST /api/v1/canary/tokens/upload  (multipart/form-data)
+//
+//	kind=image|document  name=<label>  file=<upload>
+//	[slug] [base_url] [case_id] [description]
+func (h *CanaryHandler) CreateCanaryFileToken(c *gin.Context) {
+	kind := canaryKind(c.PostForm("kind"))
+	if kind == "link" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "kind must be image or document for an upload"})
+		return
+	}
+	name := strings.TrimSpace(c.PostForm("name"))
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "name is required"})
+		return
+	}
+
+	caseIDRaw := c.PostForm("case_id")
+	var caseIDPtr *string
+	if strings.TrimSpace(caseIDRaw) != "" {
+		caseIDPtr = &caseIDRaw
+	}
+	caseID, ok := h.resolveCaseID(c, caseIDPtr)
+	if !ok {
+		return
+	}
+
+	fileHdr, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "file is required"})
+		return
+	}
+	if fileHdr.Size > canaryFileMaxBytes {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "file exceeds the 12 MB limit"})
+		return
+	}
+	f, err := fileHdr.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "cannot read uploaded file"})
+		return
+	}
+	defer f.Close()
+	raw, err := io.ReadAll(io.LimitReader(f, canaryFileMaxBytes+1))
+	if err != nil || len(raw) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "empty or unreadable file"})
+		return
+	}
+
+	baseURL := strings.TrimRight(normalizeURL(c.PostForm("base_url")), "/")
+	if baseURL != "" && !validRedirectTarget(baseURL) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "base_url must be a valid http(s) URL"})
+		return
+	}
+
+	// Mint a unique slug up-front; the document beacon URL needs it before we
+	// weaponise the file.
+	slug := canarySlugify(c.PostForm("slug"))
+	customSlug := slug != ""
+	if slug == "" {
+		slug = randomSlug()
+	}
+	for i := 0; i < 5; i++ {
+		var count int64
+		h.DB.Model(&models.CanaryToken{}).Where("slug = ?", slug).Count(&count)
+		if count == 0 {
+			break
+		}
+		if customSlug {
+			c.JSON(http.StatusConflict, gin.H{"success": false, "error": "slug already in use"})
+			return
+		}
+		slug = randomSlug()
+	}
+
+	var fileData []byte
+	var fileMime, fileName string
+
+	switch kind {
+	case "image":
+		mime := http.DetectContentType(raw)
+		if !canaryImageTypes[mime] {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "unsupported image type (use PNG, JPEG, GIF, WebP, BMP or ICO)"})
+			return
+		}
+		fileData = raw
+		fileMime = mime
+		fileName = sanitizeFileName(fileHdr.Filename)
+	case "document":
+		if !strings.HasSuffix(strings.ToLower(fileHdr.Filename), ".docx") {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "document tokens currently support .docx (Word) files only"})
+			return
+		}
+		// Build the beacon URL the document will fetch when opened.
+		base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+		if base == "" {
+			if v, ok := c.Get("config"); ok {
+				if cfg, ok := v.(*config.Config); ok && cfg.CanaryBaseURL != "" {
+					base = strings.TrimRight(cfg.CanaryBaseURL, "/")
+				}
+			}
+		}
+		if base == "" {
+			base = getServerURL(c)
+		}
+		beaconURL := base + "/c/" + slug
+		weaponised, werr := weaponizeDocx(raw, beaconURL)
+		if werr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": werr.Error()})
+			return
+		}
+		fileData = weaponised
+		fileMime = docxContentType
+		fileName = sanitizeFileName(fileHdr.Filename)
+	}
+
+	var userUUID uuid.UUID
+	if v, ok := c.Get("userID"); ok {
+		if uid, err := uuid.Parse(v.(string)); err == nil {
+			userUUID = uid
+		}
+	}
+
+	tok := models.CanaryToken{
+		Slug:        slug,
+		Name:        name,
+		Kind:        kind,
+		BaseURL:     baseURL,
+		CaseID:      caseID,
+		Description: strings.TrimSpace(c.PostForm("description")),
+		Active:      true,
+		FileName:    fileName,
+		FileMime:    fileMime,
+		FileData:    fileData,
+		CreatedBy:   userUUID,
+	}
+	if err := h.DB.Create(&tok).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to create token"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"success": true, "data": h.view(c, tok)})
+}
+
+// DownloadCanaryFile returns the artefact served/distributed for a non-link
+// token: the real image for an image token, or the weaponised .docx (as an
+// attachment) for a document token.
+// GET /api/v1/canary/tokens/:id/file
+func (h *CanaryHandler) DownloadCanaryFile(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid token id"})
+		return
+	}
+	var tok models.CanaryToken
+	if err := h.DB.First(&tok, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "token not found"})
+		return
+	}
+	if len(tok.FileData) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "token has no downloadable file"})
+		return
+	}
+	mime := tok.FileMime
+	if mime == "" {
+		mime = "application/octet-stream"
+	}
+	if tok.Kind == "document" {
+		fn := tok.FileName
+		if fn == "" {
+			fn = "document.docx"
+		}
+		c.Header("Content-Disposition", `attachment; filename="`+fn+`"`)
+	}
+	c.Data(http.StatusOK, mime, tok.FileData)
+}
+
+// sanitizeFileName strips path separators and control characters from an
+// uploaded filename so it is safe to echo back in a Content-Disposition header.
+func sanitizeFileName(name string) string {
+	name = strings.TrimSpace(name)
+	name = strings.ReplaceAll(name, `\`, "/")
+	if i := strings.LastIndex(name, "/"); i >= 0 {
+		name = name[i+1:]
+	}
+	var b strings.Builder
+	for _, r := range name {
+		if r < 0x20 || r == '"' {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	out := b.String()
+	if len(out) > 128 {
+		out = out[len(out)-128:]
+	}
+	return out
 }
 
 // bulkCanaryMaxTargets caps how many links one bulk request may mint.
@@ -415,7 +666,57 @@ func (h *CanaryHandler) DeleteCanaryToken(c *gin.Context) {
 		return
 	}
 	h.DB.Where("token_id = ?", id).Delete(&models.CanaryHit{})
+	h.DB.Where("token_id = ?", id).Delete(&models.CanaryAlert{})
 	h.DB.Delete(&models.CanaryToken{}, "id = ?", id)
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// ListCanaryAlerts returns recent alerts (newest first) across all tokens, for
+// the in-app alert feed/badge. ?unseen=1 limits to unacknowledged alerts.
+// GET /api/v1/canary/alerts
+func (h *CanaryHandler) ListCanaryAlerts(c *gin.Context) {
+	q := h.DB.Order("created_at desc").Limit(200)
+	if c.Query("unseen") == "1" {
+		q = q.Where("seen = ?", false)
+	}
+	var alerts []models.CanaryAlert
+	q.Find(&alerts)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": alerts})
+}
+
+// CountCanaryAlerts returns the number of unseen alerts, for the nav badge.
+// GET /api/v1/canary/alerts/count
+func (h *CanaryHandler) CountCanaryAlerts(c *gin.Context) {
+	var n int64
+	h.DB.Model(&models.CanaryAlert{}).Where("seen = ?", false).Count(&n)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"unseen": n}})
+}
+
+// MarkCanaryAlertsSeen acknowledges alerts. Body: {"all": true} marks every
+// unseen alert; {"ids": ["..."]} marks the given ones. Marking seen also
+// recomputes each affected token's denormalised AlertCount.
+// POST /api/v1/canary/alerts/seen
+func (h *CanaryHandler) MarkCanaryAlertsSeen(c *gin.Context) {
+	var input struct {
+		All bool        `json:"all"`
+		IDs []uuid.UUID `json:"ids"`
+	}
+	_ = c.ShouldBindJSON(&input)
+
+	q := h.DB.Model(&models.CanaryAlert{}).Where("seen = ?", false)
+	if !input.All {
+		if len(input.IDs) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "provide ids or all=true"})
+			return
+		}
+		q = q.Where("id IN ?", input.IDs)
+	}
+	q.Update("seen", true)
+
+	// Recompute AlertCount per token from the surviving unseen alerts so the
+	// badge stays consistent (one grouped query, no N+1).
+	h.DB.Exec(`UPDATE canary_tokens t SET alert_count = COALESCE(
+		(SELECT COUNT(*) FROM canary_alerts a WHERE a.token_id = t.id AND a.seen = false), 0)`)
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
@@ -524,7 +825,13 @@ func (h *CanaryHandler) ScanCanaryHit(c *gin.Context) {
 // GET /c/:slug
 func (h *CanaryHandler) ServeCanary(c *gin.Context) {
 	hardenCanaryResponse(c)
+	// Slugs never contain a dot (randomSlug is alnum, canarySlugify drops them),
+	// so a trailing ".png"/".docx"/etc. is just a cosmetic extension on an image
+	// or document beacon URL — strip it before lookup so /c/<slug>.png resolves.
 	slug := c.Param("slug")
+	if i := strings.IndexByte(slug, '.'); i >= 0 {
+		slug = slug[:i]
+	}
 	var tok models.CanaryToken
 	if err := h.DB.First(&tok, "slug = ?", slug).Error; err != nil || !tok.Active {
 		// Don't reveal whether the slug exists; behave like a normal 404.
@@ -552,34 +859,75 @@ func (h *CanaryHandler) ServeCanary(c *gin.Context) {
 	}
 	created := h.DB.Create(&hit).Error == nil
 	// Bot/preview hits are stored (for forensics) but DON'T bump the headline
-	// counter or trigger a GeoIP lookup — so hit_count reflects real human clicks.
+	// counter, score, alert or trigger a GeoIP lookup — so hit_count reflects real
+	// human clicks and alerts aren't noise.
 	if created && !hit.IsBot {
 		now := time.Now()
 		h.DB.Model(&models.CanaryToken{}).Where("id = ?", tok.ID).
 			Updates(map[string]interface{}{"hit_count": gorm.Expr("hit_count + 1"), "last_hit_at": now})
-		// Enrich GeoIP off the request path so the response stays fast. Route the
-		// lookup through the configured egress proxy (OSINT_TOR_PROXY) when set so
-		// even this single outbound call doesn't reveal the server's real IP.
+		// Enrich + score + alert off the request path so the response stays fast.
+		// Route any outbound lookup through the configured egress proxy
+		// (OSINT_TOR_PROXY) when set so it doesn't reveal the server's real IP.
 		proxyURL := ""
+		var notifier *notify.Notifier
 		if v, ok := c.Get("config"); ok {
 			if cfg, ok := v.(*config.Config); ok {
 				proxyURL = cfg.TorProxy
+				notifier = notify.New(cfg.NotifyWebhookURL, cfg.NotifyTelegramToken, cfg.NotifyTelegramChat)
 			}
 		}
-		go h.enrichGeo(hit.ID, hit.IP, proxyURL)
+		go h.processHit(tok, hit.ID, hit.IP, proxyURL, notifier)
 	}
 
-	// Transparent mode (or if the hit row failed): plain 302, no JS, stealthiest.
+	// Serve the response according to the token kind.
+	switch tok.Kind {
+	case "image":
+		// Real image when one was uploaded; otherwise a 1×1 transparent pixel.
+		if len(tok.FileData) > 0 {
+			mime := tok.FileMime
+			if mime == "" {
+				mime = "image/png"
+			}
+			c.Data(http.StatusOK, mime, tok.FileData)
+			return
+		}
+		serveTransparentPixel(c)
+		return
+	case "document":
+		// The GET is Word fetching the embedded beacon image → serve a pixel.
+		serveTransparentPixel(c)
+		return
+	}
+
+	// kind == "link": transparent mode (or if the hit row failed) → plain 302.
 	if !tok.CollectDetails || !created {
 		c.Redirect(http.StatusFound, tok.TargetURL)
 		return
 	}
-
 	// Rich mode: serve the interstitial. The page collects client data, POSTs it
 	// back to this same URL (POST /c/:slug) keyed by the hit id, then redirects.
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	c.Header("Cache-Control", "no-store")
 	c.String(http.StatusOK, canaryInterstitial(tok.TargetURL, hit.ID.String(), tok.RequestLocation))
+}
+
+// pixelPNG is a 1×1 fully-transparent PNG (the classic invisible web bug),
+// served for image tokens with no uploaded image and for document beacons.
+var pixelPNG = []byte{
+	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+	0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+	0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+	0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x62, 0x00, 0x01, 0x00, 0x00,
+	0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+	0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+}
+
+// serveTransparentPixel writes the 1×1 transparent PNG with no-cache headers so
+// every fetch re-hits the server (each open is recorded, none served from cache).
+func serveTransparentPixel(c *gin.Context) {
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	c.Header("Pragma", "no-cache")
+	c.Data(http.StatusOK, "image/png", pixelPNG)
 }
 
 // canaryCollectMaxAge bounds how long after a hit its client data may be posted,
@@ -757,6 +1105,147 @@ function __canaryRun(CFG){
   battery(function(){ geo(function(){ clearTimeout(timer); finish(); }); });
 }
 `
+
+// processHit runs the post-capture pipeline for a human hit, off the request
+// path: GeoIP enrichment → risk scoring → alert creation → outbound notify. It
+// is deliberately sequential so the alert summary reflects the enriched Geo /
+// network-type data rather than racing it.
+func (h *CanaryHandler) processHit(tok models.CanaryToken, hitID uuid.UUID, ip, proxyURL string, notifier *notify.Notifier) {
+	// 1. Enrich GeoIP / network ownership (fills country/isp/proxy/hosting/…).
+	h.enrichGeo(hitID, ip, proxyURL)
+
+	// 2. Reload the enriched hit and score how suspicious the visitor's network is.
+	var hit models.CanaryHit
+	if err := h.DB.First(&hit, "id = ?", hitID).Error; err != nil {
+		return
+	}
+	severity, flags := h.scoreHit(hit)
+	h.DB.Model(&models.CanaryHit{}).Where("id = ?", hitID).Updates(map[string]interface{}{
+		"severity":   severity,
+		"risk_flags": strings.Join(flags, ", "),
+	})
+
+	// 3. Raise a durable, in-app alert (badge + feed) and bump the unseen counter.
+	loc := strings.Join(filterEmpty([]string{hit.City, hit.Country}), ", ")
+	netInfo := hit.ISP
+	if len(flags) > 0 {
+		if netInfo != "" {
+			netInfo += " · "
+		}
+		netInfo += strings.Join(flags, ", ")
+	}
+	summary := strings.TrimSpace(ip)
+	if loc != "" {
+		summary += " (" + loc + ")"
+	}
+	if netInfo != "" {
+		summary += " — " + netInfo
+	}
+	title := "Canary '" + tok.Name + "' triggered"
+
+	alert := models.CanaryAlert{
+		TokenID:   tok.ID,
+		HitID:     hitID,
+		TokenName: tok.Name,
+		Title:     title,
+		Summary:   summary,
+		IP:        ip,
+		Severity:  severity,
+		CreatedAt: time.Now(),
+	}
+	if err := h.DB.Create(&alert).Error; err == nil {
+		h.DB.Model(&models.CanaryToken{}).Where("id = ?", tok.ID).
+			Update("alert_count", gorm.Expr("alert_count + 1"))
+	}
+
+	// 4. Fan out to external channels (webhook/Telegram), best-effort.
+	if notifier != nil && notifier.Enabled() {
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		notifier.Send(ctx, title, summary)
+	}
+}
+
+// scoreHit grades how suspicious a visitor's network is from the data already
+// captured/enriched on the hit, returning a severity band and the human-readable
+// flags that drove it. It is intentionally cheap (no extra network calls beyond
+// the local IOC lookup) so it runs inline on every human hit.
+func (h *CanaryHandler) scoreHit(hit models.CanaryHit) (severity string, flags []string) {
+	score := 0
+	if hit.Proxy {
+		score += 2
+		flags = append(flags, "VPN/Proxy/Tor")
+	}
+	if hit.Hosting {
+		score += 2
+		flags = append(flags, "Datacenter/Hosting")
+	}
+	// A country disagreement between Cloudflare's edge and the GeoIP provider is a
+	// weak tell of relayed / proxied traffic.
+	if hit.CountryCode != "" && hit.Country != "" && !countryMatches(hit.CountryCode, hit.Country) {
+		score++
+		flags = append(flags, "Geo/CF country mismatch")
+	}
+	if knownLocalIOC(h.DB, hit.IP) {
+		score += 3
+		flags = append(flags, "KNOWN IOC (local intel)")
+	}
+
+	switch {
+	case score >= 4:
+		severity = "critical"
+	case score >= 3:
+		severity = "high"
+	case score >= 1:
+		severity = "medium"
+	default:
+		severity = "low"
+	}
+	return severity, flags
+}
+
+// knownLocalIOC reports whether ip is already present in ForensicHub's local IOC
+// store (OpenCTI sync + manual entries) — a strong "we already know this is bad"
+// signal for a canary visitor.
+func knownLocalIOC(db *gorm.DB, ip string) bool {
+	ip = strings.TrimSpace(ip)
+	if ip == "" {
+		return false
+	}
+	var n int64
+	db.Model(&models.IOC{}).
+		Where("type IN ? AND value = ?", []string{"IPv4-Addr", "IPv6-Addr"}, ip).
+		Count(&n)
+	return n > 0
+}
+
+// countryMatches reports whether an ISO country code and a country name plausibly
+// refer to the same country. It is a best-effort check for the common cases; an
+// unknown code is treated as a match (no false mismatch flag).
+func countryMatches(code, name string) bool {
+	known := map[string]string{
+		"US": "united states", "GB": "united kingdom", "VN": "vietnam", "CN": "china",
+		"RU": "russia", "DE": "germany", "FR": "france", "JP": "japan", "KR": "south korea",
+		"IN": "india", "BR": "brazil", "CA": "canada", "AU": "australia", "NL": "netherlands",
+		"SG": "singapore", "HK": "hong kong", "TW": "taiwan", "ID": "indonesia", "TH": "thailand",
+	}
+	want, ok := known[strings.ToUpper(strings.TrimSpace(code))]
+	if !ok {
+		return true // unknown code → don't raise a mismatch flag
+	}
+	return strings.Contains(strings.ToLower(name), want)
+}
+
+// filterEmpty returns the non-empty, trimmed elements of in.
+func filterEmpty(in []string) []string {
+	out := in[:0]
+	for _, s := range in {
+		if t := strings.TrimSpace(s); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
+}
 
 // enrichGeo resolves geolocation/network ownership for a recorded hit using
 // ip-api.com (free, no key) and writes it back to the row. Best-effort: any

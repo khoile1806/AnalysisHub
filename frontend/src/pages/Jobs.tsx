@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Plus, ClipboardList, Eye, Wrench, Crosshair, Rocket } from 'lucide-react'
@@ -8,6 +8,7 @@ import { agentsApi } from '@/api/agents'
 import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
 import { huntingApi } from '@/api/hunting'
 import { JobStatusBadge } from '@/components/StatusBadge'
+import Pagination from '@/components/ui/Pagination'
 import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
@@ -405,6 +406,16 @@ export default function JobsPage() {
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 
+  // Client-side pagination of the already-filtered/sorted list. Keeps all
+  // existing filter/sort behavior intact while bounding how many rows render.
+  const PAGE_SIZE = 25
+  const [page, setPage] = useState(1)
+  // Reset to page 1 whenever the result set changes (filters applied/cleared).
+  useEffect(() => { setPage(1) }, [filterAgent, filterStatus])
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageClamped = Math.min(page, totalPages)
+  const paged = sorted.slice((pageClamped - 1) * PAGE_SIZE, pageClamped * PAGE_SIZE)
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -481,7 +492,7 @@ export default function JobsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((job: any) => (
+                {paged.map((job: any) => (
                   <tr key={job.id} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
                     <td className="px-5 py-3">
                       <span className="font-mono text-xs text-gray-400">{job.id.slice(0, 8)}…</span>
@@ -525,6 +536,9 @@ export default function JobsPage() {
             </table>
           )}
         </div>
+        {!isLoading && sorted.length > 0 && (
+          <Pagination page={pageClamped} pageSize={PAGE_SIZE} totalItems={sorted.length} onPageChange={setPage} />
+        )}
       </div>
 
       <NewJobModal open={newOpen} onClose={() => setNewOpen(false)} />

@@ -74,9 +74,41 @@ export const MITRE_TACTICS = [
   'impact',
 ] as const
 
+// ─── ATT&CK coverage matrix ─────────────────────────────────────────────────
+export interface AttackTechnique {
+  id: string // e.g. "T1059" or "(unspecified)"
+  count: number
+  severity: TimelineSeverity
+  sample_titles: string[]
+  last_seen?: string
+}
+
+export interface AttackTacticColumn {
+  id: string // normalized, e.g. "execution" | "unmapped"
+  name: string // display, e.g. "Execution"
+  event_count: number
+  techniques: AttackTechnique[]
+}
+
+export interface AttackCoverage {
+  summary: {
+    total_events: number
+    mapped_events: number
+    techniques: number
+    tactics: number
+  }
+  tactics: AttackTacticColumn[]
+}
+
 export const timelineApi = {
   list: async (caseId: string): Promise<TimelineEvent[]> => {
     const { data } = await apiClient.get<ApiResponse<TimelineEvent[]>>(`/cases/${caseId}/timeline`)
+    return data.data
+  },
+
+  // ATT&CK coverage aggregated from the case's timeline events.
+  attackCoverage: async (caseId: string): Promise<AttackCoverage> => {
+    const { data } = await apiClient.get<ApiResponse<AttackCoverage>>(`/cases/${caseId}/attack-coverage`)
     return data.data
   },
 

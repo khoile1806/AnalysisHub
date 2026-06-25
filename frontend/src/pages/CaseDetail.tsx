@@ -11,6 +11,7 @@ import {
   Fingerprint,
 } from 'lucide-react'
 import AttackTimeline from '@/components/AttackTimeline'
+import AttackCoverage from '@/components/AttackCoverage'
 import ComplianceAssessment from '@/components/ComplianceAssessment'
 import { AgentStatusBadge, JobStatusBadge } from '@/components/StatusBadge'
 import { CategoryBadge, PlatformBadge } from '@/components/StatusBadge'
@@ -460,7 +461,10 @@ export default function CaseDetailPage() {
 
           {/* Attack Timeline tab */}
           {tab === 'attack' && (
-            <AttackTimeline caseId={caseObj.id} agents={agents ?? []} />
+            <div className="space-y-4">
+              <AttackCoverage caseId={caseObj.id} />
+              <AttackTimeline caseId={caseObj.id} agents={agents ?? []} />
+            </div>
           )}
 
           {/* Compliance tab */}

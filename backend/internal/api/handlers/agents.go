@@ -45,8 +45,12 @@ func ListAgents(c *gin.Context) {
 		return
 	}
 
+	writeTotalCount(c, db.Model(&models.Agent{}))
+
+	query := applyLimitOffset(c, db.Order("created_at desc"))
+
 	var agents []models.Agent
-	if err := db.Order("created_at desc").Find(&agents).Error; err != nil {
+	if err := query.Find(&agents).Error; err != nil {
 		log.Printf("[agents] list error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to list agents"})
 		return

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 from scanner.engines.base import EngineHit
-from scanner.paths import rules_dir
+from scanner.paths import rules_dir, scenarios_dir
 
 log = logging.getLogger(__name__)
+
+# Scenario ids are used to build a filename, so restrict to a safe charset to
+# prevent path traversal (e.g. "../../etc/passwd").
+_SCENARIO_RE = re.compile(r"^[a-z0-9_]{1,40}$")
 
 _SEVERITY_SCORE = {
     "critical": 95,
@@ -19,7 +24,12 @@ _SEVERITY_SCORE = {
 class YaraEngine:
     name = "yara"
 
-    def __init__(self, custom_rules_path: Path | None = None, base64_rules: str | None = None) -> None:
+    def __init__(
+        self,
+        custom_rules_path: Path | None = None,
+        base64_rules: str | None = None,
+        scenario: str | None = None,
+    ) -> None:
         try:
             import yara  # type: ignore[import-not-found]
         except ImportError:
@@ -30,11 +40,31 @@ class YaraEngine:
         filepaths = {}
         sources = {}
 
-        # 1. Built-in rules
+        # 1. Built-in base rules (always loaded — general webshell/malware coverage)
         rules_root = rules_dir() / "yara"
         files = sorted(rules_root.glob("*.yar")) + sorted(rules_root.glob("*.yara"))
         for f in files:
             filepaths[f.stem] = str(f)
+
+        # 1b. Scenario rule sets (opt-in via --scenario). "all" loads every
+        # scenario; otherwise the single matching <scenario>.yar is added on top
+        # of the base rules. Unknown/invalid scenarios are ignored (base only).
+        if scenario:
+            scen = scenario.strip().lower()
+            scen_root = scenarios_dir()
+            if scen == "all":
+                for f in sorted(scen_root.glob("*.yar")) + sorted(scen_root.glob("*.yara")):
+                    filepaths[f"scenario_{f.stem}"] = str(f)
+            elif _SCENARIO_RE.match(scen):
+                for ext in (".yar", ".yara"):
+                    p = scen_root / f"{scen}{ext}"
+                    if p.exists():
+                        filepaths[f"scenario_{scen}"] = str(p)
+                        break
+                else:
+                    log.warning("scenario %r has no rule file; using base rules only", scen)
+            else:
+                log.warning("invalid scenario id %r ignored; using base rules only", scenario)
 
         # 2. Custom rules from directory or file
         if custom_rules_path and custom_rules_path.exists():

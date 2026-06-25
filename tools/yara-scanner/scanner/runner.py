@@ -33,6 +33,7 @@ class ScanOptions:
     extensions: list[str] | None = None
     yara_rules: Path | None = None
     yara_base64: str | None = None
+    scenario: str | None = None
 
 
 _SEVERITY_RANK = {"clean": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
@@ -49,7 +50,7 @@ def run_scan(
     engines: Iterable[Engine] | None = None,
     progress_cb: Callable[[dict], None] | None = None,
 ) -> ScanReport:
-    engines = list(engines) if engines is not None else _default_engines(opts.yara_rules, opts.yara_base64)
+    engines = list(engines) if engines is not None else _default_engines(opts.yara_rules, opts.yara_base64, opts.scenario)
 
     report = ScanReport(
         scanner_version=__version__,
@@ -131,8 +132,8 @@ def run_scan(
     return report
 
 
-def _default_engines(yara_rules: Path | None = None, yara_base64: str | None = None) -> list[Engine]:
-    return [YaraEngine(custom_rules_path=yara_rules, base64_rules=yara_base64), PatternEngine()]
+def _default_engines(yara_rules: Path | None = None, yara_base64: str | None = None, scenario: str | None = None) -> list[Engine]:
+    return [YaraEngine(custom_rules_path=yara_rules, base64_rules=yara_base64, scenario=scenario), PatternEngine()]
 
 
 def _rules_version() -> str:

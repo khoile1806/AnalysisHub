@@ -28,9 +28,34 @@ type CanaryToken struct {
 	// Name is the operator's label for the token (e.g. "leaked-creds-bait").
 	Name string `gorm:"not null" json:"name"`
 
-	// TargetURL is the harmless page the visitor is redirected to after the
-	// hit is recorded. Must be an absolute http(s) URL.
-	TargetURL string `gorm:"not null" json:"target_url"`
+	// Kind selects how the public endpoint behaves when the slug is opened:
+	//   - "link"     : record the hit, then 302-redirect to TargetURL (default).
+	//   - "image"    : record the hit, then serve a real image (FileData) — or a
+	//                  1×1 transparent pixel when no image was uploaded. Fires when
+	//                  the image is *viewed* (embedded in a page / e-mail / doc), no
+	//                  click needed.
+	//   - "document" : the operator downloads a weaponised Office document
+	//                  (FileData) that embeds this token's beacon URL as a remote
+	//                  image; opening the document in Word fetches the beacon, which
+	//                  the public endpoint serves as a transparent pixel.
+	Kind string `gorm:"not null;default:'link'" json:"kind"`
+
+	// TargetURL is the harmless page a "link" visitor is redirected to after the
+	// hit is recorded. Must be an absolute http(s) URL for "link" tokens; it is
+	// unused (and may be empty) for "image"/"document" tokens.
+	TargetURL string `gorm:"not null;default:''" json:"target_url"`
+
+	// FileName / FileMime / FileData hold the artefact served or downloaded for
+	// non-link tokens: the real image bytes for "image", or the weaponised
+	// document bytes for "document". FileData is never serialised to JSON.
+	FileName string `json:"file_name,omitempty"`
+	FileMime string `json:"file_mime,omitempty"`
+	FileData []byte `gorm:"type:bytea" json:"-"`
+
+	// AlertCount is the number of unseen alerts raised by human hits on this
+	// token, denormalised so the list/badge avoids a COUNT per row (mirrors
+	// OsintWatch.AlertCount).
+	AlertCount int `gorm:"not null;default:0" json:"alert_count"`
 
 	// BaseURL optionally overrides the public base used to build this token's
 	// link (e.g. "https://promo-event.io"). Lets the operator front the link
@@ -95,6 +120,13 @@ type CanaryHit struct {
 	// human clicks from noise so the hit count stays meaningful.
 	IsBot bool `gorm:"index" json:"is_bot"`
 
+	// Severity / RiskFlags are filled asynchronously after the hit by the
+	// auto-scoring pass: they grade how suspicious the visitor's network is
+	// (VPN/proxy/Tor, datacenter/hosting, a known-bad IOC, GeoIP/CF country
+	// mismatch) so the analyst can triage human hits by risk, not just recency.
+	Severity  string `gorm:"index" json:"severity,omitempty"`   // low | medium | high | critical
+	RiskFlags string `                json:"risk_flags,omitempty"` // comma-joined labels
+
 	// GeoIP enrichment (APPROXIMATE — IP-based, city level), filled asynchronously
 	// after the hit via ip-api.com. Skipped for private / loopback addresses.
 	Country     string  `json:"country,omitempty"`
@@ -141,4 +173,26 @@ type CanaryHit struct {
 	ClientData string `gorm:"type:text" json:"client_data,omitempty"`
 
 	CreatedAt time.Time `gorm:"index" json:"created_at"`
+}
+
+// CanaryAlert is a single notification raised when a human (non-bot) opens a
+// token's link/image/document. It is the canary equivalent of OsintWatchAlert:
+// DB-backed with an unseen flag so the UI can surface a badge and the operator
+// can pivot straight to the triggering hit. The denormalised
+// CanaryToken.AlertCount tracks the unseen count per token.
+type CanaryAlert struct {
+	ID      uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TokenID uuid.UUID `gorm:"type:uuid;not null;index"                       json:"token_id"`
+	HitID   uuid.UUID `gorm:"type:uuid;index"                                json:"hit_id"`
+
+	// TokenName is denormalised so the alert list/feed needs no join.
+	TokenName string `json:"token_name"`
+
+	Title    string `                 json:"title"`           // e.g. "Canary 'hr-bait' triggered"
+	Summary  string `gorm:"type:text" json:"summary"`         // IP + Geo + risk flags
+	IP       string `gorm:"index"     json:"ip,omitempty"`
+	Severity string `gorm:"index"     json:"severity"`        // low | medium | high | critical
+
+	Seen      bool      `gorm:"default:false;index" json:"seen"`
+	CreatedAt time.Time `gorm:"index"               json:"created_at"`
 }

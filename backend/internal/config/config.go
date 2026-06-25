@@ -29,6 +29,15 @@ type Config struct {
 	// host to whoever clicks the link. When empty the per-token override (if any)
 	// or the request-derived host is used.
 	CanaryBaseURL string
+
+	// ── Outbound alert notifications (canary hits, OSINT watches) ──────────
+	// All optional; when a channel's fields are set, alerts are fanned out to it
+	// best-effort. NotifyWebhookURL receives a JSON POST; NotifyTelegram* send
+	// via the Telegram Bot API. Empty = that channel is disabled.
+	NotifyWebhookURL    string
+	NotifyTelegramToken string
+	NotifyTelegramChat  string
+
 	// UseHTTPS, when true, forces the automatically-derived server URL to
 	// use https:// even if the request appears to be plain http.
 	UseHTTPS bool
@@ -146,7 +155,10 @@ func Load() *Config {
 		AdminPassword: getEnv("ADMIN_PASSWORD", "ChangeMe!2024"),
 		AppEnv:        getEnv("APP_ENV", "development"),
 		PublicURL:      getEnv("PUBLIC_URL", ""),
-		CanaryBaseURL:  getEnv("CANARY_BASE_URL", ""),
+		CanaryBaseURL:       getEnv("CANARY_BASE_URL", ""),
+		NotifyWebhookURL:    getEnv("NOTIFY_WEBHOOK_URL", ""),
+		NotifyTelegramToken: getEnv("NOTIFY_TELEGRAM_TOKEN", ""),
+		NotifyTelegramChat:  getEnv("NOTIFY_TELEGRAM_CHAT_ID", ""),
 		UseHTTPS:       getEnv("USE_HTTPS", "false") == "true",
 		AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "")),
 		NVDAPIKey:        getEnv("NVD_API_KEY", ""),

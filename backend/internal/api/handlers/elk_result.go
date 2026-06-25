@@ -15,8 +15,12 @@ import (
 func ListELKHuntResults(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	writeTotalCount(c, db.Model(&models.ELKHuntResult{}))
+
+	query := applyLimitOffset(c, db.Order("created_at desc"))
+
 	var results []models.ELKHuntResult
-	if err := db.Order("created_at desc").Find(&results).Error; err != nil {
+	if err := query.Find(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to list hunt results"})
 		return
 	}

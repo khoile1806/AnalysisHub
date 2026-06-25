@@ -53,6 +53,14 @@ func StreamQRadarAutoHunt(c *gin.Context) {
 	streamQRadarHunts(c, config, authHeader, iocStrings, timeRange)
 }
 
+// StreamQRadarFileHunt streams a hunt over a client-supplied IOC list.
+//
+// POST /api/v1/qradar/hunt/file-stream  (JSON body: {iocs:[]string, timeRange})
+// GET  /api/v1/qradar/hunt/file-stream?iocs=<base64-json>&token=<jwt>  (for EventSource)
+//
+// The GET form accepts the IOC list as a URL-safe base64 JSON payload
+// ({"iocs":[{value,type,...}]}) — identical to the ELK file-hunt contract — so
+// the frontend can stream directly via EventSource.
 func StreamQRadarFileHunt(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	aesKey := c.GetString("aesEncryptionKey")
@@ -63,16 +71,45 @@ func StreamQRadarFileHunt(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		IOCs      []string `json:"iocs"`
-		TimeRange string   `json:"timeRange"`
+	var iocs []string
+	var timeRange string
+
+	if c.Request.Method == http.MethodGet {
+		raw := c.Query("iocs")
+		if raw == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "iocs query parameter is required"})
+			return
+		}
+		decoded, derr := decodeIOCsParam(raw)
+		if derr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid iocs param: " + derr.Error()})
+			return
+		}
+		for _, fi := range decoded {
+			if v := strings.TrimSpace(fi.Value); v != "" {
+				iocs = append(iocs, v)
+			}
+		}
+		timeRange = c.Query("timeRange")
+	} else {
+		var req struct {
+			IOCs      []string `json:"iocs"`
+			TimeRange string   `json:"timeRange"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		iocs = req.IOCs
+		timeRange = req.TimeRange
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	if len(iocs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no IOCs supplied"})
 		return
 	}
 
-	streamQRadarHunts(c, config, authHeader, req.IOCs, req.TimeRange)
+	streamQRadarHunts(c, config, authHeader, iocs, timeRange)
 }
 
 func streamQRadarHunts(c *gin.Context, config models.QRadarConfig, authHeader string, iocs []string, timeRange string) {

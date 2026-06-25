@@ -130,6 +130,7 @@ def scan(
     extensions: Annotated[str | None, typer.Option("--extensions", help="Comma-separated list of extensions to scan (e.g. .php,.exe)")] = None,
     yara_rules: Annotated[Path | None, typer.Option("--yara-rules", help="Path to custom YARA rules directory or file")] = None,
     yara_base64: Annotated[str | None, typer.Option("--yara-base64", help="Base64 encoded YARA rule string")] = None,
+    scenario: Annotated[str | None, typer.Option("--scenario", help="Threat scenario rule set to add on top of base rules (e.g. ransomware, credential_theft, persistence, lateral_movement, powershell, linux, c2, or 'all'). See list-scenarios.")] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Debug logging")] = False,
 ) -> None:
     logging.basicConfig(
@@ -156,6 +157,7 @@ def scan(
         extensions=[e.strip().lower() for e in extensions.split(",")] if extensions else None,
         yara_rules=yara_rules,
         yara_base64=yara_base64,
+        scenario=scenario,
     )
 
     report = run_scan(opts)
@@ -176,6 +178,14 @@ def scan(
 def version() -> None:
     """Print version and exit."""
     typer.echo(__version__)
+
+
+@app.command(name="list-scenarios")
+def list_scenarios() -> None:
+    """List the available --scenario rule sets (one per rules/yara/scenarios/*.yar)."""
+    from scanner.paths import available_scenarios
+    for s in available_scenarios():
+        typer.echo(s)
 
 
 @app.command()

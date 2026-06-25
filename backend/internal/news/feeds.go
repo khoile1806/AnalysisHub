@@ -154,17 +154,6 @@ var Feeds = []Feed{
 	{Name: "Defense News", URL: "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml", Category: "world-news", Language: "en"},
 }
 
-// FeedsByCategory returns all feeds whose Category matches slug.
-func FeedsByCategory(slug string) []Feed {
-	out := make([]Feed, 0)
-	for _, f := range Feeds {
-		if f.Category == slug {
-			out = append(out, f)
-		}
-	}
-	return out
-}
-
 // IsValidCategory reports whether slug matches any registered category.
 func IsValidCategory(slug string) bool {
 	for _, c := range Categories {

@@ -67,12 +67,6 @@ func ipAPIViewerURL(ip string) string {
 	return "https://ip-api.com/#" + url.PathEscape(ip)
 }
 
-// dohViewerURL returns a Google DNS-over-HTTPS query whose JSON is the
-// verifiable source of a DNS finding.
-func dohViewerURL(name, rrtype string) string {
-	return "https://dns.google/resolve?name=" + url.QueryEscape(name) + "&type=" + url.QueryEscape(rrtype)
-}
-
 // reputationSourceURL maps an enrichment sub-source name to its verifier page
 // for the target, so each consensus row links to the provider that produced it.
 func reputationSourceURL(source, target, ttype string) string {

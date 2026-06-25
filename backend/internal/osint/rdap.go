@@ -40,20 +40,11 @@ type rdapResponse struct {
 	Country      string `json:"country"`
 }
 
-// fetchRDAP retrieves and decodes an RDAP object. The HTTP status is returned
-// so the caller can treat 404 ("no record") differently from a hard error.
-func fetchRDAP(ctx context.Context, url string) (*rdapResponse, int, error) {
-	var r rdapResponse
-	status, err := httpGetJSON(ctx, rlRDAP, url, nil, &r)
-	if err != nil {
-		return nil, status, err
-	}
-	return &r, status, nil
-}
-
-// fetchRDAPCached is fetchRDAP with a Redis read-through cache. Registration
-// data changes on the order of days, so caching it cuts repeated rdap.org
-// round-trips for re-runs, watches and auto-pivots.
+// fetchRDAPCached retrieves and decodes an RDAP object through a Redis
+// read-through cache. Registration data changes on the order of days, so caching
+// it cuts repeated rdap.org round-trips for re-runs, watches and auto-pivots.
+// The HTTP status is returned so the caller can treat 404 ("no record")
+// differently from a hard error.
 func fetchRDAPCached(ctx context.Context, env *collectorEnv, key, url string) (*rdapResponse, int, error) {
 	var r rdapResponse
 	status, err := cachedGetJSON(ctx, env.cache, key, rlRDAP, url, nil, &r, ttlRDAP)

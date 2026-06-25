@@ -38,22 +38,34 @@ func ListJobs(c *gin.Context) {
 		return
 	}
 
-	query := db.Model(&models.Job{}).Preload("Agent").Preload("Tool")
-
-	if agentID := c.Query("agent_id"); agentID != "" {
+	agentID := c.Query("agent_id")
+	if agentID != "" {
 		if _, err := uuid.Parse(agentID); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent_id"})
 			return
 		}
-		query = query.Where("agent_id = ?", agentID)
+	}
+	status := c.Query("status")
+
+	// filter applies the (identical) WHERE conditions to a fresh query chain so
+	// the count and the data fetch never share GORM statement state.
+	filter := func(q *gorm.DB) *gorm.DB {
+		if agentID != "" {
+			q = q.Where("agent_id = ?", agentID)
+		}
+		if status != "" {
+			q = q.Where("status = ?", status)
+		}
+		return q
 	}
 
-	if status := c.Query("status"); status != "" {
-		query = query.Where("status = ?", status)
-	}
+	writeTotalCount(c, filter(db.Model(&models.Job{})))
+
+	query := filter(db.Model(&models.Job{})).Preload("Agent").Preload("Tool").Order("created_at desc")
+	query = applyLimitOffset(c, query)
 
 	var jobs []models.Job
-	if err := query.Order("created_at desc").Find(&jobs).Error; err != nil {
+	if err := query.Find(&jobs).Error; err != nil {
 		log.Printf("[jobs] list error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to list jobs"})
 		return

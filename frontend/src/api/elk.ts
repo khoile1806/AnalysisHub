@@ -103,7 +103,7 @@ export interface FileIOCParseResponse {
   total_lines: number
 }
 
-function attachSseHandlers(es: EventSource, handlers: AutoHuntHandlers) {
+export function attachSseHandlers(es: EventSource, handlers: AutoHuntHandlers) {
   const parse = <T,>(e: MessageEvent): T | null => {
     try {
       return JSON.parse(e.data) as T
@@ -136,7 +136,7 @@ function attachSseHandlers(es: EventSource, handlers: AutoHuntHandlers) {
 }
 
 // Base64url encode arbitrary string content for EventSource query param.
-function base64url(text: string): string {
+export function base64url(text: string): string {
   const utf8 = new TextEncoder().encode(text)
   let bin = ''
   for (const b of utf8) bin += String.fromCharCode(b)

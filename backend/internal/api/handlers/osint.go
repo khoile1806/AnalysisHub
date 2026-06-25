@@ -187,15 +187,26 @@ func ListOsintScans(c *gin.Context) {
 	if !ok {
 		return
 	}
-	q := db.Order("created_at desc")
+	caseID := strings.TrimSpace(c.Query("case_id"))
+	rootOnly := c.Query("root") == "1"
+
 	// ?case_id= filters to one case's investigations; ?root=1 returns only the
 	// root scans (hides auto-pivot children for a cleaner top-level list).
-	if cid := strings.TrimSpace(c.Query("case_id")); cid != "" {
-		q = q.Where("case_id = ?", cid)
+	// filter applies the same conditions to a fresh chain for count vs. fetch.
+	filter := func(qq *gorm.DB) *gorm.DB {
+		if caseID != "" {
+			qq = qq.Where("case_id = ?", caseID)
+		}
+		if rootOnly {
+			qq = qq.Where("parent_scan_id IS NULL")
+		}
+		return qq
 	}
-	if c.Query("root") == "1" {
-		q = q.Where("parent_scan_id IS NULL")
-	}
+
+	writeTotalCount(c, filter(db.Model(&models.OsintScan{})))
+
+	q := applyLimitOffset(c, filter(db.Model(&models.OsintScan{})).Order("created_at desc"))
+
 	var scans []models.OsintScan
 	if err := q.Find(&scans).Error; err != nil {
 		log.Printf("[osint] list error: %v", err)

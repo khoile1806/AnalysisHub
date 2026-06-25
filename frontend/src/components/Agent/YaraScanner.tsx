@@ -19,6 +19,21 @@ import { getErrorMessage } from '@/lib/utils'
 import TerminalOutput from '@/components/Terminal'
 import { useAuthStore } from '@/store/auth'
 
+// Threat-hunt scenarios. The `id` MUST match a rule file stem under the
+// scanner's rules/yara/scenarios/<id>.yar (or be the special 'general'/'all').
+// 'general' = base webshell/malware rules only (default, no --scenario flag).
+const SCAN_SCENARIOS: { id: string; label: string; desc: string }[] = [
+  { id: 'general',          label: 'General / Webshell',   desc: 'Webshells & generic malware in source files (default).' },
+  { id: 'ransomware',       label: 'Ransomware',           desc: 'Ransom notes, encryptors, shadow-copy/backup destruction.' },
+  { id: 'credential_theft', label: 'Credential Theft',     desc: 'Mimikatz, LSASS dumping, hive/NTDS theft, Kerberoast.' },
+  { id: 'persistence',      label: 'Persistence (Windows)',desc: 'Run keys, scheduled tasks, services, WMI, IFEO backdoors.' },
+  { id: 'lateral_movement', label: 'Lateral Movement',     desc: 'PsExec, WMIC, WinRM, Impacket, remote service creation.' },
+  { id: 'powershell',       label: 'PowerShell / Fileless',desc: 'Encoded cmds, download cradles, AMSI bypass, reflection.' },
+  { id: 'linux',            label: 'Linux Threats',        desc: 'Reverse shells, crypto-miners, rootkits, ELF backdoors.' },
+  { id: 'c2',               label: 'C2 Frameworks',        desc: 'Cobalt Strike, Meterpreter, Sliver, Empire, Covenant.' },
+  { id: 'all',              label: 'All Scenarios (deep)', desc: 'Every scenario rule set at once — broadest, slower.' },
+]
+
 export function YaraScanner({ agent }: { agent: Agent }) {
   const qc = useQueryClient()
   const [targetPath, setTargetPath] = useState<string>(agent.os === 'windows' ? 'C:\\' : '/')
@@ -34,6 +49,7 @@ export function YaraScanner({ agent }: { agent: Agent }) {
   const [isAdvanced, setIsAdvanced] = useState<boolean>(false)
   const [customYaraName, setCustomYaraName] = useState<string>('')
   const [customYaraBase64, setCustomYaraBase64] = useState<string>('')
+  const [scenario, setScenario] = useState<string>('general')
 
   // Fetch scanner tool
   const { data: tools = [] } = useQuery<Tool[]>({
@@ -115,15 +131,21 @@ export function YaraScanner({ agent }: { agent: Agent }) {
       return
     }
 
-    let args = `scan "${targetPath}" --out report --format html,json`
-    if (isDebug) args += " --verbose"
-    if (isAdvanced) {
-      args += " --all-files"
-      if (customYaraBase64) {
-        args += ` --yara-base64 ${customYaraBase64}`
-      }
-    }
-    
+    const parts = [`scan "${targetPath}" --out report --format html,json`]
+    if (isDebug) parts.push("--verbose")
+
+    const useScenario = scenario !== 'general'
+    if (useScenario) parts.push(`--scenario ${scenario}`)
+
+    // Scenario rules target binaries, ransom notes and scripts that fall outside
+    // the default source-file extension whitelist, so a scenario scan (like
+    // advanced mode) must inspect all files to be effective.
+    if (useScenario || isAdvanced) parts.push("--all-files")
+
+    if (isAdvanced && customYaraBase64) parts.push(`--yara-base64 ${customYaraBase64}`)
+
+    const args = parts.join(" ")
+
     createJobMutation.mutate({
       agent_id: agent.id,
       tool_id: scannerTool.id,
@@ -242,6 +264,27 @@ export function YaraScanner({ agent }: { agent: Agent }) {
                 </>
               )}
             </div>
+          </div>
+
+          {/* Threat scenario */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold ml-1">Scenario</label>
+            <select
+              className="input h-10 w-[210px] text-xs"
+              value={scenario}
+              onChange={(e) => setScenario(e.target.value)}
+              disabled={isScanning}
+              title={SCAN_SCENARIOS.find((s) => s.id === scenario)?.desc}
+            >
+              {SCAN_SCENARIOS.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <span className="text-[10px] text-gray-500 ml-1 max-w-[210px] truncate" title={SCAN_SCENARIOS.find((s) => s.id === scenario)?.desc}>
+              {scenario === 'general'
+                ? 'Default source-file rules'
+                : 'Includes specialized rules · scans all files'}
+            </span>
           </div>
 
           <div className="flex flex-col gap-1.5">

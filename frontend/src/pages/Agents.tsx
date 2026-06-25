@@ -5,6 +5,7 @@ import { Plus, Copy, Server, Trash2, Settings, CheckCircle, Terminal } from 'luc
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
 import { AgentStatusBadge } from '@/components/StatusBadge'
+import Pagination from '@/components/ui/Pagination'
 import { getErrorMessage, copyToClipboard, safeDistanceToNow } from '@/lib/utils'
 import {
   Dialog,
@@ -443,6 +444,13 @@ export default function AgentsPage() {
     refetchInterval: 15_000,
   })
 
+  // Client-side pagination — bounds rows rendered for large fleets.
+  const PAGE_SIZE = 25
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(agents.length / PAGE_SIZE))
+  const pageClamped = Math.min(page, totalPages)
+  const pagedAgents = agents.slice((pageClamped - 1) * PAGE_SIZE, pageClamped * PAGE_SIZE)
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -490,7 +498,7 @@ export default function AgentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {agents.map((agent) => (
+                {pagedAgents.map((agent) => (
                   <tr
                     key={agent.id}
                     className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors cursor-pointer"
@@ -541,6 +549,9 @@ export default function AgentsPage() {
             </table>
           )}
         </div>
+        {!isLoading && agents.length > 0 && (
+          <Pagination page={pageClamped} pageSize={PAGE_SIZE} totalItems={agents.length} onPageChange={setPage} />
+        )}
       </div>
 
       <NewAgentModal open={newOpen} onClose={() => setNewOpen(false)} />

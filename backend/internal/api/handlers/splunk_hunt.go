@@ -54,6 +54,14 @@ func StreamSplunkAutoHunt(c *gin.Context) {
 	streamSplunkHunts(c, config, authHeader, iocStrings, indices, timeRange)
 }
 
+// StreamSplunkFileHunt streams a hunt over a client-supplied IOC list.
+//
+// POST /api/v1/splunk/hunt/file-stream  (JSON body: {iocs:[]string, indices, timeRange})
+// GET  /api/v1/splunk/hunt/file-stream?iocs=<base64-json>&token=<jwt>  (for EventSource)
+//
+// EventSource cannot send a request body, so the GET form accepts the IOC list
+// as a URL-safe base64 JSON payload ({"iocs":[{value,type,...}]}) — identical to
+// the ELK file-hunt contract — and uses only the indicator values.
 func StreamSplunkFileHunt(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	aesKey := c.GetString("aesEncryptionKey")
@@ -64,17 +72,48 @@ func StreamSplunkFileHunt(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		IOCs      []string `json:"iocs"`
-		Indices   string   `json:"indices"`
-		TimeRange string   `json:"timeRange"`
+	var iocs []string
+	var indices, timeRange string
+
+	if c.Request.Method == http.MethodGet {
+		raw := c.Query("iocs")
+		if raw == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "iocs query parameter is required"})
+			return
+		}
+		decoded, derr := decodeIOCsParam(raw)
+		if derr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid iocs param: " + derr.Error()})
+			return
+		}
+		for _, fi := range decoded {
+			if v := strings.TrimSpace(fi.Value); v != "" {
+				iocs = append(iocs, v)
+			}
+		}
+		indices = c.Query("indices")
+		timeRange = c.Query("timeRange")
+	} else {
+		var req struct {
+			IOCs      []string `json:"iocs"`
+			Indices   string   `json:"indices"`
+			TimeRange string   `json:"timeRange"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		iocs = req.IOCs
+		indices = req.Indices
+		timeRange = req.TimeRange
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	if len(iocs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no IOCs supplied"})
 		return
 	}
 
-	streamSplunkHunts(c, config, authHeader, req.IOCs, req.Indices, req.TimeRange)
+	streamSplunkHunts(c, config, authHeader, iocs, indices, timeRange)
 }
 
 func streamSplunkHunts(c *gin.Context, config models.SplunkConfig, authHeader string, iocs []string, indices string, timeRange string) {

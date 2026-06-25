@@ -1262,12 +1262,17 @@ function HuntTab() {
     esRef.current = null
   }
 
+  // Pick the streaming client for the selected SIEM. ELK/Splunk/QRadar all share
+  // the same SSE event contract (progress/hits/error/done), so the handlers below
+  // are identical regardless of target.
+  const siemStreamApi = targetSiem === 'splunk' ? splunkApi : targetSiem === 'qradar' ? qradarApi : elkApi
+
   const startAutoHunt = () => {
     if (!token) { toast.error('Not authenticated'); return }
     if (auto.running || fileHunt.running) { toast.error('A hunt is already running'); return }
     stopAnyStream()
     setAuto({ ...initialHunt, running: true })
-    esRef.current = elkApi.streamAutoHunt(token, targetIndices, timeRange, {
+    esRef.current = siemStreamApi.streamAutoHunt(token, targetIndices, timeRange, {
       onProgress: (p) => setAuto((s) => ({ ...s, progress: p })),
       onHits:     (h) => setAuto((s) => ({ ...s, hits: [...s.hits, ...h.hits] })),
       onError:    (e) => setAuto((s) => ({ ...s, batchErrors: [...s.batchErrors, { batch: e.batch, bucket: e.bucket, error: e.error }] })),
@@ -1325,7 +1330,7 @@ function HuntTab() {
     if (auto.running || fileHunt.running) { toast.error('A hunt is already running'); return }
     stopAnyStream()
     setFileHunt({ ...initialHunt, running: true })
-    esRef.current = elkApi.streamFileHunt(token, parsedFile.iocs, targetIndices, timeRange, {
+    esRef.current = siemStreamApi.streamFileHunt(token, parsedFile.iocs, targetIndices, timeRange, {
       onProgress: (p) => setFileHunt((s) => ({ ...s, progress: p })),
       onHits:     (h) => setFileHunt((s) => ({ ...s, hits: [...s.hits, ...h.hits] })),
       onError:    (e) => setFileHunt((s) => ({ ...s, batchErrors: [...s.batchErrors, { batch: e.batch, bucket: e.bucket, error: e.error }] })),

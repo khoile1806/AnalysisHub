@@ -86,15 +86,6 @@ var (
 	}
 )
 
-func SetSafeDomains(domains []string) {
-	safeDomainsMu.Lock()
-	defer safeDomainsMu.Unlock()
-	safeDomains = make([]string, len(domains))
-	for i, d := range domains {
-		safeDomains[i] = strings.ToLower(strings.TrimSpace(d))
-	}
-}
-
 func isCommonSafe(d string) bool {
 	d = strings.ToLower(d)
 	safeDomainsMu.RLock()

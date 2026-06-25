@@ -184,6 +184,7 @@ func NewRouter(
 		protected.POST("/splunk/hunt", handlers.RunSplunkHunt)
 		protected.GET("/splunk/hunt/stream", handlers.StreamSplunkAutoHunt)
 		protected.POST("/splunk/hunt/file-stream", handlers.StreamSplunkFileHunt)
+		protected.GET("/splunk/hunt/file-stream", handlers.StreamSplunkFileHunt)
 
 		// QRadar Hunt
 		protected.GET("/qradar/config", handlers.GetQRadarConfig)
@@ -195,6 +196,7 @@ func NewRouter(
 		protected.POST("/qradar/hunt", handlers.RunQRadarHunt)
 		protected.GET("/qradar/hunt/stream", handlers.StreamQRadarAutoHunt)
 		protected.POST("/qradar/hunt/file-stream", handlers.StreamQRadarFileHunt)
+		protected.GET("/qradar/hunt/file-stream", handlers.StreamQRadarFileHunt)
 
 		// OSINT footprinting — passive entity intelligence (IP/domain/email/phone/username)
 		protected.POST("/osint", handlers.CreateOsintScan)
@@ -250,6 +252,7 @@ func NewRouter(
 		// Attack Timeline
 		timelineHandler := handlers.NewTimelineHandler(db)
 		protected.GET("/cases/:id/timeline", timelineHandler.ListTimeline)
+		protected.GET("/cases/:id/attack-coverage", timelineHandler.AttackCoverage)
 		protected.POST("/cases/:id/timeline", timelineHandler.CreateTimelineEvent)
 		protected.PATCH("/timeline/:id", timelineHandler.UpdateTimelineEvent)
 		protected.DELETE("/timeline/:id", timelineHandler.DeleteTimelineEvent)
@@ -305,12 +308,18 @@ func NewRouter(
 		protected.GET("/canary/tokens", canaryHandler.ListCanaryTokens)
 		protected.POST("/canary/tokens", canaryHandler.CreateCanaryToken)
 		protected.POST("/canary/tokens/bulk", canaryHandler.BulkCreateCanaryTokens)
+		protected.POST("/canary/tokens/upload", canaryHandler.CreateCanaryFileToken)
 		protected.GET("/canary/tokens/:id", canaryHandler.GetCanaryToken)
 		protected.PATCH("/canary/tokens/:id", canaryHandler.UpdateCanaryToken)
 		protected.DELETE("/canary/tokens/:id", canaryHandler.DeleteCanaryToken)
+		protected.GET("/canary/tokens/:id/file", canaryHandler.DownloadCanaryFile)
 		protected.GET("/canary/tokens/:id/hits", canaryHandler.ListCanaryHits)
 		protected.DELETE("/canary/tokens/:id/hits", canaryHandler.DeleteCanaryHits)
 		protected.POST("/canary/tokens/:id/hits/:hitId/scan", canaryHandler.ScanCanaryHit)
+		// In-app alert feed/badge for canary hits.
+		protected.GET("/canary/alerts", canaryHandler.ListCanaryAlerts)
+		protected.GET("/canary/alerts/count", canaryHandler.CountCanaryAlerts)
+		protected.POST("/canary/alerts/seen", canaryHandler.MarkCanaryAlertsSeen)
 
 		// System — health check and usage statistics
 		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)

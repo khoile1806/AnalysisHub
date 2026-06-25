@@ -201,16 +201,3 @@ func significantSeverity(sev string) bool {
 	}
 	return false
 }
-
-// uuidPtr is a small helper for handlers building a watch with an optional case.
-func uuidPtr(s string) (*uuid.UUID, error) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil, nil
-	}
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return nil, err
-	}
-	return &id, nil
-}
