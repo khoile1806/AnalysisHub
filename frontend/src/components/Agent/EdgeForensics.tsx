@@ -964,19 +964,33 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
     if (agent.status !== 'online') { toast.error('Agent is offline'); return }
     setTriaging(true)
     const caseId = saveCaseId || agent.case_id || ''
+    const failed: string[] = []
+    // Each step runs independently: a failure (e.g. a 502 / gateway timeout on one
+    // scan) is recorded and skipped so the rest of the triage still completes and
+    // partial results are kept.
+    const step = async <T,>(label: string, fn: () => Promise<any>, set: (v: T[]) => void): Promise<T[]> => {
+      try {
+        const d = await fn()
+        const arr: T[] = Array.isArray(d) ? d : (d ? [d] : [])
+        set(arr)
+        return arr
+      } catch (err: any) {
+        failed.push(`${label} (${err?.response?.status || err?.message || 'error'})`)
+        return []
+      }
+    }
     try {
       toast('Quick Triage — Processes → Autoruns → Prefetch → Network…', { icon: '🚑' })
-      const procData = await agentsApi.parseProcessScan(agent.id)
-      const procs: ProcessEntry[] = Array.isArray(procData) ? procData : [procData]
-      setProcessResults(procs)
-      const autoData = await agentsApi.parseAutoruns(agent.id)
-      const autos: AutorunEntry[] = Array.isArray(autoData) ? autoData : [autoData]
-      setAutorunResults(autos)
-      const pfData = await agentsApi.parsePrefetch(agent.id)
-      const pfs: PrefetchEntry[] = Array.isArray(pfData) ? pfData : [pfData]
-      setPrefetchResults(pfs)
-      const netData = await agentsApi.parseNetwork(agent.id)
-      const hosts = aggregateHosts(netData?.connections ?? [])
+      const procs = await step<ProcessEntry>('Processes', () => agentsApi.parseProcessScan(agent.id), setProcessResults)
+      const autos = await step<AutorunEntry>('Autoruns', () => agentsApi.parseAutoruns(agent.id), setAutorunResults)
+      const pfs = await step<PrefetchEntry>('Prefetch', () => agentsApi.parsePrefetch(agent.id), setPrefetchResults)
+      let hosts: ReturnType<typeof aggregateHosts> = []
+      try {
+        const netData = await agentsApi.parseNetwork(agent.id)
+        hosts = aggregateHosts(netData?.connections ?? [])
+      } catch (err: any) {
+        failed.push(`Network (${err?.response?.status || err?.message || 'error'})`)
+      }
 
       const hashes = [...procs.map(p => p.sha256), ...autos.map(a => a.sha256), ...pfs.map(p => p.exe_sha256)].filter(Boolean) as string[]
       const extHosts = hosts.filter(h => h.routable)
@@ -987,13 +1001,15 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       } catch { /* non-fatal */ }
       setIocMatches(iocSet)
 
+      if (failed.length) toast.error(`Skipped: ${failed.join(', ')}`, { duration: 6000 })
+
       const isIoc = (h?: string) => !!h && iocSet.has(h.toLowerCase())
       const flProc = procs.filter(p => (p.suspicious?.length ?? 0) > 0 || isIoc(p.sha256))
       const flAuto = autos.filter(a => (a.suspicious?.length ?? 0) > 0 || isIoc(a.sha256))
       const flPf = pfs.filter(p => p.suspicious || isIoc(p.exe_sha256))
       const flHosts = extHosts.filter(h => iocSet.has(h.addr.toLowerCase()))
 
-      if (caseId) {
+      if (caseId && (procs.length || autos.length || pfs.length || extHosts.length)) {
         const items: any[] = [{
           title: `Quick Triage — ${agent.hostname || agent.name}`,
           detail: `Processes: ${procs.length} (${flProc.length} flagged)\nAutoruns: ${autos.length} (${flAuto.length} flagged)\nPrefetch: ${pfs.length} (${flPf.length} flagged)\nExternal hosts: ${extHosts.length} (${flHosts.length} known IOC)`,
@@ -1020,9 +1036,9 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
           value: h.addr, ioc_type: h.addr.includes(':') ? 'IPv6-Addr' : 'IPv4-Addr', promote_ioc: true,
         }))
         const res = await timelineApi.importArtifacts(caseId, { source: 'edge-forensics:triage', host: agent.hostname || agent.name, items })
-        toast.success(`Triage saved — ${res.events_created} event(s) · ${res.iocs_promoted} new IOC(s)`)
+        toast.success(`Triage saved — ${res.events_created} event(s) · ${res.iocs_promoted} new IOC(s)${failed.length ? ` · ${failed.length} step(s) skipped` : ''}`)
       } else {
-        toast.success(`Triage done — ${flProc.length + flAuto.length + flPf.length + flHosts.length} flagged. Link a case to auto-save.`)
+        toast.success(`Triage done — ${flProc.length + flAuto.length + flPf.length + flHosts.length} flagged${failed.length ? ` · ${failed.length} step(s) skipped` : ''}. ${caseId ? '' : 'Link a case to auto-save.'}`)
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err.message || 'Quick Triage failed')
