@@ -100,6 +100,14 @@ func NewRouter(
 		protected.POST("/agents/:id/evtx", handlers.AgentEvtxParse)
 		protected.POST("/agents/:id/mft", handlers.AgentMFTParse)
 		protected.POST("/agents/:id/prefetch", handlers.AgentPrefetchParse)
+		protected.POST("/agents/:id/processes-scan", handlers.AgentProcessParse)
+		protected.POST("/agents/:id/autoruns", handlers.AgentAutorunsParse)
+		protected.POST("/agents/:id/netscan", handlers.AgentNetworkParse)
+		protected.POST("/agents/:id/dlls", handlers.AgentDllsParse)
+		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
+		protected.POST("/agents/:id/baseline", handlers.SetAgentBaseline)
+		protected.GET("/agents/:id/baseline", handlers.GetAgentBaseline)
+		protected.POST("/agents/:id/kill", handlers.AgentKillProcess)
 
 		// Filesystem browser
 		protected.GET("/agents/:id/fs", handlers.ListAgentFS)
@@ -153,6 +161,12 @@ func NewRouter(
 		protected.POST("/opencti/sync", handlers.SyncOpenCTI)
 		protected.GET("/iocs", handlers.ListIOCs)
 		protected.POST("/iocs", handlers.CreateManualIOC)
+		// Batch IOC matching — any scan view highlights values already in the store.
+		protected.POST("/iocs/match", handlers.MatchIOCs)
+
+		// On-demand threat-intel lookup (VirusTotal + configured sources).
+		intelHandler := handlers.NewIntelHandler(enrich)
+		protected.GET("/intel/lookup", intelHandler.Lookup)
 
 		// ELK Hunt — config (multi-profile) + manual + auto + file-based hunts.
 		protected.GET("/elk/config", handlers.GetELKConfig)
@@ -253,6 +267,7 @@ func NewRouter(
 		timelineHandler := handlers.NewTimelineHandler(db)
 		protected.GET("/cases/:id/timeline", timelineHandler.ListTimeline)
 		protected.GET("/cases/:id/attack-coverage", timelineHandler.AttackCoverage)
+		protected.POST("/cases/:id/import-artifacts", timelineHandler.ImportArtifacts)
 		protected.POST("/cases/:id/timeline", timelineHandler.CreateTimelineEvent)
 		protected.PATCH("/timeline/:id", timelineHandler.UpdateTimelineEvent)
 		protected.DELETE("/timeline/:id", timelineHandler.DeleteTimelineEvent)

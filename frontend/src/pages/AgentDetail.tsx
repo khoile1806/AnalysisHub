@@ -629,7 +629,7 @@ export default function AgentDetailPage() {
   const { data: cases = [] } = useQuery({
     queryKey: ['cases'],
     queryFn: casesApi.list,
-    enabled: linkCaseOpen,
+    enabled: !!id, // always loaded so the header can show the linked case name
   })
 
   const linkCaseMutation = useMutation({
@@ -701,23 +701,39 @@ export default function AgentDetailPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => { setSelectedCaseId(agent.case_id ?? '__none__'); setLinkCaseOpen(true) }}
-          className="btn-secondary text-xs flex items-center gap-1.5"
-          title="Link or unlink this agent from a case"
-        >
-          <Briefcase className="h-3.5 w-3.5" />
-          {agent.case_id ? 'Change Case' : 'Link to Case'}
-        </button>
-        <button
-          onClick={() => setCleanupOpen(true)}
-          disabled={agent.status !== 'online'}
-          className="btn-danger text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-          title={agent.status !== 'online' ? 'Agent must be online' : 'Remove all agent files and self-uninstall'}
-        >
-          <Eraser className="h-3.5 w-3.5" />
-          Cleanup & Uninstall
-        </button>
+        {/* Action group — kept together on the right so the header reads
+            [identity] … [Link to Case] [Cleanup] rather than scattering. */}
+        <div className="flex items-center gap-2 shrink-0 self-start">
+          {(() => {
+            const linkedCase = cases.find((c: any) => c.id === agent.case_id)
+            const isLinked = !!agent.case_id
+            return (
+              <button
+                onClick={() => { setSelectedCaseId(agent.case_id ?? '__none__'); setLinkCaseOpen(true) }}
+                className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors max-w-[240px] ${
+                  isLinked
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/15'
+                    : 'btn-secondary'
+                }`}
+                title={isLinked ? `Linked to case "${linkedCase?.name ?? agent.case_id}" — click to change or unlink` : 'Link this agent to a case'}
+              >
+                <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                {isLinked ? (
+                  <span className="truncate">Case: <span className="font-medium">{linkedCase?.name ?? 'linked'}</span></span>
+                ) : 'Link to Case'}
+              </button>
+            )
+          })()}
+          <button
+            onClick={() => setCleanupOpen(true)}
+            disabled={agent.status !== 'online'}
+            className="btn-danger text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={agent.status !== 'online' ? 'Agent must be online' : 'Remove all agent files and self-uninstall'}
+          >
+            <Eraser className="h-3.5 w-3.5" />
+            Cleanup & Uninstall
+          </button>
+        </div>
       </div>
 
       {/* Link to Case Dialog */}

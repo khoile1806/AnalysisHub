@@ -91,6 +91,7 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.CanaryToken{},
 		&models.CanaryHit{},
 		&models.CanaryAlert{},
+		&models.AgentBaseline{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

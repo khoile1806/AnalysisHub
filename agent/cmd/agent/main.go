@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"strconv"
 	"strings"
 	"os"
 	"os/signal"
@@ -16,6 +17,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/forensichub/agent/internal/config"
+	"github.com/forensichub/agent/internal/executor"
 	"github.com/forensichub/agent/internal/ws"
 	"github.com/forensichub/agent/internal/parser"
 )
@@ -24,7 +26,11 @@ func main() {
 	// Check for elevated subprocess commands first
 	if len(os.Args) >= 3 && os.Args[1] == "scan-mft" {
 		outPath := os.Args[2]
-		res, err := parser.ParseMFT()
+		target := ""
+		if len(os.Args) >= 4 {
+			target = os.Args[3]
+		}
+		res, err := parser.ParseMFT(target)
 		if err != nil {
 			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
 			os.Exit(1)
@@ -42,6 +48,57 @@ func main() {
 		}
 		b, _ := json.Marshal(res)
 		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-processes" {
+		outPath := os.Args[2]
+		res, err := parser.ScanProcesses()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-autoruns" {
+		outPath := os.Args[2]
+		res, err := parser.ScanAutoruns()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-dlls" {
+		outPath := os.Args[2]
+		res, err := parser.ScanLoadedDLLs()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-shimcache" {
+		outPath := os.Args[2]
+		res, err := parser.ScanShimcache()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "kill" {
+		pid, _ := strconv.Atoi(os.Args[2])
+		if err := executor.KillProcess(pid); err != nil {
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 

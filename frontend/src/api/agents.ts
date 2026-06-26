@@ -75,22 +75,78 @@ export const agentsApi = {
   },
 
   parseRegistry: async (id: string, root: string, path: string): Promise<any> => {
-    const { data } = await apiClient.post(`/agents/${id}/registry`, { root, path })
+    const { data } = await apiClient.post(`/agents/${id}/registry`, { root, path }, { timeout: 600_000 })
     return data
   },
 
-  parseEvtx: async (id: string, logName: string, eventId: string): Promise<any> => {
-    const { data } = await apiClient.post(`/agents/${id}/evtx`, { log_name: logName, event_id: eventId })
+  parseEvtx: async (
+    id: string,
+    query: { log_name: string; event_ids?: number[]; event_id?: string; hours?: number; max?: number; keyword?: string },
+  ): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/evtx`, query, { timeout: 600_000 })
     return data
   },
 
-  parseMFT: async (id: string): Promise<any> => {
-    const { data } = await apiClient.post(`/agents/${id}/mft`)
+  parseMFT: async (id: string, path?: string): Promise<any> => {
+    // Edge Forensics scans (UAC prompt + on-device walk/hash) can run well past
+    // the default 120s, so give these a generous timeout.
+    const { data } = await apiClient.post(`/agents/${id}/mft`, undefined, {
+      params: path ? { path } : undefined,
+      timeout: 600_000,
+    })
     return data
   },
 
   parsePrefetch: async (id: string): Promise<any> => {
-    const { data } = await apiClient.post(`/agents/${id}/prefetch`)
+    const { data } = await apiClient.post(`/agents/${id}/prefetch`, undefined, { timeout: 600_000 })
     return data
+  },
+
+  // Detailed running-process snapshot (lineage + owner + cmdline + exe hashes).
+  parseProcessScan: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/processes-scan`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Native autoruns / persistence enumeration (+ hash + Authenticode signature).
+  parseAutoruns: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/autoruns`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Native network snapshot: TCP/UDP connections w/ owning process + image path
+  // + reverse DNS, plus the DNS resolver cache (NetworkMiner-style). No UAC.
+  parseNetwork: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/netscan`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Native loaded-module enumeration (ListDLLs-style): every process's DLLs,
+  // deduped + hashed + Authenticode-checked, with DLL-hijack / injection flags.
+  parseDlls: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/dlls`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Containment: terminate a process on the endpoint (elevates if needed).
+  killProcess: async (id: string, pid: number): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/kill`, { pid }, { timeout: 120_000 })
+    return data
+  },
+
+  // AppCompatCache (Shimcache) execution-evidence parse.
+  parseShimcache: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/shimcache`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Baseline & drift: store a known-good snapshot, fetch it to diff later.
+  setBaseline: async (id: string, kind: string, data: string): Promise<any> => {
+    const { data: res } = await apiClient.post(`/agents/${id}/baseline`, { kind, data })
+    return res
+  },
+  getBaseline: async (id: string, kind: string): Promise<{ data: string; created_at: string; updated_at: string }> => {
+    const { data } = await apiClient.get(`/agents/${id}/baseline`, { params: { kind } })
+    return data.data
   }
 }

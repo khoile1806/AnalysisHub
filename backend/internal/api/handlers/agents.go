@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -438,8 +439,8 @@ func GetAgentMonitor(c *gin.Context) {
 	}
 
 	dataType := c.Query("type")
-	if dataType != "processes" && dataType != "netstat" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "type must be 'processes' or 'netstat'"})
+	if dataType != "processes" && dataType != "netstat" && dataType != "netconn" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "type must be 'processes', 'netstat' or 'netconn'"})
 		return
 	}
 
@@ -742,13 +743,33 @@ func AgentEvtxParse(c *gin.Context) {
 	}
 
 	var req struct {
-		LogName string `json:"log_name" binding:"required"`
-		EventID string `json:"event_id" binding:"required"`
+		LogName  string `json:"log_name" binding:"required"`
+		EventID  string `json:"event_id"`  // legacy: single or comma-separated IDs
+		EventIDs []int  `json:"event_ids"` // preferred: explicit list
+		Hours    int    `json:"hours"`     // time window (0 = all)
+		Max      int    `json:"max"`       // max events (default 500 on the agent)
+		Keyword  string `json:"keyword"`   // substring filter on the rendered message
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
+
+	// Merge legacy comma string + explicit list into one ID slice.
+	ids := append([]int{}, req.EventIDs...)
+	for _, p := range strings.Split(req.EventID, ",") {
+		if n, perr := strconv.Atoi(strings.TrimSpace(p)); perr == nil {
+			ids = append(ids, n)
+		}
+	}
+
+	argsJSON, _ := json.Marshal(map[string]interface{}{
+		"log":     req.LogName,
+		"ids":     ids,
+		"hours":   req.Hours,
+		"max":     req.Max,
+		"keyword": req.Keyword,
+	})
 
 	// Create a virtual job ID to subscribe to output
 	reqID := uuid.New().String()
@@ -758,7 +779,7 @@ func AgentEvtxParse(c *gin.Context) {
 	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
 		Type:  "edge_parse_evtx",
 		JobID: reqID,
-		Args:  req.LogName + "|" + req.EventID,
+		Args:  string(argsJSON),
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
@@ -800,8 +821,9 @@ func AgentMFTParse(c *gin.Context) {
 	defer hub.UnsubscribeJobOutput(reqID, outCh)
 
 	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
-		Type:  "edge_parse_mft",
-		JobID: reqID,
+		Type:   "edge_parse_mft",
+		JobID:  reqID,
+		FsPath: strings.TrimSpace(c.Query("path")), // optional target dir/file to scan
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
@@ -859,6 +881,368 @@ func AgentPrefetchParse(c *gin.Context) {
 
 	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
 		Type:  "edge_parse_prefetch",
+		JobID: reqID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData string
+	var agentError string
+
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentAutorunsParse triggers a native autostart / persistence enumeration on
+// the agent (Run keys, services, scheduled tasks, startup folders, Winlogon,
+// IFEO …) with executable hashes and Authenticode signature status.
+//
+// POST /api/v1/agents/:id/autoruns
+func AgentAutorunsParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_autoruns",
+		JobID: reqID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData string
+	var agentError string
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentNetworkParse triggers a native network-connection snapshot on the agent
+// (TCP/UDP endpoints with owning process + image path + reverse DNS, plus the
+// DNS resolver cache) — the NetworkMiner-style host/session/DNS view. No UAC is
+// required: the IP Helper socket tables are readable in the agent's normal user
+// context, which is also why the Network tab can stream live.
+//
+// POST /api/v1/agents/:id/netscan
+func AgentNetworkParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_netconn",
+		JobID: reqID,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData string
+	var agentError string
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentShimcacheParse triggers an AppCompatCache (Shimcache) parse on the agent
+// — execution-evidence records (binary path + file modified time).
+//
+// POST /api/v1/agents/:id/shimcache
+func AgentShimcacheParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	if err := hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "edge_parse_shimcache", JobID: reqID}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData, agentError string
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentKillProcess instructs the agent to terminate a process (containment).
+// Elevates on the endpoint when needed so it can kill other users' / elevated
+// processes.
+//
+// POST /api/v1/agents/:id/kill  { "pid": 1234 }
+func AgentKillProcess(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	userID, _ := middleware.GetUserID(c)
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	var req struct {
+		Pid int `json:"pid" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Pid <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "valid pid required"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	if err := hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "kill_process", JobID: reqID, Pid: req.Pid}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+	writeAudit(c, db, &userID, &id, "agent.kill_process", id.String(), fmt.Sprintf("pid=%d", req.Pid))
+
+	var agentErr, lastLine string
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentErr != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentErr})
+				} else {
+					c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"pid": req.Pid, "message": lastLine}})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentErr = strings.TrimPrefix(result, "[agent error] ")
+			} else if result != "" {
+				lastLine = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentDllsParse triggers a native loaded-module enumeration on the agent
+// (ListDLLs-style: every process's DLLs, deduped, hashed + Authenticode-checked,
+// with DLL-hijack / injection flags).
+//
+// POST /api/v1/agents/:id/dlls
+func AgentDllsParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "edge_parse_dlls", JobID: reqID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	var finalData string
+	var agentError string
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
+// AgentProcessParse triggers a detailed running-process snapshot on the agent
+// (lineage + owner + command line + executable hashes).
+//
+// POST /api/v1/agents/:id/processes-scan
+func AgentProcessParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	err = hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_processes",
 		JobID: reqID,
 	})
 	if err != nil {

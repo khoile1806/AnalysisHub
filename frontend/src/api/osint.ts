@@ -206,6 +206,7 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   urlscan:           'URLScan (brand abuse / phishing)',
   darkweb:           'Dark-Web Monitoring',
   reverse_ip:        'Reverse IP (co-hosted)',
+  favicon:           'Favicon Hash Pivot (Shodan)',
   host_search:       'Subdomain Search',
   subbrute:          'Subdomain Brute-force (DNS)',
   typosquat:         'Look-alike / Typosquat Domains',

@@ -104,6 +104,11 @@ type Config struct {
 	// Configurable auto-pivot filter lists. If empty, the engine uses its built-in defaults.
 	OsintProviderSuffixes []string
 	OsintRDNSMarkers      []string
+
+	// OsintAutoPromote, when true, automatically adds a scanned target to the IOC
+	// store once a collector flags it malicious with high confidence — closing the
+	// OSINT → defence loop (ELK auto-hunt then searches the logs for it).
+	OsintAutoPromote bool
 	
 	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
 	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
@@ -182,6 +187,7 @@ func Load() *Config {
 		OsintMaxConcurrentScans:  getEnvInt("OSINT_MAX_CONCURRENT_SCANS", 6),
 		OsintProviderSuffixes:    parseCSV(getEnv("OSINT_PROVIDER_SUFFIXES", "")),
 		OsintRDNSMarkers:         parseCSV(getEnv("OSINT_RDNS_MARKERS", "")),
+		OsintAutoPromote:         getEnv("OSINT_AUTO_PROMOTE", "true") != "false",
 		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
 		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),
 		GreyNoiseKey:      getEnv("GREYNOISE_API_KEY", ""),

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -90,6 +91,123 @@ func (h *TimelineHandler) CreateTimelineEvent(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": ev})
+}
+
+// importArtifactsMax caps how many artifacts one import call may add.
+const importArtifactsMax = 1000
+
+// ImportArtifacts saves a batch of scan artifacts (e.g. Edge Forensics file
+// findings or prefetch executions) onto a case timeline, optionally promoting
+// each one to the IOC store. Lets an analyst pull live-response findings into an
+// investigation in one click.
+//
+// POST /api/v1/cases/:id/import-artifacts
+// {
+//   "source": "edge-forensics:mft", "host": "WS-01",
+//   "items": [ { "title": "...", "detail": "...", "event_time": "...",
+//                "severity": "high", "value": "<hash>", "ioc_type": "File-Hash",
+//                "promote_ioc": true } ]
+// }
+func (h *TimelineHandler) ImportArtifacts(c *gin.Context) {
+	caseID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid case id"})
+		return
+	}
+	// Confirm the case exists so we don't orphan events.
+	var caseObj models.Case
+	if err := h.DB.First(&caseObj, "id = ?", caseID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "case not found"})
+		return
+	}
+
+	var body struct {
+		Source string `json:"source"`
+		Host   string `json:"host"`
+		Items  []struct {
+			Title      string     `json:"title"`
+			Detail     string     `json:"detail"`
+			EventTime  *time.Time `json:"event_time"`
+			Severity   string     `json:"severity"`
+			Value      string     `json:"value"`
+			IOCType    string     `json:"ioc_type"`
+			PromoteIOC bool       `json:"promote_ioc"`
+		} `json:"items"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	if len(body.Items) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "no items supplied"})
+		return
+	}
+	if len(body.Items) > importArtifactsMax {
+		body.Items = body.Items[:importArtifactsMax]
+	}
+
+	source := strings.TrimSpace(body.Source)
+	if source == "" {
+		source = "import"
+	}
+
+	var userUUID uuid.UUID
+	if v, ok := c.Get("userID"); ok {
+		if uid, perr := uuid.Parse(v.(string)); perr == nil {
+			userUUID = uid
+		}
+	}
+
+	events := 0
+	iocs := 0
+	for _, it := range body.Items {
+		title := strings.TrimSpace(it.Title)
+		if title == "" {
+			continue
+		}
+		et := time.Now().UTC()
+		if it.EventTime != nil && !it.EventTime.IsZero() {
+			et = *it.EventTime
+		}
+		sev := it.Severity
+		if !validSeverity(sev) {
+			sev = "info"
+		}
+		ev := models.TimelineEvent{
+			CaseID:    caseID,
+			EventTime: et,
+			Source:    source,
+			Host:      strings.TrimSpace(body.Host),
+			Severity:  sev,
+			Title:     title,
+			Detail:    it.Detail,
+			CreatedBy: userUUID,
+		}
+		if err := h.DB.Create(&ev).Error; err != nil {
+			continue
+		}
+		events++
+
+		if it.PromoteIOC {
+			val := strings.TrimSpace(it.Value)
+			typ := strings.TrimSpace(it.IOCType)
+			if val != "" && typ != "" {
+				ioc := models.IOC{Value: val, Type: typ, Source: source, Description: title}
+				res := h.DB.Where("value = ? AND type = ?", val, typ).FirstOrCreate(&ioc)
+				if res.Error == nil && res.RowsAffected > 0 {
+					iocs++
+				}
+			}
+		}
+	}
+
+	writeAudit(c, h.DB, &userUUID, nil, "timeline.import", caseID.String(),
+		fmt.Sprintf("source=%s events=%d iocs=%d", source, events, iocs))
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"events_created": events,
+		"iocs_promoted":  iocs,
+	}})
 }
 
 // UpdateTimelineEvent edits an event (fields + attachments).

@@ -1,5 +1,3084 @@
 [
   {
+    "id": "GHSA-mq7r-vm99-p7vx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q2xp-j85q-883h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:25Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q3px-vrjj-4f97",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:24Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rcmh-vfq7-8gf4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w5r9-j49j-2m55",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xpv9-p7vg-qhrc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-34qm-63x6-fcm3",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:21Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-479w-wqjm-fhvf",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-576m-xh9m-c774",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5hpf-pc4x-3jcf",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:46:18Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5v82-xxfg-jqxw",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:27Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-69q5-vhm6-656f",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-79m4-gx9c-j55f",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:25Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-89v8-3927-wfcg",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:24Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-gq94-hf88-g4wv",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-h4jr-6mf9-63fq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-mr33-r399-w43m",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:21Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-prp5-qv62-frpc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r98j-g9p3-fcgm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v97x-26qp-3g45",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:18Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xpf5-wwvx-w945",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:17Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-2cqr-m38f-xf8g",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:16Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6f2p-2qg2-qqch",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:15Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-748j-wm96-4wh5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:14Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9ppg-rg73-3244",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:14Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cfh3-g8cw-7pfq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:13Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cgm6-wvp9-4g5h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:12Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-f7c5-2gv6-7rwj",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:12Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jpv7-7g7j-hgwr",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:11Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q3jc-42cq-33fj",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:07Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-26T01:04:10Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-8pj9-6897-74xc",
+    "description": "ImageMagick: Policy Bypass in DCM decoder could result in image with invalid dimensions",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:52:50Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T23:24:37Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xcjm-wqff-m669",
+    "description": "ImageMagick: Policy Bypass can read disallowed files via symlink",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:53:29Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T23:24:36Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q62c-h75r-2xhc",
+    "description": "ImageMagick: Policy Bypass can Trigger an Out-of-Memory condition",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:54:21Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T23:24:35Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-g22q-f7gc-5jhr",
+    "description": "ImageMagick has out-of-bounds write in ICON decoder due to incorrect loop",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:54:52Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T23:24:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-46733",
+    "description": "Dell Display and Peripheral Manager (DDPM Windows), versions prior to 2.3, contain an Improper Access Control vulnerability. A low privileged attacker with local access could potentially exploit this vulnerability, leading to Code execution.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:40.363",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46732",
+    "description": "Dell Display and Peripheral Manager (DDPM Mac), versions prior to 2.3, contain a Concurrent Execution using Shared Resource with Improper Synchronization ('Race Condition') vulnerability. A low privileged attacker with local access could potentially exploit this vulnerability, leading to Elevation of Privileges.",
+    "severity": "medium",
+    "cvss_score": 6.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:40.250",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42390",
+    "description": "An invalid zone might pass ZONEMD validation while it should not. This is only relevant if ZoneToCache is configured with ZONEMD validation.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:39.760",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42389",
+    "description": "This fix provides extra hardening for the 5.4.x branch by doing extra validation of incoming answers from authoritative servers.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:39.653",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42388",
+    "description": "Incomplete validation of the SOA record present in a catalog zone might lead to a crash.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:39.557",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42387",
+    "description": "A malicious authoritative server can send a crafted zone via the ZoneToCache function that leads to a crash of the Recursor due to insuffcient input validation.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:39.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-41120",
+    "description": "Dell Wyse Management Suite, versions prior to WMS 5.5 HF1, contain an Acceptance of Extraneous Untrusted Data With Trusted Data vulnerability. A low privileged attacker with remote access could potentially exploit this vulnerability, leading to Remote Code Execution.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:39.140",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-40012",
+    "description": "ECS zero scoped answers are stored in the packet cache while they should not. This impacts only configurations that have ECS enabled;",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:38.840",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-2815",
+    "description": "Incorrect use of the PUF key for user key generation in EFR32xG27 results in predictable keys",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:37.067",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27366",
+    "description": "Unauthenticated Broken Access Control in MainWP Child \u003c= 6.1.1 versions.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:36.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:24:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12755",
+    "description": "Improper input validation in the PAM AD discovery endpoints in \nDevolutions Server 2026.2.4.0 through 2026.2.7.0 allows an authenticated\n user with the UserGroupsView permission to coerce server-side \nauthentication to an attacker-controlled host, exposing PAM provider \ncredentials as a NTLMv2 challenge-response, via a crafted DomainName \nparameter.",
+    "severity": "low",
+    "cvss_score": 2.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T14:16:36.333",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42004",
+    "description": "An attacker can send a crafted EDNS OPT record that will be ignored by DNSdist’s filtering rules, but will be rewritten as a valid OPT record when EDNS Client Subnet is inserted, causing the backend to see the EDNS option(s) that DNSdist did not filter.",
+    "severity": "low",
+    "cvss_score": 3.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:40.547",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-40211",
+    "description": "An attacker can send crafted DNS over HTTP/3 queries, triggering an exception that prevents some buffer from being freed right away. The buffer will be freed at the end of the QUIC connection, but on some setups it might be possible to open enough concurrent DoH3 streams to trigger an out-of-memory condition, resulting in a denial of service.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:39.717",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-40210",
+    "description": "An out-of-bounds read might happen when SetMacAddrAction is used, potentially resulting in uninitialized memory being sent over the network or a crash.",
+    "severity": "medium",
+    "cvss_score": 4.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:39.620",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-40209",
+    "description": "An attacker might be able to cause outgoing TCP connections to backend to be stuck until a timeout occurs instead of being released immediately, by sending IXFR queries. This could be used to cause a denial of service if there is a limit to the number of concurrent connections to this backend, or if the process runs out of file descriptors.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:39.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-40208",
+    "description": "An attacker might be able to delay the processing of DoH3 queries by sending DoH3 GET queries with an invalid DATA frame.",
+    "severity": "low",
+    "cvss_score": 3.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:39.427",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-40011",
+    "description": "An attacker sending a large number of crafted DNS queries might be able to trigger a dynamic block being inserted with a value causing invalid output to be produced in the prometheus endpoint. The prometheus endpoint will then be rejected by the scraper until the dynamic block expires.",
+    "severity": "low",
+    "cvss_score": 3.7,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:39.323",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-33612",
+    "description": "A malicious authoritative server can send a crafted zone via the ZoneToCache function that leads to cache poisoning.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T13:16:38.437",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-42005",
+    "description": "An attacker can send a web request that causes unlimited memory \nallocation in the internal web server, leading to a denial of service. \nThe internal web server is disabled by default.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T12:16:47.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56130",
+    "description": "\"Remember me\" cookie age is not verified on the server. This potentially allows an attacker to intercept a valid cookie and reuse it indefinitely, even after the configured expiration time has passed.\nThis issue affects all Apache Shiro versions from 1.2.4 through 2.x, and 3.0.0-alpha-1, only when RememberMe functionality is enabled.\n\n\nUpgrade to version 3.0.0 or later, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00195,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:46.230",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56091",
+    "description": "When using Apache Shiro with the shiro-guice module in a web servlet context, a specially crafted HTTP request may cause an authentication bypass.\nThis vulnerability is similar to  https://www.cve.org/CVERecord?id=CVE-2020-1957 https://www.cve.org/CVERecord , except that it affects the `shiro-guice` module instead of the `shiro-spring` module.\n\nThis issue affects all Apache Shiro versions through 2.x, and 3.0.0-alpha-1 only when using `shiro-guice` module in a web servlet context.\n\nUpgrade to version 3.0.0 or later, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00422,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:46.103",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54226",
+    "description": "A vulnerability in Apache Kvrocks.\n\nThis issue affects Apache Kvrocks: from 2.6.0 through 2.15.0.\n\nUsers are recommended to upgrade to version 2.16.0, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00322,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.987",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53277",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nKVM: arm64: Take the SRCU lock for page table walks in fault injection and AT emulation\n\nwalk_s1() and kvm_walk_nested_s2() expect to be called while holding\nkvm-\u003esrcu to guard against memslot changes. While this is generally\nthe case, __kvm_at_s12() and __kvm_find_s1_desc_level() call into the\nrespective walkers without taking kvm-\u003esrcu.\n\nFix by acquiring kvm-\u003esrcu prior to the table walk in both instances.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00174,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.897",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53276",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: ISO: Fix a use-after-free of the hci_conn pointer\n\nIn iso_sock_rebind_bc(), the bis pointer is cached, then the socket lock is\ndropped:\n\tbis = iso_pi(sk)-\u003econn-\u003ehcon;\n\t/* Release the socket before lookups since that requires hci_dev_lock\n\t * which shall not be acquired while holding sock_lock for proper\n\t * ordering.\n\t */\n\trelease_sock(sk);\n\thci_dev_lock(bis-\u003ehdev);\n\nDuring the unlocked window, could a concurrent close() destroy the connection\nand free the bis structure, causing hci_dev_lock(bis-\u003ehdev) to access memory\nafter it is freed, fix this by using the hdev reference which was safely\nacquired via iso_conn_get_hdev().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00151,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.807",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53275",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipv6: mcast: Fix use-after-free when processing MLD queries\n\nWhen processing an MLD query, a pointer to the multicast group address\nis retrieved when initially parsing the packet. This pointer is later\ndereferenced without being reloaded despite the fact that the skb header\nmight have been reallocated following the pskb_may_pull() calls, leading\nto a use-after-free [1].\n\nFix by copying the multicast group address when the packet is initially\nparsed.\n\n[1]\nBUG: KASAN: slab-use-after-free in __mld_query_work (net/ipv6/mcast.c:1512)\nRead of size 8 at addr ffff8881154b8e90 by task kworker/4:1/118\n\nWorkqueue: mld mld_query_work\nCall Trace:\n\u003cTASK\u003e\ndump_stack_lvl (lib/dump_stack.c:94 lib/dump_stack.c:120)\nprint_address_description.constprop.0 (mm/kasan/report.c:378)\nprint_report (mm/kasan/report.c:482)\nkasan_report (mm/kasan/report.c:595)\n__mld_query_work (net/ipv6/mcast.c:1512)\nmld_query_work (net/ipv6/mcast.c:1563)\nprocess_one_work (kernel/workqueue.c:3314)\nworker_thread (kernel/workqueue.c:3397 kernel/workqueue.c:3478)\nkthread (kernel/kthread.c:436)\nret_from_fork (arch/x86/kernel/process.c:158)\nret_from_fork_asm (arch/x86/entry/entry_64.S:245)\n\u003c/TASK\u003e\n\n[...]\n\nFreed by task 118:\nkasan_save_stack (mm/kasan/common.c:57)\nkasan_save_track (mm/kasan/common.c:78)\nkasan_save_free_info (mm/kasan/generic.c:584)\n__kasan_slab_free (mm/kasan/common.c:253 mm/kasan/common.c:285)\nkfree (./include/linux/kasan.h:235 mm/slub.c:2689 mm/slub.c:6251 mm/slub.c:6566)\npskb_expand_head (net/core/skbuff.c:2335)\n__pskb_pull_tail (net/core/skbuff.c:2878 (discriminator 4))\n__mld_query_work (net/ipv6/mcast.c:1495 (discriminator 1))\nmld_query_work (net/ipv6/mcast.c:1563)\nprocess_one_work (kernel/workqueue.c:3314)\nworker_thread (kernel/workqueue.c:3397 kernel/workqueue.c:3478)\nkthread (kernel/kthread.c:436)\nret_from_fork (arch/x86/kernel/process.c:158)\nret_from_fork_asm (arch/x86/entry/entry_64.S:245)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.687",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53274",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet/smc: fix sleep-inside-lock in __smc_setsockopt() causing local DoS\n\nA logic flaw in __smc_setsockopt() allows a local unprivileged user to\ncause a Denial of Service (DoS) by holding the socket lock indefinitely.\n\nThe function __smc_setsockopt() calls copy_from_sockptr() while holding\nlock_sock(sk). By passing a userfaultfd-monitored memory page (or\nFUSE-backed memory on systems where unprivileged userfaultfd is disabled)\nas the optval, an attacker can halt execution during the copy operation,\nkeeping the lock held.\n\nCombined with asynchronous tear-down operations like shutdown(), this\nexhausts the kernel wq (kworkers) and triggers the hung task watchdog.\n\n[  240.123456] INFO: task kworker/u8:2 blocked for more than 120 seconds.\n[  240.123489] Call Trace:\n[  240.123501]  smc_shutdown+...\n[  240.123512]  lock_sock_nested+...\n\nThis patch moves the user-space copy outside the lock_sock() critical\nsection to prevent the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00181,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.577",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53273",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ntee: optee: prevent use-after-free when the client exits before the supplicant\n\nCommit 70b0d6b0a199 (\"tee: optee: Fix supplicant wait loop\") made the\nclient wait as killable so it can be interrupted during shutdown or\nafter a supplicant crash. This changes the original lifetime expectations:\nthe client task can now terminate while the supplicant is still processing\nits request.\n\nIf the client exits first it removes the request from its queue and\nkfree()s it, while the request ID remains in supp-\u003eidr. A subsequent\nlookup on the supplicant path then dereferences freed memory, leading to\na use-after-free.\n\nSerialise access to the request with supp-\u003emutex:\n\n  * Hold supp-\u003emutex in optee_supp_recv() and optee_supp_send() while\n    looking up and touching the request.\n  * Let optee_supp_thrd_req() notice that the client has terminated and\n    signal optee_supp_send() accordingly.\n\nWith these changes the request cannot be freed while the supplicant still\nhas a reference, eliminating the race.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53272",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nerofs: fix use-after-free on sbi-\u003esync_decompress\n\nz_erofs_decompress_kickoff() can race with filesystem unmount, causing\na use-after-free on sbi-\u003esync_decompress.\n\nWhen I/O completes, z_erofs_endio() calls z_erofs_decompress_kickoff()\nto queue z_erofs_decompressqueue_work() asynchronously. Then, after all\nfolios are unlocked, unmount workflow can proceed and sbi will be freed\nbefore accessing to sbi-\u003esync_decompress.\n\nThread (unmount)        I/O completion        kworker\n                        queue_work\n                                              z_erofs_decompressqueue_work\n                                               (all folios are unlocked)\ncleanup_mnt\n ..\n erofs_kill_sb\n  erofs_sb_free\n   kfree(sbi)\n                        access sbi-\u003esync_decompress  // UAF!!",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00164,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.353",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:23:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53271",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nksmbd: fix NULL-deref of opinfo-\u003econn in oplock/lease break notifiers\n\nsmb2_oplock_break_noti() and smb2_lease_break_noti() read opinfo-\u003econn\ninto a local with neither READ_ONCE() nor a NULL check.  Both run from\noplock_break() after opinfo_get_list() has dropped ci-\u003em_lock, so a\nconcurrent SMB2 LOGOFF (session_fd_check()) can set op-\u003econn = NULL\nunder ci-\u003em_lock within that window.  ksmbd_conn_r_count_inc(conn) then\nwrites through NULL at offset 0xc4 -- a remotely triggerable oops.\n\nGuard both reads the way compare_guid_key() already does: read\nopinfo-\u003econn with READ_ONCE() and return early if it is NULL, before\nallocating the work struct so nothing leaks.  A NULL conn means the\nclient is gone and the break is moot, so return 0; oplock_break() treats\nthat as success and runs the normal teardown.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00164,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.247",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53270",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipvs: clear the svc scheduler ptr early on edit\n\nip_vs_edit_service() while unbinding the old scheduler clears\nthe svc-\u003escheduler ptr after the scheduler module initiates\nRCU callbacks. This can cause packets to use the old\nscheduler at the time when svc-\u003esched_data is already freed\nafter RCU grace period.\n\nFix it by clearing the ptr early in ip_vs_unbind_scheduler(),\nbefore the done_service method schedules any RCU callbacks.\n\nAlso, if the new scheduler fails to initialize when replacing\nthe old scheduler, try to restore the old scheduler while still\nreturning the error code.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.123",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53269",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: synproxy: add mutex to guard hook reference counting\n\nAs the synproxy infrastructure register netfilter hooks on-demand when a\nuser adds the first iptables target or nftables expression, if done\nconcurrently they can race each other.\n\nIntroduce a mutex to serialize the refcount control blocks access from\nboth frontends. While a per namespace mutex might be more efficient, it\nis not needed for target/expression like SYNPROXY.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:45.007",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53268",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: conntrack_irc: fix possible out-of-bounds read\n\nWhen parsing fails after we've matched the command string we\nshould bail out instead of trying to match a different command.\n\nThis helper should be deprecated, given prevalence of TLS I doubt it has\nany relevance in 2026.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.883",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53267",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: nft_ct: bail out on template ct in get eval\n\nI noticed this issue while looking at a historic syzbot report [1].\n\nA rule like the one below is enough to trigger the bug:\n\n    table ip t {\n        chain pre {\n            type filter hook prerouting priority raw;\n            ct zone set 1\n            ct original saddr 1.2.3.4 accept\n        }\n    }\n\nThe first expression attaches a per-cpu template ct via\nnft_ct_set_zone_eval() (nf_ct_tmpl_alloc -\u003e kzalloc, tuple is all\nzero, nf_ct_l3num(ct) == 0). The next expression then calls\nnft_ct_get_eval() on the same skb, treats the template as a real ct\nand hits the 16-byte memcpy path. With dreg at NFT_REG32_15 this\noverflows past struct nft_regs on the kernel stack; with smaller\ndreg values it silently clobbers adjacent registers.\n\nReject template ct at the eval entry and in nft_ct_get_fast_eval(),\nmirroring the check nft_ct_set_eval() already has. Additionally,\nbound the address copy in NFT_CT_SRC / NFT_CT_DST by priv-\u003elen\ninstead of by nf_ct_l3num(ct): nf_ct_get_tuple() zeroes the tuple\nbefore pkt_to_tuple() fills in only the protocol-relevant leading\nbytes, so the trailing bytes of tuple-\u003e{src,dst}.u3.all are\nwell-defined zero. priv-\u003elen is validated at rule load, so the\ncopy size is now bounded by the destination register rather than\nby an untrusted field on the conntrack.\n\n[1]: https://syzkaller.appspot.com/bug?id=389cf09cb72926114fce90dc85a2c3231dcb647c",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00163,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.770",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53266",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: bridge: make ebt_snat ARP rewrite writable\n\nThe ebtables SNAT target keeps the Ethernet source address rewrite\nbehind skb_ensure_writable(skb, 0).  This is intentional: at the bridge\nebtables hooks the Ethernet header is addressed through\nskb_mac_header()/eth_hdr(), while skb-\u003edata points at the Ethernet\npayload.  Asking skb_ensure_writable() for ETH_HLEN bytes would check\nthe payload, not the Ethernet header, and would reintroduce the small\npacket regression fixed by commit 63137bc5882a.\n\nHowever, the optional ARP sender hardware address rewrite is different.\nIt writes through skb_store_bits() at an offset relative to skb-\u003edata:\n\n        skb_store_bits(skb, sizeof(struct arphdr), info-\u003emac, ETH_ALEN)\n\nskb_header_pointer() only safely reads the ARP header; it does not make\nthe later sender hardware address range writable.  If that range is\nstill held in a nonlinear skb fragment backed by a splice-imported file\npage, skb_store_bits() maps the frag page and copies the new MAC address\ndirectly into it.\n\nEnsure the ARP SHA range is writable before reading the ARP header and\nbefore calling skb_store_bits().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.643",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53265",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndm cache policy smq: check allocation under invalidate lock\n\ncommit 2d1f7b65f5de (\"dm cache policy smq: fix missing locks in\ninvalidating cache blocks\") added mq-\u003elock around the destructive part of\nsmq_invalidate_mapping(), but left the e-\u003eallocated check outside the\ncritical section.\n\nThat leaves a check-then-act race. Two concurrent invalidators can both\nobserve e-\u003eallocated as true before either of them takes mq-\u003elock. The\nfirst invalidator that acquires the lock removes the entry from the\nqueues and hash table and then calls free_entry(), which clears\ne-\u003eallocated and puts the entry back on the free list. The second\ninvalidator can then acquire mq-\u003elock and continue with the stale result\nof the unlocked check.\n\nThis can corrupt the SMQ queues or hash table by deleting an entry that\nis no longer on those structures. It can also hit the allocation check in\nfree_entry() when the same entry is freed again.\n\nMove the allocation check under mq-\u003elock so the predicate and the\ndestructive operations are serialized by the same lock.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.530",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53264",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet/sched: act_api: use RCU with deferred freeing for action lifecycle\n\nWhen NEWTFILTER and DELFILTER are run concurrently it is possible to create a\nrace with an associated action.\n\nLet's illustrate with CPU0 running NEWTFILTER and CPU1 running DELFILTER:\n\n 0: mutex_lock() \u003c-- holds the idr lock\n 0: rcu_read_lock()\n 0: p = idr_find(idr, index) \u003c-- action p is valid (RCU protects IDR)\n 0: mutex_unlock() \u003c-- releases the idr lock\n 1: refcount_dec_and_mutex_lock() \u003c-- refcnt 1-\u003e0, mutex held\n 1: idr_remove(idr, index) \u003c-- Action removed from IDR\n 1: mutex_unlock() \u003c-- mutex released allowing us to delete the action\n 1: tcf_action_cleanup(p); kfree(p) \u003c-- Kfrees p immediately, no deferral\n 0: refcount_inc_not_zero(\u0026p-\u003etcfa_refcnt) \u003c-- ouch, UAF p points to freed memory\n\nThis patch fixes the race condition between NEWTFILTER and DELFILTER by\nadding struct rcu_head to tc_action used in the deferral and introducing a\ncall_rcu() in the delete path to defer the final kfree().\n\nNote: this is a revert of commit d7fb60b9cafb (\"net_sched: get rid of tcfa_rcu\")\nbut also modernization/simplification to directly use kfree_rcu().\n\nLet's illustrate the new restored code path:\n\n 0: rcu_read_lock()\n 1: refcount_dec_and_mutex_lock() \u003c-- refcnt 1-\u003e0, mutex held\n 1: idr_remove(idr, index)\n 1: mutex_unlock()\n 1: call_rcu(\u0026p-\u003etcfa_rcu, tcf_action_rcu_free) \u003c-- defer kfree after grace period\n 0: p = idr_find(idr, index)\n 0: refcount_inc_not_zero(\u0026p-\u003etcfa_refcnt) \u003c-- fails, refcnt already 0\n 1: rcu_read_unlock() \u003c-- release so freeing can run after grace period\n\nAfter CPU1 calls idr_remove(), the object is no longer reachable through the IDR.\nCPU0's subsequent idr_find() will return NULL, and even if it still held a\nstale pointer, the immediate kfree() is now deferred until after the RCU grace\nperiod, so no UAF can occur.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.400",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53263",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\n6lowpan: fix off-by-one in multicast context address compression\n\nThe second memcpy in lowpan_iphc_mcast_ctx_addr_compress() uses\n\u0026data[1] as destination and \u0026ipaddr-\u003es6_addr[11] as source, but\nboth should be offset by one: \u0026data[2] and \u0026ipaddr-\u003es6_addr[12]\nrespectively.\n\nThis off-by-one has two consequences:\n1. data[1] is overwritten with s6_addr[11], corrupting the RIID\n   field in the compressed multicast address\n2. data[5] is never written, so uninitialized kernel stack memory\n   is transmitted over the network via lowpan_push_hc_data(),\n   leaking kernel stack contents\n\nThe correct inline data layout must match what the decompression\nfunction lowpan_uncompress_multicast_ctx_daddr() expects:\n  data[0..1] = s6_addr[1..2]  (flags/scope + RIID)\n  data[2..5] = s6_addr[12..15] (group ID)\n\nAlso zero-initialize the data array as a defensive measure against\nsimilar bugs in the future.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.283",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53262",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nl2tp: pppol2tp: hold reference to session in pppol2tp_ioctl()\n\npppol2tp_ioctl() read sock-\u003esk-\u003esk_user_data directly without any\nlocks or reference counting.  If a controllable sleep was induced during\ncopy_from_user() (e.g. via a userfaultfd page fault sleep), a concurrent\nsocket close could trigger pppol2tp_session_close() asynchronously.  This\nfrees the l2tp_session structure via the l2tp_session_del_work workqueue.\nUpon resuming, the ioctl thread dereferences the stale session pointer,\nresulting in a Use-After-Free (UAF).\n\nFix this by securely fetching the session reference using the RCU-safe,\nrefcounted helper pppol2tp_sock_to_session(sk) on entry.  This locks the\nsession's refcount across the sleep.  We structured the function to exit\nvia standard err breaks, guaranteeing that l2tp_session_put() is cleanly\ncalled on all return paths to drop the reference.\n\nTo preserve existing behavior we validate the session and its magic\nsignature only for the specific L2TP commands that require it.  This\nensures that generic/unknown ioctls called on an unconnected socket\nstill return -ENOIOCTLCMD and correctly fall back to generic handlers\n(e.g. in sock_do_ioctl()).",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00163,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53261",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndevlink: Release nested relation on devlink free\n\ndevlink relation state is normally released from devl_unregister(), which\ncalls devlink_rel_put(). This misses devlink instances that get a nested\nrelation before registration and then fail probe before devl_register() is\nreached.\n\nThat flow can happen for SFs. The child devlink gets linked to its\nparent before registration, then a later probe error calls devlink_free()\ndirectly. Since the instance was never registered, devl_unregister() is not\ncalled and devlink-\u003erel is leaked.\n\nRelease any pending relation from devlink_free() as well. The registered\npath is unchanged because devl_unregister() already clears devlink-\u003erel\nbefore devlink_free() runs.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00163,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:44.100",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53260",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ntcp: Add preempt_{disable,enable}_nested() in reqsk_queue_hash_req().\n\nsyzbot reported a weird reqsk-\u003ersk_refcnt underflow in\n__inet_csk_reqsk_queue_drop().\n\nThe captured reqsk_put() in __inet_csk_reqsk_queue_drop()\nis called only when it successfully removes reqsk from ehash.\n\nMoreover, reqsk_timer_handler() calls another reqsk_put()\nafter that.\n\nThis indicates that the reqsk was missing both refcnts for\nehash and the timer itself.\n\nSince all the syzbot reports had PREEMPT_RT enabled, the only\npossible scenario is that reqsk_queue_hash_req() is preempted\nafter mod_timer() and before refcount_set(), and then the timer\ntriggered after 1s aborts the reqsk due to its listener's close().\n\nLet's wrap mod_timer() and refcount_set() with\npreempt_disable_nested() and preempt_enable_nested().\n\nNote that inet_ehash_insert() holds the normal spin_lock()\n(mutex in PREEMPT_RT), so it must be called outside of\npreempt_disable_nested(), but this is fine.\n\nThe lookup path just ignores 0 sk_refcnt entries in ehash\nand tries to create another reqsk, but this will fail at\ninet_ehash_insert().\n\n[0]:\nrefcount_t: underflow; use-after-free.\nWARNING: lib/refcount.c:28 at refcount_warn_saturate+0xb2/0x110 lib/refcount.c:28, CPU#0: ktimers/0/16\nModules linked in:\nCPU: 0 UID: 0 PID: 16 Comm: ktimers/0 Tainted: G             L      syzkaller #0 PREEMPT_{RT,(full)}\nTainted: [L]=SOFTLOCKUP\nHardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 04/18/2026\nRIP: 0010:refcount_warn_saturate+0xb2/0x110 lib/refcount.c:28\nCode: e4 7d d1 0a 67 48 0f b9 3a eb 4a e8 38 3d 23 fd 48 8d 3d e1 7d d1 0a 67 48 0f b9 3a eb 37 e8 25 3d 23 fd 48 8d 3d de 7d d1 0a \u003c67\u003e 48 0f b9 3a eb 24 e8 12 3d 23 fd 48 8d 3d db 7d d1 0a 67 48 0f\nRSP: 0000:ffffc90000157948 EFLAGS: 00010246\nRAX: ffffffff84a1301b RBX: 0000000000000003 RCX: ffff88801ca98000\nRDX: 0000000000000100 RSI: 0000000000000000 RDI: ffffffff8f72ae00\nRBP: ffffffff99ae3b01 R08: ffff88801ca98000 R09: 0000000000000005\nR10: 0000000000000100 R11: 0000000000000004 R12: ffff8880425ef568\nR13: ffff8880425ef4f8 R14: ffff8880425ef578 R15: 0000000000000000\nFS:  0000000000000000(0000) GS:ffff888126386000(0000) knlGS:0000000000000000\nCS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033\nCR2: 00007f7b46710e9c CR3: 000000000dbb6000 CR4: 00000000003526f0\nCall Trace:\n \u003cTASK\u003e\n __refcount_sub_and_test include/linux/refcount.h:400 [inline]\n __refcount_dec_and_test include/linux/refcount.h:432 [inline]\n refcount_dec_and_test include/linux/refcount.h:450 [inline]\n reqsk_put include/net/request_sock.h:136 [inline]\n __inet_csk_reqsk_queue_drop+0x3ce/0x440 net/ipv4/inet_connection_sock.c:1007\n reqsk_timer_handler+0x651/0xdf0 net/ipv4/inet_connection_sock.c:1137\n call_timer_fn+0x192/0x5e0 kernel/time/timer.c:1748\n expire_timers kernel/time/timer.c:1799 [inline]\n __run_timers kernel/time/timer.c:2374 [inline]\n __run_timer_base+0x6a3/0x9f0 kernel/time/timer.c:2386\n run_timer_base kernel/time/timer.c:2395 [inline]\n run_timer_softirq+0x67/0x170 kernel/time/timer.c:2403\n handle_softirqs+0x1de/0x6d0 kernel/softirq.c:622\n __do_softirq kernel/softirq.c:656 [inline]\n run_ktimerd+0x69/0x100 kernel/softirq.c:1151\n smpboot_thread_fn+0x541/0xa50 kernel/smpboot.c:160\n kthread+0x388/0x470 kernel/kthread.c:436\n ret_from_fork+0x514/0xb70 arch/x86/kernel/process.c:158\n ret_from_fork_asm+0x1a/0x30 arch/x86/entry/entry_64.S:245\n \u003c/TASK\u003e",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00154,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.993",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53259",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipv6: anycast: insert aca into global hash under idev-\u003elock\n\nsyzbot reported a splat [1]: a slab-use-after-free in\nipv6_chk_acast_addr(), which walks the global inet6_acaddr_lst[] hash\nunder RCU and dereferences a struct ifacaddr6 that has already been\nfreed while still linked in the hash, so a later reader walks into a\ndangling node.\n\nIn __ipv6_dev_ac_inc() the aca is allocated with refcount 1, then\naca_get() bumps it to 2 to keep it alive across the unlocked region.\nIt is published to idev-\u003eac_list under idev-\u003elock, but\nipv6_add_acaddr_hash() runs after write_unlock_bh(). A concurrent\nteardown (ipv6_ac_destroy_dev() from addrconf_ifdown(), under RTNL)\ncan slip into that window:\n\n  CPU0 __ipv6_dev_ac_inc           CPU1 ipv6_ac_destroy_dev (RTNL)\n  ------------------------------   ------------------------------------\n  aca_alloc()              refcnt 1\n  aca_get()               refcnt 2\n  write_lock_bh(idev-\u003elock)\n    add aca to ac_list\n  write_unlock_bh(idev-\u003elock)\n                                   write_lock_bh(idev-\u003elock)\n                                     pull aca off ac_list\n                                   write_unlock_bh(idev-\u003elock)\n                                   ipv6_del_acaddr_hash(aca)\n                                     hlist_del_init_rcu() is a no-op,\n                                     aca is not in the hash yet\n                                   aca_put()           refcnt 2-\u003e1\n  ipv6_add_acaddr_hash(aca)\n    aca now inserted into the hash\n  aca_put()                refcnt 1-\u003e0\n    call_rcu(aca_free_rcu) -\u003e kfree(aca)\n\nThe hash removal becomes a no-op because the insertion has not\nhappened yet, so once CPU0 inserts and drops the last reference, the\naca is freed while still linked in inet6_acaddr_lst[], and readers\ndereference freed memory after the slab slot is reused.\n\nThis window opened once RTNL stopped serializing the join path against\ndevice teardown. Move ipv6_add_acaddr_hash() inside the idev-\u003elock\nsection so the ac_list and hash insertions are atomic with respect to\nteardown: a racing remover now either misses the aca entirely or finds\nit in both lists.\n\nacaddr_hash_lock is now nested under idev-\u003elock, which is acquired in\nsoftirq context, so switch all acaddr_hash_lock sites to spin_lock_bh()\nto avoid the irq lock inversion reported in [2].\n\n[1] https://syzkaller.appspot.com/bug?extid=a01df04303c131efbf3a\n[2] https://lore.kernel.org/netdev/6a194ef7.ba3b1513.1890b4.0000.GAE@google.com/",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00161,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.893",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53258",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nwifi: fix leak if split 6 GHz scanning fails\n\nrdev-\u003eint_scan_req is leaked if cfg80211_scan() fails.  Note that it's\nsupposed to be released at ___cfg80211_scan_done() but this doesn't happen\nas rdev-\u003escan_req is NULL at that point, too, leading to the early return\nfrom the freeing function.\n\nunreferenced object 0xffff8881161d0800 (size 512):\n  comm \"wpa_supplicant\", pid 379, jiffies 4294749765\n  hex dump (first 32 bytes):\n    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................\n    00 00 00 00 00 00 00 00 f0 81 13 16 81 88 ff ff  ................\n  backtrace (crc c867fdb6):\n    kmemleak_alloc+0x89/0x90\n    __kmalloc_noprof+0x2fd/0x410\n    cfg80211_scan+0x133/0x730\n    nl80211_trigger_scan+0xc69/0x1cc0\n    genl_family_rcv_msg_doit+0x204/0x2f0\n    genl_rcv_msg+0x431/0x6b0\n    netlink_rcv_skb+0x143/0x3f0\n    genl_rcv+0x27/0x40\n    netlink_unicast+0x4f6/0x820\n    netlink_sendmsg+0x797/0xce0\n    __sock_sendmsg+0xc4/0x160\n    ____sys_sendmsg+0x5e4/0x890\n    ___sys_sendmsg+0xf8/0x180\n    __sys_sendmsg+0x136/0x1e0\n    __x64_sys_sendmsg+0x76/0xc0\n    x64_sys_call+0x13f0/0x17d0\n\nFound by Linux Verification Center (linuxtesting.org).",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00161,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.800",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53257",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nwifi: cfg80211: enforce HE/EHT cap/oper consistency\n\nXiang Mei reports that mac80211 could crash if eht_cap is set\nbut eht_oper isn't. Rather than fixing that for the individual\nuser(s), enforce that both HE/EHT have consistent elements.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00151,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.713",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53256",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: RFCOMM: hold listener socket in rfcomm_connect_ind()\n\nrfcomm_get_sock_by_channel() scans rfcomm_sk_list under the list lock,\nbut returns the selected listener after dropping that lock without\ntaking a reference. rfcomm_connect_ind() then locks the listener,\nqueues a child socket on it, and may notify it after unlocking it.\n\nThe buggy scenario involves two paths, with each column showing the\norder within that path:\n\nrfcomm_connect_ind():            listener close:\n  1. Find parent in              1. close() enters\n     rfcomm_get_sock_by_channel()   rfcomm_sock_release().\n  2. Drop rfcomm_sk_list.lock    2. rfcomm_sock_shutdown()\n     without pinning parent.        closes the listener.\n  3. Call lock_sock(parent) and  3. rfcomm_sock_kill()\n     bt_accept_enqueue(parent,      unlinks and puts parent.\n     sk, true).\n  4. Read parent flags and may   4. parent can be freed.\n     call sk_state_change().\n\nIf close wins the race, parent can be freed before\nrfcomm_connect_ind() reaches lock_sock(), bt_accept_enqueue(), or the\ndeferred-setup callback.\n\nTake a reference on the listener before leaving rfcomm_sk_list.lock.\nAfter lock_sock() succeeds, recheck that it is still in BT_LISTEN\nbefore queueing a child, cache the deferred-setup bit while the parent\nis locked, and drop the reference after the last parent use.\n\nKASAN reported a slab-use-after-free in lock_sock_nested() from\nrfcomm_connect_ind(), with the freeing stack going through\nrfcomm_sock_kill() and rfcomm_sock_release().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.593",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53255",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: MGMT: validate advertising TLV before type checks\n\ntlv_data_is_valid() reads each advertising data field length from\ndata[i], then inspects data[i + 1] for managed EIR types before\nchecking that the current field still fits inside the supplied buffer.\n\nA malformed field whose length byte is the last byte of the buffer can\ntherefore make the parser read one byte past the advertising data.\n\nKASAN reported the following when a malformed MGMT_OP_ADD_ADVERTISING\nrequest reached that path:\n\n  BUG: KASAN: vmalloc-out-of-bounds in tlv_data_is_valid()\n  Read of size 1\n  Call trace:\n    tlv_data_is_valid()\n    add_advertising()\n    hci_mgmt_cmd()\n    hci_sock_sendmsg()\n\nMove the existing element-length check before any type-octet inspection\nso each non-empty element is proven to contain its type byte before the\nparser looks at data[i + 1].",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.480",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53254",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: RFCOMM: validate skb length in MCC handlers\n\nThe RFCOMM MCC handlers cast skb-\u003edata to protocol-specific structs\nwithout validating skb-\u003elen first. A malicious remote device can send\ntruncated MCC frames and trigger out-of-bounds reads in these handlers.\n\nFix this by using skb_pull_data() to validate and access the required\ndata before dereferencing it.\n\nrfcomm_recv_rpn() requires special handling since ETSI TS 07.10 allows\n1-byte RPN requests. Handle this by validating only the DLCI byte first,\nand validating the full struct only when len \u003e 1.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.373",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:22:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53253",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: bnep: reject short frames before parsing\n\nA BNEP peer can send a short BNEP SDU. bnep_rx_frame() reads the\npacket type byte immediately and, for control packets, reads the control\nopcode and setup UUID-size byte before proving that those bytes are\npresent. bnep_rx_control() also dereferences the control opcode without\nrejecting an empty control payload.\n\nUse skb_pull_data() for the fixed fields in bnep_rx_frame() so a NULL\nreturn gates each dereference. Split the control handler so the frame\npath can pass an opcode that has already been pulled, and keep the\nbyte-buffer wrapper for extension control payloads.\n\nFor BNEP_SETUP_CONN_REQ, name the UUID-size byte before pulling the\nsetup payload. struct bnep_setup_conn_req carries destination and source\nservice UUIDs after that byte, each uuid_size bytes, so the parser now\ndocuments that tuple explicitly instead of leaving the pull length as an\nopaque multiplication.\n\nValidation reproduced this kernel report:\nKASAN slab-out-of-bounds in bnep_rx_frame.isra.0+0x130c/0x1790\nThe buggy address belongs to the object at ffff88800c0f7908 which belongs\nto the cache kmalloc-8 of size 8\nThe buggy address is located 0 bytes to the right of allocated 1-byte\nregion [ffff88800c0f7908, ffff88800c0f7909)\nRead of size 1\nCall trace:\n  dump_stack_lvl+0xb3/0x140 (?:?)\n  print_address_description+0x57/0x3a0 (?:?)\n  bnep_rx_frame+0x130c/0x1790 (net/bluetooth/bnep/core.c:306)\n  print_report+0xb9/0x2b0 (?:?)\n  __virt_addr_valid+0x1ba/0x3a0 (?:?)\n  srso_alias_return_thunk+0x5/0xfbef5 (?:?)\n  kasan_addr_to_slab+0x21/0x60 (?:?)\n  kasan_report+0xe0/0x110 (?:?)\n  process_one_work+0xfce/0x17e0 (kernel/workqueue.c:3200)\n  worker_thread+0x65c/0xe40 (?:?)\n  __kthread_parkme+0x184/0x230 (?:?)\n  kthread+0x35e/0x470 (?:?)\n  _raw_spin_unlock_irq+0x28/0x50 (?:?)\n  ret_from_fork+0x586/0x870 (?:?)\n  __switch_to+0x74f/0xdc0 (?:?)\n  ret_from_fork_asm+0x1a/0x30 (?:?)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.253",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:21:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53252",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: fix memory leak in error path of hci_alloc_dev()\n\nEarly failures in Bluetooth HCI UART configuration leak SRCU percpu\nmemory.\n\nWhen device initialization fails before hci_register_dev() completes,\nthe HCI_UNREGISTER flag is never set. As a result, when the device\nreference count reaches zero, bt_host_release() evaluates this flag as\nfalse and falls back to a direct kfree(hdev).\n\nBecause hci_release_dev() is bypassed, the SRCU struct initialized\nearly in hci_alloc_dev() is never cleaned up, resulting in a leak of\npercpu memory.\n\nFix the leak by explicitly calling cleanup_srcu_struct() in the\nfallback (unregistered) branch of bt_host_release() before freeing\nthe device.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00189,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.137",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:21:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53251",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: ISO: Fix not releasing hdev reference on iso_conn_big_sync\n\nhci_get_route() returns a reference-counted hci_dev pointer via\nhci_dev_hold(). The function exits normally or with an error without ever\nreleasing it.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:43.047",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:21:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53250",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nxsk: cache csum_start/csum_offset to fix TOCTOU in xsk_skb_metadata()\n\nThe TX metadata area resides in the UMEM buffer which is memory-mapped\nand concurrently writable by userspace. In xsk_skb_metadata(),\ncsum_start and csum_offset are read from shared memory for bounds\nvalidation, then read again for skb assignment. A malicious userspace\napplication can race to overwrite these values between the two reads,\nbypassing the bounds check and causing out-of-bounds memory access\nduring checksum computation in the transmit path.\n\nFix this by reading csum_start and csum_offset into local variables\nonce, then using the local copies for both validation and assignment.\n\nNote that other metadata fields (flags, launch_time) and the cached\ncsum fields may be mutually inconsistent due to concurrent userspace\nwrites, but this is benign: the only security-critical invariant is\nthat each field's validated value is the same one used, which local\ncaching guarantees.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.960",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T23:21:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-54vg-pfh7-jq95",
+    "description": "Lemur: Crafted CRL/OCSP URLs in uploaded certificates lead to post-authentication SSRF",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:58:51Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:48Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-x3vf-mgxj-7785",
+    "description": "Lemur Privilege Escalation: Non-admin role members can rewrite role membership via PUT /api/1/roles/\u003cid\u003e",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:01:18Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:47Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q437-g7fv-2jvv",
+    "description": "Lemur user-update path stores plaintext passwords",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:02:12Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:46Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6477",
+    "description": "Malicious code in runtimekit (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:55:52Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:45Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6478",
+    "description": "Malicious code in mi-test-99-tuapellido (PyPI)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:11:03Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:44Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r9gp-7f88-9r54",
+    "description": " Lemur: JWT verifier honors attacker-supplied alg, enabling ATO",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:05:17Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:43Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v2wp-frmc-5q3v",
+    "description": "Lemur: ACME SSRF + creator-equality IDOR lead to AWS IAM/PKI compromise",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:07:19Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:42Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9m57-25v3-79x9",
+    "description": "golang.org/x/crypto/ssh/agent: Invoking pathological inputs can lead to client panic",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:12:52Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:41Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jppx-rxg9-jmrx",
+    "description": "golang.org/x/crypto/ssh/agent doesn't enforce invoking key constraints",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:13:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:40Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-f5wc-c3c7-36mc",
+    "description": "golang.org/x/crypto/ssh/agent doesn't drop invoking agent constraints when forwarding keys",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:14:00Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:39Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q4h4-gmj2-qvw2",
+    "description": "golang.org/x/crypto/ssh: Invoking byte arithmetic causes underflow and panic",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:14:22Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:38Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-45gg-vh54-h5m9",
+    "description": "golang.org/x/crypto/ssh vulnerable to invoking bypass of certificate restrictions",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:14:38Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:37Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-78mq-xcr3-xm33",
+    "description": "golang.org/x/crypto/ssh is vulnerable to invoking server panic during CheckHostKey/Authenticate flow",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:15:17Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:36Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qpw4-5x99-6vjp",
+    "description": "golang.org/x/crypto/ssh: Invoking memory leak when rejecting channels can lead to DoS",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:15:43Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:36Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-vgwf-h737-ff37",
+    "description": "golang.org/x/crypto/ssh: Invoking client can cause server deadlock on unexpected responses",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:18:17Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:35Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w879-237q-wc7r",
+    "description": "golang.org/x/crypto/ssh: Invoking pathological RSA/DSA parameters may cause DoS",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:18:43Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:34Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-89gr-r52h-f8rx",
+    "description": " golang.org/x/crypto/ssh: FIDO/U2F security key physical presence check can be bypassed",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:21:12Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:33Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rm3j-f69w-wqmq",
+    "description": "golang.org/x/crypto/ssh vulnerable to infinite loop on large channel writes",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:21:40Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:32Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5cgq-3rg8-m6cv",
+    "description": "golang.org/x/crypto/ssh/knownhosts vulnerable to auth bypass via unenforced @revoked status",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:22:04Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-x527-x647-q7gg",
+    "description": "golang.org/x/crypto/ssh: Invoking VerifiedPublicKeyCallback permissions skip enforcement",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T22:23:16Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:57:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wg7f-c2g2-5gwm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:59Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-34c7-243j-jmx6",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:58Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-3pr2-gvgh-h5qc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:57Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-58fj-7xwc-45hq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:56Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-68g3-7fhp-7rg3",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:56Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6f6g-3qf9-xqc4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:55Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-72gg-7xwv-2p87",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:54Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-8mfx-6cpc-cr47",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-h4wh-367g-85gm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-hv45-w87q-v8p4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:22:52Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jfr3-mc8c-wqgx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:10:00Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jmpp-r595-xrp4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:59Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m2c6-qhf9-2xm8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:58Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m43h-mp45-ghq6",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:57Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m8r2-qgr6-4gqm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:57Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pwfv-328h-75x9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:56Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q349-x427-xg3w",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:55Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w6hw-45mp-qr7v",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:54Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w9rp-wwm2-fwmr",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wf8m-q2q2-hq58",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:31Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:52Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6q89-vxvr-wgv2",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:52Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-8332-h5x6-6996",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:51Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9c3c-227q-3j67",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:50Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-c9q2-5c67-xg9p",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:49Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-f3pc-ww42-cwqp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:49Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-p894-8wv9-373j",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:48Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qpch-gjf6-c9gf",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:47Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w3gw-f9wr-g6qx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:31:32Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:46Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pjp5-fpmr-3349",
+    "description": "GitHub MCP Server: Lockdown mode singleton in HTTP server causes cross-user GraphQL client confusion",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:32:09Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:45Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-47q9-m4ww-924m",
+    "description": "Rekor has an OOM Condition due to Unbounded gzip Decompression in Alpine APK Parsing Logic",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T21:33:36Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T22:09:44Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-53249",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipv4: restrict IPOPT_SSRR and IPOPT_LSRR options\n\nThis patch restricts setting Loose Source and Record Route (LSRR)\nand Strict Source and Record Route (SSRR) IP options to users\nwith CAP_NET_RAW capability.\n\nThis prevents unprivileged applications from forcing packets to route\nthrough attacker-controlled nodes to leak TCP ISN and possibly other\nprotocol information.\n\nWhile LSRR and SSRR are commonly filtered in many network environments,\nthey may still be supported and forwarded along some network paths.\n\nRFC 7126 (Recommendations on Filtering of IPv4 Packets Containing\nIPv4 Options) recommend to drop these options in 4.3 and 4.4.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.847",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53248",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: airoha: Fix use-after-free in metadata dst teardown\n\nairoha_metadata_dst_free() runs metadata_dst_free() which frees the\nmetadata_dst with kfree() immediately, bypassing the RCU grace period.\nIn the RX path, skb_dst_set_noref() sets a non-refcounted pointer from\nthe skb to the metadata_dst. This function requires RCU read-side\nprotection and the dst must remain valid until all RCU readers complete.\nSince metadata_dst_free() calls kfree() directly, an use-after-free can\noccur if any skb still holds a noref pointer to the dst when the driver\ntears it down.\nReplace metadata_dst_free() with dst_release() which properly goes\nthrough the refcount path: when the refcount drops to zero, it schedules\nthe actual free via call_rcu_hurry(), ensuring all RCU readers have\ncompleted before the memory is freed.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.753",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53247",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: ethernet: mtk_eth_soc: Fix use-after-free in metadata dst teardown\n\nmtk_free_dev() calls metadata_dst_free() which frees the metadata_dst\nwith kfree() immediately, bypassing the RCU grace period.\nIn the RX path, skb_dst_set_noref() sets a non-refcounted pointer from\nthe skb to the metadata_dst. This function requires RCU read-side\nprotection and the dst must remain valid until all RCU readers complete.\nSince metadata_dst_free() calls kfree() directly, a use-after-free can\noccur if any skb still holds a noref pointer to the dst when the driver\ntears it down.\nReplace metadata_dst_free() with dst_release() which properly goes\nthrough the refcount path: when the refcount drops to zero, it schedules\nthe actual free via call_rcu_hurry(), ensuring all RCU readers have\ncompleted before the memory is freed.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.657",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53246",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nsctp: validate cached peer INIT chunk length in COOKIE_ECHO processing\n\nWhen a listening SCTP server processes a COOKIE_ECHO chunk, the cached\npeer INIT chunk embedded after the cookie is parsed and its parameters\nare later walked by sctp_process_init() using sctp_walk_params().\n\nHowever, the chunk header length of this cached INIT chunk was not\nvalidated against the remaining buffer in the COOKIE_ECHO payload. If\nthe length field is inflated, the parameter walk can run beyond the\nactual received data, leading to out-of-bounds reads and potential\nmemory corruption during later parameter handling (e.g. STATE_COOKIE\nprocessing and kmemdup() copies).\n\nAdd a bounds check in sctp_unpack_cookie() to ensure the cached INIT\nchunk length does not exceed the available data in the COOKIE_ECHO\nbuffer before it is used.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00173,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.567",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53245",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet/802/mrp: fix vector attribute parsing in mrp_pdu_parse_vecattr\n\nIn mrp_pdu_parse_vecattr(), vector attribute events are encoded three\nper byte and valen tracks the number of events left to process.\n\nThe parser decrements valen after processing the first and second events\nfrom each event byte, but not after processing the third one. When valen\nis exactly a multiple of three, the loop continues after the last valid\nevent and consumes the next byte as a new event byte, applying a\nspurious event to the MRP applicant state.\n\nAdditionally, when valen is zero the parser unconditionally consumes\nattrlen bytes as FirstValue and advances the offset, even though per\nIEEE 802.1ak a VectorAttribute with only a LeaveAllEvent has valen of\nzero and no FirstValue or Vector fields. This corrupts the offset for\nsubsequent PDU parsing.\n\nAlso, when valen exceeds three the loop crosses byte boundaries but\nthe attribute value is not incremented between the last event of one\nbyte and the first event of the next. This causes the first event of\nthe next byte to use the same attribute value as the third event\nrather than the next consecutive value.\n\nDecrement valen after processing the third event, skip FirstValue\nconsumption when valen is zero, and increment the attribute value at\nthe end of each loop iteration.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.443",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53244",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nVFS: fix possible failure to unlock in nfsd4_create_file()\n\natomic_create() in fs/namei.c drops the reference to the dentry\nwhen it returns an error.\nThis behaviour was imported into dentry_create() so that it\nwill drop the reference if an error is returned from atomic_create(),\nthough not if vfs_create() returns an error (in the case where\n-\u003eatomic_create is not supported).\n\nThe caller - nfsd4_create_file() - is made aware of this by checking\npath-\u003edentry, which will either be a counted reference to a dentry, or\nan error pointer.\n\nHowever the change to use start_creating()/end_creating() (which landed\nshortly before the dentry_create() change landed, though was likely\ndeveloped around the same time) means that nfsd4_create_file() *needs* a\nvalid dentry so that it can unlock the parent.\n\nThe net result is that if NFSD exports a filesystem which uses\n-\u003eatomic_create, and if a call to -\u003eatomic_create returns an error, then\nnfsd4_create_file() will pass an error pointer to end_creating()\nand the parent will not be unlocked.\n\nFix this by changing dentry_create() to make sure path-\u003edentry is always\na valid dentry, never an error-pointer.  The actual error is already\nreturned a different way.\n\nNote that if -\u003eatomic_create() returns a different dentry (which may not\nbe possible in practice) we are guaranteed (because it is only ever\nprovided by d_spliace_alias()) that it will have the same d_parent and\nso it will have the same effect when passed to end_creating().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53243",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nrseq: Fix using an uninitialized stack variable in rseq_exit_user_update()\n\nThere is an bug in which an uninitialized stack variable is used in\nrseq_exit_user_update() as reported by syzbot:\n\nBUG: KMSAN: kernel-infoleak in rseq_set_ids_get_csaddr include/linux/rseq_entry.h:502 [inline]\n\nThe local variable:\n\n\tstruct rseq_ids ids = {\n\t\t.cpu_id\t = task_cpu(t),\n\t\t.mm_cid\t = task_mm_cid(t),\n\t\t.node_id = cpu_to_node(ids.cpu_id),\n\t};\n\nAccording to the C standard, the evaluation order of expressions in an\ninitializer list is indeterminately sequenced. The compiler (Clang, in\nthis KMSAN build) evaluates `cpu_to_node(ids.cpu_id)` *before*\n`ids.cpu_id` is initialized with `task_cpu(t)`.\n\nThis is fixed by moving the assignment of ids.node_id outside the\nstructure initialization.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.260",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53242",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nALSA: PCM: Fix wait queue list corruption in snd_pcm_drain() on linked streams\n\nsnd_pcm_drain() uses init_waitqueue_entry which does not clear\nentry.prev/next, and add_wait_queue with a conditional\nremove_wait_queue that is skipped when to_check is no longer\nin the group after concurrent UNLINK.  The orphaned wait entry\nremains on the unlinked substream sleep queue.  On the next\ndrain iteration, add_wait_queue adds the entry to a new queue\nwhile still linked on the old one, corrupting both lists.  A\nsubsequent wake_up dereferences NULL at the func pointer\n(mapped from the spinlock at offset 0 of the misinterpreted\nwait_queue_head_t), causing a kernel panic.\n\nReplace init_waitqueue_entry/add_wait_queue/conditional\nremove_wait_queue with init_wait_entry/prepare_to_wait/\nfinish_wait.  init_wait_entry clears prev/next via\nINIT_LIST_HEAD on each iteration and sets\nautoremove_wake_function which auto-removes the entry on\nwake-up.  finish_wait safely handles both the already-removed\nand still-queued cases.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.140",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53241",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nALSA: seq: dummy: fix UMP event stack overread\n\nThe dummy sequencer port forwards events by copying an incoming\nstruct snd_seq_event into a stack temporary, rewriting source and\ndestination, and dispatching the temporary to subscribers. That legacy\nevent storage is smaller than struct snd_seq_ump_event.\n\nWhen a UMP event reaches the dummy client, the copy leaves the UMP flag\nset but only provides legacy-sized stack storage. The subscriber\ndelivery path then uses snd_seq_event_packet_size() and copies a\nUMP-sized packet from that stack object, reading past the end of the\ntemporary.\n\nUse the existing union __snd_seq_event storage and copy the packet size\nreported for the incoming event before rewriting the common routing\nfields. This preserves the full UMP packet for UMP events while keeping\nlegacy event handling unchanged.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:42.047",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53240",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nxfrm: iptfs: fix use-after-free on first_skb in __input_process_payload\n\n__input_process_payload() stores first_skb into xtfs-\u003era_newskb under\ndrop_lock when starting partial reassembly, then unlocks and breaks out\nof the processing loop. The post-loop check reads xtfs-\u003era_newskb\nwithout the lock to decide whether first_skb is still owned:\n\n    if (first_skb \u0026\u0026 first_iplen \u0026\u0026 !defer \u0026\u0026 first_skb != xtfs-\u003era_newskb)\n\nBetween spin_unlock and this read, a concurrent CPU running\niptfs_reassem_cont() (or the drop_timer hrtimer) can complete\nreassembly, NULL xtfs-\u003era_newskb, and free the skb. The check then\nevaluates first_skb != NULL as true, and pskb_trim/ip_summed/consume_skb\noperate on the freed skb — a use-after-free in skbuff_head_cache.\n\nReplace the unlocked read with a local bool that records whether\nfirst_skb was handed to the reassembly state in the current call. The\nflag is set after the existing spin_unlock, before the break, using the\npointer equality that is stable at that point (first_skb == skb iff\nfirst_skb was stored in ra_newskb).",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00173,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.960",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53239",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nxfrm: policy: fix use-after-free on inexact bin in xfrm_policy_bysel_ctx()\n\nFix the race by pruning the bin while still holding xfrm_policy_lock,\nbefore dropping it. Use __xfrm_policy_inexact_prune_bin() directly since\nthe lock is already held. The wrapper xfrm_policy_inexact_prune_bin()\nbecomes unused and is removed.\n\nRace:\n\n  CPU0 (XFRM_MSG_DELPOLICY)           CPU1 (XFRM_MSG_NEWSPDINFO)\n  ==========================          ==========================\n  xfrm_policy_bysel_ctx():\n    spin_lock_bh(xfrm_policy_lock)\n    bin = xfrm_policy_inexact_lookup()\n    __xfrm_policy_unlink(pol)\n    spin_unlock_bh(xfrm_policy_lock)\n    xfrm_policy_kill(ret)\n    // wide window, lock not held\n                                       xfrm_hash_rebuild():\n                                         spin_lock_bh(xfrm_policy_lock)\n                                         __xfrm_policy_inexact_flush():\n                                           kfree_rcu(bin)  // bin freed\n                                         spin_unlock_bh(xfrm_policy_lock)\n    xfrm_policy_inexact_prune_bin(bin)\n    // UAF: bin is freed",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.840",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53238",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetlabel: validate unlabeled address and mask attribute lengths\n\nnetlbl_unlabel_addrinfo_get() used the address attribute length to\ndetermine whether the attribute data could be read as an IPv4 or IPv6\naddress, but did not independently validate the corresponding mask\nattribute length.  A crafted Generic Netlink request could therefore\nprovide a valid IPv4/IPv6 address attribute with a shorter mask\nattribute, which would later be read as a full struct in_addr or\nstruct in6_addr.\n\nNLA_BINARY policy lengths are maximum lengths by default, so use\nNLA_POLICY_EXACT_LEN() for the unlabeled IPv4/IPv6 address and mask\nattributes.  This rejects short attributes during policy validation and\nalso exposes the exact length requirements through policy introspection.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.713",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:09:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53237",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ngpio: mvebu: fix NULL pointer dereference in suspend/resume\n\nmvebu_pwm_suspend() and mvebu_pwm_resume() are called for all GPIO\nbanks during suspend/resume, but not all banks have PWM functionality.\nGPIO banks without PWM have mvchip-\u003emvpwm set to NULL.\n\nCalling mvebu_pwm_suspend() with mvpwm == NULL causes a NULL pointer\ndereference when it tries to access mvpwm-\u003eblink_select.\n\n  Unable to handle kernel NULL pointer dereference at virtual address 00000020 when write\n  [00000020] *pgd=00000000\n  Internal error: Oops: 815 [#1] PREEMPT ARM\n  Modules linked in:\n  CPU: 0 UID: 0 PID: 406 Comm: sh Not tainted 6.12.74-rt12-yocto-standard-g4e96f98fb7db-dirty #353\n  Hardware name: Marvell Armada 370/XP (Device Tree)\n  PC is at regmap_mmio_read+0x38/0x54\n  LR is at regmap_mmio_read+0x38/0x54\n  pc : [\u003cc05fd2ac\u003e]    lr : [\u003cc05fd2ac\u003e]    psr: 200f0013\n  sp : f0c11d10  ip : 00000000  fp : c100d2f0\n  r10: c14fb854  r9 : 00000000  r8 : 00000000\n  r7 : c1799c00  r6 : 00000020  r5 : 00000020  r4 : c179c7c0\n  r3 : f0a231a0  r2 : 00000020  r1 : 00000020  r0 : 00000000\n  Flags: nzCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none\n  Control: 10c5387d  Table: 135ec059  DAC: 00000051\n  Call trace:\n   regmap_mmio_read from _regmap_bus_reg_read+0x78/0xac\n   _regmap_bus_reg_read from _regmap_read+0x60/0x154\n   _regmap_read from regmap_read+0x3c/0x60\n   regmap_read from mvebu_gpio_suspend+0xa4/0x14c\n   mvebu_gpio_suspend from dpm_run_callback+0x54/0x180\n   dpm_run_callback from device_suspend+0x124/0x630\n   device_suspend from dpm_suspend+0x124/0x270\n   dpm_suspend from dpm_suspend_start+0x64/0x6c\n   dpm_suspend_start from suspend_devices_and_enter+0x140/0x8e8\n   suspend_devices_and_enter from pm_suspend+0x2fc/0x308\n   pm_suspend from state_store+0x6c/0xc8\n   state_store from kernfs_fop_write_iter+0x10c/0x1f8\n   kernfs_fop_write_iter from vfs_write+0x270/0x468\n   vfs_write from ksys_write+0x70/0xf0\n   ksys_write from ret_fast_syscall+0x0/0x54\n\nAdd a NULL check for mvchip-\u003emvpwm before calling the PWM\nsuspend/resume functions.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.597",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53236",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ntcp: restrict SO_ATTACH_FILTER to priv users\n\nThis patch restricts the use of SO_ATTACH_FILTER (cBPF) on TCP sockets\nto users with CAP_NET_ADMIN capability.\n\nThis blocks potential side-channel attack where an unprivileged application\nattaches a filter to leak TCP sequence/acknowledgment numbers.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.493",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53235",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: add pskb_may_pull() to skb_gro_receive_list()\n\nskb_gro_receive_list() calls skb_pull(skb, skb_gro_offset(skb)) without\nfirst ensuring the data is in the linear area via pskb_may_pull(). When\nthe skb arrives via napi_gro_frags(), skb_headlen can be 0 (all data in\npage fragments) while skb_gro_offset is non-zero (after IP+TCP header\nparsing). The skb_pull() then decrements skb-\u003elen by skb_gro_offset\nbut skb-\u003edata_len stays unchanged, hitting BUG_ON(skb-\u003elen \u003c skb-\u003edata_len)\nin __skb_pull().\n\nThe UDP fraglist GRO path already contains this guard at\nudp_offload.c:749. Adding it to skb_gro_receive_list() itself provides\ncentralized protection for all callers (TCP, UDP, and any future\nprotocols), and ensures the precondition of skb_pull() is satisfied\nbefore it is called.\n\nOn pskb_may_pull() failure, set NAPI_GRO_CB(skb)-\u003eflush = 1 so the\nskb is not held as a new GRO head and is instead delivered through the\nnormal receive path, matching the UDP handling.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.397",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53234",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: ibm: emac: Fix use-after-free during device removal\n\nThe driver was using devm_register_netdev() which causes unregister_netdev()\nto be deferred until the devres cleanup phase, which runs after emac_remove()\nreturns. This creates a use-after-free window where:\n\n1. emac_remove() is called, which tears down hardware (cancels work, detaches\n   modules, unregisters from MAL)\n2. emac_remove() returns\n3. devres cleanup runs and finally calls unregister_netdev()\n\nDuring step 3, the network stack might still process packets, triggering\nemac_irq(), emac_poll(), or other handlers that access now-freed hardware\nresources (dev-\u003eemacp, dev-\u003emal, etc.).\n\nFix this by replacing devm_register_netdev() with manual register_netdev()\nand calling unregister_netdev() at the beginning of emac_remove(), before\nany hardware teardown. This ensures the network device is fully stopped and\nunregistered before hardware resources are released.\n\nThe change is safe because:\n- dev-\u003endev is assigned very early in probe (before any error paths that\n  could bypass emac_remove)\n- platform_set_drvdata() is only called after successful registration, so\n  emac_remove() only runs for fully registered devices\n- unregister_netdev() is idempotent and safe to call on any registered device",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00176,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.293",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53233",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetdev: fix double-free in netdev_nl_bind_rx_doit()\n\nSashiko flags that genlmsg_reply() always consumes the skb.\nThe error path calls nlmsg_free(rsp) so we can't jump directly\nto it. Let's not unbind, just propagate the error to the user.\nThis is the typical way of handling genlmsg_reply() failures.\nThey shouldn't happen unless user does something silly like\ncalling the kernel with an already-full rcvbuf.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.197",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53232",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: phy: clean the sfp upstream if phy probing fails\n\nSashiko reported that we don't call sfp_bus_del_upstream() in the probe\nfailure path, so let's add it, otherwise the sfp-bus is left with a\ndangling 'upstream' field, that may be used later on during SFP events.\n\nThis issue existed before the generic phylib sfp support, back when\ndrivers were calling phy_sfp_probe themselves.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00156,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.107",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53231",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: phy: don't try to setup PHY-driven SFP cages when using genphy\n\nWe don't have support for PHY-driver SFP cages with the genphy code.\n\nOn top of that, it was found by sashiko that running\nsfp_bus_add_upstream() for genphy deadlocks, as for genphy the PHY\nprobing runs under RTNL, which isn't the case for non-genphy drivers.\n\nThis problem was reproduced, and does lead to a deadlock on RTNL.\n\nBefore the blamed commit, the phy_sfp_probe() call was made by\nindividual PHY drivers, so there was no way to get to the SFP probing\npath when using genphy.\n\nLet's therefore only run phy_sfp_probe when not using genphy.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:41.017",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53230",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet/mlx5: Fix slab-out-of-bounds in mlx5_query_nic_vport_mac_list\n\nmlx5_query_nic_vport_mac_list() sizes its firmware command buffer using\nthe PF's log_max_current_uc/mc_list capabilities. When querying a VF\nvport with a larger configured max (via devlink), the firmware response\ncan overflow this buffer:\n\n BUG: KASAN: slab-out-of-bounds in mlx5_query_nic_vport_mac_list+0x453/0x4c0 [mlx5_core]\n Read of size 4 at addr ff1100013ffc8a12 by task kworker/u96:2/385\n\n CPU: 12 UID: 0 PID: 385 Comm: kworker/u96:2 Not tainted 7.0.0-rc6+ #1 PREEMPT\n Hardware name: QEMU Standard PC (Q35 + ICH9, 2009)\n Workqueue: mlx5_esw_wq esw_vport_change_handler [mlx5_core]\n Call Trace:\n  \u003cTASK\u003e\n  dump_stack_lvl+0x69/0xa0\n  print_report+0x176/0x4e4\n  kasan_report+0xc8/0x100\n  mlx5_query_nic_vport_mac_list+0x453/0x4c0 [mlx5_core]\n  esw_update_vport_addr_list+0x2e3/0xda0 [mlx5_core]\n  esw_vport_change_handle_locked+0xa1f/0x1060 [mlx5_core]\n  esw_vport_change_handler+0x6a/0x90 [mlx5_core]\n  process_one_work+0x87f/0x15e0\n  worker_thread+0x62b/0x1020\n  kthread+0x375/0x490\n  ret_from_fork+0x4dc/0x810\n  ret_from_fork_asm+0x11/0x20\n  \u003c/TASK\u003e\n\nFix by querying the vport's own HCA caps to size the buffer correctly.\nRefactor the function to allocate and return the MAC list internally,\nremoving the caller's dependency on knowing the correct max.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.907",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53229",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet/mlx5e: xsk: Fix DMA and xdp_frame leak on XDP_TX xmit failure\n\nIn the XSK branch of mlx5e_xmit_xdp_buff(), when sq-\u003exmit_xdp_frame()\nreturns false (e.g. XDPSQ is full), the function returns without\nunmapping the DMA address or freeing the xdp_frame allocated by\nxdp_convert_zc_to_xdp_frame(). The xdpi_fifo push only happens on\nsuccess, so the completion path cannot recover these entries.\n\nWith CONFIG_DMA_API_DEBUG=y, the leak surfaces on driver unbind:\n\n  DMA-API: pci 0000:08:00.0: device driver has pending DMA\n  allocations while released from device [count=1116]\n  One of leaked entries details: [device address=0x000000010ffd7028]\n  [size=1534 bytes] [mapped with DMA_TO_DEVICE] [mapped as phy]\n  WARNING: kernel/dma/debug.c:881 at dma_debug_device_change+0x127/0x180\n  ...\n  DMA-API: Mapped at:\n   debug_dma_map_phys+0x4b/0xd0\n   dma_map_phys+0xfd/0x2d0\n   mlx5e_xdp_handle+0x5ae/0xac0 [mlx5_core]\n   mlx5e_xsk_skb_from_cqe_mpwrq_linear+0xc4/0x170 [mlx5_core]\n   mlx5e_handle_rx_cqe_mpwrq+0xc1/0x290 [mlx5_core]\n\nAdd the missing unmap + xdp_return_frame, matching the cleanup already\ndone in mlx5e_xdp_xmit(). has_frags is rejected earlier in this branch,\nso no per-frag unmap is needed.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.793",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53228",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipv6: sit: reload inner IPv6 header after GSO offloads\n\nipip6_tunnel_xmit() caches the inner IPv6 header pointer at function\nentry and continues using it after iptunnel_handle_offloads().\n\nFor GSO skbs, iptunnel_handle_offloads() calls skb_header_unclone().\nWhen the skb header is cloned, skb_header_unclone() can call\npskb_expand_head(), which may move the skb head. The pskb_expand_head()\ncontract requires pointers into the skb header to be reloaded after the\ncall.\n\nIf the later skb_realloc_headroom() branch is not taken, SIT uses the\nstale iph6 pointer to read the inner hop limit and DS field. That can\nread from a freed skb head after the old head's remaining clone is\nreleased.\n\nReload iph6 after the offload helper succeeds and before subsequent\nreads from the inner IPv6 header. Keep the existing reload after\nskb_realloc_headroom(), since that branch can also replace the skb.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.657",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53227",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: openvswitch: fix possible kfree_skb of ERR_PTR\n\nAfter the patch in the \"Fixes\" tag, the allocation of the \"reply\" skb\ncan happen either before or after locking the ovs_mutex.\n\nHowever, error cleanups still follow the classical reversed order,\nassuming \"reply\" is allocated before locking: it is freed after unlocking.\n\nIf \"reply\" allocation happens after locking the mutex and it fails,\n\"reply\" is left with an ERR_PTR, and execution jumps to the correspondent\ncleanup stage which will try to free an invalid pointer.\n\nFix this by setting the pointer to NULL after having saved its error\nvalue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00198,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.520",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53226",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ngpio: rockchip: fix generic IRQ chip leak on remove\n\nThe driver allocates domain generic chips using\nirq_alloc_domain_generic_chips() during probe. However, on driver\nremove/teardown, the generic chips are not automatically freed when the\nIRQ domain is removed because the domain flags do not include\nIRQ_DOMAIN_FLAG_DESTROY_GC.\n\nThis causes both the domain generic chips structure and the associated\ngeneric chips to be leaked. Additionally, the generic chips remain on\nthe global gc_list and may later be visited by generic IRQ chip suspend,\nresume, or shutdown callbacks after the GPIO bank has been removed,\npotentially resulting in a use-after-free and kernel crash.\n\nFix the resource leak by explicitly calling\nirq_domain_remove_generic_chips() before removing the IRQ domain in\nrockchip_gpio_remove().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00173,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.420",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53225",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nsctp: fix uninit-value in __sctp_rcv_asconf_lookup()\n\n__sctp_rcv_asconf_lookup() in net/sctp/input.c only checks that the ASCONF\nchunk can hold the ADDIP header and a parameter header, then calls\naf-\u003efrom_addr_param(), which reads the full address (16 bytes for IPv6)\ntrusting the parameter's declared length.\n\nAn unauthenticated peer can send a truncated trailing ASCONF chunk that\ndeclares an IPv6 address parameter but stops after the 4-byte parameter\nheader; reached from the no-association lookup path, from_addr_param() then\nreads uninitialized bytes past the parameter.\n\nImpact: an unauthenticated SCTP peer makes the receive path read up to 16\nbytes of uninitialized memory past a truncated ASCONF address parameter.\n\nThe sibling __sctp_rcv_init_lookup() bounds parameters with\nsctp_walk_params(); this path open-codes the fetch and omits the bound.\nVerify the whole address parameter lies within the chunk before\nfrom_addr_param() reads it, the same class of fix as commit 51e5ad549c43\n(\"net: sctp: fix KMSAN uninit-value in sctp_inq_pop\").",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.297",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53224",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nsctp: validate embedded INIT chunk and address list lengths in cookie\n\nsctp_unpack_cookie() only checked that the embedded INIT chunk length\ndid not exceed the remaining cookie payload, but did not ensure that the\nINIT chunk is large enough to contain a complete INIT header.\n\nA malformed COOKIE_ECHO can therefore carry a truncated INIT chunk whose\nlength field is smaller than sizeof(struct sctp_init_chunk).  Later,\nsctp_process_init() accesses INIT parameters unconditionally, which may\nlead to out-of-bounds reads.\n\nIn addition, raw_addr_list_len is not fully validated against the\nremaining cookie payload. When cookie authentication is disabled, an\nattacker can supply an oversized raw_addr_list_len and cause\nsctp_raw_to_bind_addrs() to read beyond the end of the cookie. The\naddress parser also lacks sufficient bounds checks for parameter headers\nand lengths, allowing malformed address parameters to trigger\nout-of-bounds reads.\n\nFix this by:\n\n- requiring the embedded INIT chunk length to be at least sizeof(struct\n  sctp_init_chunk);\n- validating that the INIT chunk and raw address list together fit\n  within the cookie payload;\n- verifying sufficient data exists for each address parameter header and\n  payload before parsing it.\n\nNote that sctp_verify_init() must be called after sctp_unpack_cookie()\nand before sctp_process_init() when cookie authentication is disabled.\nThis will be addressed in a separate patch.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00212,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.200",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53223",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: guard timestamp cmsgs to real error queue skbs\n\nskb_is_err_queue() treats PACKET_OUTGOING as the sole marker for an skb\nfrom sk_error_queue. That assumption is not true for AF_PACKET sockets:\noutgoing packet taps are also delivered to packet sockets with\nskb-\u003epkt_type == PACKET_OUTGOING, but their skb-\u003ecb is owned by AF_PACKET\ninstead of struct sock_exterr_skb.\n\nIf such an skb is received with timestamping enabled, the generic\ntimestamp cmsg path can read AF_PACKET control-buffer state as\nsock_exterr_skb::opt_stats. With SO_RXQ_OVFL enabled, the packet drop\ncounter overlaps opt_stats. An odd drop count makes the path emit\nSCM_TIMESTAMPING_OPT_STATS with skb-\u003elen and skb-\u003edata. For non-linear\nskbs this copies past the linear head and can trigger hardened usercopy or\ndisclose adjacent heap contents.\n\nKeep skb_is_err_queue() local to net/socket.c, but make it verify that\nthe PACKET_OUTGOING marker is paired with the sock_rmem_free destructor\ninstalled by sock_queue_err_skb(). AF_PACKET receive skbs use normal\nreceive ownership and no longer pass as error-queue skbs, while legitimate\nsk_error_queue entries keep the PACKET_OUTGOING marker and sock_rmem_free\nownership.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:40.073",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53222",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nptp: ocp: fix resource freeing order\n\nCommit a60fc3294a37 (\"ptp: rework ptp_clock_unregister() to disable\nevents\") added a call to ptp_disable_all_events() which changes the\nconfiguration of pins if they support EXTTS events. In ptp_ocp_detach()\npins resources are freed before ptp_clock_unregister() and it leads to\nuse-after-free during driver removal. Fix it by changing the order of\nfree/unregister calls. To avoid irq handler running on the other core\nwhile ptp device unregistering, call synchronize_irq() after HW is\nconfigured to stop producing irqs and no irqs are in-flight.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.980",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53221",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nip6_vti: fix incorrect tunnel matching in vti6_tnl_lookup()\n\nIn vti6_tnl_lookup(), when an exact match for a tunnel fails,\nthe code falls back to searching for wildcard tunnels:\n\n- Tunnels matching the packet's local address, with any remote address\n  wildcard remote).\n\n- Tunnels matching the packet's remote address, with any local address\n  (wildcard local).\n\nHowever, vti6 stores all these different types of tunnels in the same\nhash table (ip6n-\u003etnls_r_l) prone to hash collisions.\n\nThe bug is that the fallback search loops in vti6_tnl_lookup() were\nmissing checks to ensure that the candidate tunnel actually has\na wildcard address.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.863",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53220",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: revalidate bridge ports\n\nebt_redirect_tg() dereferences br_port_get_rcu() return without a\nNULL check, causing a kernel panic when the bridge port has been\nremoved between the original hook invocation and an NFQUEUE\nreinject.\n\nA mere NULL check isn't sufficient, however.  As sashiko review\npoints out userspace can not only remove the port from the bridge,\nit could also place the device in a different virtual device, e.g.\nmacvlan.\n\nIf this happens, we must drop the packet, there is no way for us to\nreinject it into the bridge path.\n\nSwitch to _upper API, we don't need the bridge port structure.\nAlso, this fix keeps another bug intact:\n\nBoth nfnetlink_log and nfnetlink_queue use CONFIG_BRIDGE_NETFILTER\ntoo aggressive, which prevents certain logging features when queueing\nin bridge family: NETFILTER_FAMILY_BRIDGE can be enabled while the old\nCONFIG_BRIDGE_NETFILTER cruft is off.\n\nFixes tag is a common ancestor, this was always broken.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.743",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:08:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53219",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: x_tables: avoid leaking percpu counter pointers\n\nThe native and compat get-entries paths copy the fixed rule entry header\nfrom the kernelized rule blob to userspace before overwriting the entry's\ncounter fields with a sanitized counter snapshot.\n\nOn SMP kernels, entry-\u003ecounters.pcnt contains the percpu allocation\naddress used by x_tables rule counters. A caller can provide a userspace\nbuffer that faults during the initial fixed-header copy after pcnt has\nbeen copied but before the later sanitized counter copy runs. The syscall\nthen returns -EFAULT while leaving the raw percpu pointer in userspace.\n\nCopy only the fixed entry prefix before counters from the kernelized rule\nblob, then copy the sanitized counter snapshot into the counter field.\nApply this ordering to the IPv4, IPv6, and ARP native and compat\nget-entries implementations so a fault cannot expose the internal percpu\ncounter pointer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.613",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53218",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: nft_exthdr: fix register tracking for F_PRESENT flag\n\nnft_exthdr_init() passes user-controlled priv-\u003elen to\nnft_parse_register_store(), which marks that many bytes in the\nregister bitmap as initialized.  However, when NFT_EXTHDR_F_PRESENT\nis set, the eval paths write only 1 byte (nft_reg_store8) or\n4 bytes (*dest = 0 on TCP/DCCP error path).  When len \u003e 4,\nregisters beyond the first are never written, retaining\nuninitialized stack data from nft_regs.\n\nBail out if userspace requests too much data when F_PRESENT is set.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.500",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53217",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: mvpp2: sync RX data at the hardware packet offset\n\nmvpp2 programs the RX queue packet offset, so hardware writes received\ndata at dma_addr + MVPP2_SKB_HEADROOM. The current CPU sync starts at\ndma_addr and only covers rx_bytes + MVPP2_MH_SIZE bytes, which syncs the\nunused headroom and misses the same number of bytes at the packet tail.\n\nOn non-coherent DMA systems this can leave the CPU reading stale cache\ncontents for the end of the received frame.\n\nUse dma_sync_single_range_for_cpu() with MVPP2_SKB_HEADROOM as the range\noffset so the sync covers the Marvell header and packet data actually\nwritten by hardware.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.387",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53216",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: mvpp2: limit XDP frame size to the RX buffer\n\nmvpp2 has short and long BM pools, and short pool buffers can be smaller\nthan PAGE_SIZE. The XDP path nevertheless initializes every xdp_buff with\nPAGE_SIZE as frame size.\n\nXDP helpers use frame_sz to validate tail growth and to derive the hard\nend of the data area. Advertising PAGE_SIZE for short buffers can let\nbpf_xdp_adjust_tail() grow a packet past the real allocation, corrupting\nmemory or later tripping skb tailroom checks.\n\nInitialize the XDP buffer with bm_pool-\u003efrag_size so XDP tailroom matches\nthe actual buffer backing the packet.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.280",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53215",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: mvpp2: refill RX buffers before XDP or skb use\n\nThe RX error path returns the current descriptor buffer to the hardware\nBM pool. That is only valid while the driver still owns the buffer.\n\nmvpp2_rx_refill() can fail after the current buffer has been handed to\nXDP or attached to an skb. In those cases mvpp2_run_xdp() may have\nrecycled, redirected, or queued the page for XDP_TX, and an skb free also\nretires the data buffer. Returning such a buffer to BM lets hardware DMA\ninto memory that is no longer owned by the RX ring.\n\nRefill the BM pool before handing the current buffer to XDP or to the\nskb. If the allocation fails there, drop the packet and return the\nstill-owned current buffer to BM, preserving the pool depth. Once the\nrefill succeeds, later local drops retire/free the current buffer instead\nof returning it to BM.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.160",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53214",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipv6: Fix a potential NPD in cleanup_prefix_route()\n\naddrconf_get_prefix_route() can return the fib6_null_entry sentinel\nentry which has a NULL fib6_table pointer. Therefore, before setting the\nroute's expiration time, check that we are not working with this entry,\nas otherwise a NPD will be triggered [1].\n\nNote that the other callers of addrconf_get_prefix_route() are not\nsusceptible to this bug:\n\n1. addrconf_prefix_rcv(): Requests a route with the 'RTF_ADDRCONF |\n   RTF_PREFIX_RT' flags which are not set on fib6_null_entry.\n\n2. modify_prefix_route(): Fixed by commit a747e02430df (\"ipv6: avoid\n   possible NULL deref in modify_prefix_route()\").\n\n3. __ipv6_ifa_notify(): Calls ip6_del_rt() which specifically checks for\n   fib6_null_entry and returns an error.\n\n[1]\nOops: general protection fault, probably for non-canonical address 0xdffffc0000000006: 0000 [#1] SMP KASAN\nKASAN: null-ptr-deref in range [0x0000000000000030-0x0000000000000037]\n[...]\nCall Trace:\n\u003cTASK\u003e\n__kasan_check_byte (mm/kasan/common.c:573)\nlock_acquire.part.0 (kernel/locking/lockdep.c:5842 (discriminator 1))\n_raw_spin_lock_bh (kernel/locking/spinlock.c:182 (discriminator 1))\ncleanup_prefix_route (net/ipv6/addrconf.c:1280)\nipv6_del_addr (net/ipv6/addrconf.c:1342)\ninet6_addr_del.isra.0 (net/ipv6/addrconf.c:3119)\ninet6_rtm_deladdr (net/ipv6/addrconf.c:4812)\nrtnetlink_rcv_msg (net/core/rtnetlink.c:6997)\nnetlink_rcv_skb (net/netlink/af_netlink.c:2555)\nnetlink_unicast (net/netlink/af_netlink.c:1344)\nnetlink_sendmsg (net/netlink/af_netlink.c:1899)\n__sock_sendmsg (net/socket.c:802 (discriminator 4))\n____sys_sendmsg (net/socket.c:2698)\n___sys_sendmsg (net/socket.c:2752)\n__sys_sendmsg (net/socket.c:2784)\ndo_syscall_64 (arch/x86/entry/syscall_64.c:63 arch/x86/entry/syscall_64.c:94)\nentry_SYSCALL_64_after_hwframe (arch/x86/entry/entry_64.S:121)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:39.053",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53213",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/vc4: fix krealloc() memory leak\n\nDon't just overwrite the original pointer passed to krealloc()\nwith its return value without checking latter:\n\n    MEM = krealloc(MEM, SZ, GFP);\n\nIf krealloc() returns NULL, that erases the pointer\nto the still allocated memory, hence leaks this memory.\nInstead, use a temporary variable, check it's not NULL\nand only then assign it to the original pointer:\n\n    TMP = krealloc(MEM, SZ, GFP);\n    if (!TMP) return;\n    MEM = TMP;\n\nWhile on it, use krealloc_array().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.930",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53212",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: nft_tunnel: fix use-after-free on object destroy\n\nnft_tunnel_obj_destroy() calls metadata_dst_free() which directly\nkfree()s the metadata_dst, ignoring the dst_entry refcount. Packets\nthat took a reference via dst_hold() in nft_tunnel_obj_eval() and\nare still queued (e.g. in a netem qdisc) are left with a dangling\npointer. When these packets are eventually dequeued, dst_release()\noperates on freed memory.\n\nReplace metadata_dst_free() with dst_release() so the metadata_dst\nis freed only after all references are dropped. The dst subsystem\nalready handles metadata_dst cleanup in dst_destroy() when\nDST_METADATA is set.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00176,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.793",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53211",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnetfilter: nft_meta_bridge: fix stale stack leak via IIFHWADDR register\n\nNFT_META_BRI_IIFHWADDR declares its destination register with\nlen = ETH_ALEN (6 bytes), which the register-init tracking rounds up to\ntwo 32-bit registers (8 bytes). nft_meta_bridge_get_eval() then does\nmemcpy(dest, br_dev-\u003edev_addr, ETH_ALEN), writing only 6 bytes and\nleaving the upper 2 bytes of the second register as uninitialised\nnft_do_chain() stack. A downstream load of that register span leaks\nthose stale bytes to userspace.\n\nZero the second register before the memcpy so the full declared span is\nwritten.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00173,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.697",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53210",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ntee: shm: fix shm leak in register_shm_helper()\n\nregister_shm_helper() allocates shm before calling\niov_iter_npages(). If iov_iter_npages() returns 0, the function\njumps to err_ctx_put and leaks shm.\n\nThis can be triggered by TEE_IOC_SHM_REGISTER with\nstruct tee_ioctl_shm_register_data where length is 0.\n\nJump to err_free_shm instead.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.603",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53209",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: hci_sync: reject oversized Broadcast Announcement prepend\n\nExisting advertising instances can already hold the maximum extended\nadvertising payload. When hci_adv_bcast_annoucement() prepends the\nBroadcast Announcement service data to that payload, the combined data\nmay no longer fit in the temporary buffer used to rebuild the\nadvertising data.\n\nReject that case before copying the existing payload and report the\nfailure through the device log. This keeps the existing advertising\ndata intact and avoids overrunning the temporary buffer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.490",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53208",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nBluetooth: L2CAP: reject BR/EDR signaling packets over MTUsig\n\nnet/bluetooth/l2cap_core.c:l2cap_sig_channel() accepts BR/EDR\nsignaling packets up to the channel MTU and dispatches each command\nwithout enforcing the signaling MTU (MTUsig). A Bluetooth BR/EDR peer\nwithin radio range can send a fixed-channel CID 0x0001 packet that is\nlarger than MTUsig and contains many L2CAP_ECHO_REQ commands before\npairing. In a real-radio stock-kernel run, one 681-byte signaling\npacket containing 168 zero-length ECHO_REQ commands made the target\ntransmit 168 ECHO_RSP frames over about 220 ms.\n\nImpact: a Bluetooth BR/EDR peer within radio range, before pairing, can\nforce 168 ECHO_RSP frames from one 681-byte fixed-channel signaling\npacket containing packed ECHO_REQ commands.\n\nDefine Linux's BR/EDR signaling MTU as the spec minimum of 48 bytes and\nreject any larger signaling packet with one L2CAP_COMMAND_REJECT_RSP\ncarrying L2CAP_REJ_MTU_EXCEEDED before any command is dispatched.\n\nThe Bluetooth Core spec wording for MTUExceeded says the reject\nidentifier shall match the first request command in the packet, and\nthat packets containing only responses shall be silently discarded.\nLinux intentionally deviates from that prescription: silently\ndiscarding desynchronizes the peer because the remote stack never\nlearns its responses were dropped, and locating the first request\ncommand requires walking command headers past MTUsig, i.e. processing\nbytes from a packet we have already decided is too large to process.\nWe therefore always emit one reject and use the identifier from the\nfirst command header, a single fixed-offset byte read.\n\nThe unrestricted BR/EDR signaling parser and ECHO_REQ response path both\ntrace to the initial git import; no later introducing commit is\navailable for a Fixes tag.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00176,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53207",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nmm/memory-failure: fix hugetlb_lock AA deadlock in get_huge_page_for_hwpoison\n\nTwo concurrent madvise(MADV_HWPOISON) calls on the same hugetlb page can\ntrigger a recursive spinlock self-deadlock (AA deadlock) on hugetlb_lock\nwhen racing with a concurrent unmap:\n\n  thread#0                              thread#1\n  --------                              --------\n  madvise(folio, MADV_HWPOISON)\n    -\u003e poisons the folio successfully\n  madvise(folio, MADV_HWPOISON)         unmap(folio)\n    try_memory_failure_hugetlb\n      get_huge_page_for_hwpoison\n        spin_lock_irq(\u0026hugetlb_lock)    \u003c- held\n        __get_huge_page_for_hwpoison\n          hugetlb_update_hwpoison()\n            -\u003e MF_HUGETLB_FOLIO_PRE_POISONED\n          goto out:\n            folio_put()\n              refcount: 1 -\u003e 0\n              free_huge_folio()\n                spin_lock_irqsave(\u0026hugetlb_lock)\n                  -\u003e AA DEADLOCK!\n\nThe out: path in __get_huge_page_for_hwpoison() calls folio_put() to drop\nthe GUP reference while the hugetlb_lock is still held by the hugetlb.c\nwrapper get_huge_page_for_hwpoison().  If concurrent unmap has released\nthe page table mapping reference, folio_put() drops the folio refcount to\nzero, triggering free_huge_folio() which attempts to re-acquire the\nnon-recursive hugetlb_lock.\n\nFix this by moving hugetlb_lock acquisition from the hugetlb.c wrapper\ninto get_huge_page_for_hwpoison().  Place spin_unlock_irq() before the\nfolio_put() at the out: label so the folio is always released outside the\nlock.\n\n[akpm@linux-foundation.org: fix race, rename label per Miaohe]",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0018,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.233",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53206",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\naccel/ivpu: Add bounds check for firmware runtime memory\n\nValidate that the firmware runtime memory specified in the image\nheader is properly aligned and sized to hold the firmware image.\nThis prevents errors during memory allocation and image transfer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.147",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53205",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\naccel/ivpu: Add bounds checks for firmware log indices\n\nAdd validation that read and write indices in the firmware log buffer\nare within valid bounds (\u003c data_size) before using them. If\nout-of-bounds indices are encountered (from firmware), clamp them to\nsafe values instead of proceeding with invalid offsets.\n\nThis prevents potential out-of-bounds buffer access when firmware\nsupplies invalid log indices.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:38.053",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53204",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfirmware: stratix10-rsu: Fix NULL deref on rsu_send_msg() timeout in probe\n\nrsu_send_msg() can return -ETIMEDOUT when\nwait_for_completion_interruptible_timeout() fires while the SMC call is still\npending. In stratix10_rsu_probe(), the error paths for COMMAND_RSU_DCMF_VERSION,\nCOMMAND_RSU_DCMF_STATUS, COMMAND_RSU_MAX_RETRY and COMMAND_RSU_GET_SPT_TABLE\ncall stratix10_svc_free_channel() - which sets chan-\u003escl to NULL - but then\nfall through and queue the next request on the same channel. The next svc\nkthread that runs will dereference pdata-\u003echan-\u003escl in its receive callback\npath, triggering a NULL pointer dereference identical to the one fixed by\ncommit c45f7263100c (\"firmware: stratix10-rsu: Fix NULL pointer dereference\nwhen RSU is disabled\") for the COMMAND_RSU_STATUS path.\n\nApply the same cleanup pattern to the remaining failure paths: remove the\nasync client, free the channel, and return early so no further messages are\nqueued on a channel whose scl has been cleared.\n\nWhile at it, clean up stratix10_rsu_probe() in two ways without changing\nbehavior:\n\n- Drop redundant zero-initialization of fields already cleared by\n  devm_kzalloc(): client.receive_cb, status.* and spt0/1_address\n  (INVALID_SPT_ADDRESS is 0x0).\n\n- Replace five identical 3-line error-cleanup blocks\n  (stratix10_svc_remove_async_client() + stratix10_svc_free_channel() +\n  return ret) with goto labels (remove_async_client, free_channel),\n  matching the standard kernel resource-unwinding pattern and making it\n  easier to extend the probe sequence without forgetting matching\n  cleanup.\n\nAlso move init_completion() next to mutex_init() so sync-primitive\ninitialization is grouped before anything that could trigger a\ncallback.\n\n---\nv2: Add a minor clean-up of the function stratix10_rsu_probe() to have a\n    centralize exit for all the rsu_send_async_msg() and rsu_send_msg().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:37.960",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53203",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\naccel/ivpu: Add buffer overflow check in MS get_info_ioctl\n\nAdd validation that the info size returned from the metric stream info\nquery is not exceeded when checked against the allocated buffer size.\nIf the firmware returns a size larger than the buffer, reject the\noperation with -EOVERFLOW instead of proceeding with an incorrect\nbuffer copy.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00193,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:37.873",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53202",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\naccel/ivpu: Fix signed integer truncation in IPC receive\n\nFix potential buffer overflow where firmware-supplied data_size is cast\nto signed int before being used in min_t(). Large unsigned values\n(\u003e= 0x80000000) become negative, causing unsigned wraparound and\noversized memcpy operations that can overflow the stack buffer.\n\nChange min_t(int, ...) to min() as both values are unsigned and can be\nhandled by min() without explicit cast.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00193,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:37.783",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:07:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53201",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nRevert \"drm/xe: Skip exec queue schedule toggle if queue is idle during suspend\"\n\nThis reverts commit 8533051ce92015e9cc6f75e0d52119b9d91610b6.\n\nThe idle-skip optimization bypasses GuC suspend, so the GPU may not\nperform the context switch that flushes TLB entries for invalidated\nuserptr VMAs. In LR/preempt-fence VM mode, this can lead to missed TLB\ninvalidation and page faults during userptr invalidation tests.\n\nRestore unconditional schedule toggling on suspend so the context-switch\nTLB flush is always performed.\n\nThis optimization will be reintroduced with a fix that does not skip\nsuspend in LR/preempt-fence VM mode.\n\n(cherry picked from commit 6a1e7934d9a6cf46aecae00a99c2603d1295e170)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:37.690",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:06:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53200",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nKVM: arm64: nv: Fix handling of XN[0] when !FEAT_XNX\n\nXN has already been extracted from its bitfield position so using\nFIELD_PREP() on the mask that clears XN[0] is completely broken, having\nthe effect of unconditionally granting execute permissions...\n\nFix the obvious mistake by manipulating the right bit.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:16:37.577",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-25T22:06:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-cj9g-3mj2-g8vv",
+    "description": "MessagePack-CSharp: JSON conversion APIs can recurse without consistent depth enforcement",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T19:51:36Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T21:11:08Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6435",
+    "description": "Malicious code in serverless-leo (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T23:04:55Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T21:11:07Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "MAL-2026-6473",
+    "description": "Malicious code in colorpicker-ui (npm)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T20:16:17Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-25T21:11:06Z",
+    "source": "CIRCL"
+  },
+  {
     "id": "GHSA-g697-2xrc-gc46",
     "description": "amazon-braket-sdk vulnerable to Insecure Deserialization via pickle.loads()",
     "severity": "none",

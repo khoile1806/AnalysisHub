@@ -112,6 +112,30 @@ export const timelineApi = {
     return data.data
   },
 
+  // Batch-import scan artifacts (e.g. Edge Forensics findings) onto a case
+  // timeline, optionally promoting each to the IOC store.
+  importArtifacts: async (
+    caseId: string,
+    payload: {
+      source: string
+      host?: string
+      items: Array<{
+        title: string
+        detail?: string
+        event_time?: string
+        severity?: TimelineSeverity
+        value?: string
+        ioc_type?: string
+        promote_ioc?: boolean
+      }>
+    },
+  ): Promise<{ events_created: number; iocs_promoted: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ events_created: number; iocs_promoted: number }>>(
+      `/cases/${caseId}/import-artifacts`, payload,
+    )
+    return data.data
+  },
+
   create: async (caseId: string, payload: CreateTimelineEvent): Promise<TimelineEvent> => {
     const { data } = await apiClient.post<ApiResponse<TimelineEvent>>(`/cases/${caseId}/timeline`, payload)
     return data.data

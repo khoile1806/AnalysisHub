@@ -62,6 +62,9 @@ type inboundMsg struct {
 	FsOp    string   `json:"fs_op,omitempty"`    // "list" | "read_file" | "read_folder" | "read_bundle"
 	FsPath  string   `json:"fs_path,omitempty"`  // for list / read_file / read_folder
 	FsPaths []string `json:"fs_paths,omitempty"` // for read_bundle (multi-select)
+
+	// Containment fields.
+	Pid int `json:"pid,omitempty"` // for kill_process
 }
 
 // outboundMsg represents any message sent to the ForensicHub server.
@@ -240,6 +243,7 @@ func (c *Client) connect(ctx context.Context) error {
 	streamCtx, cancelStream := context.WithCancel(ctx)
 	go c.streamRealtime(streamCtx, conn, "processes", 1*time.Second)
 	go c.streamRealtime(streamCtx, conn, "netstat", 1*time.Second)
+	go c.streamRealtime(streamCtx, conn, "netconn", 2*time.Second)
 	go c.streamRealtime(streamCtx, conn, "sysinfo", 30*time.Second)
 	defer cancelStream()
 
@@ -357,6 +361,18 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			go c.handleEdgeParseMFT(msg)
 		case "edge_parse_prefetch":
 			go c.handleEdgeParsePrefetch(msg)
+		case "edge_parse_processes":
+			go c.handleEdgeParseProcesses(msg)
+		case "edge_parse_autoruns":
+			go c.handleEdgeParseAutoruns(msg)
+		case "edge_parse_netconn":
+			go c.handleEdgeParseNetwork(msg)
+		case "edge_parse_dlls":
+			go c.handleEdgeParseDlls(msg)
+		case "edge_parse_shimcache":
+			go c.handleEdgeParseShimcache(msg)
+		case "kill_process":
+			go c.handleKillProcess(msg)
 		case "ping":
 			c.handlePing()
 		case "cleanup":
@@ -794,67 +810,156 @@ func (c *Client) handleFsRequest(msg inboundMsg) {
 	}
 }
 
-// handleEdgeParseMFT triggers the UAC prompt to parse the MFT.
-func (c *Client) handleEdgeParseMFT(msg inboundMsg) {
-	if msg.JobID == "" {
+// runEdgeScan executes an edge-forensics collector and ships its JSON back to
+// the dashboard. When the agent already runs elevated it calls inProc directly —
+// no ShellExecuteEx "runas", so NO UAC prompt and no child process. Otherwise it
+// falls back to a UAC-elevated child running `<subcmd> "<tmpfile>" ["<extraArg>"]`
+// that writes the same JSON to tmpfile (the original behaviour).
+func (c *Client) runEdgeScan(jobID, name, tmpPrefix, subcmd, extraArg string, inProc func() (any, error)) {
+	if jobID == "" {
 		return
 	}
-	log.Printf("[edge_mft:%s] requesting elevated MFT scan", msg.JobID)
-	_ = c.sendOutput(msg.JobID, "[*] Requesting Administrator privileges (UAC) for Raw Disk Access...", false)
-	
-	exe, _ := os.Executable()
-	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("mft_%s.json", msg.JobID))
-	
-	err := executor.RunElevatedAndWait(exe, "scan-mft \""+tmpFile+"\"")
-	if err != nil {
-		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] UAC failed or denied: %v", err), false)
-		_ = c.sendOutput(msg.JobID, "", true)
+	finish := func(b []byte) {
+		_ = c.writeJSON(outboundMsg{Type: "artifact_data", JobID: jobID, Data: string(b)})
+		_ = c.sendOutput(jobID, "[+] "+name+" complete.", false)
+		_ = c.sendOutput(jobID, "", true)
+	}
+	fail := func(format string, args ...any) {
+		_ = c.sendOutput(jobID, fmt.Sprintf(format, args...), false)
+		_ = c.sendOutput(jobID, "", true)
+	}
+
+	// Fast path: agent is already elevated → run in-process, zero UAC.
+	if executor.IsElevated() {
+		_ = c.sendOutput(jobID, "[*] Agent already elevated — running "+name+" in-process (no UAC).", false)
+		res, err := inProc()
+		if err != nil {
+			fail("[agent error] %s failed: %v", name, err)
+			return
+		}
+		b, err := json.Marshal(res)
+		if err != nil {
+			fail("[agent error] marshal failed: %v", err)
+			return
+		}
+		finish(b)
 		return
 	}
 
+	// Medium-integrity: elevate a child via UAC, read its JSON output.
+	_ = c.sendOutput(jobID, "[*] Requesting Administrator privileges (UAC) for "+name+"...", false)
+	exe, _ := os.Executable()
+	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("%s_%s.json", tmpPrefix, jobID))
+	scanArgs := subcmd + " \"" + tmpFile + "\""
+	if extraArg != "" {
+		scanArgs += " \"" + extraArg + "\""
+	}
+	if err := executor.RunElevatedAndWait(exe, scanArgs); err != nil {
+		fail("[agent error] UAC failed or denied: %v", err)
+		return
+	}
 	b, err := os.ReadFile(tmpFile)
 	if err != nil {
-		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] Failed to read MFT results: %v", err), false)
-		_ = c.sendOutput(msg.JobID, "", true)
+		fail("[agent error] Failed to read %s results: %v", name, err)
 		return
 	}
 	os.Remove(tmpFile)
+	finish(b)
+}
 
-	_ = c.writeJSON(outboundMsg{
-		Type:  "artifact_data",
-		JobID: msg.JobID,
-		Data:  string(b),
-	})
+// handleEdgeParseMFT parses the MFT (elevated; in-process when already admin).
+func (c *Client) handleEdgeParseMFT(msg inboundMsg) {
+	log.Printf("[edge_mft:%s] MFT scan", msg.JobID)
+	c.runEdgeScan(msg.JobID, "MFT Edge Forensic Scan", "mft", "scan-mft", strings.TrimSpace(msg.FsPath),
+		func() (any, error) { return parser.ParseMFT(strings.TrimSpace(msg.FsPath)) })
+}
 
-	_ = c.sendOutput(msg.JobID, "[+] MFT Edge Forensic Scan complete.", false)
+// handleEdgeParsePrefetch parses the Prefetch (elevated; in-process when admin).
+func (c *Client) handleEdgeParsePrefetch(msg inboundMsg) {
+	log.Printf("[edge_prefetch:%s] Prefetch scan", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Prefetch Edge Forensic Scan", "pf", "scan-prefetch", "",
+		func() (any, error) { return parser.ParsePrefetch() })
+}
+
+// handleEdgeParseProcesses collects a detailed running-process snapshot
+// (lineage + owner + command line + exe hashes; in-process when already admin).
+func (c *Client) handleEdgeParseProcesses(msg inboundMsg) {
+	log.Printf("[edge_proc:%s] process snapshot", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Process snapshot", "proc", "scan-processes", "",
+		func() (any, error) { return parser.ScanProcesses() })
+}
+
+// handleEdgeParseAutoruns enumerates autostart / persistence locations (Run
+// keys, services, tasks, startup, Winlogon, IFEO …); in-process when already admin.
+func (c *Client) handleEdgeParseAutoruns(msg inboundMsg) {
+	log.Printf("[edge_autoruns:%s] autoruns scan", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Autoruns scan", "autoruns", "scan-autoruns", "",
+		func() (any, error) { return parser.ScanAutoruns() })
+}
+
+// handleEdgeParseDlls enumerates loaded modules across processes (ListDLLs-style)
+// with hashes + Authenticode + hijack flags; in-process when already admin.
+func (c *Client) handleEdgeParseDlls(msg inboundMsg) {
+	log.Printf("[edge_dlls:%s] loaded-DLL scan", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Loaded DLLs scan", "dlls", "scan-dlls", "",
+		func() (any, error) { return parser.ScanLoadedDLLs() })
+}
+
+// handleEdgeParseShimcache parses the AppCompatCache (Shimcache) execution
+// evidence; in-process when already admin, else via a UAC-elevated child.
+func (c *Client) handleEdgeParseShimcache(msg inboundMsg) {
+	log.Printf("[edge_shimcache:%s] shimcache scan", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Shimcache scan", "shimcache", "scan-shimcache", "",
+		func() (any, error) { return parser.ScanShimcache() })
+}
+
+// handleKillProcess terminates a process (containment). Runs in-process when the
+// agent is already elevated, else via a UAC-elevated `kill <pid>` child so it can
+// terminate other users' / elevated processes.
+func (c *Client) handleKillProcess(msg inboundMsg) {
+	if msg.JobID == "" {
+		return
+	}
+	log.Printf("[kill:%s] terminating pid %d", msg.JobID, msg.Pid)
+	var err error
+	if executor.IsElevated() {
+		err = executor.KillProcess(msg.Pid)
+	} else {
+		exe, _ := os.Executable()
+		err = executor.RunElevatedAndWait(exe, fmt.Sprintf("kill %d", msg.Pid))
+	}
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] kill failed: %v", err), false)
+	} else {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[+] Process %d terminated", msg.Pid), false)
+	}
 	_ = c.sendOutput(msg.JobID, "", true)
 }
 
-// handleEdgeParsePrefetch triggers the UAC prompt to parse the Prefetch.
-func (c *Client) handleEdgeParsePrefetch(msg inboundMsg) {
+// handleEdgeParseNetwork enumerates live TCP/UDP connections (with owning
+// process + image path + reverse DNS) and the DNS resolver cache, native via
+// the Windows IP Helper API. No UAC needed — the local socket tables are
+// readable in the agent's normal user context, which is also what lets the
+// Network tab stream live.
+func (c *Client) handleEdgeParseNetwork(msg inboundMsg) {
 	if msg.JobID == "" {
 		return
 	}
-	log.Printf("[edge_prefetch:%s] requesting elevated Prefetch scan", msg.JobID)
-	_ = c.sendOutput(msg.JobID, "[*] Requesting Administrator privileges (UAC) for Prefetch Directory...", false)
-	
-	exe, _ := os.Executable()
-	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("pf_%s.json", msg.JobID))
-	
-	err := executor.RunElevatedAndWait(exe, "scan-prefetch \""+tmpFile+"\"")
-	if err != nil {
-		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] UAC failed or denied: %v", err), false)
-		_ = c.sendOutput(msg.JobID, "", true)
-		return
-	}
+	log.Printf("[edge_netconn:%s] enumerating network connections", msg.JobID)
+	_ = c.sendOutput(msg.JobID, "[*] Enumerating TCP/UDP connections + DNS cache...", false)
 
-	b, err := os.ReadFile(tmpFile)
+	res, err := parser.ScanNetwork()
 	if err != nil {
-		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] Failed to read Prefetch results: %v", err), false)
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] %v", err), false)
 		_ = c.sendOutput(msg.JobID, "", true)
 		return
 	}
-	os.Remove(tmpFile)
+	b, err := json.Marshal(res)
+	if err != nil {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] marshal failed: %v", err), false)
+		_ = c.sendOutput(msg.JobID, "", true)
+		return
+	}
 
 	_ = c.writeJSON(outboundMsg{
 		Type:  "artifact_data",
@@ -862,7 +967,7 @@ func (c *Client) handleEdgeParsePrefetch(msg inboundMsg) {
 		Data:  string(b),
 	})
 
-	_ = c.sendOutput(msg.JobID, "[+] Prefetch Edge Forensic Scan complete.", false)
+	_ = c.sendOutput(msg.JobID, fmt.Sprintf("[+] Network scan complete — %d connections, %d DNS records.", len(res.Connections), len(res.DNS)), false)
 	_ = c.sendOutput(msg.JobID, "", true)
 }
 
@@ -915,21 +1020,72 @@ func (c *Client) handleEdgeParseEvtx(msg inboundMsg) {
 		return
 	}
 
-	// Args format: LogName|EventID
-	parts := strings.SplitN(msg.Args, "|", 2)
-	if len(parts) != 2 {
-		_ = c.sendOutput(msg.JobID, "[agent error] invalid evtx args format. Expected LogName|EventID", false)
+	// Args is a JSON query: {"log":"Security","ids":[4624,4625],"hours":24,"max":500,"keyword":""}
+	// A legacy "LogName|EventID" string is still accepted for backward compatibility.
+	var q struct {
+		Log     string `json:"log"`
+		IDs     []int  `json:"ids"`
+		Hours   int    `json:"hours"`
+		Max     int    `json:"max"`
+		Keyword string `json:"keyword"`
+	}
+	if strings.HasPrefix(strings.TrimSpace(msg.Args), "{") {
+		_ = json.Unmarshal([]byte(msg.Args), &q)
+	} else if parts := strings.SplitN(msg.Args, "|", 2); len(parts) == 2 {
+		q.Log = parts[0]
+		for _, p := range strings.Split(parts[1], ",") {
+			if n := strings.TrimSpace(p); n != "" {
+				var id int
+				if _, err := fmt.Sscanf(n, "%d", &id); err == nil {
+					q.IDs = append(q.IDs, id)
+				}
+			}
+		}
+	}
+	if strings.TrimSpace(q.Log) == "" {
+		_ = c.sendOutput(msg.JobID, "[agent error] missing log name", false)
 		_ = c.sendOutput(msg.JobID, "", true)
 		return
 	}
+	maxEvents := q.Max
+	if maxEvents <= 0 || maxEvents > 5000 {
+		maxEvents = 500
+	}
 
-	logName := parts[0]
-	eventID := parts[1]
+	// Build the FilterHashtable clauses.
+	logEsc := strings.ReplaceAll(q.Log, "'", "''")
+	idClause := ""
+	if len(q.IDs) > 0 {
+		var ids []string
+		for _, id := range q.IDs {
+			ids = append(ids, fmt.Sprintf("%d", id))
+		}
+		idClause = "; $f.Id = @(" + strings.Join(ids, ",") + ")"
+	}
+	startClause := ""
+	if q.Hours > 0 {
+		startClause = fmt.Sprintf("; $f.StartTime = (Get-Date).AddHours(-%d)", q.Hours)
+	}
+	kwClause := ""
+	if kw := strings.TrimSpace(q.Keyword); kw != "" {
+		kwClause = fmt.Sprintf("; $evts = $evts | Where-Object { $_.Message -like '*%s*' }", strings.ReplaceAll(kw, "'", "''"))
+	}
 
-	log.Printf("[edge_evtx:%s] querying %s for EventID %s", msg.JobID, logName, eventID)
+	log.Printf("[edge_evtx:%s] querying %s ids=%v hours=%d max=%d", msg.JobID, q.Log, q.IDs, q.Hours, maxEvents)
 
-	// Build the PowerShell command with try/catch to gracefully handle missing logs or empty results
-	psCmd := fmt.Sprintf(`try { $evts = Get-WinEvent -FilterHashtable @{LogName='%s'; Id=%s} -MaxEvents 100 -ErrorAction Stop; if ($evts) { $evts | Select-Object TimeCreated, Id, LevelDisplayName, Message | ConvertTo-Json -Compress } else { "[]" } } catch { "[]" }`, logName, eventID)
+	// Pull events, then expand each event's XML EventData into a key/value map so
+	// the UI can show structured fields (User, Process, Parent, CommandLine, IP,
+	// Hashes …) rather than only the rendered Message blob.
+	psCmd := fmt.Sprintf(`$ErrorActionPreference='Stop'; try {
+$f = @{ LogName='%s' }%s%s;
+$evts = Get-WinEvent -FilterHashtable $f -MaxEvents %d%s;
+$out = foreach ($e in $evts) {
+  $data = [ordered]@{};
+  try { $x=[xml]$e.ToXml(); $di=0; foreach ($d in $x.Event.EventData.Data) { if ($d.Name) { $data[[string]$d.Name] = [string]$d.'#text' } else { $data["Data$di"] = [string]$d.'#text'; $di++ } } } catch {}
+  [pscustomobject]@{ time=$e.TimeCreated.ToString('o'); id=$e.Id; level=$e.LevelDisplayName; provider=$e.ProviderName; computer=$e.MachineName; record_id=$e.RecordId; message=$e.Message; data=$data }
+};
+if ($out) { $out | ConvertTo-Json -Compress -Depth 5 } else { '[]' }
+} catch { '[]' }`, logEsc, idClause, startClause, maxEvents, kwClause)
 
 	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCmd)
 	out, err := cmd.CombinedOutput()
@@ -1102,6 +1258,8 @@ func (c *Client) streamRealtime(ctx context.Context, conn *websocket.Conn, dataT
 				payload, err = monitor.CollectNetstat()
 			case "sysinfo":
 				payload, err = monitor.CollectSysInfo()
+			case "netconn":
+				payload, err = parser.CollectConnectionsJSON()
 			default:
 				continue
 			}

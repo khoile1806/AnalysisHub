@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -379,6 +380,7 @@ func (e *Engine) runPipeline(ctx context.Context, scan *models.OsintScan, rows [
 	} else {
 		e.corroborateFindings(scan)
 		e.finalizeScan(scan, models.OsintDone)
+		e.autoPromoteIOCs(scan)
 		e.emit(scanID, "[*] Scan complete")
 		e.autoPivot(scan)
 		// Continuous-monitoring diff: only the watch's root scan raises alerts.
@@ -432,12 +434,39 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 				continue
 			}
 			seen[v] = true
-			pivots = append(pivots, pivot{value: v, ttype: r.Type})
+			// Resolve the type eagerly so prioritisation below classifies untyped
+			// related entities (e.g. a bare resolved IP) correctly.
+			tt := r.Type
+			if tt == "" {
+				if d, derr := DetectTargetType(v); derr == nil {
+					tt = d
+				}
+			}
+			pivots = append(pivots, pivot{value: v, ttype: tt})
 		}
 	}
 	if len(pivots) == 0 {
 		return
 	}
+
+	// Prioritise the target's resolved IP infrastructure, then its domains, so the
+	// per-scan child cap never starves them behind a long list of e-mails/handles.
+	// When auto-pivot is on, related IPs (DNS A/AAAA records, subdomain & co-host
+	// resolutions) must always be investigated — not truncated away by discovery
+	// order. Stable so same-priority entities keep the order they were found in.
+	pivotRank := func(ttype string) int {
+		switch ttype {
+		case TargetIP:
+			return 0
+		case TargetDomain:
+			return 1
+		default:
+			return 2
+		}
+	}
+	sort.SliceStable(pivots, func(i, j int) bool {
+		return pivotRank(pivots[i].ttype) < pivotRank(pivots[j].ttype)
+	})
 
 	// Cap children per scan so a noisy collector can't explode the graph.
 	const maxChildren = 8
@@ -624,4 +653,57 @@ func (e *Engine) finalizeScan(scan *models.OsintScan, status models.OsintStatus)
 		"status":      status,
 		"finished_at": time.Now(),
 	})
+}
+
+// iocTypeFor maps an OSINT target type to the IOC-store Type used by the ELK
+// auto-hunt / OpenCTI sync. Returns "" for non-promotable types.
+func iocTypeFor(ttype, value string) string {
+	switch ttype {
+	case TargetIP:
+		if strings.Contains(value, ":") {
+			return "IPv6-Addr"
+		}
+		return "IPv4-Addr"
+	case TargetDomain:
+		return "Domain-Name"
+	case TargetEmail:
+		return "Email-Addr"
+	case TargetHash:
+		return "File-Hash"
+	}
+	return ""
+}
+
+// autoPromoteIOCs closes the OSINT → defence loop: when a finished scan carries
+// a high-confidence malicious verdict about its target (reputation / ransomware
+// / dark-web finding, severity high|critical, self-verified), the target is
+// added to the IOC store so the ELK auto-hunt searches the logs for it. Gated by
+// OSINT_AUTO_PROMOTE (default on); only ip/domain/email/hash targets qualify.
+func (e *Engine) autoPromoteIOCs(scan *models.OsintScan) {
+	if e.cfg == nil || !e.cfg.OsintAutoPromote {
+		return
+	}
+	iocType := iocTypeFor(scan.TargetType, scan.Target)
+	if iocType == "" {
+		return
+	}
+	var f models.OsintFinding
+	err := e.db.Where(
+		"scan_id = ? AND category IN ? AND severity IN ? AND confidence = ?",
+		scan.ID, []string{"reputation", "ransomware", "darkweb"}, []string{"high", "critical"}, "verified",
+	).Order("severity DESC").First(&f).Error
+	if err != nil {
+		return // no verified malicious verdict — nothing to promote
+	}
+	ioc := models.IOC{
+		Value:       strings.TrimSpace(scan.Target),
+		Type:        iocType,
+		Source:      "OSINT auto",
+		Description: "Auto-promoted (verified malicious): " + f.Title,
+	}
+	res := e.db.Where("value = ? AND type = ?", ioc.Value, ioc.Type).FirstOrCreate(&ioc)
+	if res.Error == nil && res.RowsAffected > 0 {
+		e.emit(scan.ID.String(), fmt.Sprintf(
+			"[+] Auto-promoted %s to the IOC store (verified malicious) — ELK auto-hunt will pick it up", scan.Target))
+	}
 }

@@ -18,8 +18,11 @@ const (
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
-	// Maximum message size allowed from peer.
-	maxMessageSize = 4 * 1024 * 1024 // 4 MB
+	// Maximum message size allowed from peer. Edge-forensics artifacts (MFT /
+	// prefetch JSON with per-file hashes) can run to several MB in one frame, so
+	// this is generous; the agent is authenticated by token and the parsers cap
+	// their own output, keeping the real payload well under this ceiling.
+	maxMessageSize = 32 * 1024 * 1024 // 32 MB
 )
 
 // Client represents a single WebSocket connection from a remote agent.

@@ -32,6 +32,9 @@ type AgentCommand struct {
 	FsOp    string   `json:"fs_op,omitempty"`    // "list" | "read_file" | "read_folder" | "read_bundle"
 	FsPath  string   `json:"fs_path,omitempty"`  // absolute path on the agent
 	FsPaths []string `json:"fs_paths,omitempty"` // multi-path list for op=read_bundle
+
+	// Containment fields.
+	Pid int `json:"pid,omitempty"` // for kill_process
 }
 
 // FsEntry describes a single directory entry returned by op=list.

@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
             query: ['@tanstack/react-query'],
-            ui: ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-dropdown-menu'],
+            ui: ['@radix-ui/react-dialog', '@radix-ui/react-select'],
             charts: ['recharts'],
             terminal: ['xterm', '@xterm/addon-fit'],
             dates: ['date-fns'],

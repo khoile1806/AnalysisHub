@@ -32,6 +32,32 @@ type SHELLEXECUTEINFO struct {
 	HProcess     windows.Handle
 }
 
+// IsElevated reports whether the current agent process is already running with
+// an elevated (high-integrity) token. When true, admin-requiring scans can run
+// in-process directly — no ShellExecuteEx "runas", so no UAC prompt and no
+// child process (Windows only shows UAC on a medium→high elevation transition;
+// an already-elevated parent spawns elevated children silently anyway).
+func IsElevated() bool {
+	return windows.GetCurrentProcessToken().IsElevated()
+}
+
+// KillProcess terminates the process with the given PID. Requires the agent to
+// have rights over the target (admin for other users' / elevated processes).
+func KillProcess(pid int) error {
+	if pid <= 0 {
+		return fmt.Errorf("invalid pid")
+	}
+	h, err := windows.OpenProcess(windows.PROCESS_TERMINATE, false, uint32(pid))
+	if err != nil {
+		return fmt.Errorf("open process %d: %w", pid, err)
+	}
+	defer windows.CloseHandle(h)
+	if err := windows.TerminateProcess(h, 1); err != nil {
+		return fmt.Errorf("terminate process %d: %w", pid, err)
+	}
+	return nil
+}
+
 // RunElevatedAndWait requests UAC elevation for the given executable.
 // It waits for the process to complete.
 func RunElevatedAndWait(exe string, args string) error {
