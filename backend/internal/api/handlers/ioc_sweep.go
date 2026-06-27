@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"path"
 	"regexp"
 	"strings"
 
+	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // ioc_sweep.go — "Live IOC Sweep" (endpoint threat hunt). Pushes a set of
@@ -80,13 +84,14 @@ func AgentIOCSweep(c *gin.Context) {
 	var body struct {
 		Indicators []string `json:"indicators"`
 		Types      []string `json:"types"`
+		UseStore   bool     `json:"use_store"` // match endpoint artifacts against the ENTIRE IOC store, server-side
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
 
-	// Classify + dedupe indicators.
+	// Classify + dedupe pasted indicators.
 	seen := map[string]bool{}
 	var inds []sweepIndicator
 	for _, raw := range body.Indicators {
@@ -97,8 +102,8 @@ func AgentIOCSweep(c *gin.Context) {
 		seen[ind.Value] = true
 		inds = append(inds, ind)
 	}
-	if len(inds) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "no valid indicators supplied"})
+	if len(inds) == 0 && !body.UseStore {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "no valid indicators supplied (paste some, or enable use_store)"})
 		return
 	}
 
@@ -122,12 +127,126 @@ func AgentIOCSweep(c *gin.Context) {
 		return // error response already written
 	}
 
+	storeMatched := 0
+	// use_store: instead of pulling the (possibly TB-scale) store to the client,
+	// extract the bounded set of candidate values present ON THE ENDPOINT, then
+	// ask the DB which of those are known indicators (indexed `value` lookup,
+	// batched). Cost scales with endpoint artifacts, NOT store size.
+	if body.UseStore {
+		if db, dbOK := mustGetDB(c); dbOK {
+			cand := collectEndpointValues(data)
+			storeInds := lookupStoreIndicators(db, cand)
+			storeMatched = len(storeInds)
+			for _, si := range storeInds {
+				if !seen[si.Value] {
+					seen[si.Value] = true
+					inds = append(inds, si)
+				}
+			}
+		}
+	}
+
 	matches, scanned := matchIOCsInBundle(data, inds)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
-		"indicators": len(inds),
-		"scanned":    scanned, // per-artifact record counts
-		"matches":    matches,
+		"indicators":    len(inds),
+		"store_matched": storeMatched, // store indicators that were present on the endpoint
+		"scanned":       scanned,      // per-artifact record counts
+		"matches":       matches,
 	}})
+}
+
+// collectEndpointValues extracts the bounded set of candidate IOC values present
+// in a triage bundle (hashes, IPs, hostnames, file names) so they can be looked
+// up against the store without ever loading the store itself.
+func collectEndpointValues(bundle []byte) []string {
+	var parsed struct {
+		Artifacts []struct {
+			Type string          `json:"type"`
+			Data json.RawMessage `json:"data"`
+		} `json:"artifacts"`
+	}
+	if json.Unmarshal(bundle, &parsed) != nil {
+		return nil
+	}
+	const maxCand = 50000
+	set := map[string]bool{}
+	add := func(s string) {
+		s = strings.ToLower(strings.TrimSpace(s))
+		if s != "" && len(set) < maxCand {
+			set[s] = true
+		}
+	}
+	for _, art := range parsed.Artifacts {
+		for _, row := range artifactRows(art.Type, art.Data) {
+			// hashes
+			for _, k := range []string{"md5", "sha1", "sha256", "exe_sha256", "exe_md5"} {
+				if v, ok := row[k].(string); ok {
+					add(v)
+				}
+			}
+			// network endpoints + hostnames
+			for _, k := range []string{"remote_addr", "local_addr", "remote_host"} {
+				if v, ok := row[k].(string); ok {
+					add(v)
+				}
+			}
+			// urls → host
+			if v, ok := row["url"].(string); ok && v != "" {
+				if u, err := url.Parse(v); err == nil && u.Host != "" {
+					add(u.Hostname())
+				}
+			}
+			// file names → basename of path-like fields
+			for _, k := range []string{"name", "path", "image_path", "executable", "module", "process"} {
+				if v, ok := row[k].(string); ok && v != "" {
+					add(v)
+					add(path.Base(strings.ReplaceAll(v, "\\", "/")))
+				}
+			}
+		}
+	}
+	out := make([]string, 0, len(set))
+	for v := range set {
+		out = append(out, v)
+	}
+	return out
+}
+
+// lookupStoreIndicators asks the IOC store which of the supplied (endpoint)
+// values are known indicators, batched by indexed `value` lookups so it scales
+// regardless of store size.
+func lookupStoreIndicators(db *gorm.DB, values []string) []sweepIndicator {
+	var out []sweepIndicator
+	const batch = 500
+	for i := 0; i < len(values); i += batch {
+		end := i + batch
+		if end > len(values) {
+			end = len(values)
+		}
+		var iocs []models.IOC
+		if db.Where("lower(value) IN ?", values[i:end]).Find(&iocs).Error != nil {
+			continue
+		}
+		for _, ioc := range iocs {
+			out = append(out, sweepIndicator{Value: strings.ToLower(ioc.Value), Type: storeTypeToSweep(ioc.Type)})
+		}
+	}
+	return out
+}
+
+// storeTypeToSweep maps an OpenCTI/store type to the sweep matcher's category.
+// Only "hash" gets exact-set matching; everything else is substring.
+func storeTypeToSweep(t string) string {
+	switch t {
+	case "File-Hash":
+		return "hash"
+	case "IPv4-Addr", "IPv6-Addr":
+		return "ip"
+	case "Domain-Name":
+		return "domain"
+	default:
+		return "filename"
+	}
 }
 
 // matchIOCsInBundle matches indicators against a triage bundle's artifacts.

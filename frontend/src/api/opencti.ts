@@ -36,6 +36,19 @@ export interface ManualIOCPayload {
   description?: string
 }
 
+export interface IOCPage {
+  data: IOC[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface IOCFacets {
+  total: number
+  types: { value: string; count: number }[]
+  sources: { value: string; count: number }[]
+}
+
 export const openctiApi = {
   // Legacy singular (still returns the active profile, used elsewhere).
   getConfig: async (): Promise<OpenCTIConfig> => {
@@ -73,8 +86,13 @@ export const openctiApi = {
     const { data } = await api.post('/opencti/sync')
     return data
   },
-  listIOCs: async (): Promise<IOC[]> => {
-    const { data } = await api.get('/iocs')
+  // Paginated + server-side filtered so it scales to a very large (TB) store.
+  listIOCs: async (params?: { search?: string; type?: string; source?: string; limit?: number; offset?: number }): Promise<IOCPage> => {
+    const { data } = await api.get('/iocs', { params })
+    return data
+  },
+  iocFacets: async (): Promise<IOCFacets> => {
+    const { data } = await api.get('/iocs/facets')
     return data
   },
   addManualIOC: async (payload: ManualIOCPayload): Promise<{ message: string; ioc: IOC }> => {

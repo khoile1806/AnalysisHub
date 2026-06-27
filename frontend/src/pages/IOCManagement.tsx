@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
   ShieldAlert, Plus, Trash2, Search, Upload, FileUp, RefreshCw, X, Database, Loader2, Layers,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { openctiApi, type IOC } from '@/api/opencti'
 import { getErrorMessage, safeFormat } from '@/lib/utils'
+
+const PAGE_SIZE = 100
 
 const TYPE_OPTIONS = ['IPv4-Addr', 'IPv6-Addr', 'Domain-Name', 'URL', 'File-Hash', 'Email-Address', 'Mac-Addr']
 
@@ -21,15 +24,37 @@ const TYPE_BADGE: Record<string, string> = {
 
 export default function IOCManagement() {
   const qc = useQueryClient()
-  const { data: iocs = [], isLoading } = useQuery({ queryKey: ['iocs'], queryFn: openctiApi.listIOCs })
 
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
+  const [page, setPage] = useState(0)
   const [adding, setAdding] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['iocs'] })
+  // Debounce the search box so each keystroke doesn't hit the (large) store.
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(0) }, 350)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  const offset = page * PAGE_SIZE
+  const { data: pageData, isLoading, isFetching } = useQuery({
+    queryKey: ['iocs', search, typeFilter, sourceFilter, offset],
+    queryFn: () => openctiApi.listIOCs({ search, type: typeFilter, source: sourceFilter, limit: PAGE_SIZE, offset }),
+    placeholderData: keepPreviousData,
+  })
+  const { data: facets } = useQuery({ queryKey: ['ioc-facets'], queryFn: openctiApi.iocFacets })
+
+  const iocs = pageData?.data ?? []
+  const total = pageData?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['iocs'] })
+    qc.invalidateQueries({ queryKey: ['ioc-facets'] })
+  }
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => openctiApi.deleteIOC(id),
@@ -42,22 +67,8 @@ export default function IOCManagement() {
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
-  const sources = useMemo(() => Array.from(new Set(iocs.map((i) => i.source).filter(Boolean))), [iocs])
-  const types = useMemo(() => Array.from(new Set(iocs.map((i) => i.type).filter(Boolean))), [iocs])
-
-  const filtered = useMemo(() => {
-    const s = search.toLowerCase()
-    return iocs.filter((i) =>
-      (!s || i.value.toLowerCase().includes(s) || (i.description ?? '').toLowerCase().includes(s)) &&
-      (!typeFilter || i.type === typeFilter) &&
-      (!sourceFilter || i.source === sourceFilter))
-  }, [iocs, search, typeFilter, sourceFilter])
-
-  const byType = useMemo(() => {
-    const m: Record<string, number> = {}
-    for (const i of iocs) m[i.type] = (m[i.type] ?? 0) + 1
-    return m
-  }, [iocs])
+  const typeOpts = facets?.types ?? []
+  const sourceOpts = facets?.sources ?? []
 
   return (
     <div className="space-y-5 w-full">
@@ -68,7 +79,7 @@ export default function IOCManagement() {
             <Database className="h-6 w-6 text-emerald-400" /> IOC Store
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Kho chỉ dấu xâm phạm tập trung. Thêm/xóa thủ công, import hàng loạt từ nhiều nguồn, và dùng cho IOC Sweep / đối chiếu scan.
+            Kho chỉ dấu xâm phạm tập trung. Thêm/xóa, import hàng loạt từ nhiều nguồn, dùng cho IOC Sweep / đối chiếu scan. (Phân trang server-side — chịu được kho rất lớn.)
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -85,11 +96,11 @@ export default function IOCManagement() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats (from facets — no row load) */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="px-2.5 py-1 rounded-full border border-gray-700 bg-gray-800 text-gray-300">{iocs.length.toLocaleString()} total</span>
-        {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, n]) => (
-          <span key={t} className={`px-2.5 py-1 rounded-full border ${TYPE_BADGE[t] ?? 'border-gray-700 text-gray-400'}`}>{n} {t}</span>
+        <span className="px-2.5 py-1 rounded-full border border-gray-700 bg-gray-800 text-gray-300">{(facets?.total ?? 0).toLocaleString()} total</span>
+        {typeOpts.map((t) => (
+          <span key={t.value} className={`px-2.5 py-1 rounded-full border ${TYPE_BADGE[t.value] ?? 'border-gray-700 text-gray-400'}`}>{t.count.toLocaleString()} {t.value}</span>
         ))}
       </div>
 
@@ -97,58 +108,73 @@ export default function IOCManagement() {
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search value / description…"
+          <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search value / description…"
             className="input pl-9 w-full" />
+          {isFetching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-600" />}
         </div>
-        <select className="input max-w-[180px]" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+        <select className="input max-w-[200px]" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(0) }}>
           <option value="">All types</option>
-          {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          {typeOpts.map((t) => <option key={t.value} value={t.value}>{t.value} ({t.count})</option>)}
         </select>
-        <select className="input max-w-[180px]" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+        <select className="input max-w-[200px]" value={sourceFilter} onChange={(e) => { setSourceFilter(e.target.value); setPage(0) }}>
           <option value="">All sources</option>
-          {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+          {sourceOpts.map((s) => <option key={s.value} value={s.value}>{s.value} ({s.count})</option>)}
         </select>
       </div>
 
       {/* Table */}
       {isLoading ? (
-        <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="skeleton h-10 rounded" />)}</div>
-      ) : filtered.length === 0 ? (
+        <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="skeleton h-10 rounded" />)}</div>
+      ) : iocs.length === 0 ? (
         <div className="card p-10 text-center flex flex-col items-center">
           <ShieldAlert className="h-10 w-10 text-gray-700 mb-3" />
-          <p className="text-gray-400 font-medium">{iocs.length === 0 ? 'No IOCs yet' : 'No matches for this filter'}</p>
+          <p className="text-gray-400 font-medium">{(facets?.total ?? 0) === 0 ? 'No IOCs yet' : 'No matches for this filter'}</p>
           <p className="text-xs text-gray-500 mt-1">Add manually, bulk import, or sync from OpenCTI.</p>
         </div>
       ) : (
-        <div className="overflow-auto max-h-[64vh] rounded-lg border border-gray-800">
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-gray-900 z-10">
-              <tr className="border-b border-gray-800">
-                <th className="px-3 py-2 text-left text-gray-500 font-medium">Value</th>
-                <th className="px-3 py-2 text-left text-gray-500 font-medium">Type</th>
-                <th className="px-3 py-2 text-left text-gray-500 font-medium">Source</th>
-                <th className="px-3 py-2 text-left text-gray-500 font-medium">Description</th>
-                <th className="px-3 py-2 text-left text-gray-500 font-medium">Added</th>
-                <th className="px-3 py-2 w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((i: IOC) => (
-                <tr key={i.id} className="border-b border-gray-900 hover:bg-white/5 group">
-                  <td className="px-3 py-1.5 font-mono text-gray-200 break-all max-w-[360px]">{i.value}</td>
-                  <td className="px-3 py-1.5"><span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${TYPE_BADGE[i.type] ?? 'text-gray-400 border-slate-700'}`}>{i.type}</span></td>
-                  <td className="px-3 py-1.5 text-gray-400 whitespace-nowrap">{i.source || '—'}</td>
-                  <td className="px-3 py-1.5 text-gray-500 break-all max-w-[280px]">{i.description || '—'}</td>
-                  <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{i.created_at ? safeFormat(i.created_at, 'MMM dd, HH:mm') : '—'}</td>
-                  <td className="px-3 py-1.5 text-right">
-                    <button onClick={() => { if (confirm(`Delete IOC ${i.value}?`)) deleteMut.mutate(i.id) }}
-                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"><Trash2 className="h-3.5 w-3.5" /></button>
-                  </td>
+        <>
+          <div className="overflow-auto max-h-[60vh] rounded-lg border border-gray-800">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-gray-900 z-10">
+                <tr className="border-b border-gray-800">
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Value</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Type</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Source</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Description</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Added</th>
+                  <th className="px-3 py-2 w-10"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {iocs.map((i: IOC) => (
+                  <tr key={i.id} className="border-b border-gray-900 hover:bg-white/5 group">
+                    <td className="px-3 py-1.5 font-mono text-gray-200 break-all max-w-[360px]">{i.value}</td>
+                    <td className="px-3 py-1.5"><span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${TYPE_BADGE[i.type] ?? 'text-gray-400 border-slate-700'}`}>{i.type}</span></td>
+                    <td className="px-3 py-1.5 text-gray-400 whitespace-nowrap">{i.source || '—'}</td>
+                    <td className="px-3 py-1.5 text-gray-500 break-all max-w-[280px]">{i.description || '—'}</td>
+                    <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{i.created_at ? safeFormat(i.created_at, 'MMM dd, HH:mm') : '—'}</td>
+                    <td className="px-3 py-1.5 text-right">
+                      <button onClick={() => { if (confirm(`Delete IOC ${i.value}?`)) deleteMut.mutate(i.id) }}
+                        className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <span>{(offset + 1).toLocaleString()}–{Math.min(offset + iocs.length, total).toLocaleString()} of {total.toLocaleString()}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 disabled:opacity-40"><ChevronLeft className="h-3.5 w-3.5" /> Prev</button>
+              <span>Page {page + 1} / {totalPages}</span>
+              <button onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))} disabled={page + 1 >= totalPages}
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 disabled:opacity-40">Next <ChevronRight className="h-3.5 w-3.5" /></button>
+            </div>
+          </div>
+        </>
       )}
 
       {adding && <AddIOCModal onClose={() => setAdding(false)} onDone={invalidate} />}

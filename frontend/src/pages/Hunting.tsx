@@ -695,31 +695,23 @@ function IOCSweepTab() {
   const [result, setResult] = useState<IOCSweepResult | null>(null)
   const [running, setRunning] = useState(false)
   const [caseId, setCaseId] = useState('')
+  const [useStore, setUseStore] = useState(false)
+
+  const { data: facets } = useQuery({ queryKey: ['ioc-facets'], queryFn: openctiApi.iocFacets })
+  const storeTotal = facets?.total ?? 0
 
   const toggle = (k: string) => setTypes((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n })
   const indicators = text.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean)
   const agent = agents.find((a) => a.id === agentId)
 
-  const loadMut = useMutation({
-    mutationFn: () => openctiApi.listIOCs(),
-    onSuccess: (store) => {
-      if (store.length === 0) { toast('IOC store is empty — add some under Threat Intelligence → IOC Store', { icon: 'ℹ️' }); return }
-      const existing = new Set(text.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))
-      const add = store.map((i) => i.value).filter((v) => !existing.has(v))
-      setText([...Array.from(existing), ...add].join('\n'))
-      toast.success(`Loaded ${add.length} indicator(s) from the IOC store`)
-    },
-    onError: (e) => toast.error(getErrorMessage(e)),
-  })
-
   const run = async () => {
     if (!agentId) { toast.error('Select an online agent'); return }
-    if (indicators.length === 0) { toast.error('Enter at least one indicator'); return }
+    if (indicators.length === 0 && !useStore) { toast.error('Enter indicators or enable "Match against entire IOC Store"'); return }
     if (types.size === 0) { toast.error('Select at least one artifact'); return }
     setRunning(true); setResult(null)
     try {
       toast('Sweeping endpoint — one UAC prompt, collecting + matching…', { icon: '🛡️' })
-      const r = await agentsApi.iocSweep(agentId, indicators, Array.from(types))
+      const r = await agentsApi.iocSweep(agentId, indicators, Array.from(types), useStore)
       setResult(r)
       toast.success(r.matches.length > 0
         ? `${r.matches.length} match(es) found across ${r.indicators} indicator(s)`
@@ -768,25 +760,25 @@ function IOCSweepTab() {
             </div>
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="label text-xs mb-0">Indicators (one per line — hashes / IPs / domains / file names; type auto-detected)</label>
-              <button onClick={() => loadMut.mutate()} disabled={loadMut.isPending}
-                className="flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
-                title="Load all indicators from the central IOC Store">
-                {loadMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />} Load from IOC store
-              </button>
-            </div>
-            <textarea className="input font-mono text-xs min-h-[140px]" placeholder={'evil.exe\n45.77.12.34\nbad-c2.com\n<sha256>'}
+            <label className="label text-xs">Indicators (one per line — hashes / IPs / domains / file names; type auto-detected)</label>
+            <textarea className="input font-mono text-xs min-h-[120px]" placeholder={'evil.exe\n45.77.12.34\nbad-c2.com\n<sha256>'}
               value={text} onChange={(e) => setText(e.target.value)} />
             <p className="text-[11px] text-gray-500 mt-1">{indicators.length} indicator(s) parsed</p>
+            <label className={`mt-2 flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer text-xs ${useStore ? 'border-emerald-500/50 bg-emerald-900/15' : 'border-gray-700'}`}>
+              <input type="checkbox" className="mt-0.5" checked={useStore} onChange={(e) => setUseStore(e.target.checked)} />
+              <span>
+                <span className="text-gray-200 flex items-center gap-1.5"><Database className="h-3.5 w-3.5 text-emerald-400" /> Match against entire IOC Store ({storeTotal.toLocaleString()})</span>
+                <span className="block text-[11px] text-gray-500 mt-0.5">Matched server-side against the whole store by indexed lookup — the store is never downloaded, so it scales to a very large (TB) store.</span>
+              </span>
+            </label>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={run} disabled={running || !agentId || indicators.length === 0}
+          <button onClick={run} disabled={running || !agentId || (indicators.length === 0 && !useStore)}
             className="btn-primary flex items-center gap-2 disabled:opacity-50">
             {running ? <><Loader2 className="h-4 w-4 animate-spin" /> Sweeping…</> : <><Radar className="h-4 w-4" /> Run sweep</>}
           </button>
-          <p className="text-[11px] text-gray-600">Collects live artifacts on the endpoint (one UAC prompt) and matches indicators server-side. Works on Windows &amp; Linux agents.</p>
+          <p className="text-[11px] text-gray-600">Collects live artifacts on the endpoint (one UAC prompt) and matches server-side. Works on Windows &amp; Linux agents.</p>
         </div>
       </div>
 
@@ -794,6 +786,7 @@ function IOCSweepTab() {
         <div className="card p-4 space-y-3">
           <div className="flex items-center gap-3 flex-wrap text-xs">
             <span className="text-gray-400">{result.indicators} indicator(s)</span>
+            {(result.store_matched ?? 0) > 0 && <span className="text-gray-500">({result.store_matched} from store present on host)</span>}
             {result.matches.length > 0
               ? <span className="flex items-center gap-1 text-red-400 font-semibold"><AlertTriangle className="h-3.5 w-3.5" /> {result.matches.length} match(es)</span>
               : <span className="flex items-center gap-1 text-emerald-400 font-semibold">No matches — host clean</span>}

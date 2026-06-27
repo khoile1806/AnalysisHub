@@ -181,6 +181,7 @@ func NewRouter(
 		protected.GET("/iocs", handlers.ListIOCs)
 		protected.POST("/iocs", handlers.CreateManualIOC)
 		protected.POST("/iocs/bulk", handlers.BulkCreateIOCs)
+		protected.GET("/iocs/facets", handlers.IOCFacets)
 		protected.DELETE("/iocs/:id", handlers.DeleteIOC)
 		// Batch IOC matching — any scan view highlights values already in the store.
 		protected.POST("/iocs/match", handlers.MatchIOCs)

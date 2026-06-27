@@ -50,6 +50,7 @@ export interface IOCMatch {
 
 export interface IOCSweepResult {
   indicators: number
+  store_matched?: number
   scanned: Record<string, number>
   matches: IOCMatch[]
 }
@@ -193,9 +194,9 @@ export const agentsApi = {
 
   // Live IOC sweep: push indicators to the agent, collect live artifacts and
   // match them server-side. Returns the hits with attribution.
-  iocSweep: async (id: string, indicators: string[], types?: string[]): Promise<IOCSweepResult> => {
+  iocSweep: async (id: string, indicators: string[], types?: string[], useStore?: boolean): Promise<IOCSweepResult> => {
     const { data } = await apiClient.post<{ success: boolean; data: IOCSweepResult }>(
-      `/agents/${id}/ioc-sweep`, { indicators, types: types ?? [] }, { timeout: 900_000 })
+      `/agents/${id}/ioc-sweep`, { indicators, types: types ?? [], use_store: !!useStore }, { timeout: 900_000 })
     return data.data
   },
 

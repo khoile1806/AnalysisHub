@@ -15,6 +15,34 @@ import (
 // (opencti.go) with delete + bulk import so the dedicated IOC Management page
 // can add/remove/import indicators from many sources.
 
+// IOCFacets returns distinct type/source values with counts + the grand total —
+// lets the management UI build filter dropdowns + stats WITHOUT pulling rows.
+// One aggregate query per facet (GROUP BY) instead of loading the table.
+//
+// GET /api/v1/iocs/facets
+func IOCFacets(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	type kv struct {
+		K string
+		N int64
+	}
+	facet := func(col string) []gin.H {
+		var rows []kv
+		db.Model(&models.IOC{}).
+			Select(col + " as k, count(*) as n").
+			Where(col + " <> ''").
+			Group(col).Order("n desc").Scan(&rows)
+		out := make([]gin.H, 0, len(rows))
+		for _, r := range rows {
+			out = append(out, gin.H{"value": r.K, "count": r.N})
+		}
+		return out
+	}
+	var total int64
+	db.Model(&models.IOC{}).Count(&total)
+	c.JSON(http.StatusOK, gin.H{"total": total, "types": facet("type"), "sources": facet("source")})
+}
+
 // DeleteIOC removes one indicator from the store.
 //
 // DELETE /api/v1/iocs/:id

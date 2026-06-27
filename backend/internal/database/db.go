@@ -125,6 +125,14 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		slog.Warn("could not create timeline dedupe index; timeline dedupe will run in best-effort mode", "error", err)
 	}
 
+	// Functional index on lower(value) so the case-insensitive IOC lookups
+	// (MatchIOCs / IOC-sweep use_store: `WHERE lower(value) IN (...)`) use an
+	// index instead of a full table scan — essential when the IOC store grows
+	// very large (millions of rows / TB-scale).
+	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_iocs_lower_value ON iocs (lower(value))`).Error; err != nil {
+		slog.Warn("could not create iocs lower(value) index; large-store IOC lookups may be slow", "error", err)
+	}
+
 	slog.Info("migrations applied successfully")
 	return db, nil
 }

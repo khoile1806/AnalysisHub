@@ -45,14 +45,15 @@ export default function DashboardPage() {
   const agentsQ = useQuery({ queryKey: ['agents'], queryFn: () => agentsApi.list(), refetchInterval: 20_000 })
   const jobsQ   = useQuery({ queryKey: ['jobs'],   queryFn: () => jobsApi.list(),   refetchInterval: 20_000 })
   const cvesQ   = useQuery({ queryKey: ['cve-coll'], queryFn: () => cveCollectionApi.getAll() })
-  const iocsQ   = useQuery({ queryKey: ['iocs'],   queryFn: () => openctiApi.listIOCs() })
+  const iocsQ   = useQuery({ queryKey: ['iocs', 'dashboard'], queryFn: () => openctiApi.listIOCs({ limit: 6 }) })
   const casesQ  = useQuery({ queryKey: ['cases'],  queryFn: () => casesApi.list() })
   const elkQ    = useQuery({ queryKey: ['elk-hunt-results'], queryFn: elkResultsApi.list })
 
   const agents = agentsQ.data ?? []
   const jobs   = jobsQ.data   ?? []
   const cves   = cvesQ.data   ?? []
-  const iocs   = iocsQ.data   ?? []
+  const iocs   = iocsQ.data?.data ?? []
+  const iocTotal = iocsQ.data?.total ?? 0
   const cases  = casesQ.data  ?? []
   const elkResults = elkQ.data ?? []
 
@@ -77,7 +78,7 @@ export default function DashboardPage() {
         <Link to="/cve-collection"><StatCard label="CVEs · KEV" value={kevCves.length}
           sub={`/ ${cves.length} collected`} icon={Bug}
           color="bg-amber-500/10 text-amber-400 border border-amber-500/30" loading={cvesQ.isLoading} /></Link>
-        <Link to="/opencti"><StatCard label="IOCs" value={iocs.length} icon={ShieldAlert}
+        <Link to="/ioc-store"><StatCard label="IOCs" value={iocTotal} icon={ShieldAlert}
           color="bg-purple-500/10 text-purple-400 border border-purple-500/30" loading={iocsQ.isLoading} /></Link>
       </div>
 

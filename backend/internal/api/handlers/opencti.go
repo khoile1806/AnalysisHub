@@ -347,7 +347,7 @@ func SyncOpenCTI(c *gin.Context) {
 	} else if config.Password != "" {
 		// NOTE: In a real production scenario, we'd implement OpenCTI's local login here.
 		// For now, we assume Token is the primary method for API access.
-		_ , _ = crypto.Decrypt(config.Password, aesKey)
+		_, _ = crypto.Decrypt(config.Password, aesKey)
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "Username/Password auth not fully implemented for Sync. Please provide an API Token."})
 		return
 	}
@@ -463,16 +463,45 @@ func SyncOpenCTI(c *gin.Context) {
 }
 
 // ListIOCs returns the synchronized IOCs
+// ListIOCs returns a PAGE of the IOC store with server-side search/filter so the
+// endpoint stays responsive even when the store holds millions of indicators
+// (TB-scale). Response: { data, total, limit, offset }.
+//
+// GET /api/v1/iocs?search=&type=&source=&limit=&offset=
 func ListIOCs(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
+	q := db.Model(&models.IOC{})
+	if s := strings.TrimSpace(c.Query("search")); s != "" {
+		like := "%" + s + "%"
+		q = q.Where("value ILIKE ? OR description ILIKE ?", like, like)
+	}
+	if t := strings.TrimSpace(c.Query("type")); t != "" {
+		q = q.Where("type = ?", t)
+	}
+	if src := strings.TrimSpace(c.Query("source")); src != "" {
+		q = q.Where("source = ?", src)
+	}
+
+	var total int64
+	q.Count(&total)
+
+	limit := atoiDefault(c.Query("limit"), 100)
+	if limit <= 0 || limit > 1000 {
+		limit = 100
+	}
+	offset := atoiDefault(c.Query("offset"), 0)
+	if offset < 0 {
+		offset = 0
+	}
+
 	var iocs []models.IOC
-	if err := db.Order("created_at desc").Limit(10000).Find(&iocs).Error; err != nil {
+	if err := q.Order("created_at desc").Limit(limit).Offset(offset).Find(&iocs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, iocs)
+	c.JSON(http.StatusOK, gin.H{"data": iocs, "total": total, "limit": limit, "offset": offset})
 }
 
 // CreateManualIOC allows manual entry of indicators
@@ -510,4 +539,3 @@ func CreateManualIOC(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Manual IOC added successfully", "ioc": ioc})
 }
-
