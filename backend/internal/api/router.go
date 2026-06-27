@@ -111,6 +111,7 @@ func NewRouter(
 		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
 		protected.POST("/agents/:id/browser", handlers.AgentBrowserParse)
 		protected.POST("/agents/:id/triage", handlers.AgentTriageCollect)
+		protected.POST("/agents/:id/ioc-sweep", handlers.AgentIOCSweep)
 		protected.POST("/agents/:id/baseline", handlers.SetAgentBaseline)
 		protected.GET("/agents/:id/baseline", handlers.GetAgentBaseline)
 		protected.POST("/agents/:id/kill", handlers.AgentKillProcess)

@@ -1,5 +1,2240 @@
 [
   {
+    "id": "CVE-2026-54351",
+    "description": "Budibase is an open-source low-code platform. Prior to 3.39.9, the webhook trigger endpoint in Budibase is publicly accessible and passes the full HTTP request body into automation execution parameters. A mass assignment vulnerability in externalTrigger() allows an attacker to overwrite the internal appId property by including it in the webhook POST body. When the automation is processed asynchronously (the default path for webhooks without a collect step), the worker executes the attacker-defined automation in the context of the victim's workspace, granting full read/write access to the victim's database. This vulnerability is fixed in 3.39.9.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0.00412,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:35.170",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:20:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54350",
+    "description": "Budibase is an open-source low-code platform. Prior to 3.39.12,  an unauthenticated visitor of any published Budibase app reads every document of the backing MongoDB, CouchDB, Elasticsearch, DynamoDB-PartiQL, or REST-with-JSON-body collection and, where the builder has published a PUBLIC write query, modifies every document of that collection with one HTTP request. enrichContext at packages/server/src/sdk/workspace/queries/queries.ts:121-138 substitutes parameter values into the raw JSON body of a query, then JSON.parses the result. The validator validateQueryInputs at packages/server/src/api/controllers/query/index.ts:61-71 rejects only Handlebars markers ({{, }}) in user input and does not escape JSON metacharacters (\", \\, }). A parameter value containing a closing quote and additional keys lifts attacker-controlled fields into the parsed filter object. For Mongo find, the parsed filter passes directly to collection.find() (packages/server/src/integrations/mongodb.ts:506-510). Duplicate-key JSON parsing overrides the builder's {name: \"...\"} with {name: {$exists: true}} and returns every document. The same primitive against an updateMany query (mongodb.ts:577-585) widens the filter scope to the full collection while the builder-controlled $set body runs against every matched document. The authorized middleware at packages/server/src/middleware/authorized.ts:141-148 short-circuits when the query's role is PUBLIC. CSRF is not enforced on this path. POST /api/v2/queries/:queryId (packages/server/src/api/routes/query.ts:63) accepts the call with no session, only an x-budibase-app-id header that is public from the published-app URL. This vulnerability is fixed in 3.39.12.",
+    "severity": "critical",
+    "cvss_score": 10,
+    "epss_score": 0.00427,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:35.040",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:20:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52885",
+    "description": "Notepad++ is a free and open-source source code editor. Prior to 8.9.6.4, NppCommands.cpp checks the HMAC of the on-disk shortcuts.xml at the moment a user command fires (Time-of-Check). However, the command payload is taken from the in-memory _userCommands vector, which is populated at application startup and never re-synchronized with the on-disk file (Time-of-Use). Swapping shortcuts.xml between startup and command execution causes the HMAC check to validate a clean file while a malicious command runs. An attacker with write access to shortcuts.xml places a malicious version on disk before launch, then immediately restores the legitimate file. The HMAC check at execution time validates the restored legitimate file (check passes), while the malicious payload executes from memory. This vulnerability is fixed in 8.9.6.4.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00164,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.920",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:20:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52884",
+    "description": "Notepad++ is a free and open-source source code editor. In v8.9.6.1, isInTrustedDirectory() does NOT canonicalize the path before checking. It uses a prefix-based check (PathIsPrefix() or equivalent) that matches paths starting with trusted directory strings. A path traversal using ..\\..\\ after a trusted directory prefix passes the check while resolving to an untrusted location. The CVE-2026-48800 patch adds isInTrustedDirectory() validation in Command::run() (RunDlg.cpp) before calling ShellExecute(). This function checks whether the resolved executable path is under a trusted directory.  This vulnerability is fixed in 8.9.6.2.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00147,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.797",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50137",
+    "description": "Budibase is an open-source low-code platform. Prior to 3.39.0, an anonymous attacker who knows or can enumerate a workspace id (app_...) and an S3-source datasource id (ds_...) can call this endpoint with no auth and obtain a 15-minute pre-signed PUT URL minted on the victim's IAM identity. The endpoint also returns the publicUrl so the attacker knows exactly where their PUT lands. Because bucket is attacker-controlled, the attacker can write to any bucket those IAM credentials can write to, not only the bucket the datasource was configured for. The Budibase server route POST /api/attachments/:datasourceId/url (packages/server/src/api/routes/static.ts) is registered with only the recaptcha middleware. There is no authorized(...) middleware in the chain. The controller (packages/server/src/api/controllers/static/index.ts::getSignedUploadURL) looks the requested datasource up, instantiates an AWS S3 client with the datasource's stored accessKeyId / secretAccessKey, and returns an AWS Signature V4 pre-signed PutObjectCommand URL for the caller-supplied bucket and key. The bucket is not pinned to the datasource's configured bucket. The workspace context required by sdk.datasources.get is sourced by getWorkspaceIdFromCtx (packages/backend-core/src/utils/utils.ts) from any of: the x-budibase-app-id header, the JSON body appId, a path segment that begins with the workspace prefix, or ?appId=. auth.buildAuthMiddleware([], { publicAllowed: true }) runs before any of this and explicitly allows anonymous requests. The currentWorkspace middleware's \"deny access to dev preview\" branch only triggers under isBrowser(ctx) \u0026\u0026 !isApiKey(ctx); isBrowser checks the parsed User-Agent for a recognised browser, so any non-browser client (curl, the supplied PoC, any tool not setting a browser UA) is neither and reaches dev workspaces too. This vulnerability is fixed in 3.39.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00341,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.673",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50136",
+    "description": "Budibase is an open-source low-code platform. Prior to 3.39.3, the application server exposes an unauthenticated endpoint that generates S3 PutObject presigned URLs using credentials stored in a workspace datasource. The route is protected only by the recaptcha middleware and does not require authentication, table permission, datasource permission, or builder access. A public caller who knows a workspace ID and S3 datasource ID can request a signed upload URL for attacker-controlled bucket and key values. This vulnerability is fixed in 3.39.3.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0.00326,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.547",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50132",
+    "description": "Budibase is an open-source low-code platform. Prior to 3.39.0, `GET /api/chat-links/:instance/:token/handoff` is a public endpoint (no auth required) that performs a permanent, state-changing operation: it binds an external chat identity (Slack/Discord/MS Teams) to an authenticated Budibase user account, with no consent UI and no CSRF protection. The session token in the URL is created by the attacker (from their own /link slash command) and embeds the attacker's externalUserId. When an authenticated Budibase victim visits the URL, their account is silently and permanently linked to the attacker's Slack/Discord identity. The server responds with \"Authentication succeeded.\" — no indication of what was linked. This vulnerability is fixed in 3.39.0.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0.00186,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.420",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48800",
+    "description": "Notepad++ is a free and open-source source code editor. Prior to 8.9.6.1, the \u003cCommand\u003e tag text content inside \u003cUserDefinedCommands\u003e in shortcuts.xml is read by NppXml::value(aNode) (Parameters.cpp:3658) in the feedUserCmds() function and stored in UserCommand._cmd without any validation. When the user clicks the corresponding entry in the Run menu, NppCommands.cpp:4264 creates a Command object with string2wstring(ucmd.getCmd()) and calls run(), which invokes ShellExecute (RunDlg.cpp:221) with the attacker-controlled string as the executable path. The injected command appears as a normal menu item in the Run menu, making it a viable persistence mechanism.  This vulnerability is fixed in 8.9.6.1.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00375,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.297",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48778",
+    "description": "Notepad++ is a free and open-source source code editor. Prior to 8.9.6.1, the \u003cGUIConfig name=\"commandLineInterpreter\"\u003e tag in config.xml is read by NppXml::value() (Parameters.cpp:6430) and stored in _nppGUI._commandLineInterpreter without any validation, whitelist, or digital signature check. When the user triggers IDM_FILE_OPEN_CMD (File → Open Containing Folder → cmd), NppCommands.cpp:228 creates a Command object with this value and calls run(), which invokes ShellExecute (RunDlg.cpp:221) with the attacker-controlled string as the executable path. This vulnerability is fixed in 8.9.6.1.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.01369,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.167",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48770",
+    "description": "Notepad++ is a free and open-source source code editor. Prior to 8.9.6.1, a local process in the same interactive Windows session can send a malformed WM_COPYDATA message to Notepad++ using the COPYDATA_FULL_CMDLINE path. The handler appears to process COPYDATASTRUCT.lpData as an unbounded NUL-terminated wchar_t* instead of enforcing COPYDATASTRUCT.cbData. This vulnerability is fixed in 8.9.6.1.",
+    "severity": "medium",
+    "cvss_score": 5,
+    "epss_score": 0.0027,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:34.033",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46710",
+    "description": "Notepad++ is a free and open-source source code editor. From 8.9.4 until 8.9.6, Notepad++ contains a local privilege escalation vulnerability in the installer. During installation, the installer invokes powershell.exe without using an absolute path after setting the working directory to the installation contextMenu directory. If an attacker can pre-place a malicious powershell.exe in a user-writable custom installation directory, and a privileged user later runs the installer and selects that directory, the attacker-controlled executable is launched with the elevated privileges of the installer. This vulnerability is fixed in 8.9.6.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00115,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:33.903",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46604",
+    "description": "The TIFF decoder can panic when decoding an invalid image with an out-of-bounds strip offset.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00169,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:33.807",
+    "poc_links": [
+      "https://github.com/Catherines77/ActiveMQ-EXPtools"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-39031",
+    "description": "Lansweeper lsrunase 2.0 and lsencrypt 2.0 use RC4 encryption with a hardcoded 142-byte static key array to encrypt credentials. An 8-character prefix is stored in cleartext alongside the ciphertext. This allows an attacker with local access to recover any encrypted password to plaintext using a single SHA-1 hash and RC4 decryption operation, with no brute force required.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00123,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:33.600",
+    "poc_links": [
+      "https://github.com/user6400/cve-2026-39031-lansweeper-lsrunase2-lsencrypt2"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-38641",
+    "description": "An issue in the DSO::mmap_and_copy function of relibc commit 61f42d allows attackers to cause a Denial of Service (DoS) via loading a crafted shared library.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:33.497",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-38639",
+    "description": "An issue in the parse_month function (/time/strptime.rs) of relibc commit ab6a2e allows attackers to cause a Denial of Service (DoS) via parsing a crafted input.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:33.387",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-23581",
+    "description": "The HCL Traveler for Microsoft Outlook libraries are being flagged as potentially malicious software or an unrecognized application.",
+    "severity": "medium",
+    "cvss_score": 6.7,
+    "epss_score": 0.00066,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:16:32.163",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55838",
+    "description": "RustFS is a distributed object storage system built in Rust. In 1.0.0-beta.7 and earlier, the real-time metrics endpoint at /rustfs/admin/v3/metrics is accessible to any valid IAM user regardless of their assigned policy. Every other admin handler in the codebase calls validate_admin_request to enforce admin-action IAM checks; the MetricsHandler skips this call entirely. A restricted IAM user whose policy grants only access to their own bucket can read server-wide operational metrics including disk I/O statistics, network throughput, scanner cycle timing, and cluster RPC state.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:26.847",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55189",
+    "description": "RustFS is a distributed object storage system built in Rust. From 1.0.0-alpha.1 until 1.0.0-beta.9, when the FTP frontend is enabled, the FTP read and probe handlers dispatch directly to the storage backend without ever calling the IAM authorization function that the FTP write/list handlers (and the entire HTTP S3 path) use. As a result, any user who can authenticate to the FTP listener — including a user whose IAM policy contains an explicit Deny on s3:GetObject — can read (RETR) and stat (SIZE/MDTM) any object in any bucket, and probe any bucket (CWD), completely regardless of their IAM policy. This vulnerability is fixed in 1.0.0-beta.9.",
+    "severity": "high",
+    "cvss_score": 7.7,
+    "epss_score": 0.00201,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:26.717",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55188",
+    "description": "RustFS is a distributed object storage system built in Rust. From 1.0.0-alpha.1 until 1.0.0-beta.9, RustFS contains an authorization bypass in the bucket replication admin API. The ListRemoteTargetHandler handler for listing remote replication targets only checks whether request credentials exist, but does not verify that the caller has replication or administrator permissions. As a result, an authenticated user with no effective bucket or admin permissions can list remote replication target configuration for a bucket. Because the returned BucketTarget objects include remote target credentials, this can disclose replication access keys and secret keys. This vulnerability is fixed in 1.0.0-beta.9.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0.00181,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:26.587",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53324",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: mana: Use pci_name() for debugfs directory naming\n\nUse pci_name(pdev) for the per-device debugfs directory instead of\nhardcoded \"0\" for PFs and pci_slot_name(pdev-\u003eslot) for VFs. The\nprevious approach had two issues:\n\n1. pci_slot_name() dereferences pdev-\u003eslot, which can be NULL for VFs\n   in environments like generic VFIO passthrough or nested KVM,\n   causing a NULL pointer dereference.\n\n2. Multiple PFs would all use \"0\", and VFs across different PCI\n   domains or buses could share the same slot name, leading to\n   -EEXIST errors from debugfs_create_dir().\n\npci_name(pdev) returns the unique BDF address, is always valid, and is\nunique across the system.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00158,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.750",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53323",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: dsa: remove redundant netdev_lock_ops() from conduit ethtool ops\n\nDSA replaces the conduit (master) device's ethtool_ops with its own\nwrappers that aggregate stats from both the conduit and DSA switch\nports. Taking the lock again inside the DSA wrappers causes a deadlock.\n\nStumbled upon this when booting qemu with fbnic and CONFIG_NET_DSA_LOOP=y\n(which looks like some kind of testing device that auto-populates the ports\nof eth0). `ethtool -i` is enough to deadlock. This means we have basically zero\ncoverage for DSA stuff with real ops locked devs.\n\nRemove the redundant netdev_lock_ops()/netdev_unlock_ops() calls from\nthe DSA conduit ethtool wrappers.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.653",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:19:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53322",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nvfio/pci: Clean up DMABUFs before disabling function\n\nOn device shutdown, make vfio_pci_core_close_device() call\nvfio_pci_dma_buf_cleanup() before the function is disabled via\nvfio_pci_core_disable().  This ensures that all access via DMABUFs is\nrevoked before the function's BARs become inaccessible.\n\nThis fixes an issue where, if the function is disabled first, a tiny\nwindow exists in which the function's MSE is cleared and yet BARs\ncould still be accessed via the DMABUF.  The resources would also be\nfreed and up for grabs by a different driver.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00145,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.560",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53321",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nio_uring/napi: cap busy_poll_to 10 msec\n\nCurrently there's no cap on the maximum amount of time that napi is\nallowed to poll if no events are found, which can lead to kernel\ncomplaints on a task being stuck as there's no conditional rescheduling\ndone within that loop.\n\nJust cap it to 10 msec in total, that's already way above any kind of\nsane value that will reap any benefits, yet low enough that it's\nnowhere near being able to trigger preemption complaints.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00154,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.460",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53320",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnilfs2: reject zero bd_oblocknr in nilfs_ioctl_mark_blocks_dirty()\n\nnilfs_ioctl_mark_blocks_dirty() uses bd_oblocknr to detect dead blocks\nby comparing it with the current block number bd_blocknr. If they differ,\nthe block is considered dead and skipped.\n\nHowever, bd_oblocknr should never be 0 since block 0 typically stores the\nprimary superblock and is never a valid GC target block. A corrupted ioctl\nrequest with bd_oblocknr set to 0 causes the comparison to incorrectly\nmatch when the lookup returns -ENOENT and sets bd_blocknr to 0, bypassing\nthe dead block check and calling nilfs_bmap_mark() on a non-existent\nblock. This causes nilfs_btree_do_lookup() to return -ENOENT, triggering\nthe WARN_ON(ret == -ENOENT).\n\nFix this by rejecting ioctl requests with bd_oblocknr set to 0 at the\nbeginning of each iteration.\n\n[ryusuke: slightly modified the commit message and comments for accuracy]",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00173,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.330",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53319",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nblk-wbt: remove WARN_ON_ONCE from wbt_init_enable_default()\n\nwbt_init_enable_default() uses WARN_ON_ONCE to check for failures from\nwbt_alloc() and wbt_init(). However, both are expected failure paths:\n\n- wbt_alloc() can return NULL under memory pressure (-ENOMEM)\n- wbt_init() can fail with -EBUSY if wbt is already registered\n\nsyzbot triggers this by injecting memory allocation failures during MTD\npartition creation via ioctl(BLKPG), causing a spurious warning.\n\nwbt_init_enable_default() is a best-effort initialization called from\nblk_register_queue() with a void return type. Failure simply means the\ndisk operates without writeback throttling, which is harmless.\n\nReplace WARN_ON_ONCE with plain if-checks, consistent with how\nwbt_set_lat() in the same file already handles these failures. Add a\npr_warn() for the wbt_init() failure to retain diagnostic information\nwithout triggering a full stack trace.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00145,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.230",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53318",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nwifi: mt76: mt7925: prevent NULL pointer dereference in mt7925_tx_check_aggr()\n\nMove the NULL check for 'sta' before dereferencing it to prevent a\npossible crash.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00157,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.137",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53317",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nwifi: mt76: mt7921: Place upper limit on station AID\n\nAny station configured with an AID over 20 causes a firmware crash.\nThis situation occurred in our testing using an AP interface on 7922\nhardware, with a modified hostapd, sourced from Mediatek's OpenWRT\nfeeds.\n\nIn stock hostapd, station AIDs begin counting at 1, and this\nconfiguration is prevented with an upper limit on associated stations.\nHowever, the modified hostapd began allocation at 65, which caused the\nfirmware to crash. This fix does not allow these AIDs to work, but will\nprevent the firmware crash.\n\nThis crash was only seen on IFTYPE_AP interfaces, and the fix does not\nappear to have an effect on IFTYPE_STATION behavior.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00157,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:25.037",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53316",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/amd/ras: Fix NULL deref in ras_core_ras_interrupt_detected()\n\nFixes a NULL pointer dereference when ras_core is NULL and ras_core-\u003edev\nis accessed in the error path.\n\nReported by: Dan Carpenter \u003cdan.carpenter@linaro.org\u003e",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00145,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.937",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53315",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/amd/ras: Fix NULL deref in ras_core_get_utc_second_timestamp()\n\nras_core_get_utc_second_timestamp() retrieves the current UTC timestamp\n(in seconds since the Unix epoch) through a platform-specific RAS system\ncallback and is used for timestamping RAS error events.\n\nThe function checks ras_core in the conditional statement before calling\nthe sys_fn callback. However, when the condition fails, the function\nprints an error message using ras_core-\u003edev.\n\nIf ras_core is NULL, this can lead to a potential NULL pointer\ndereference when accessing ras_core-\u003edev.\n\nAdd an early NULL check for ras_core at the beginning of the function\nand return 0 when the pointer is not valid. This prevents the\ndereference and makes the control flow clearer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00148,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.840",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53314",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\npadata: Put CPU offline callback in ONLINE section to allow failure\n\nsyzbot reported the following warning:\n\n    DEAD callback error for CPU1\n    WARNING: kernel/cpu.c:1463 at _cpu_down+0x759/0x1020 kernel/cpu.c:1463, CPU#0: syz.0.1960/14614\n\nat commit 4ae12d8bd9a8 (\"Merge tag 'kbuild-fixes-7.0-2' of git://git.kernel.org/pub/scm/linux/kernel/git/kbuild/linux\")\nwhich tglx traced to padata_cpu_dead() given it's the only\nsub-CPUHP_TEARDOWN_CPU callback that returns an error.\n\nFailure isn't allowed in hotplug states before CPUHP_TEARDOWN_CPU\nso move the CPU offline callback to the ONLINE section where failure is\npossible.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00161,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.717",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53313",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/amd/display: Avoid NULL dereference in dc_dmub_srv error paths\n\nIn dc_dmub_srv_log_diagnostic_data() and\ndc_dmub_srv_enable_dpia_trace().\n\nBoth functions check:\n\n  if (!dc_dmub_srv || !dc_dmub_srv-\u003edmub)\n\nand then call DC_LOG_ERROR() inside that block.\n\nDC_LOG_ERROR() uses dc_dmub_srv-\u003ectx internally. So if\ndc_dmub_srv is NULL, the logging itself can dereference a\nNULL pointer and cause a crash.\n\nFix this by splitting the checks.\n\nFirst check if dc_dmub_srv is NULL and return immediately.\nThen check dc_dmub_srv-\u003edmub and log the error only when\ndc_dmub_srv is valid.\n\nFixes the below:\n../display/dc/dc_dmub_srv.c:962 dc_dmub_srv_log_diagnostic_data() error: we previously assumed 'dc_dmub_srv' could be null (see line 961)\n../display/dc/dc_dmub_srv.c:1167 dc_dmub_srv_enable_dpia_trace() error: we previously assumed 'dc_dmub_srv' could be null (see line 1166)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00145,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.613",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53312",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\niommu/riscv: Remove overflows on the invalidation path\n\nSince RISC-V supports a sign extended page table it should support\na gather-\u003eend of ULONG_MAX, but if this happens it will infinite loop\nbecause of the overflow.\n\nAlso avoid overflow computing the length by moving the +1 to the other\nside of the \u003c",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00154,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.520",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53311",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse: fix uninit-value in fuse_dentry_revalidate()\n\nfuse_dentry_revalidate() may be called with a dentry that didn't had\n-\u003ed_time initialised.  The issue was found with KMSAN, where lookup_open()\ncalls __d_alloc(), followed by d_revalidate(), as shown below:\n\n=====================================================\nBUG: KMSAN: uninit-value in fuse_dentry_revalidate+0x150/0x13d0 fs/fuse/dir.c:394\n fuse_dentry_revalidate+0x150/0x13d0 fs/fuse/dir.c:394\n d_revalidate fs/namei.c:1030 [inline]\n lookup_open fs/namei.c:4405 [inline]\n open_last_lookups fs/namei.c:4583 [inline]\n path_openat+0x1614/0x64c0 fs/namei.c:4827\n do_file_open+0x2aa/0x680 fs/namei.c:4859\n[...]\n\nUninit was created at:\n slab_post_alloc_hook mm/slub.c:4466 [inline]\n slab_alloc_node mm/slub.c:4788 [inline]\n kmem_cache_alloc_lru_noprof+0x382/0x1280 mm/slub.c:4807\n __d_alloc+0x55/0xa00 fs/dcache.c:1740\n d_alloc_parallel+0x99/0x2740 fs/dcache.c:2604\n lookup_open fs/namei.c:4398 [inline]\n open_last_lookups fs/namei.c:4583 [inline]\n path_openat+0x135f/0x64c0 fs/namei.c:4827\n do_file_open+0x2aa/0x680 fs/namei.c:4859\n[...]\n=====================================================",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00154,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.423",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53310",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nsoc/tegra: cbb: Fix cross-fabric target timeout lookup\n\nWhen a fabric receives an error interrupt, the error may have\noccurred on a different fabric. The target timeout lookup was using\nthe wrong base address (cbb-\u003eregs) with offsets from a different\nfabric's target map, causing a kernel page fault.\n\n  Unable to handle kernel paging request at virtual address ffff80000954cc00\n  pc : tegra234_cbb_get_tmo_slv+0xc/0x28\n  Call trace:\n   tegra234_cbb_get_tmo_slv+0xc/0x28\n   print_err_notifier+0x6c0/0x7d0\n   tegra234_cbb_isr+0xe4/0x1b4\n\nAdd tegra234_cbb_get_fabric() to look up the correct fabric device\nusing fab_id, and use its base address for accessing target timeout\nregisters.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00154,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.330",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53309",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nocfs2/dlm: fix off-by-one in dlm_match_regions() region comparison\n\nThe local-vs-remote region comparison loop uses '\u003c=' instead of '\u003c',\ncausing it to read one entry past the valid range of qr_regions.  The\nother loops in the same function correctly use '\u003c'.\n\nFix the loop condition to use '\u003c' for consistency and correctness.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00165,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.203",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53308",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\npower: supply: max77705: Free allocated workqueue and fix removal order\n\nUse devm interface for allocating workqueue to fix two bugs at the same\ntime:\n\n1. Driver leaks the memory on remove(), because the workqueue is not\n   destroyed.\n\n2. Driver allocates workqueue and then registers interrupt handlers\n   with devm interface.  This means that probe error paths will not use a\n   reversed order, but first destroy the workqueue and then, via devm\n   release handlers, free the interrupt.\n\n   The interrupt handler schedules work on this exact workqueue, thus if\n   interrupt is hit in this short time window - after destroying\n   workqueue, but before devm() frees the interrupt - the schedulled\n   work will lead to use of freed memory.\n\nChange is not equivalent in the workqueue itself: use non-legacy API\nwhich does not set (__WQ_LEGACY | WQ_MEM_RECLAIM).  The workqueue is\nused to update power supply (power_supply_changed()) status, thus there\nis no point to run it for memory reclaim.  Note that dev_name() is not\ndirectly used in second argument to prevent possible unlikely parsing\nany \"%\" character in device name as format.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00145,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.110",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53307",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\npinctrl: pinconf-generic: Fully validate 'pinmux' property\n\nThe pinconf_generic_parse_dt_pinmux() assumes that the 'pinmux' property\nis not empty when present. This might be not true. With that, the allocator\nwill give a special value in return and not NULL which lead to the crash\nwhen trying to access that (invalid) memory. Fix that by fully validating\n'pinmux' value, including its length.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00154,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:24.010",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53306",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ntty: hvc_iucv: fix off-by-one in number of supported devices\n\nMAX_HVC_IUCV_LINES == HVC_ALLOC_TTY_ADAPTERS == 8.\nThis is the number of entries in:\n  static struct hvc_iucv_private *hvc_iucv_table[MAX_HVC_IUCV_LINES];\n\nSometimes hvc_iucv_table[] is limited by:\n(a)\tif (num \u003e hvc_iucv_devices) // for error detection\nor\n(b)\tfor (i = 0; i \u003c hvc_iucv_devices; i++) // in 2 places\n(so these 2 don't agree; second one appears to be correct to me.)\n\nhvc_iucv_devices can be 0..8. This is a counter.\n(c)\tif (hvc_iucv_devices \u003e MAX_HVC_IUCV_LINES)\n\nIf hvc_iucv_devices == 8, (a) allows the code to access hvc_iucv_table[8].\nOops.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00177,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.877",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53305",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nusb: typec: ps883x: Fix Oops at unbind\n\nWhen trying to unbind a device in order to bind to it vfio-platform as:\n\n  echo bc0000.geniqup  \u003e /sys/bus/platform/devices/bc0000.geniqup/driver/unbind\n\nI get the following Oops:\n\n[  436.478639] Unable to handle kernel NULL pointer dereference at virtual address 0000000000000020\n[  436.487762] Mem abort info:\n[  436.490716]   ESR = 0x0000000096000004\n[  436.494595]   EC = 0x25: DABT (current EL), IL = 32 bits\n[  436.500071]   SET = 0, FnV = 0\n[  436.503250]   EA = 0, S1PTW = 0\n[  436.506505]   FSC = 0x04: level 0 translation fault\n[  436.511533] Data abort info:\n[  436.514558]   ISV = 0, ISS = 0x00000004, ISS2 = 0x00000000\n[  436.520215]   CM = 0, WnR = 0, TnD = 0, TagAccess = 0\n[  436.525436]   GCS = 0, Overlay = 0, DirtyBit = 0, Xs = 0\n[  436.530918] user pgtable: 4k pages, 48-bit VAs, pgdp=00000008861a9000\n[  436.537554] [0000000000000020] pgd=0000000000000000, p4d=0000000000000000\n[  436.544548] Internal error: Oops: 0000000096000004 [#1]  SMP\n[  436.550374] Modules linked in:\n[  436.553542] CPU: 2 UID: 0 PID: 671 Comm: bash Tainted: G        W           7.0.0-rc3-g56fcdd0911a5-dirty #2 PREEMPT\n[  436.564440] Tainted: [W]=WARN\n[  436.567515] Hardware name: LENOVO 91B6CTO1WW/3796, BIOS O6NKT3BA 05/02/2025\n[  436.574675] pstate: 21400005 (nzCv daif +PAN -UAO -TCO +DIT -SSBS BTYPE=--)\n[  436.581841] pc : ps883x_retimer_remove+0x14/0x94\n[  436.586605] lr : i2c_device_remove+0x28/0x84\n[  436.591017] sp : ffff8000847137c0\n\nThat's because the ps883x_retimer_remove() retrieves the driver data\nfrom i2c_get_clientdata() which was never set at probe. So, add\ni2c_set_clientdata() at the end of the probe.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:18:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53304",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nscsi: sg: Resolve soft lockup issue when opening /dev/sgX\n\nThe parameter def_reserved_size defines the default buffer size reserved\nfor each Sg_fd and should be restricted to a range between 0 and 1,048,576\n(see https://tldp.org/HOWTO/SCSI-Generic-HOWTO/proc.html).  Although the\nfunction sg_proc_write_dressz enforces this limit, it is possible to bypass\nit by directly modifying the module parameter as shown below, which then\ncauses a soft lockup:\n\necho -1 \u003e /sys/module/sg/parameters/def_reserved_size\nexec 4\u003c\u003e /dev/sg0\n\nwatchdog: BUG: soft lockup - CPU#5 stuck for 26 seconds! [bash:537]\nModules loaded:\nCPU: 5 UID: 0 PID: 537 Command: bash, kernel version 6.19.0-rc3+ #134,\nPREEMPT disabled\nHardware: QEMU Standard PC (i440FX + PIIX, 1996), BIOS version\n1.16.1-2.fc37 dated 04/01/2014\n...\nCall Trace:\n\n  sg_build_reserve+0x5c/0xa0\n  sg_add_sfp+0x168/0x270\n  sg_open+0x16e/0x340\n  chrdev_open+0xbe/0x230\n  do_dentry_open+0x175/0x480\n  vfs_open+0x34/0xf0\n  do_open+0x265/0x3d0\n  path_openat+0x110/0x290\n  do_filp_open+0xc3/0x170\n  do_sys_openat2+0x71/0xe0\n  __x64_sys_openat+0x6d/0xa0\n  do_syscall_64+0x62/0x310\n  entry_SYSCALL_64_after_hwframe+0x76/0x7e\n\nThe fix is to use module_param_cb to validate and reject invalid values\nassigned to def_reserved_size.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00185,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.637",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:16:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53303",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nf2fs: protect extension_list reading with sb_lock in f2fs_sbi_show()\n\nIn f2fs_sbi_show(), the extension_list, extension_count and\nhot_ext_count are read without holding sbi-\u003esb_lock. If a concurrent\nsysfs store modifies the extension list via f2fs_update_extension_list(),\nthe show path may read inconsistent count and array contents, potentially\nleading to out-of-bounds access or displaying stale data.\n\nFix this by holding sb_lock around the entire extension list read\nand format operation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:16:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53302",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ncrypto: eip93 - fix hmac setkey algo selection\n\neip93_hmac_setkey() allocates a temporary ahash transform for\ncomputing HMAC ipad/opad key material. The allocation uses the\ndriver-specific cra_driver_name (e.g. \"sha256-eip93\") but passes\nCRYPTO_ALG_ASYNC as the mask, which excludes async algorithms.\n\nSince the EIP93 hash algorithms are the only ones registered\nunder those driver names and they are inherently async, the\nlookup is self-contradictory and always fails with -ENOENT.\n\nWhen called from the AEAD setkey path, this failure leaves the\nSA record partially initialized with zeroed digest fields. A\nsubsequent crypto operation then dereferences a NULL pointer in\nthe request context, resulting in a kernel panic:\n\n```\n  pc : eip93_aead_handle_result+0xc8c/0x1240 [crypto_hw_eip93]\n  lr : eip93_aead_handle_result+0xbec/0x1240 [crypto_hw_eip93]\n  sp : ffffffc082feb820\n  x29: ffffffc082feb820 x28: ffffff8011043980 x27: 0000000000000000\n  x26: 0000000000000000 x25: ffffffc078da0bc8 x24: 0000000091043980\n  x23: ffffff8004d59e50 x22: ffffff8004d59410 x21: ffffff8004d593c0\n  x20: ffffff8004d593c0 x19: ffffff8004d4f300 x18: 0000000000000000\n  x17: 0000000000000000 x16: 0000000000000000 x15: 0000007fda7aa498\n  x14: 0000000000000000 x13: 0000000000000000 x12: 0000000000000000\n  x11: 0000000000000000 x10: fffffffff8127a80 x9 : 0000000000000000\n  x8 : ffffff8004d4f380 x7 : 0000000000000000 x6 : 000000000000003f\n  x5 : 0000000000000040 x4 : 0000000000000008 x3 : 0000000000000009\n  x2 : 0000000000000008 x1 : 0000000028000003 x0 : ffffff8004d388c0\n  Code: 910142b6 f94012e0 f9002aa0 f90006d3 (f9400740)\n```\n\nThe reported symbol eip93_aead_handle_result+0xc8c is a\nresolution artifact from static functions being merged under\nthe nearest exported symbol. Decoding the faulting sequence:\n\n```\n  910142b6  ADD  X22, X21, #0x50\n  f94012e0  LDR  X0, [X23, #0x20]\n  f9002aa0  STR  X0, [X21, #0x50]\n  f90006d3  STR  X19, [X22, #0x8]\n  f9400740  LDR  X0, [X26, #0x8]\n```\n\nThe faulting LDR at [X26, #0x8] is loading ctx-\u003eflags\n(offset 8 in eip93_hash_ctx), where ctx has been resolved\nto NULL from a partially initialized or unreachable\ntransform context following the failed setkey.\n\nFix this by dropping the CRYPTO_ALG_ASYNC mask from the\ncrypto_alloc_ahash() call. The code already handles async\ncompletion correctly via crypto_wait_req(), so there is no\nrequirement to restrict the lookup to synchronous algorithms.\n\nNote that hashing a single 64-byte block through the hardware\nis likely slower than doing it in software due to the DMA\nround-trip overhead, but offloading it may still spare CPU\ncycles on the slower embedded cores where this IP is found.\n\n[Detailed investigation report of this bug]",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.413",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53301",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nreset: amlogic: t7: Fix null reset ops\n\nFix missing reset ops causing kernel null pointer dereference.\nThis SOC's reset is currently not used yet.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.313",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53300",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: enetc: fix NTMP DMA use-after-free issue\n\nThe AI-generated review reported a potential DMA use-after-free issue\n[1]. If netc_xmit_ntmp_cmd() times out and returns an error, the pending\ncommand is not explicitly aborted, while ntmp_free_data_mem()\nunconditionally frees the DMA buffer. If the buffer has already been\nreallocated elsewhere, this may lead to silent memory corruption. Because\nthe hardware eventually processes the pending command and perform a DMA\nwrite of the response to the physical address of the freed buffer.\n\nTo resolve this issue, this patch does the following modifications:\n\n1. Convert cbdr-\u003ering_lock from a spinlock to a mutex\n\nThe lock was originally a spinlock in case NTMP operations might be\ninvoked from atomic context. After downstream support for all NTMP\ntables, no such usage has materialized. A mutex lock is now required\nbecause the driver now needs to reclaim used BDs and release associated\nDMA memory within the lock's context, while dma_free_coherent() might\nsleep.\n\n2. Introduce software command BD (struct netc_swcbd)\n\nThe hardware write-back overwrites the addr and len fields of the BD,\nso the driver cannot rely on the hardware BD to free the associated DMA\nmemory. The driver now maintains a software shadow BD storing the DMA\nbuffer pointer, DMA address, and size. And netc_xmit_ntmp_cmd() only\nreclaims older BDs when the number of used BDs reaches\nNETC_CBDR_CLEAN_WORK (16). The software BD enables correct DMA memory\nrelease. With this, struct ntmp_dma_buf and ntmp_free_data_mem() are no\nlonger needed and are removed.\n\n3. Require callers to hold ring_lock across netc_xmit_ntmp_cmd()\n\nnetc_xmit_ntmp_cmd() releases the ring_lock before the caller finishes\nconsuming the response. At this point, if a concurrent thread submits\na new command, it may trigger ntmp_clean_cbdr() and free the DMA buffer\nwhile it is still in use. Move ring_lock ownership to the caller to\nensure the response buffer cannot be reclaimed prematurely. So the\nhelpers ntmp_select_and_lock_cbdr() and ntmp_unlock_cbdr() are added.\n\nThese changes eliminate the DMA use-after-free condition and ensure safe\nand consistent BD reclamation and DMA buffer lifecycle management.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.200",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53299",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: airoha: Move ndesc initialization at end of airoha_qdma_init_tx()\n\nIf queue entry list allocation fails in airoha_qdma_init_tx_queue routine,\nairoha_qdma_cleanup_tx_queue() will trigger a NULL pointer dereference\naccessing the queue entry array. The issue is due to the early ndesc\ninitialization in airoha_qdma_init_tx_queue(). Fix the issue moving ndesc\ninitialization at end of airoha_qdma_init_tx routine.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.110",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53298",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: airoha: Move ndesc initialization at end of airoha_qdma_init_rx_queue()\n\nIf queue entry or DMA descriptor list allocation fails in\nairoha_qdma_init_rx_queue routine, airoha_qdma_cleanup() will trigger a\nNULL pointer dereference running netif_napi_del() for RX queue NAPIs\nsince netif_napi_add() has never been executed to this particular RX NAPI.\nThe issue is due to the early ndesc initialization in\nairoha_qdma_init_rx_queue() since airoha_qdma_cleanup() relies on ndesc\nvalue to check if the queue is properly initialized. Fix the issue moving\nndesc initialization at end of airoha_qdma_init_tx routine.\nMove page_pool allocation after descriptor list allocation in order to\navoid memory leaks if desc allocation fails.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:23.003",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53297",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: mana: Guard mana_remove against double invocation\n\nIf PM resume fails (e.g., mana_attach() returns an error), mana_probe()\ncalls mana_remove(), which tears down the device and sets\ngd-\u003egdma_context = NULL and gd-\u003edriver_data = NULL.\n\nHowever, a failed resume callback does not automatically unbind the\ndriver. When the device is eventually unbound, mana_remove() is invoked\na second time. Without a NULL check, it dereferences gc-\u003edev with\ngc == NULL, causing a kernel panic.\n\nAdd an early return if gdma_context or driver_data is NULL so the second\ninvocation is harmless. Move the dev = gc-\u003edev assignment after the\nguard so it cannot dereference NULL.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:22.900",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53296",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nmailbox: mailbox-test: free channels on probe error\n\nOn probe error, free the previously obtained channels. This not only\nprevents a leak, but also UAF scenarios because the client structure\nwill be removed nonetheless because it was allocated with devm.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00176,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:22.557",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53295",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nmailbox: add sanity check for channel array\n\nFail gracefully if there is no channel array attached to the mailbox\ncontroller. Otherwise the later dereference will cause an OOPS which\nmight not be seen because mailbox controllers might instantiate very\nearly. Remove the comment explaining the obvious while here.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00177,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:22.427",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53294",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nmailbox: mailbox-test: don't free the reused channel\n\nThe RX channel can be aliased to the TX channel if it has a different\nMMIO. This special case needs to be handled when freeing the channels\notherwise a double-free occurs.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00177,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:22.310",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53293",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/amdgpu: fix AMDGPU_INFO_READ_MMR_REG\n\nThere were multiple issues in that code.\n\nFirst of all the order between the reset semaphore and the mm_lock was\nwrong (e.g. copy_to_user) was called while holding the lock.\n\nThen we allocated memory while holding the reset semaphore which is also\na pretty big bug and can deadlock.\n\nThen we used down_read_trylock() instead of waiting for the reset to\nfinish.\n\n(cherry picked from commit 361b6e6b303d4b691f6c5974d3eaab67ca6dd90e)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:22.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53292",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nnet: phonet: do not BUG_ON() in pn_socket_autobind() on failed bind\n\nsyzbot reported a kernel BUG triggered from pn_socket_sendmsg() via\npn_socket_autobind():\n\n  kernel BUG at net/phonet/socket.c:213!\n  RIP: 0010:pn_socket_autobind net/phonet/socket.c:213 [inline]\n  RIP: 0010:pn_socket_sendmsg+0x240/0x250 net/phonet/socket.c:421\n  Call Trace:\n   sock_sendmsg_nosec+0x112/0x150 net/socket.c:797\n   __sock_sendmsg net/socket.c:812 [inline]\n   __sys_sendto+0x402/0x590 net/socket.c:2280\n   ...\n\npn_socket_autobind() calls pn_socket_bind() with port 0 and, on\n-EINVAL, assumes the socket was already bound and asserts that the\nport is non-zero:\n\n  err = pn_socket_bind(sock, ..., sizeof(struct sockaddr_pn));\n  if (err != -EINVAL)\n          return err;\n  BUG_ON(!pn_port(pn_sk(sock-\u003esk)-\u003esobject));\n  return 0; /* socket was already bound */\n\nHowever pn_socket_bind() also returns -EINVAL when sk-\u003esk_state is not\nTCP_CLOSE, even when the socket has never been bound and pn_port() is\nstill 0.  In that case the BUG_ON() fires and panics the kernel from a\nuser-triggerable path.\n\nTreat the \"bind returned -EINVAL but pn_port() is still 0\" case as a\nregular error and propagate -EINVAL to the caller instead of crashing.\nExisting callers already translate a non-zero return from\npn_socket_autobind() into -ENOBUFS/-EAGAIN, so returning -EINVAL here\nonly changes behaviour from panic to a normal errno.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:22.090",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53291",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nALSA: hda/conexant: Fix missing error check for jack detection\n\nIn cx_probe(), the return value of snd_hda_jack_detect_enable_callback()\nis ignored. This function returns a pointer, and if it fails (e.g., due\nto memory allocation failure), it returns an error pointer which must\nbe checked using IS_ERR().\n\nIf the registration fails, the driver continues to probe, but the jack\ndetection callback will not be registered. This can lead to a kernel\ncrash later when the driver attempts to handle jack events or accesses\nthe uninitialized structure.\n\nCheck the return value using IS_ERR() and propagate the error via\nPTR_ERR() to the probe caller.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.967",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53290",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/xe/eustall: Fix drm_dev_put called before stream disable in close\n\nIn xe_eu_stall_stream_close(), drm_dev_put() is called before the\nstream is disabled and its resources are freed. If this drops the\nlast reference, the device structures could be freed while the\nsubsequent cleanup code still accesses them, leading to a\nuse-after-free.\n\nFix this by moving drm_dev_put() after all device accesses are\ncomplete. This matches the ordering in xe_oa_release().\n\n(cherry picked from commit 35aff528f7297e949e5e19c9cd7fd748cf1cf21c)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.870",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53289",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nice: fix NULL pointer dereference in ice_reset_all_vfs()\n\nice_reset_all_vfs() ignores the return value of ice_vf_rebuild_vsi().\nWhen the VSI rebuild fails (e.g. during NVM firmware update via\nnvmupdate64e), ice_vsi_rebuild() tears down the VSI on its error path,\nleaving txq_map and rxq_map as NULL. The subsequent unconditional call\nto ice_vf_post_vsi_rebuild() leads to a NULL pointer dereference in\nice_ena_vf_q_mappings() when it accesses vsi-\u003etxq_map[0].\n\nThe single-VF reset path in ice_reset_vf() already handles this\ncorrectly by checking the return value of ice_vf_reconfig_vsi() and\nskipping ice_vf_post_vsi_rebuild() on failure.\n\nApply the same pattern to ice_reset_all_vfs(): check the return value\nof ice_vf_rebuild_vsi() and skip ice_vf_post_vsi_rebuild() and\nice_eswitch_attach_vf() on failure. The VF is left safely disabled\n(ICE_VF_STATE_INIT not set, VFGEN_RSTAT not set to VFACTIVE) and can\nbe recovered via a VFLR triggered by a PCI reset of the VF\n(sysfs reset or driver rebind).\n\nNote that this patch does not prevent the VF VSI rebuild from failing\nduring NVM update — the underlying cause is firmware being in a\ntransitional state while the EMP reset is processed, which can cause\nAdmin Queue commands (ice_add_vsi, ice_cfg_vsi_lan) to fail. This\npatch only prevents the subsequent NULL pointer dereference that\ncrashes the kernel when the rebuild does fail.\n\n crash\u003e bt\n     PID: 50795    TASK: ff34c9ee708dc680  CPU: 1    COMMAND: \"kworker/u512:5\"\n      #0 [ff72159bcfe5bb50] machine_kexec at ffffffffaa8850ee\n      #1 [ff72159bcfe5bba8] __crash_kexec at ffffffffaaa15fba\n      #2 [ff72159bcfe5bc68] crash_kexec at ffffffffaaa16540\n      #3 [ff72159bcfe5bc70] oops_end at ffffffffaa837eda\n      #4 [ff72159bcfe5bc90] page_fault_oops at ffffffffaa893997\n      #5 [ff72159bcfe5bce8] exc_page_fault at ffffffffab528595\n      #6 [ff72159bcfe5bd10] asm_exc_page_fault at ffffffffab600bb2\n         [exception RIP: ice_ena_vf_q_mappings+0x79]\n         RIP: ffffffffc0a85b29  RSP: ff72159bcfe5bdc8  RFLAGS: 00010206\n         RAX: 00000000000f0000  RBX: ff34c9efc9c00000  RCX: 0000000000000000\n         RDX: 0000000000000000  RSI: 0000000000000010  RDI: ff34c9efc9c00000\n         RBP: ff34c9efc27d4828   R8: 0000000000000093   R9: 0000000000000040\n         R10: ff34c9efc27d4828  R11: 0000000000000040  R12: 0000000000100000\n         R13: 0000000000000010  R14:   R15:\n         ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018\n      #7 [ff72159bcfe5bdf8] ice_sriov_post_vsi_rebuild at ffffffffc0a85e2e [ice]\n      #8 [ff72159bcfe5be08] ice_reset_all_vfs at ffffffffc0a920b4 [ice]\n      #9 [ff72159bcfe5be48] ice_service_task at ffffffffc0a31519 [ice]\n     #10 [ff72159bcfe5be88] process_one_work at ffffffffaa93dca4\n     #11 [ff72159bcfe5bec8] worker_thread at ffffffffaa93e9de\n     #12 [ff72159bcfe5bf18] kthread at ffffffffaa946663\n     #13 [ff72159bcfe5bf50] ret_from_fork at ffffffffaa8086b9\n\n The panic occurs attempting to dereference the NULL pointer in RDX at\n ice_sriov.c:294, which loads vsi-\u003etxq_map (offset 0x4b8 in ice_vsi).\n\n The faulting VSI is an allocated slab object but not fully initialized\n after a failed ice_vsi_rebuild():\n\n  crash\u003e struct ice_vsi 0xff34c9efc27d4828\n    netdev = 0x0,\n    rx_rings = 0x0,\n    tx_rings = 0x0,\n    q_vectors = 0x0,\n    txq_map = 0x0,\n    rxq_map = 0x0,\n    alloc_txq = 0x10,\n    num_txq = 0x10,\n    alloc_rxq = 0x10,\n    num_rxq = 0x10,\n\n The nvmupdate64e process was performing NVM firmware update:\n\n  crash\u003e bt 0xff34c9edd1a30000\n  PID: 49858    TASK: ff34c9edd1a30000  CPU: 1    COMMAND: \"nvmupdate64e\"\n   #0 [ff72159bcd617618] __schedule at ffffffffab5333f8\n   #4 [ff72159bcd617750] ice_sq_send_cmd at ffffffffc0a35347 [ice]\n   #5 [ff72159bcd6177a8] ice_sq_send_cmd_retry at ffffffffc0a35b47 [ice]\n   #6 [ff72159bcd617810] ice_aq_send_cmd at ffffffffc0a38018 [ice]\n   #7 [ff72159bcd617848] ice_aq_read_nvm at ffffffffc0a40254 [ice]\n   #8 \n---truncated---",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53288",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\narm64: Reserve an extra page for early kernel mapping\n\nThe final part of [data, end) segment may overflow into the next page of\ninit_pg_end[1] which is the gap page before early_init_stack[2]:\n\n[1]\ncrash_arm64_v9.0.1\u003e vtop ffffffed00601000\nVIRTUAL           PHYSICAL\nffffffed00601000  83401000\n\nPAGE DIRECTORY: ffffffecffd62000\n   PGD: ffffffecffd62da0 =\u003e 10000000833fb003\n   PMD: ffffff80033fb018 =\u003e 10000000833fe003\n   PTE: ffffff80033fe008 =\u003e 68000083401f03\n  PAGE: 83401000\n\n     PTE        PHYSICAL  FLAGS\n68000083401f03  83401000  (VALID|SHARED|AF|NG|PXN|UXN)\n\n      PAGE       PHYSICAL      MAPPING       INDEX CNT FLAGS\nfffffffec00d0040 83401000                0        0  1 4000 reserved\n\n[2]\nffffffed002c8000 (r) __pi__data\nffffffed0054e000 (d) __pi___bss_start\nffffffed005f5000 (b) __pi_init_pg_dir\nffffffed005fe000 (b) __pi_init_pg_end\nffffffed005ff000 (B) early_init_stack\nffffffed00608000 (b) __pi__end\n\nFor 4K pages, the early kernel mapping may use 2MB block entries but the\nkernel segments are only 64KB aligned. Segment boundaries that fall\nwithin a 2MB block therefore require a PTE table so that different\nattributes can be applied on either side of the boundary.\n\nKERNEL_SEGMENT_COUNT still correctly counts the five permanent kernel\nVMAs registered by declare_kernel_vmas(). However, since commit\n5973a62efa34 (\"arm64: map [_text, _stext) virtual address range\nnon-executable+read-only\"), the early mapper also maps [_text, _stext)\nseparately from [_stext, _etext). This adds one more early-only split\nand can require one more page-table page than the existing\nEARLY_SEGMENT_EXTRA_PAGES allowance reserves.\n\nIncrease the 4K-page early mapping allowance by one page to cover that\nadditional split.\n\n[catalin.marinas@arm.com: rewrote part of the commit log]\n[catalin.marinas@arm.com: expanded the code comment]",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.600",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53287",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\naudit: fix incorrect inheritable capability in CAPSET records\n\n__audit_log_capset() records the effective capability set into the\ninheritable field due to a copy-paste error. Every CAPSET audit\nrecord therefore reports cap_pi (process inheritable) with the value\nof cap_effective instead of cap_inheritable.\n\nThis silently corrupts audit data used for compliance and forensic\nanalysis: an attacker who modifies inheritable capabilities to\nprepare for a privilege-escalating exec would have the change masked\nin the audit trail.\n\nThe bug has been present since the original introduction of CAPSET\naudit records in 2008.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00176,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.457",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:15:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53286",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nidpf: fix double free and use-after-free in aux device error paths\n\nWhen auxiliary_device_add() fails in idpf_plug_vport_aux_dev() or\nidpf_plug_core_aux_dev(), the err_aux_dev_add label calls\nauxiliary_device_uninit() and falls through to err_aux_dev_init.  The\nuninit call will trigger put_device(), which invokes the release\ncallback (idpf_vport_adev_release / idpf_core_adev_release) that frees\niadev.  The fall-through then reads adev-\u003eid from the freed iadev for\nida_free() and double-frees iadev with kfree().\n\nFree the IDA slot and clear the back-pointer before uninit, while adev\nis still valid, then return immediately.\n\nCommit 65637c3a1811 (\"idpf: fix UAF in RDMA core aux dev deinitialization\")\nfixed the same use-after-free in the matching unplug path in this file but\nmissed both probe error paths.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00169,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.353",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53285",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/amd/display: Wrap DCN32 phantom-plane allocation in DC_RUN_WITH_PREEMPTION_ENABLED\n\n[Why]\ndcn32_validate_bandwidth() wraps dcn32_internal_validate_bw() with\nDC_FP_START()/DC_FP_END(). In x86 non-RT, DC_FP_START takes fpregs_lock(),\nwhich disables local softirqs.\n\nThe DML1 path through dcn32_enable_phantom_plane() calls kvzalloc() to\nallocate ~335 KiB for dc_plane_state. This triggers the vmalloc path,\nwhich calls BUG_ON(in_interrupt()) because it's invoked within the\nFPU-enabled (softirq disabled) region, leading to a kernel crash.\n\n[How]\nWrap the dc_state_create_phantom_plane() call with the\nDC_RUN_WITH_PREEMPTION_ENABLED() macro to allow preemption during\nthis memory allocation.\n\n(cherry picked from commit 885ccbef7b94a8b38f69c4211c679021aa27ad11)",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:21.157",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53284",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nbtrfs: only release the dirty pages io tree after successful writes\n\n[WARNING]\nWith extra warning on dirty extent buffers at umount (aka, the next\npatch in the series), test case generic/388 can trigger the following\nwarning about dirty extent buffers at unmount time:\n\n  BTRFS critical (device dm-2 state E): emergency shutdown\n  BTRFS error (device dm-2 state E): error while writing out transaction: -30\n  BTRFS warning (device dm-2 state E): Skipping commit of aborted transaction.\n  BTRFS error (device dm-2 state EA): Transaction 9 aborted (error -30)\n  BTRFS: error (device dm-2 state EA) in cleanup_transaction:2068: errno=-30 Readonly filesystem\n  BTRFS info (device dm-2 state EA): forced readonly\n  BTRFS info (device dm-2 state EA): last unmount of filesystem 4fbf2e15-f941-49a0-bc7c-716315d2777c\n  ------------[ cut here ]------------\n  WARNING: disk-io.c:3311 at invalidate_and_check_btree_folios+0xfd/0x1ca [btrfs], CPU#8: umount/914368\n  CPU: 8 UID: 0 PID: 914368 Comm: umount Tainted: G           OE       7.1.0-rc1-custom+ #372 PREEMPT(full)  2de38db8d1deae71fde295430a0ff3ab98ccf596\n  Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS unknown 02/02/2022\n  RIP: 0010:invalidate_and_check_btree_folios+0xfd/0x1ca [btrfs]\n  Call Trace:\n   \u003cTASK\u003e\n   close_ctree+0x52e/0x574 [btrfs d2f0b1cd330d1287e7a9919d112eadfc0e914efd]\n   generic_shutdown_super+0x89/0x1a0\n   kill_anon_super+0x16/0x40\n   btrfs_kill_super+0x16/0x20 [btrfs d2f0b1cd330d1287e7a9919d112eadfc0e914efd]\n   deactivate_locked_super+0x2d/0xb0\n   cleanup_mnt+0xdc/0x140\n   task_work_run+0x5a/0xa0\n   exit_to_user_mode_loop+0x123/0x4b0\n   do_syscall_64+0x243/0x7c0\n   entry_SYSCALL_64_after_hwframe+0x4b/0x53\n   \u003c/TASK\u003e\n  ---[ end trace 0000000000000000 ]---\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30539776 owner 9 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30621696 owner 257 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30638080 owner 258 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30654464 owner 7 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30703616 owner 2 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30720000 owner 10 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30736384 owner 4 gen 9 refs 2 flags 0x7\n  BTRFS warning (device dm-2 state EA): unable to release extent buffer 30752768 owner 11 gen 9 refs 2 flags 0x7\n\nI'm using a stripped down version, which seems to trigger the warning\nmore reliably:\n\n  _fsstress_pid=\"\"\n  workload()\n  {\n  \tdmesg -C\n  \tmkfs.btrfs -f -K $dev \u003e /dev/null\n  \techo 1 \u003e /sys/kernel/debug/clear_warn_once\n  \tmount $dev $mnt\n  \t$fsstress -w -n 1024 -p 4 -d $mnt \u0026\n  \t_fsstress_pid=$!\n  \tsleep 0\n  \t$godown $mnt\n  \tpkill --echo -PIPE fsstress \u003e /dev/null\n  \twait $_fsstress_pid\n  \tunset _fsstress_pid\n  \tumount $mnt\n\n  \tif dmesg | grep -q \"WARNING\"; then\n  \t\tfail\n  \tfi\n  }\n\n  for (( i = 0; i \u003c $runtime; i++ )); do\n  \techo \"=== $i/$runtime ===\"\n  \tworkload\n  done\n\n[CAUSE]\nInside btrfs_write_and_wait_transaction(), we first try to write all\ndirty ebs, then wait for them to finish.\n\nAfter that we call btrfs_extent_io_tree_release() to free all\nextent states from dirty_pages io tree.\n\nHowever if we hit an error from btrfs_write_marked_extent(), then we\nstill call btrfs_extent_io_tree_release() to clear that dirty_pages io\ntree, which may contain dirty records that we haven't yet submitted.\n\nFurthermore, the later transaction cleanup path will utilize that\ndirty_pages io tree to properly cleanup those dirty ebs, but since it's\nalready empty, no dirty ebs are properly cleaned up, thus will later\ntrigger the warnings inside invalidate_btree_folios().\n---truncated---",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:20.790",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53283",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\niommu/amd: Bounds-check devid in __rlookup_amd_iommu()\n\niommu_device_register() walks every device on the PCI bus via\nbus_for_each_dev() and calls amd_iommu_probe_device() for each. The\ninlined check_device() path computes the device's sbdf, calls\nrlookup_amd_iommu() to find the owning IOMMU, and only afterwards\nverifies devid \u003c= pci_seg-\u003elast_bdf. __rlookup_amd_iommu() indexes\nrlookup_table[devid] with no bounds check of its own, so for a PCI\ndevice whose BDF is not described by the IVRS, the lookup reads past\nthe end of the allocation before the caller's bounds check can run.\n\nThis was harmless before commit e874c666b15b (\"iommu/amd: Change\nrlookup, irq_lookup, and alias to use kvalloc()\"): the table was a\nzeroed page-order allocation, so the over-read returned NULL and the\ncaller's NULL check skipped the device. After that commit the table is\na tight kvcalloc() and the over-read returns adjacent slab contents,\nwhich check_device() then dereferences as a struct amd_iommu *,\ncausing a boot-time GPF.\n\nSeen on Google Compute Engine ct6e VMs, where the virtualized IVRS\ndescribes only the four TPU endpoints 00:04.0-07.0; the gVNIC at\n00:08.0 (devid 0x40) indexes 56 bytes past the 456-byte allocation,\ninto the adjacent kmalloc-512 slab object:\n\n  pci 0000:00:04.0: Adding to iommu group 0\n  pci 0000:00:05.0: Adding to iommu group 1\n  pci 0000:00:06.0: Adding to iommu group 2\n  pci 0000:00:07.0: Adding to iommu group 3\n  Oops: general protection fault, probably for non-canonical address 0x3a64695f78746382: 0000 [#1] SMP NOPTI\n  CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 6.18.22 #1\n  Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 12/06/2025\n  RIP: 0010:amd_iommu_probe_device+0x54/0x3a0\n  Call Trace:\n   __iommu_probe_device+0x107/0x520\n   probe_iommu_group+0x29/0x50\n   bus_for_each_dev+0x7e/0xe0\n   iommu_device_register+0xc9/0x240\n   iommu_go_to_state+0x9c0/0x1c60\n   amd_iommu_init+0x14/0x40\n   pci_iommu_init+0x16/0x60\n   do_one_initcall+0x47/0x2f0\n\nGuard the array access in __rlookup_amd_iommu(). With the fix applied\non 6.18.22, the gVNIC at 00:08.0 is skipped cleanly and the VM boots.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:20.253",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53282",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nx86/kexec: Push kjump return address even for non-kjump kexec\n\nThe version of purgatory code shipped by kexec-tools attempts to look above\nthe top of its stack to find a return address for a kjump, even in a non-kjump\nkexec.\n\nAfter the commit in Fixes: the word above the stack might not be there,\nleading to a fault (which is at least now caught by my exception-handling code\nin kexec).\n\nThat commit fixed things for the actual kjump path, but no longer\n\"gratuitously\" pushes the unused return address to the stack in the non-kjump\npath. Put that *back* in the non-kjump path, to prevent purgatory from\ncrashing when trying to access it.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:20.063",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53281",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\niommu/vt-d: Avoid NULL pointer dereference or refcount corruption\n\nCommit 60f030f7418d (\"iommu/vt-d: Avoid use of NULL after WARN_ON_ONCE\")\nfixed a NULL pointer dereference in an unlikely situation partly.\n\nIf dev_pasid is not found in the dev_pasids list, it remains NULL.\nHowever, the teardown operations are executed unconditionally, this lead\nto a NULL pointer dereference or refcount corruption.\n\nIf the domain was never attached to this IOMMU, info will be NULL, which\nwould cause an immediate dereference when checking --info-\u003erefcnt.\n\nEven if info is not NULL, decrementing the refcount without having removed\na valid PASID might unbalance the count. This could lead to premature\ndropping of the refcount to 0, potentially causing a use-after-free for the\nremaining active devices sharing the domain.\n\nFix it by returning early if dev_pasid is NULL, before executing the\nteardown operations.\n\nIssue found by AI review and suggested by Kevin Tian.\nhttps://sashiko.dev/#/patchset/20260421031347.1408890-1-zhenzhong.duan%40intel.com",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:19.600",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53280",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\niommu: Fix NULL group-\u003edomain dereference in pci_dev_reset_iommu_done()\n\nLocal sashiko review pointed it out that group-\u003edomain could be NULL when\na default domain fails to allocate during the first probe, which can crash\nat domain-\u003eops-\u003eattach_dev dereference in __iommu_attach_device() invoked\nby pci_dev_reset_iommu_done().\n\npci_dev_reset_iommu_prepare() is fine as an old_domain pointer can be NULL.\n\nSkip the re-attach in pci_dev_reset_iommu_done() to fix the bug.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:19.500",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53279",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndrm/gma500/oaktrail_lvds: fix hang on init failure\n\nThe LVDS init code looks up an I2C adapter using i2c_get_adapter() and\ntries to read the EDID before falling back to allocating and registering\nits own adapter.\n\nThe error handling does not separate these cases so on a late init\nfailure it will try to deregister and free also an adapter that had\npreviously been registered. Since i2c_get_adapter() takes another\nreference to the adapter, deregistration hangs indefinitely while\nwaiting for the reference to be released.\n\nFix this by only destroying adapters allocated during LVDS init on\nerrors.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:19.383",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53278",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\narm_mpam: Check whether the config array is allocated before destroying it\n\n__destroy_component_cfg() is called to free the configuration array.\nIt uses the embedded 'garbage' structure, which means the array has\nto be allocated.\n\nIf __destroy_component_cfg() is called from mpam_disable() before the\nconfiguration was ever allocated, then a NULL pointer is dereferenced.\n\nCheck for this case and return early if the configuration is not\nallocated.\n\n__destroy_component_cfg() also frees the mbwu_state as this is allocated\nby __allocate_component_cfg(). As the mbwu_state is allocated after\ncomp-\u003ecfg is set, and is also under mpam_list_lock, only the first\npointer needs checking.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:19.277",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52785",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, there is a SQL injection in timestamps functionality. OpenProject baseline comparison allows callers to request historic work-package attributes using the timestamps parameter. This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0.00221,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:19.133",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52784",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, there is a CSRF on TARGET through /users/:id via POST parameter \"user[admin]\". This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00163,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:18.993",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52783",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, OpenProject's Storages module writes the OneDrive/SharePoint userless OAuth access_token plaintext to Rails.cache under the deterministic key storage.\u003cid\u003e.httpx_access_token, repopulated continuously by an hourly cron and every userless-OAuth call site (see Write cadence). None of the three allowed cache backends (file_store, memcache, redis) encrypts at rest. An attacker with read access to the cache backend recovers the Azure-AD application-tier bearer with an anonymous get over the memcached binary protocol (or the equivalent against Redis). This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0.00129,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:18.860",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52782",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, there is an IDOR through /projects/\u003cA\u003e/settings/project_storages/\u003cA_ps_id\u003e via PATCH parameter \"storages_project_storage[project_folder_id]\" leads to Access to Unauthorized Resources. A project-admin in one project can hijack the managed Nextcloud or OneDrive folder of another project on the same storage by writing the victim project's project_folder_id into the attacker's Storages::ProjectStorage row. The next managed-folder sync overwrites the ACL on the referenced folder with the attacker project's user list. This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0.00258,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:18.737",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52781",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, the HTML sanitizer grants \u003cmacro\u003e elements unrestricted data-* attributes via :data wildcard. An attacker injects data-controller=\"poll-for-changes\" into a work package description, causing Stimulus.js to mount a controller that fetches an attacker-uploaded attachment and passes it to renderStreamMessage(). This executes arbitrary Turbo Stream actions — including redirect_to — in every victim's authenticated browser session, redirecting them to an attacker-controlled server. This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "medium",
+    "cvss_score": 6.4,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:18.613",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:14:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52780",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, cache store poisoning leads to Remote Code Execution (RCE). This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "critical",
+    "cvss_score": 9.6,
+    "epss_score": 0.00233,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:18.490",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52779",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, a cross-project IDOR / authorization context confusion in the Calendar and Team Planner modules allows a user with management permissions in one project to delete public Calendar or Team Planner Queries from another project where they do not have the corresponding management permissions. Both modules authorize the request against the project identified by :project_id in the URL, but the actual Query object is loaded later by :id from Query.visible(current_user) without verifying that the loaded Query belongs to the authorized project. As a result, an attacker can use permissions from Project A to delete shared/public Calendar or Team Planner views from Project B, causing integrity impact and limited availability impact for users relying on those shared views. This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00185,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:18.360",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49991",
+    "description": "RustFS is a distributed object storage system built in Rust. In 1.0.0-beta.4, authenticated users with only PutObject permission on their own bucket can exploit a path traversal vulnerability in the Snowball auto-extract feature to write arbitrary objects into other users' buckets, completely breaking multi-tenant isolation. The vulnerability chains three flaws: No ../ sanitization in tar entry key normalization; IAM wildcard matching uses raw (uncleaned) paths; and Filesystem path cleaning resolves ../ across bucket boundaries.",
+    "severity": "high",
+    "cvss_score": 8.6,
+    "epss_score": 0.00273,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:17.817",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49355",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.4.0, `GET /api/v3/meetings/:meeting_id/agenda_items/:agenda_item_id` discloses private work package data from a linked work package that belongs to a private/inaccessible project. This vulnerability is fixed in 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00214,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:17.583",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47193",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.3 and 17.4.1, the journal diff endpoint discloses hidden historical field values without enforcing object and field visibility. This vulnerability is fixed in 17.3.3 and 17.4.1.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00252,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:13.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46386",
+    "description": "OpenProject is open-source, web-based project management software. Prior to , the official openproject/openproject Docker image ships ENV SECRET_KEY_BASE=OVERWRITE_ME as the default Rails master key. Combined with cookies_serializer = :marshal, this gives any logged-in user a deterministic Marshal-deserialization path reachable via the /my/two_factor_devices cookie reader This vulnerability is fixed in .",
+    "severity": "critical",
+    "cvss_score": 9.9,
+    "epss_score": 0.00272,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:13.380",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44736",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.4.0, the GET /api/v3/relations endpoint allows any authenticated user to retrieve relations — and the subject (title) of work packages they have no permission to view — by supplying an arbitrary work package ID in the involved, fromId, or toId filter. This bypasses the Relation.visible scope due to a flawed performance optimization in RelationQuery. This vulnerability is fixed in 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00286,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:03.657",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44735",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.2 and 17.4.0, the GET /api/v3/shares endpoint returns share details for ALL work packages in a project to any user with the view_shared_work_packages permission. The authorization check operates at the project level only — it does not verify the requesting user can actually view each individual shared work package. This allows a regular project member to discover work package IDs and subjects (including confidential titles), which users have been granted shared access, what role level was assigned (Editor, Commenter, Viewer). This vulnerability is fixed in 17.3.2 and 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.0027,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:03.520",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44734",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.2 and 17.4.0, a Missing Authorization vulnerability exists in OpenProject's CostReportsController. The rename and update actions allow any authenticated user to modify the name, filters, and grouping of any Public cost report in the system without verifying ownership or permission level. An attacker who discovers or guesses a public report's numeric ID can rename or overwrite its filter configuration without any warning to the report's owner. This vulnerability is fixed in 17.3.2 and 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00231,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:03.377",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44733",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.2 and 17.4.0, Business Logic Error on OpenProject through PATCH request to /api/v3/users/me permits to bypass password requirements. A password validation flaw in the change password behavior allows attackers to change a user's password only with an active session takeover. This vulnerability is fixed in 17.3.2 and 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:03.240",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44732",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.2 and 17.4.0, OpenProject exposes a document update endpoint used to modify existing documents. The target document is loaded with visibility checks and then updated. During update, attacker-controlled attributes are applied to the persisted record before authorization is enforced. As a result, a user without :manage_documents in the source project can move and modify foreign project documents by setting project_id in a single PATCH request. This vulnerability is fixed in 17.3.2 and 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00201,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:03.093",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44731",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.3.2 and 17.4.0, the web application's meetings filter feature leaks whether a given user ID corresponds to a valid account and discloses the user's full name, allowing an attacker to enumerate all existing user accounts by probing user IDs and observing differences in the server response. This vulnerability is fixed in 17.3.2 and 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00186,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:02.943",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44696",
+    "description": "OpenProject is open-source, web-based project management software. Prior to 17.4.0, OpenProject's rich text (markdown) rendering pipeline uses Sanitize::Config::RELAXED[:css] for inline style sanitization. This configuration permits essentially all CSS properties in style attributes on permitted HTML elements (figure, img, table, th, tr, td). This allows any authenticated user with write access to formattable text fields (work package descriptions, comments, project descriptions, news) to inject CSS This vulnerability is fixed in 17.4.0.",
+    "severity": "medium",
+    "cvss_score": 5.7,
+    "epss_score": 0.00211,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:17:02.793",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-32833",
+    "description": "Cudy LT300 3.0 running firmware prior to version 2.5.12 contains an OS command injection vulnerability that allows authenticated attackers to execute arbitrary commands by injecting shell metacharacters into the cbid.system.ntp.current POST parameter in the system time configuration interface. Attackers can submit malicious payloads through the NTP settings endpoint to achieve remote code execution on the underlying system.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.0134,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:16:54.583",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-29509",
+    "description": "Patool before 4.0.5 contains a path traversal vulnerability in the safe_extract() function in patoolib/programs/py_tarfile.py when running on Python before 3.12, where the is_within_directory() helper uses os.path.commonprefix() for character-level string comparison instead of path-level comparison, allowing a crafted archive member path to bypass the containment check. Attackers can supply a malicious archive with specially crafted member paths to write arbitrary files.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00285,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T20:16:54.093",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:13:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54753",
+    "description": "Nx is a monorepo solution for TypeScript and polyglot codebases. From 17.0.4 until 22.7.2 and 23.0.0-beta.2, the local HTTP server started by nx graph sent Access-Control-Allow-Origin: * on every response, letting any website a developer visited read the server's responses cross-origin — including the full project graph and the output of the /help endpoint, which runs a target's configured help command. The practical impact is typically cross-origin information disclosure, but can be arbitrary command injection in rare cases. This vulnerability is fixed in 22.7.2 and 23.0.0-beta.2.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00812,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T19:16:43.937",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:12:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48090",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.37.0 until 1.37.5 and 1.38.3, the HTTP OAuth2 filter (envoy.filters.http.oauth2) can leave an in-flight async token exchange attached to a downstream stream that has already been torn down. A late AsyncClient completion can still invoke OAuth2Filter methods that use StreamDecoderFilterCallbacks after that object’s lifetime has ended, causing undefined behavior, worker crashes (availability loss), and use-after-free / invalid-vptr failures under AddressSanitizer. This is a memory-safety / lifetime issue in the data plane, not a trivial config bug. Remote code execution is not claimed here; the primary demonstrated impact is DoS via crash and UB; any further impact would be deployment- and allocator-dependent.  This vulnerability is fixed in 1.37.5 and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00557,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T19:16:41.590",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:12:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47220",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.37.0 until 1.37.5 and 1.38.3, when the %REQUESTED_SERVER_NAME(X:Y)% is used in log format and host related options is specified, like HOST_FIRST, SNI_FIRST, it's possible to crash Envoy when the specified host header is missing in the request headers. This vulnerability is fixed in 1.37.5 and 1.38.3.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0046,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T19:16:41.173",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T21:12:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47205",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.36.0 until 1.36.9, 1.37.5, and 1.38.3, a Use-After-Free (UAF) vulnerability leading to a sudden segmentation fault exists in Envoy's ext_authz HTTP filter when processing per-route authorization overrides concurrently with rapid downstream client disconnects. During standard request lifecycles, Envoy instantiates the ext_authz filter with a foundational authorization client object (client_). If a matched route dictates a dynamic per-route HTTP or gRPC authorization service override, the filter generates a localized client. In the vulnerable implementation, this transient client aggressively overwrote the default client_ unique pointer by executing client_ = std::move(per_route_client). When a client rapidly establishes and subsequently tears down a stream (such as rapidly refreshing a protected WebSocket endpoint), the downstream triggers the ConnectionManagerImpl::doDeferredStreamDestroy() -\u003e ActiveStream::onResetStream() lifecycle. Envoy immediately sequences Filter::onDestroy() in an attempt to securely abort dispatched asynchronous authorization check transactions via client_-\u003ecancel(). By destructing the default client abruptly during initiateCall, a memory lifecycle misalignment occurs within the async client manager. The stream teardown fails to reliably track and cancel the dynamically bound asynchronous authorization tasks, orchestrating a sequence where a late asynchronous callback from the network evaluates against a heavily destroyed ActiveStream validation span, generating a UAF process crash. This vulnerability is fixed in 1.36.9, 1.37.5, and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00367,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T19:16:40.853",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-13372",
+    "description": "Incorrect link resolution by display name in the custom PowerShell VPN editor in Devolutions Remote Desktop Manager 2026.2.5 through 2026.2.11 allows an authenticated attacker with write access to a shared workspace to execute a PowerShell script in another user's context via a display name collision with an existing VPN script link.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0.00278,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T19:16:39.897",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56876",
+    "description": "extract-zip does not validate symlink targets when extracting zip archives. When processing a malicious zip file containing a symlink with a relative path like '../../../../etc/passwd', extract-zip will extract the symlink without validation, allowing it to point outside the extraction directory. Depending on how extract-zip is used, an attacker could read or write to arbitrary files.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00319,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:03.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55448",
+    "description": "mise manages dev tools like node, python, cmake, and terraform. From 2026.3.15 until 2026.6.4, mise loads github.credential_command from local project config before any trust decision, then executes that value with sh -c when resolving a GitHub token. An attacker who can place a .mise.toml in a repository can execute arbitrary shell commands when the victim runs a GitHub-related mise command and no higher-priority GitHub token environment variable is set. This vulnerability is fixed in 2026.6.4.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:01.323",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55441",
+    "description": "mise manages dev tools like node, python, cmake, and terraform. Prior to 2026.6.4, mise's trust feature gates config files (mise.toml, .tool-versions) through trust_check, but task-include files are loaded on a path that never reaches it. When a directory has a task-include dir (mise-tasks/, .mise/tasks/, …) but no config file, mise falls back to the default includes and renders each task's tera fields — and that tera environment has exec() registered. A {{ exec(command='…') }} in any rendered field runs arbitrary commands the moment the tasks are merely listed. There's no config file to gate on, so no trust prompt ever appears. Read-only commands trigger it: mise tasks, mise task ls, mise run, mise tasks --usage (the query shell completion runs on Tab). The victim only has to cd into a cloned repo and list or tab-complete a task. This vulnerability is fixed in 2026.6.4.",
+    "severity": "high",
+    "cvss_score": 8.6,
+    "epss_score": 0.00184,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:01.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54557",
+    "description": "mise manages dev tools like node, python, cmake, and terraform. Prior to 2026.6.1, the mise HTTP backend builds its install symlink destination from the raw resolved version string for non-latest versions. Normal tool install paths use the sanitized version pathname, but the HTTP backend's symlink path uses the raw value. On Unix-like systems, if that version is an absolute path, PathBuf::join discards the intended mise installs root. A repository-controlled .tool-versions file can therefore make mise install create a symlink outside the mise install tree. With bin_path, the same issue can place an executable symlink under an attacker-selected absolute prefix, such as a developer-tool prefix that is later added to PATH. This vulnerability is fixed in 2026.6.1.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:00.553",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54341",
+    "description": "Dragonfly is an in-memory data store built for modern application workloads. Prior to 1.39.0, a crafted RESTORE payload triggers an out-of-bounds read in DragonflyDB's listpack collection loaders, crashing the entire server process (SIGSEGV). Because DragonflyDB requires no authentication by default and RESTORE is a normal keyspace command, an unauthenticated remote attacker can crash the server with a single ~24-byte command — a remote, repeatable denial of service. This vulnerability is fixed in 1.39.0.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00399,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:00.417",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48743",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. Prior to 1.35.11, 1.36.7, 1.37.3, and 1.38.1, Envoy can translate a downstream HTTP/3 request that is complete at the transport layer (HEADERS with FIN / headers-only close) but still carries a nonzero Content-Length into a complete upstream HTTP/1 request with unresolved body debt. In an HTTP/1 upstream deployment where the origin replies before reading the declared body and keeps the connection reusable, the beginning of the next Envoy-generated upstream request can be consumed as the first request's body. The remaining bytes are then parsed by the origin as a new HTTP/1 request. This was reproduced as a route-bypass/desync: direct /pwn was denied by Envoy, but the second downstream H3 stream received the response for backend-parsed GET /pwn HTTP/1.1. This vulnerability is fixed in 1.35.11, 1.36.7, 1.37.3, and 1.38.1.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00304,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:00.173",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48706",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.34.0 until 1.35.13, 1.36.9, 1.37.5, and 1.38.3, a vulnerability exists in Envoy's TCP StatsD sink (TcpStatsdSink), where the thread-local flusher buffer can be overflowed by exceptionally long statistic names (e.g., \u003e16KiB). During formatting, TcpStatsdSink reserves a single contiguous memory slice of 16KiB (FLUSH_SLICE_SIZE_BYTES). If formatting a single metric exceeds the remaining capacity, the flusher initiates a buffer rotation but incorrectly continues to allocate another fixed 16KiB slice. If an attacker can trigger a statistic name longer than 16KiB—for example, by sending an HTTP or gRPC request with an extremely long request path (:path) that is recorded by the grpc_stats filter configured with stats_for_all_methods: true—the flusher will attempt to copy the metric name using memcpy operations beyond the allocated heap buffer boundaries. This leads to a heap write overflow, which can cause immediate denial-of-service (process crash) or potential remote code execution (RCE). This vulnerability is fixed in 1.35.13, 1.36.9, 1.37.5, and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00557,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:17:00.027",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48497",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. Prior to 1.35.11, 1.36.7, 1.37.3, and 1.38.1, in cases where UDP DNS filter is configured with local resolution containing a name with the length of 255 octets or remote resolution for a name of 255 octets long can complete successfully, a query with such name will result in abnormal process termination. The abnormal process termination is triggered by an invalid runtime precondition that the query name is strictly less than 255 octets, contradicting DNS specification rfc1035#section-2.3.4 that the name can be 255 or less octets. This vulnerability is fixed in 1.35.11, 1.36.7, 1.37.3, and 1.38.1.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00367,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.897",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:41:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48044",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.23.0 until 1.35.11, 1.36.7, 1.37.3, and 1.38.1, a  vulnerability has been identified in Envoy's zstd decompressor implementation (ZstdDecompressorImpl). When zstd decompression is enabled, processing a specially crafted, highly compressed zstd payload can lead to massive memory allocation. An attacker can exploit this to cause severe memory exhaustion, potentially resulting in an Out-Of-Memory (OOM) kill and Denial of Service (DoS) for the Envoy proxy. This vulnerability is fixed in 1.35.11, 1.36.7, 1.37.3, and 1.38.1.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0046,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48042",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. Prior to 1.35.11, 1.36.7, 1.37.3, and 1.38.1, destructor of JSON Object results in stack overflow when deeply O(100K) nested objects are present. This vulnerability is fixed in 1.35.11, 1.36.7, 1.37.3, and 1.38.1.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00527,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.630",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47778",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. Prior to 1.35.11, 1.36.7, 1.37.3, and 1.38.1, a structural flaw was identified in DefaultCertValidator::verifySubjectAltName where the extracted DNS SAN string is cast to a C-style string using .c_str() before being passed to the Utility::dnsNameMatch() algorithm. If the attacker serves a certificate with a dNSName SAN containing an embedded NUL byte, the helper Utility::generalNameAsString captures the complete string including the NUL. However, when .c_str() evaluates it, implicit conversion to absl::string_view inside dnsNameMatch relies on strlen(), prematurely truncating the evaluation context. Envoy evaluates trucated string against the exact required config_san match and returns true, thereby successfully validating the string with the Nul byte for an upstream routing. This vulnerability is fixed in 1.35.11, 1.36.7, 1.37.3, and 1.38.1.",
+    "severity": "medium",
+    "cvss_score": 4.4,
+    "epss_score": 0.00205,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.480",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47775",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. Prior to 1.35.11, 1.36.7, 1.37.3, and 1.38.1, the OAuth2 HTTP filter's encrypt()/decrypt() functions use AES-256-CBC without an authentication tag (no HMAC, no AEAD). The /callback endpoint returns HTTP 302 on successful decryption and HTTP 401 on padding failure, creating a padding oracle. An attacker who obtains the encrypted CodeVerifier cookie can recover the plaintext PKCE code_verifier in ~6,200 requests (~100 seconds), then exchange it with a stolen authorization code to obtain the victim's access token. This vulnerability is fixed in 1.35.11, 1.36.7, 1.37.3, and 1.38.1.",
+    "severity": "medium",
+    "cvss_score": 6.8,
+    "epss_score": 0.00212,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47692",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.34.0 until 1.35.13, 1.36.9, 1.37.5, and 1.38.3, PROXY Protocol v2 header generator emits TLVs beyond the maximum length of 65535 bytes, causing a mismatch between bytes written and the length field in the header. This can result in smuggled bytes on the upstream request. This vulnerability is fixed in 1.35.13, 1.36.9, 1.37.5, and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 4.8,
+    "epss_score": 0.00217,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.220",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47221",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.18.0 until 1.35.13, 1.36.9, 1.37.5, and 1.38.3, the router filter contains a null pointer dereference vulnerability when handling HTTP 303 (See Other) internal redirects for body-less non-GET/HEAD requests. When a POST, PUT, DELETE, or PATCH request without a body is sent to a route configured with internal redirect policy that includes 303 in redirect_response_codes, and the upstream responds with HTTP 303, the redirect handling code attempts to drain a request body buffer that was never allocated. This results in a segmentation fault that crashes the entire Envoy process. When route configured with internal_redirect_policy including 303 in redirect_response_codes and upstream must return HTTP 303 response, an unauthenticated attacker can exploit this to cause complete denial of service, terminating all active connections. This vulnerability is fixed in 1.35.13, 1.36.9, 1.37.5, and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00381,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:59.087",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47207",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.34.0 until 1.35.13, 1.36.9, 1.37.5, and 1.38.3, Envoy crashes if an ext_proc server sends a single gRPC message containing multiple, specially crafted ProcessingResponse messages. This can occur when the first response in the batch causes the gRPC stream object to be destroyed, leading to a use-after-free error when Envoy attempts to process subsequent responses in the same gRPC message. This vulnerability is fixed in 1.35.13, 1.36.9, 1.37.5, and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00411,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:58.957",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47206",
+    "description": "Dragonfly is an in-memory data store built for modern application workloads. Prior to 1.39.9, Dragonfly has a RESP Protocol Injection via Lua redis.error_reply() in EvalSerializer. An authenticated user can inject arbitrary RESP messages into the connection's response stream, potentially causing response desynchronization in connection-pool clients. This vulnerability is fixed in 1.39.9.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00283,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:58.810",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47204",
+    "description": "Envoy is an open source edge and service proxy designed for cloud-native applications. From 1.26.0 until 1.35.13, 1.36.9, 1.37.5, and 1.38.3, the envoy.filters.http.grpc_stats filter crashes (null pointer dereference / segfault) when a Connect protocol request (Content-Type: application/connect+proto or application/connect+json) hits a direct_response route. A single unauthenticated HTTP request crashes the Envoy process. This vulnerability is fixed in 1.35.13, 1.36.9, 1.37.5, and 1.38.3.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00411,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:58.673",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-33646",
+    "description": "mise manages dev tools like node, python, cmake, and terraform. Prior to 2026.3.10, mise processes .tool-versions files through the Tera template engine during parsing, with the exec() function registered, enabling arbitrary command execution. Unlike .mise.toml files, .tool-versions files are not subject to trust verification in non-paranoid mode. This means an attacker can place a malicious .tool-versions file in a git repository, and when a victim with mise activated cds into the directory, arbitrary commands execute without any trust prompt. This vulnerability is fixed in 2026.3.10.",
+    "severity": "critical",
+    "cvss_score": 9.6,
+    "epss_score": 0.00685,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T18:16:58.420",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57518",
+    "description": "Pagekit CMS 1.0.18 contains a privilege escalation vulnerability that allows authenticated users with the 'user: manage users' permission to escalate privileges by assigning arbitrary custom roles to themselves due to missing authorization checks in UserApiController::saveAction(). Attackers can assign themselves a custom role with the 'system: manage packages' permission and then upload and install a malicious PHP package through the admin package installer to achieve remote code execution.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00479,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.927",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57231",
+    "description": "Podman is a tool for managing OCI containers and pods. From 1.8.1 until 5.8.4, a container image that contains a environment variable with just a key and no value can trick podman into passing that variable from the host into the container. This is made worse by the fact that using an asterisk (*) will cause podman to pass all host variables into the container. So essentially a malicious image can exfiltrate all podman environment variables that are set in the session from where the container is launched. This vulnerability is fixed in 5.8.4 and 6.0.0.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0026,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.697",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56823",
+    "description": "AutoGPT is a workflow automation platform for creating, deploying, and managing continuous artificial intelligence agents. Prior to , the `POST /api/integrations/webhooks/{webhook_id}/ping` endpoint fetches the target webhook by primary key alone without verifying that the webhook belongs to the authenticated user. Any authenticated user can supply an arbitrary webhook_id to confirm webhook existence, leak the webhook's OAuth provider type, and in some cases trigger a ping delivery on behalf of another user. This vulnerability is fixed in .",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.573",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56663",
+    "description": "AutoGPT is a workflow automation platform for creating, deploying, and managing continuous artificial intelligence agents. Prior to 0.6.52, an authenticated user can bypass the SSRF / private-IP protections in SendWebRequestBlock and reach internal network services. _is_ip_blocked() in backend/backend/util/request.py does not normalize IPv4-mapped IPv6 addresses before checking resolved IPs against the blocked IPv4 ranges, and does not block special-use ranges such as 100.64.0.0/10 (CGNAT, RFC 6598). A hostname that resolves to an IPv4-mapped IPv6 address therefore passes validation and the request reaches the embedded internal IPv4 endpoint. This affects all AutoGPT Platform deployments. This vulnerability is fixed in 0.6.52.",
+    "severity": "high",
+    "cvss_score": 8.5,
+    "epss_score": 0.00224,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.453",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55686",
+    "description": "Podman is a tool for managing OCI containers and pods. From 3.0.0 until 5.7.1, running a malicious container image where the WORKDIR path contains a symlink can create a directory or modify ownership on the host filesystem. Modified ownership is less likely to happen as that requires help from an untrusted/malicious process that mutates the host filesystem tree during dereferencing of the WORKDIR path, to trigger a race condition. This vulnerability is fixed in 5.7.1.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0.00317,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.330",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55677",
+    "description": "Echo is a Go web framework. Prior to 4.15.3 and 5.2.0, Echo's router and static file handler disagree on URL path decoding. The router matches routes using the raw encoded path (preserving %2F as-is), while StaticDirectoryHandler unescapes %2F to / before resolving filesystem paths. This allows an attacker to bypass route-level access controls and read static files without authorization. This vulnerability is fixed in 4.15.3 and 5.2.0.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0043,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.203",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:40:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54636",
+    "description": "Dokku is a docker-powered PaaS. Prior to 0.38.7, the cron plugin utilizes commands in the app.json file to manage system cron running as the Dokku user. An app.json cron command utilizing special shell characters - including, but not limited to, \u003e or ; - can break out of the Docker container and execute commands on the host as the Dokku user. This vulnerability is fixed in 0.38.7.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0.00274,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:34.083",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48529",
+    "description": "GitHub MCP Server is GitHub's official MCP Server. From 0.22.0 until 1.1.2, when running in HTTP mode with --lockdown-mode enabled, the RepoAccessCache is implemented as a process-global singleton initialized with the first authenticated user's GraphQL client. All subsequent requests from different users share this singleton and their lockdown-related GraphQL queries are executed using the first user's credentials. The singleton is never updated to reflect later users' tokens. This vulnerability is fixed in 1.1.2.",
+    "severity": "medium",
+    "cvss_score": 6,
+    "epss_score": 0.00205,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:33.820",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45408",
+    "description": "Dokku is a docker-powered PaaS. Prior to 0.38.2, the app name validation regex (^[a-z0-9][^/:_A-Z]*$) permits shell metacharacters. When an authenticated user pushes to a git remote with a crafted app name, the name is embedded unquoted into a bash pre-receive hook script via an unquoted heredoc (\u003c\u003cEOF instead of \u003c\u003c'EOF') in fn-git-create-hook() at plugins/git/internal-functions:378. On git push, bash interprets the semicolon as a command separator, executing arbitrary commands as the dokku user. This vulnerability is fixed in 0.38.2.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0.00234,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:33.427",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45407",
+    "description": "Dokku is a docker-powered PaaS. Prior to 0.38.2, the git:auth command creates $DOKKU_ROOT/.netrc using bash's touch command, which applies the default umask of 0644. This pre-creation defeats the netrc binary's built-in 0600 permission setting, leaving git credentials readable by any local user who can traverse the dokku home directory. This vulnerability is fixed in 0.38.2.",
+    "severity": "medium",
+    "cvss_score": 5,
+    "epss_score": 0.00089,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:33.303",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45406",
+    "description": "Dokku is a docker-powered PaaS. Prior to 0.38.2, the openresty-vhosts plugin copies files from an app's openresty/http-includes/ git repository directory to the host and then interpolates their filenames, unescaped, into a single-quoted shell string that is later parsed by eval. A filename containing a single quote breaks the quoting and allows command substitution to execute arbitrary commands on the host as the dokku user during the app's next deploy. This vulnerability is fixed in 0.38.2.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0.00274,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:33.150",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45405",
+    "description": "Dokku is a docker-powered PaaS. Prior to 0.38.2, the git:from-archive and certs:add commands extract user-supplied tar/zip archives into temporary directories without sanitizing member paths or preventing symlink traversal. GNU tar creates symlinks during extraction and follows them for subsequent entries, allowing an attacker to write arbitrary files anywhere writable by the dokku user — including overwriting ~/.ssh/authorized_keys to gain unrestricted shell access. This vulnerability is fixed in 0.38.2.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0.00289,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:33.007",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28385",
+    "description": "In Canonical LXD versions 4.12 through 6.9, a Server-Side Request Forgery (SSRF) vulnerability in the image import functionality allows authenticated users with the can_create_images entitlement to interact with internal network infrastructure via the /images endpoint. When importing an image from a URL source, the LXD daemon fails to validate or restrict outbound destination IP addresses, allowing connections to loopback, RFC1918 private ranges, and cloud metadata endpoints. This enables error-based port scanning and unauthorized interaction with internal HTTP services from the daemon's network position.",
+    "severity": "medium",
+    "cvss_score": 5,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:32.430",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-13434",
+    "description": "A flaw was found in KubeVirt's network annotation generator. When a tenant creates a VirtualMachineInstance with a Multus network configuration, the supplied networkName value is written verbatim into the launcher pod's v1.multus-cni.io/default-network annotation without format validation or sanitization. The only admission check rejects empty strings; no DNS-1123 format validation, JSON detection, or special character rejection is performed. When the ExternalNetResourceInjection Beta feature gate is enabled (off by default, cluster-admin only), the NAD lookup that would otherwise catch malformed names is skipped by design. A tenant with kubevirt.io:edit permissions can inject a JSON-formatted NetworkSelectionElement array specifying an arbitrary namespace, NAD name, static IP address, and MAC address. Multus on the node parses this JSON and attaches the launcher pod to the specified network attachment in any namespace, enabling cross-namespace network access and IP/MAC impersonation on network segments normally segregated from tenant workloads. The ExternalNetResourceInjection feature gate was introduced in KubeVirt v1.8.0 (first shipped in OpenShift Virtualization 4.21).",
+    "severity": "medium",
+    "cvss_score": 4.9,
+    "epss_score": 0.00153,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:32.313",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11779",
+    "description": "An Improper Authorization vulnerability exists in PayloadCMS version 3.84.1 due to insufficient access control on the account unlock operation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00235,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:32.097",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-32423",
+    "description": "AutoGPT is a workflow automation platform for creating, deploying, and managing continuous artificial intelligence agents. Prior to 0.6.32, there is a DoS vulnerability in ExtractTextInformationBlock. Malicious users can amplify their input. For example, if a malicious user inputs 10K of content, the server will consume 50G of memory, eventually causing memory resources to be exhausted, resulting in DoS. This vulnerability is fixed in 0.6.32.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00247,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:31.553",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-32394",
+    "description": "AutoGPT is a workflow automation platform for creating, deploying, and managing continuous artificial intelligence agents. Prior to 0.6.32, there is a DoS vulnerability in AITextSummarizerBlock. Malicious users can amplify their input. For example, if a malicious user inputs 10K of content, the server will consume 50G of memory, eventually causing memory resources to be exhausted, resulting in DoS. This vulnerability is fixed in 0.6.32.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00247,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T17:16:31.413",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9640",
+    "description": "A privilege escalation vulnerability exists in LXD from 6.0 before 6.9, 5.21.0 before 5.21.5, and 5.0.0 before 5.0.7 regarding the handling of project-restriction policies during snapshot restoration.. An authenticated project operator in a restricted multi-tenant environment can bypass policy restrictions by importing a maliciously crafted instance backup containing restricted configuration keys within a snapshot. When the snapshot is restored, these restricted keys are applied to the live instance without policy validation. Starting the modified instance grants the operator unauthorized host root access.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0.00329,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:37.250",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9639",
+    "description": "Nil-pointer dereference in CreateCustomVolumeFromBackup in LXD up to version 6.8 and 5.21 on Linux allows an authenticated user with can_create_storage_volumes permissions to cause a denial of service via a specially crafted custom-volume backup tarball that omits the expires_at snapshot field.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00376,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:37.143",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-5757",
+    "description": "Unauthenticated remote information disclosure vulnerability in Ollama's model quantization engine allows an attacker to read and exfiltrate the server's heap memory, potentially leading to sensitive data exposure, further compromise, and stealthy persistence.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00462,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:36.917",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:39:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47214",
+    "description": "Docling simplifies document processing by parsing diverse formats and providing integrations with the generative AI ecosystem. Prior to 2.94.0, the HTML backend has unsafe URI and path handling. This vulnerability is fixed in 2.94.0.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00217,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:31.373",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45195",
+    "description": "Kernel software installed and running inside a Host VM may post improper commands to the GPU Firmware to trigger a memory read or write outside the permitted range of memory for the host kernel.\n\n\n\nAddresses passed to the GPU Firmware can be used by the Firmware for more privileged memory accesses than are permitted by the system.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00106,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:30.893",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-44018",
+    "description": "Docling simplifies document processing by parsing diverse formats and providing integrations with the generative AI ecosystem. From 2.45.0 until 2.91.0, the METS-GBS backend's XML parsing and the input document format detection lacked security controls. An attacker could craft malicious METS-GBS archives that, when processed, could read sensitive files, exhaust system resources, or cause application crashes. This vulnerability is fixed in 2.91.0.",
+    "severity": "medium",
+    "cvss_score": 5.5,
+    "epss_score": 0.001,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:30.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-21734",
+    "description": "A web page that contains unusual GPU shader code is loaded into the GPU compiler process and can trigger a write out-of-bounds write crash in the GPU shader compiler library. On certain platforms, when the compiler process has system privileges this could enable further exploits on the device.\n\n\n\nAn edge case using a very small value in GPU shader code can cause a segmentation fault in the GPU shader compiler due to am out-of-bounds write.",
+    "severity": "high",
+    "cvss_score": 7.7,
+    "epss_score": 0.00118,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:30.557",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12411",
+    "description": "Broken Access Control in the devLXDInstancePatchHandler component of Canonical LXD allows an untrusted guest to mount, read, and overwrite another guest's custom storage volume via a crafted device PATCH request over /dev/lxd when security.devlxd.management.volumes is enabled.",
+    "severity": "high",
+    "cvss_score": 8.4,
+    "epss_score": 0.00108,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:30.117",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-0828",
+    "description": "Kernel driver ProcessMonitorDriver.sys in Safetica's endpoint client x64 , versions 10.5.75.0 and 11.11.4.0, allows unprivileged user to abuse IOCTL path and terminate protected system processes.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00461,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:29.860",
+    "poc_links": [
+      "https://github.com/ANYLNK/STProcessMonitorBYOVD",
+      "https://github.com/DeathShotXD/0xKern3lCrush",
+      "https://github.com/oxfemale/KillChain",
+      "https://github.com/I3r1h0n/Sigurd",
+      "https://github.com/KOSEC-LLC/BYOVD-Research",
+      "https://github.com/mein-0/cve-2026-0828"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-0685",
+    "description": "Server side template inject (SSTI) in the expression evaluation component in Genshi Template Engine version 0.7.9 allows a remote attacker to achieve remote code execution (RCE) via crafted template expressions.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00726,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:29.757",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-11919",
+    "description": "The default JVM can access files and directories under `/tmp/` including the `$TemporaryDirectory` of other users on the same cloud instance (`/tmp/UserTemporaryFiles/`).  The `-init` file for the the JVM initialization exists in the vulnerable directory during the startup of the JVM.  An attacker with access to the shared `/tmp/` space can preemptively create or replace `.jar` files or directories (via the `-init` file) that the victim JVM will resolve first in its classpath.  By strategically placing a malicious version of a commonly used library (e.g., `commons-io`) in a location that is included in the classpath before the legitimate version, an attacker can cause the JVM to load the malicious class during startup, thereby executing the attacker's code.",
+    "severity": "critical",
+    "cvss_score": 9.6,
+    "epss_score": 0.004,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:29.193",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2023-20572",
+    "description": "An observable timing discrepancy in the ASP could allow a privileged attacker to perform a brute-force attack against the hash message authentication code, allowing the input of an arbitrary message, potentially leading to a loss of data integrity.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00114,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:28.967",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2023-20540",
+    "description": "An observable timing discrepancy in the ASP could allow a privileged attacker to perform a brute-force attack against the hash message authentication code, allowing arbitrary message input, potentially leading to a loss of data integrity.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00114,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T16:16:28.810",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-27T20:38:26Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-9699",
     "description": "Mattermost Plugins versions \u003c=11.6 10.18.11 11.3.6 11.6.5.0 fail to sanitize error responses from the OpenAI API before logging, which allows a user with access to server logs or support packets to obtain a valid or partially reconstructable OpenAI API key via inspection of mattermost.log entries generated during authentication failures. Mattermost Advisory ID: MMSA-2026-00609",
     "severity": "medium",
