@@ -1,7 +1,23 @@
 import apiClient from './client'
 
 export type TimelineSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info'
-type TimelineSource = 'manual' | 'elk' | 'ai' | 'job'
+// "edge:*" sources are produced by the super-timeline builder (e.g. "edge:mft").
+type TimelineSource = 'manual' | 'elk' | 'ai' | 'job' | 'import' | string
+
+// One raw EdgeForensics artifact result block fed to the super-timeline builder.
+export interface SuperArtifactSource {
+  type: 'mft' | 'prefetch' | 'shimcache' | 'processes' | 'evtx'
+  data: unknown // raw JSON returned by the agent EdgeForensics endpoint
+}
+
+export interface SuperTimelineSummary {
+  total: number
+  by_source: Record<string, number>
+  by_severity: Record<string, number>
+  hosts: string[]
+  first_event?: string | null
+  last_event?: string | null
+}
 
 // An enrichment attached to a timeline node: an existing/uploaded evidence file
 // (possibly an image) or an external link.
@@ -103,6 +119,26 @@ export interface AttackCoverage {
 export const timelineApi = {
   list: async (caseId: string): Promise<TimelineEvent[]> => {
     const { data } = await apiClient.get<ApiResponse<TimelineEvent[]>>(`/cases/${caseId}/timeline`)
+    return data.data
+  },
+
+  // Merged timeline + aggregates (counts by source/severity, hosts, time span).
+  super: async (caseId: string): Promise<{ events: TimelineEvent[]; summary: SuperTimelineSummary }> => {
+    const { data } = await apiClient.get<ApiResponse<{ events: TimelineEvent[]; summary: SuperTimelineSummary }>>(
+      `/cases/${caseId}/timeline/super`,
+    )
+    return data.data
+  },
+
+  // Explode raw EdgeForensics artifacts (MFT/Prefetch/Shimcache/processes/EVTX)
+  // into one chronological timeline in a single call.
+  buildSuper: async (
+    caseId: string,
+    payload: { host?: string; only_suspicious?: boolean; sources: SuperArtifactSource[] },
+  ): Promise<{ events_created: number; skipped: number; per_source: Record<string, number> }> => {
+    const { data } = await apiClient.post<
+      ApiResponse<{ events_created: number; skipped: number; per_source: Record<string, number> }>
+    >(`/cases/${caseId}/timeline/build-super`, payload)
     return data.data
   },
 

@@ -26,6 +26,7 @@ import {
   Cpu,
   PanelLeftClose,
   PanelLeftOpen,
+  Boxes,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
@@ -48,6 +49,7 @@ const NAV_GROUPS = [
     label: 'Endpoints & Tools',
     items: [
       { to: '/agents',          icon: Server,  label: 'Agents' },
+      { to: '/fleet',           icon: Boxes,   label: 'Fleet' },
       { to: '/tools',           icon: Wrench,  label: 'Tools' },
       { to: '/offline-bundles', icon: Package, label: 'Offline Bundles' },
     ]

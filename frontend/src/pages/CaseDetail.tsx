@@ -8,8 +8,9 @@ import {
   Briefcase, Activity, Server, ChevronRight, User, Wrench,
   ClipboardList, Lock, Unlock, Package, Monitor, Terminal,
   Globe, CheckSquare, Square, Download, BrainCircuit, Crosshair, ShieldCheck,
-  Fingerprint,
+  Fingerprint, FileText, Sparkles, Loader2,
 } from 'lucide-react'
+import { analysisApi } from '@/api/analysis'
 import AttackTimeline from '@/components/AttackTimeline'
 import AttackCoverage from '@/components/AttackCoverage'
 import ComplianceAssessment from '@/components/ComplianceAssessment'
@@ -222,6 +223,48 @@ function OfflineBundleModal({
 // ── CaseDetail page ────────────────────────────────────────────────────────
 type TabKey = 'timeline' | 'attack' | 'jobs' | 'compliance' | 'osint' | 'offline'
 
+// ReportActions — open the self-contained incident report (HTML→PDF) and,
+// optionally, have an AI provider draft the executive narrative into it first.
+function ReportActions({ caseId }: { caseId: string }) {
+  const { data: providers = [] } = useQuery({ queryKey: ['ai-providers'], queryFn: analysisApi.listProviders })
+  const active = providers.filter((p) => p.is_active)
+  const aiMut = useMutation({
+    mutationFn: () => casesApi.generateAiSummary(caseId, active[0].id),
+    onSuccess: () => toast.success('AI summary saved — it now appears in the report'),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  return (
+    <>
+      {active.length > 0 && (
+        <button
+          onClick={() => aiMut.mutate()}
+          disabled={aiMut.isPending}
+          title="Draft an AI executive summary into the incident report"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:text-emerald-400 hover:border-emerald-500/40 transition disabled:opacity-50"
+        >
+          {aiMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI Summary
+        </button>
+      )}
+      <a
+        href={casesApi.reportUrl(caseId)}
+        target="_blank" rel="noopener noreferrer"
+        title="Open the full incident report (print to PDF from the browser)"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:text-emerald-400 hover:border-emerald-500/40 transition"
+      >
+        <FileText className="h-3 w-3" /> Incident Report
+      </a>
+      <a
+        href={casesApi.reportUrl(caseId, 'pdf')}
+        target="_blank" rel="noopener noreferrer"
+        title="Download as PDF (requires PDF renderer; falls back to HTML otherwise)"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:text-emerald-400 hover:border-emerald-500/40 transition"
+      >
+        <Download className="h-3 w-3" /> PDF
+      </a>
+    </>
+  )
+}
+
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -299,7 +342,7 @@ export default function CaseDetailPage() {
   ]
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -314,6 +357,7 @@ export default function CaseDetailPage() {
           <p className="text-sm text-gray-400 mt-1">{caseObj.description || 'No description'}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <ReportActions caseId={caseObj.id} />
           <span
             className={`text-xs uppercase font-bold px-3 py-1 rounded-full ${
               isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-300'
@@ -336,7 +380,7 @@ export default function CaseDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Agents List */}
         <div className="col-span-1 space-y-4">
           <h3 className="font-semibold text-gray-200 flex items-center gap-2">
@@ -368,7 +412,7 @@ export default function CaseDetailPage() {
         </div>
 
         {/* Main Content */}
-        <div className="col-span-1 md:col-span-2 space-y-4">
+        <div className="col-span-1 lg:col-span-3 space-y-4">
           <div className="flex items-center gap-1 border-b border-gray-800">
             {TABS.map((t) => (
               <button

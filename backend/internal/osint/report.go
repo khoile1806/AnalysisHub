@@ -3,6 +3,7 @@ package osint
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"sort"
 	"strings"
@@ -62,6 +63,15 @@ type reportData struct {
 	Low         int
 	Pivots      int
 	Confirmed   int // confirmed social-media profiles
+
+	// Location intelligence (best estimate across the scan's geo findings).
+	BestLocation    *GeoPoint
+	LocationMapsURL string
+	LocationCount   int
+
+	// Identity confidence (how strongly the scan corroborates one identity).
+	Identity    IdentityConfidence
+	HasIdentity bool
 }
 
 // severityRank orders findings within a section - most severe first.
@@ -144,6 +154,29 @@ func GenerateHTMLReport(scan *models.OsintScan, findings []models.OsintFinding) 
 	sort.SliceStable(data.Highlights, func(i, j int) bool {
 		return severityRank(data.Highlights[i].Severity) < severityRank(data.Highlights[j].Severity)
 	})
+
+	// Location: best estimate across all geolocation findings.
+	var pts []GeoPoint
+	for _, f := range findings {
+		if f.Category != "geolocation" {
+			continue
+		}
+		if gp, ok := GeoPointFromData(f.Data); ok {
+			if f.Confidence != "" {
+				gp.Confidence = f.Confidence
+			}
+			pts = append(pts, gp)
+		}
+	}
+	if best, ok := AggregateLocations(pts); ok {
+		data.BestLocation = &best
+		data.LocationMapsURL = fmt.Sprintf("https://www.google.com/maps?q=%.6f,%.6f", best.Lat, best.Lon)
+		data.LocationCount = len(pts)
+	}
+
+	// Identity confidence from this scan's findings.
+	data.Identity = ComputeIdentityConfidence(findings)
+	data.HasIdentity = len(data.Identity.Signals) > 0
 
 	funcMap := template.FuncMap{
 		"upper": strings.ToUpper,
@@ -292,6 +325,37 @@ footer{border-top:1px solid #1e2937;padding-top:14px;text-align:center;font-size
     <div class="stat"><div class="stat-n c-purple">{{.Pivots}}</div><div class="stat-l">Pivots Found</div></div>
   </div>
 </section>
+
+{{if .HasIdentity}}
+<section>
+  <h2>Identity Confidence <span class="cnt">{{.Identity.Score}}/100 · {{upper .Identity.Grade}}</span></h2>
+  <p class="t-muted">{{.Identity.Summary}}</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Signal</th><th>Detail</th><th>Weight</th></tr></thead>
+      <tbody>
+      {{range .Identity.Signals}}
+      <tr><td>{{.Label}}</td><td class="t-muted">{{if .Detail}}{{.Detail}}{{else}}-{{end}}</td><td class="mono">+{{.Weight}}</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}
+
+{{if .BestLocation}}
+<section>
+  <h2>Location <span class="cnt">{{.LocationCount}}</span></h2>
+  <div class="hl-card">
+    <div class="hl-head">
+      <span class="sev-info">{{upper .BestLocation.Precision}}/{{upper .BestLocation.Confidence}}</span>
+      <span class="hl-title">{{if .BestLocation.Place}}{{.BestLocation.Place}}{{else}}{{printf "%.5f, %.5f" .BestLocation.Lat .BestLocation.Lon}}{{end}}</span>
+      <span class="src">{{.BestLocation.Source}}</span>
+    </div>
+    <div class="val mono">{{printf "%.6f, %.6f" .BestLocation.Lat .BestLocation.Lon}} · <a href="{{.LocationMapsURL}}" target="_blank" rel="noreferrer">Open in Google Maps</a></div>
+  </div>
+</section>
+{{end}}
 
 {{if .Collectors}}
 <section>

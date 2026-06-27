@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -799,6 +800,44 @@ func AgentEvtxParse(c *gin.Context) {
 	}
 }
 
+// awaitEdgeJSONResult waits for an EdgeForensics command's JSON result on outCh
+// and writes the HTTP response. It also polls agent liveness so a mid-scan
+// disconnect fails fast with a clear error instead of hanging until the deadline.
+func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID string) {
+	var finalData string
+	var agentError string
+	offline := time.NewTicker(8 * time.Second)
+	defer offline.Stop()
+	for {
+		select {
+		case result := <-outCh:
+			if result == "__DONE__" {
+				if agentError != "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
+				} else if finalData != "" {
+					c.Data(http.StatusOK, "application/json", []byte(finalData))
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+				}
+				return
+			}
+			if strings.HasPrefix(result, "[agent error]") {
+				agentError = strings.TrimPrefix(result, "[agent error] ")
+			} else if json.Valid([]byte(result)) {
+				finalData = result
+			}
+		case <-offline.C:
+			if !hub.IsAgentOnline(agentID) {
+				c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent disconnected during scan"})
+				return
+			}
+		case <-c.Request.Context().Done():
+			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
+			return
+		}
+	}
+}
+
 // AgentMFTParse triggers the edge_parse_mft command on the agent.
 func AgentMFTParse(c *gin.Context) {
 	hub, ok := mustGetHub(c)
@@ -830,32 +869,7 @@ func AgentMFTParse(c *gin.Context) {
 		return
 	}
 
-	var finalData string
-	var agentError string
-
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
-	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
 
 // AgentPrefetchParse triggers the edge_parse_prefetch command on the agent.
@@ -888,32 +902,7 @@ func AgentPrefetchParse(c *gin.Context) {
 		return
 	}
 
-	var finalData string
-	var agentError string
-
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
-	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
 
 // AgentAutorunsParse triggers a native autostart / persistence enumeration on
@@ -950,31 +939,7 @@ func AgentAutorunsParse(c *gin.Context) {
 		return
 	}
 
-	var finalData string
-	var agentError string
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
-	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
 
 // AgentNetworkParse triggers a native network-connection snapshot on the agent
@@ -1013,31 +978,7 @@ func AgentNetworkParse(c *gin.Context) {
 		return
 	}
 
-	var finalData string
-	var agentError string
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
-	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
 
 // AgentShimcacheParse triggers an AppCompatCache (Shimcache) parse on the agent
@@ -1068,30 +1009,80 @@ func AgentShimcacheParse(c *gin.Context) {
 		return
 	}
 
-	var finalData, agentError string
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
+}
+
+// AgentBrowserParse recovers browser history (Chrome/Edge/Brave/Firefox) across
+// all local user profiles on the endpoint.
+//
+// POST /api/v1/agents/:id/browser
+func AgentBrowserParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
 	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	if err := hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "edge_parse_browser", JobID: reqID}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
+}
+
+// AgentTriageCollect runs a 1-click triage collection (KAPE-style): a curated set
+// of collectors gathered in a SINGLE elevated pass (one UAC prompt) and returned
+// as one combined bundle. The caller (frontend) can then persist that bundle to a
+// case as evidence via the existing evidence-upload path.
+//
+// POST /api/v1/agents/:id/triage   body: { "types": ["processes","browser",…] }
+func AgentTriageCollect(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+
+	var body struct {
+		Types []string `json:"types"`
+	}
+	_ = c.ShouldBindJSON(&body) // optional; empty → agent uses its default set
+
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	if err := hub.SendJobToAgent(id.String(), ws.AgentCommand{
+		Type:  "edge_parse_triage",
+		JobID: reqID,
+		Args:  strings.Join(body.Types, ","),
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
 
 // AgentKillProcess instructs the agent to terminate a process (containment).
@@ -1190,31 +1181,7 @@ func AgentDllsParse(c *gin.Context) {
 		return
 	}
 
-	var finalData string
-	var agentError string
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
-	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
 
 // AgentProcessParse triggers a detailed running-process snapshot on the agent
@@ -1250,31 +1217,5 @@ func AgentProcessParse(c *gin.Context) {
 		return
 	}
 
-	var finalData string
-	var agentError string
-
-	for {
-		select {
-		case result := <-outCh:
-			if result == "__DONE__" {
-				if agentError != "" {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
-				}
-				return
-			}
-			if strings.HasPrefix(result, "[agent error]") {
-				agentError = strings.TrimPrefix(result, "[agent error] ")
-			} else if json.Valid([]byte(result)) {
-				finalData = result
-			}
-		case <-c.Request.Context().Done():
-			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
-		}
-	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String())
 }
-

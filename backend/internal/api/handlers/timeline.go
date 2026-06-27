@@ -1,15 +1,19 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/forensichub/backend/internal/models"
 )
@@ -32,9 +36,202 @@ func (h *TimelineHandler) ListTimeline(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid case id"})
 		return
 	}
+
+	// Optional server-side filters keep large cases responsive. The response
+	// stays backward-compatible: `data` is still the events array; `total` and
+	// `facets` are additive fields older clients ignore.
+	base := h.DB.Model(&models.TimelineEvent{}).Where("case_id = ?", caseID)
+	if v := strings.TrimSpace(c.Query("source")); v != "" {
+		base = base.Where("source = ?", v)
+	}
+	if v := strings.TrimSpace(c.Query("severity")); v != "" {
+		base = base.Where("severity = ?", v)
+	}
+	if v := strings.TrimSpace(c.Query("host")); v != "" {
+		base = base.Where("host = ?", v)
+	}
+	if v := strings.TrimSpace(c.Query("from")); v != "" {
+		if t, perr := time.Parse(time.RFC3339, v); perr == nil {
+			base = base.Where("event_time >= ?", t)
+		}
+	}
+	if v := strings.TrimSpace(c.Query("to")); v != "" {
+		if t, perr := time.Parse(time.RFC3339, v); perr == nil {
+			base = base.Where("event_time <= ?", t)
+		}
+	}
+
+	var total int64
+	base.Count(&total)
+
+	q := base.Order("event_time asc")
+	if n := atoiDefault(c.Query("limit"), 0); n > 0 {
+		q = q.Limit(n)
+	}
+	if off := atoiDefault(c.Query("offset"), 0); off > 0 {
+		q = q.Offset(off)
+	}
 	var events []models.TimelineEvent
-	h.DB.Where("case_id = ?", caseID).Order("event_time asc").Find(&events)
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": events})
+	q.Find(&events)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    events,
+		"total":   total,
+		"facets":  timelineFacets(h.DB, caseID),
+	})
+}
+
+// timelineFacets returns the distinct source/severity/host values (with counts)
+// for a case so the UI can build filter chips without scanning every event.
+func timelineFacets(db *gorm.DB, caseID uuid.UUID) gin.H {
+	type kv struct {
+		K string
+		N int
+	}
+	facet := func(col string) []gin.H {
+		var rows []kv
+		db.Model(&models.TimelineEvent{}).
+			Select(col+" as k, count(*) as n").
+			Where("case_id = ? AND "+col+" <> ''", caseID).
+			Group(col).Order("n desc").Scan(&rows)
+		out := make([]gin.H, 0, len(rows))
+		for _, r := range rows {
+			out = append(out, gin.H{"value": r.K, "count": r.N})
+		}
+		return out
+	}
+	return gin.H{"source": facet("source"), "severity": facet("severity"), "host": facet("host")}
+}
+
+// atoiDefault parses an int query param, returning def on empty/invalid input.
+func atoiDefault(s string, def int) int {
+	if n, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
+		return n
+	}
+	return def
+}
+
+// timelineDedupeKey identifies an automated event so re-running the same
+// ingestion (super-timeline, ELK promote, import) collapses to one row.
+func timelineDedupeKey(e *models.TimelineEvent) string {
+	parts := []string{
+		e.CaseID.String(),
+		strings.ToLower(strings.TrimSpace(e.Source)),
+		e.EventTime.UTC().Format(time.RFC3339),
+		strings.ToLower(strings.TrimSpace(e.Host)),
+		strings.ToLower(strings.TrimSpace(e.Title)),
+		strings.ToLower(strings.TrimSpace(e.Technique)),
+	}
+	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
+	return hex.EncodeToString(sum[:])
+}
+
+// insertAutoTimelineEvent inserts an AUTOMATED event idempotently (ON CONFLICT
+// DO NOTHING against the partial unique index). Returns true if a row was added.
+func insertAutoTimelineEvent(db *gorm.DB, e *models.TimelineEvent) bool {
+	e.DedupeKey = timelineDedupeKey(e)
+	// The unique index is PARTIAL (… WHERE dedupe_key <> ''), so the ON CONFLICT
+	// target MUST carry the same predicate (TargetWhere) — otherwise Postgres
+	// rejects it with "no unique constraint matching the ON CONFLICT
+	// specification", the insert errors, and every event is silently skipped.
+	res := db.Clauses(clause.OnConflict{
+		Columns:     []clause.Column{{Name: "case_id"}, {Name: "dedupe_key"}},
+		TargetWhere: clause.Where{Exprs: []clause.Expression{clause.Expr{SQL: "dedupe_key <> ''"}}},
+		DoNothing:   true,
+	}).Create(e)
+	return res.Error == nil && res.RowsAffected > 0
+}
+
+// AddTraceToTimeline persists an entity-origin trace (the focused timeline built
+// by /trace/entity) onto a case timeline, so the lineage of a process/file
+// becomes part of the investigation record. Idempotent (dedupe) like the other
+// automated ingestion paths.
+//
+// POST /api/v1/cases/:id/timeline/from-trace
+//
+//	{ "host":"WS-01", "target":"powershell.exe",
+//	  "events":[ {"time":"2026-06-01 09:06:00","kind":"process","title":"…","detail":"…","source":"processes"} ] }
+func (h *TimelineHandler) AddTraceToTimeline(c *gin.Context) {
+	caseID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid case id"})
+		return
+	}
+	var caseObj models.Case
+	if err := h.DB.First(&caseObj, "id = ?", caseID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "case not found"})
+		return
+	}
+	var body struct {
+		Host   string `json:"host"`
+		Target string `json:"target"`
+		Events []struct {
+			Time   string `json:"time"`
+			Kind   string `json:"kind"`
+			Title  string `json:"title"`
+			Detail string `json:"detail"`
+			Source string `json:"source"`
+		} `json:"events"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	if len(body.Events) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "no events supplied"})
+		return
+	}
+
+	var userUUID uuid.UUID
+	if v, ok := c.Get("userID"); ok {
+		if uid, perr := uuid.Parse(v.(string)); perr == nil {
+			userUUID = uid
+		}
+	}
+	host := strings.TrimSpace(body.Host)
+	target := strings.TrimSpace(body.Target)
+
+	created, skipped := 0, 0
+	for _, ev := range body.Events {
+		t := parseArtifactTime(ev.Time) // reuse the tolerant artifact-time parser
+		if t.IsZero() {
+			skipped++
+			continue
+		}
+		title := strings.TrimSpace(ev.Title)
+		if title == "" {
+			skipped++
+			continue
+		}
+		src := "trace"
+		if s := strings.TrimSpace(ev.Source); s != "" {
+			src = "trace:" + s
+		}
+		detail := ev.Detail
+		if target != "" {
+			detail = strings.TrimSpace("origin trace of " + target + "  " + detail)
+		}
+		tev := models.TimelineEvent{
+			CaseID:    caseID,
+			EventTime: t,
+			Source:    src,
+			Host:      host,
+			Severity:  "info",
+			Title:     title,
+			Detail:    detail,
+			CreatedBy: userUUID,
+		}
+		if insertAutoTimelineEvent(h.DB, &tev) {
+			created++
+		} else {
+			skipped++
+		}
+	}
+
+	writeAudit(c, h.DB, &userUUID, nil, "timeline.from_trace", caseID.String(),
+		fmt.Sprintf("target=%s created=%d", target, created))
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"events_created": created, "skipped": skipped}})
 }
 
 // CreateTimelineEvent adds a manual event to a case timeline.
@@ -102,12 +299,13 @@ const importArtifactsMax = 1000
 // investigation in one click.
 //
 // POST /api/v1/cases/:id/import-artifacts
-// {
-//   "source": "edge-forensics:mft", "host": "WS-01",
-//   "items": [ { "title": "...", "detail": "...", "event_time": "...",
-//                "severity": "high", "value": "<hash>", "ioc_type": "File-Hash",
-//                "promote_ioc": true } ]
-// }
+//
+//	{
+//	  "source": "edge-forensics:mft", "host": "WS-01",
+//	  "items": [ { "title": "...", "detail": "...", "event_time": "...",
+//	               "severity": "high", "value": "<hash>", "ioc_type": "File-Hash",
+//	               "promote_ioc": true } ]
+//	}
 func (h *TimelineHandler) ImportArtifacts(c *gin.Context) {
 	caseID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -183,8 +381,8 @@ func (h *TimelineHandler) ImportArtifacts(c *gin.Context) {
 			Detail:    it.Detail,
 			CreatedBy: userUUID,
 		}
-		if err := h.DB.Create(&ev).Error; err != nil {
-			continue
+		if !insertAutoTimelineEvent(h.DB, &ev) {
+			continue // duplicate or insert error — skip
 		}
 		events++
 
@@ -380,8 +578,8 @@ func (h *TimelineHandler) PromoteELKResult(c *gin.Context) {
 			Detail:    hitDetail(src),
 			CreatedBy: userUUID,
 		}
-		if err := h.DB.Create(&ev).Error; err != nil {
-			continue
+		if !insertAutoTimelineEvent(h.DB, &ev) {
+			continue // duplicate or insert error — skip
 		}
 		imported++
 	}

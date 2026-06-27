@@ -13,6 +13,7 @@ const CasesPage = lazy(() => import('@/pages/CaseManager'))
 const CaseDetailPage = lazy(() => import('@/pages/CaseDetail'))
 const AgentsPage = lazy(() => import('@/pages/Agents'))
 const AgentDetailPage = lazy(() => import('@/pages/AgentDetail'))
+const FleetPage = lazy(() => import('@/pages/Fleet'))
 const JobsPage = lazy(() => import('@/pages/Jobs'))
 const JobDetailPage = lazy(() => import('@/pages/JobDetail'))
 const CVEPage = lazy(() => import('@/pages/CVE'))
@@ -161,6 +162,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <CaseDetailPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/fleet"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <FleetPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

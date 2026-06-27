@@ -1,6 +1,7 @@
 import apiClient from './client'
 import { Agent } from './agents'
 import type { OsintScan } from './osint'
+import { useAuthStore } from '@/store/auth'
 
 export interface Case {
   id: string
@@ -65,6 +66,25 @@ export const casesApi = {
 
   getSummary: async (id: string): Promise<CaseSummaryResponse> => {
     const { data } = await apiClient.get<ApiResponse<CaseSummaryResponse>>(`/cases/${id}/summary`)
+    return data.data
+  },
+
+  // reportUrl builds an authenticated link to the self-contained incident report
+  // (HTML, print-to-PDF). Token is in the query because the page is opened in a
+  // new tab where headers can't be set (same pattern as the OSINT report).
+  reportUrl: (id: string, format?: 'pdf'): string => {
+    const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+    const token = useAuthStore.getState().token ?? ''
+    const fmt = format ? `&format=${format}` : ''
+    return `${base}/api/v1/cases/${id}/report?token=${encodeURIComponent(token)}${fmt}`
+  },
+
+  // generateAiSummary asks an AI provider to draft the incident executive
+  // narrative and saves it on the case (appears in the report).
+  generateAiSummary: async (id: string, providerId: string): Promise<{ summary: string }> => {
+    const { data } = await apiClient.post<ApiResponse<{ summary: string }>>(
+      `/cases/${id}/report/ai-summary`, { provider_id: providerId },
+    )
     return data.data
   },
 

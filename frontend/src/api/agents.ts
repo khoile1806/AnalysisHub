@@ -14,6 +14,31 @@ export interface Agent {
   case_id?: string
   token?: string
   created_at: string
+  group_name?: string
+  tags?: string // JSON array string
+}
+
+export interface BrowserEntry {
+  browser: string
+  profile: string
+  url: string
+  title?: string
+  visit_count: number
+  last_visit?: string
+  suspicious?: string[]
+}
+
+export interface TriageArtifact {
+  type: string
+  count: number
+  error?: string
+  data?: unknown
+}
+
+export interface TriageResult {
+  collected_at: string
+  hostname?: string
+  artifacts: TriageArtifact[]
 }
 
 export interface CreateAgentData {
@@ -137,6 +162,19 @@ export const agentsApi = {
   // AppCompatCache (Shimcache) execution-evidence parse.
   parseShimcache: async (id: string): Promise<any> => {
     const { data } = await apiClient.post(`/agents/${id}/shimcache`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Browser history across all local user profiles (Chrome/Edge/Brave/Firefox).
+  parseBrowser: async (id: string): Promise<BrowserEntry[]> => {
+    const { data } = await apiClient.post(`/agents/${id}/browser`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // 1-click triage collection (KAPE-style): a curated artifact bundle gathered
+  // in one elevated pass. `types` empty → agent's default set.
+  collectTriage: async (id: string, types?: string[]): Promise<TriageResult> => {
+    const { data } = await apiClient.post(`/agents/${id}/triage`, { types: types ?? [] }, { timeout: 900_000 })
     return data
   },
 

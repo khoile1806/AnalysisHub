@@ -92,6 +92,8 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.CanaryHit{},
 		&models.CanaryAlert{},
 		&models.AgentBaseline{},
+		&models.ScheduledCollection{},
+		&models.FleetCollectionResult{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
@@ -114,6 +116,13 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	}
 	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_osint_finding_dedupe ON osint_findings (scan_id, dedupe_key)`).Error; err != nil {
 		slog.Warn("could not create unique OSINT dedupe index; finding dedupe will run in best-effort mode", "error", err)
+	}
+
+	// Partial unique index so automated timeline ingestion (super-timeline, ELK
+	// promote, artifact import) is idempotent, while manual events (empty
+	// dedupe_key) are exempt and can always be added.
+	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_timeline_dedupe ON timeline_events (case_id, dedupe_key) WHERE dedupe_key <> ''`).Error; err != nil {
+		slog.Warn("could not create timeline dedupe index; timeline dedupe will run in best-effort mode", "error", err)
 	}
 
 	slog.Info("migrations applied successfully")

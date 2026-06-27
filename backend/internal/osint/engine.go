@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -65,6 +64,56 @@ func cohostPivotMax(cfg *config.Config) int {
 		return cfg.OsintCohostPivotMax
 	}
 	return 5
+}
+
+// maxPivotChildren resolves the per-scan auto-pivot child budget, defaulting to
+// 12 when unset.
+func maxPivotChildren(cfg *config.Config) int {
+	if cfg != nil && cfg.OsintMaxPivotChildren > 0 {
+		return cfg.OsintMaxPivotChildren
+	}
+	return 12
+}
+
+// roundRobinSelect picks up to budget items from category buckets, cycling
+// through cats in order so every category is represented before any single one
+// is exhausted (fair sharing of the pivot child budget across IP/domain/account).
+func roundRobinSelect[T any](buckets map[string][]T, cats []string, budget int) []T {
+	var out []T
+	for len(out) < budget {
+		progressed := false
+		for _, cat := range cats {
+			if len(out) >= budget {
+				break
+			}
+			if len(buckets[cat]) > 0 {
+				out = append(out, buckets[cat][0])
+				buckets[cat] = buckets[cat][1:]
+				progressed = true
+			}
+		}
+		if !progressed {
+			break // every bucket drained
+		}
+	}
+	return out
+}
+
+// pivotCategory buckets a related-entity type into one of the broad classes the
+// auto-pivot budget is balanced across, so IP infrastructure, domains, and
+// accounts (e-mail/username/person) are each investigated rather than one class
+// crowding out the others.
+func pivotCategory(ttype string) string {
+	switch ttype {
+	case TargetIP:
+		return "ip"
+	case TargetDomain:
+		return "domain"
+	case TargetEmail, TargetUsername, TargetName:
+		return "account"
+	default:
+		return "other" // phone / wallet / hash
+	}
 }
 
 // NewEngine builds the engine and recovers any scans left "running" by a crash.
@@ -449,30 +498,6 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 		return
 	}
 
-	// Prioritise the target's resolved IP infrastructure, then its domains, so the
-	// per-scan child cap never starves them behind a long list of e-mails/handles.
-	// When auto-pivot is on, related IPs (DNS A/AAAA records, subdomain & co-host
-	// resolutions) must always be investigated — not truncated away by discovery
-	// order. Stable so same-priority entities keep the order they were found in.
-	pivotRank := func(ttype string) int {
-		switch ttype {
-		case TargetIP:
-			return 0
-		case TargetDomain:
-			return 1
-		default:
-			return 2
-		}
-	}
-	sort.SliceStable(pivots, func(i, j int) bool {
-		return pivotRank(pivots[i].ttype) < pivotRank(pivots[j].ttype)
-	})
-
-	// Cap children per scan so a noisy collector can't explode the graph.
-	const maxChildren = 8
-	if len(pivots) > maxChildren {
-		pivots = pivots[:maxChildren]
-	}
 	parentID := parent.ID
 
 	// Shared-hosting guard: an IP that hosts many domains is shared infrastructure,
@@ -497,7 +522,7 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 	}
 
 	// Resolve, in one query, which candidate targets are already in this graph,
-	// so the per-pivot loop doesn't run an N+1 of COUNT queries.
+	// so the filter pass doesn't run an N+1 of COUNT queries.
 	candVals := make([]string, 0, len(pivots))
 	for _, p := range pivots {
 		candVals = append(candVals, p.value)
@@ -513,6 +538,14 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 		}
 	}
 
+	// Pass 1 — FILTER, then cap. Apply every out-of-scope / noise / duplicate
+	// check across the WHOLE candidate set first, so that rejected entities never
+	// consume a child-budget slot (the previous order capped first, so a handful
+	// of out-of-scope hits at the front could starve the real pivots behind them).
+	type pivotC struct {
+		value, ttype, category string
+	}
+	var valid []pivotC
 	for _, p := range pivots {
 		ttype := p.ttype
 		if ttype == "" {
@@ -537,17 +570,40 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 			e.emit(parentID.String(), fmt.Sprintf("[*] auto-pivot skip %s (%s) - %s", p.value, ttype, reason))
 			continue
 		}
-
 		// Skip co-hosted tenants of a shared IP (recorded as findings, not scanned).
 		if suppressedCohost[strings.ToLower(p.value)] {
 			e.emit(parentID.String(), fmt.Sprintf("[*] auto-pivot skip %s (%s) - co-hosted on shared IP", p.value, ttype))
 			continue
 		}
-
 		// Skip if this target was already investigated in this graph.
 		if alreadyInGraph[p.value] {
 			continue
 		}
+		valid = append(valid, pivotC{value: p.value, ttype: ttype, category: pivotCategory(ttype)})
+	}
+	if len(valid) == 0 {
+		return
+	}
+
+	// Pass 2 — allocate the child budget round-robin across categories (IP /
+	// domain / account / other) so the user's requirement holds: a target's
+	// related IPs, domains AND accounts are each investigated, instead of one
+	// long class (e.g. many resolved IPs) crowding the others out of the cap.
+	budget := maxPivotChildren(e.cfg)
+	buckets := map[string][]pivotC{}
+	for _, v := range valid {
+		buckets[v.category] = append(buckets[v.category], v)
+	}
+	selected := roundRobinSelect(buckets, []string{"ip", "domain", "account", "other"}, budget)
+	if dropped := len(valid) - len(selected); dropped > 0 {
+		e.emit(parentID.String(), fmt.Sprintf(
+			"[*] auto-pivot: %d in-scope pivot(s) deferred - child budget %d reached (raise OSINT_MAX_PIVOT_CHILDREN)",
+			dropped, budget))
+	}
+
+	// Pass 3 — spawn a child scan for each selected pivot.
+	for _, p := range selected {
+		ttype := p.ttype
 
 		child := models.OsintScan{
 			Name:         fmt.Sprintf("%s: %s", ttype, p.value),

@@ -116,6 +116,17 @@ func collectPhoneMeta(_ context.Context, env *collectorEnv) ([]models.OsintFindi
 			label = joinNonEmpty(" - ", region, country)
 		}
 		out = append(out, newFinding("phone_meta", "identity", "Region / country", label))
+
+		// Coarse country-level coordinate so a phone target also pins on the map.
+		// Always low-confidence/country-precision so it never outranks a city/exact
+		// fix corroborated from another source.
+		if c, ok := regionCentroid[strings.ToUpper(region)]; ok {
+			gf := newFinding("phone_meta", "geolocation", "Approx. country location (from phone "+env.target+")", label)
+			gf.Data = geoPayload(c.lat, c.lon, label, "country", "phone")
+			gf.Confidence = "low"
+			gf.VerifyNote = "country-level only, derived from phone " + env.target + "'s numbering plan — not a precise position"
+			out = append(out, gf)
+		}
 	}
 	out = append(out, newFinding("phone_meta", "identity", "Country calling code",
 		fmt.Sprintf("+%d", num.GetCountryCode())))
@@ -131,6 +142,25 @@ func collectPhoneMeta(_ context.Context, env *collectorEnv) ([]models.OsintFindi
 	}
 	if tzs, terr := phonenumbers.GetTimezonesForNumber(num); terr == nil && len(tzs) > 0 {
 		out = append(out, newFinding("phone_meta", "identity", "Timezone(s)", strings.Join(tzs, ", ")))
+	}
+
+	// Messaging-app presence (assisted): these platforms reveal whether a number
+	// is registered, but only through a login/confirm step a human completes -
+	// so we hand the analyst the exact deep-links rather than guessing from the
+	// server (which would be unreliable and easily rate-limited).
+	if valid {
+		e164 := strings.TrimPrefix(phonenumbers.Format(num, phonenumbers.E164), "+")
+		wa := newFinding("phone_meta", "social", "WhatsApp - check if number is registered (open in browser)",
+			"https://wa.me/"+e164)
+		wa.Severity = "low"
+		wa.VerifyNote = "wa.me opens a chat only if the number is on WhatsApp - confirm in a logged-in browser"
+		out = append(out, wa)
+
+		tg := newFinding("phone_meta", "social", "Telegram - add by phone to check presence (open Telegram)",
+			"https://t.me/+"+e164)
+		tg.Severity = "low"
+		tg.VerifyNote = "Telegram reveals presence only after adding the contact - human-verified"
+		out = append(out, tg)
 	}
 
 	if !valid {

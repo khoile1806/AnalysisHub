@@ -37,6 +37,12 @@ type TimelineEvent struct {
 	// "url": "...", "label": "...", "is_image": true }.
 	Attachments string `gorm:"type:text" json:"attachments,omitempty"`
 
+	// DedupeKey collapses repeated AUTOMATED ingestion of the same event (e.g.
+	// re-running super-timeline or re-promoting an ELK result). It is empty for
+	// manual events (which are always intentional) and enforced by a PARTIAL
+	// unique index (case_id, dedupe_key) WHERE dedupe_key <> '' created in db.go.
+	DedupeKey string `gorm:"type:text;index" json:"-"`
+
 	CreatedBy uuid.UUID `gorm:"type:uuid" json:"created_by"`
 	CreatedAt time.Time `                 json:"created_at"`
 	UpdatedAt time.Time `                 json:"updated_at"`

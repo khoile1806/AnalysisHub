@@ -128,19 +128,39 @@ func GetOsintGraph(c *gin.Context) {
 		Order("depth asc, created_at asc").Find(&scans)
 
 	type node struct {
-		ID       string `json:"id"`
-		Target   string `json:"target"`
-		Type     string `json:"type"`
-		Status   string `json:"status"`
-		Depth    int    `json:"depth"`
-		Findings int    `json:"findings"`
-		Root     bool   `json:"root"`
+		ID        string `json:"id"`
+		Target    string `json:"target"`
+		Type      string `json:"type"`
+		Status    string `json:"status"`
+		Depth     int    `json:"depth"`
+		Findings  int    `json:"findings"`
+		Root      bool   `json:"root"`
+		AvatarURL string `json:"avatar_url,omitempty"`
 	}
 	type edge struct {
 		From  string `json:"from"`
 		To    string `json:"to"`
 		Label string `json:"label"`
 	}
+	// One query for avatar URLs across the graph → scanID-with-avatar thumbnail.
+	avatarByScan := map[string]string{}
+	{
+		ids := make([]uuid.UUID, 0, len(scans))
+		for i := range scans {
+			ids = append(ids, scans[i].ID)
+		}
+		if len(ids) > 0 {
+			var av []models.OsintFinding
+			db.Where("scan_id IN ? AND value LIKE ? AND source_url <> ''", ids, "avatar_phash:%").Find(&av)
+			for i := range av {
+				sid := av[i].ScanID.String()
+				if _, ok := avatarByScan[sid]; !ok {
+					avatarByScan[sid] = av[i].SourceURL
+				}
+			}
+		}
+	}
+
 	nodes := make([]node, 0, len(scans))
 	edges := make([]edge, 0)
 	for i := range scans {
@@ -150,7 +170,7 @@ func GetOsintGraph(c *gin.Context) {
 		nodes = append(nodes, node{
 			ID: s.ID.String(), Target: s.Target, Type: s.TargetType,
 			Status: string(s.Status), Depth: s.Depth, Findings: int(fc),
-			Root: s.ID == root,
+			Root: s.ID == root, AvatarURL: avatarByScan[s.ID.String()],
 		})
 		if s.ParentScanID != nil {
 			edges = append(edges, edge{From: s.ParentScanID.String(), To: s.ID.String(), Label: s.PivotFrom})
@@ -231,13 +251,15 @@ func GetOsintCorrelations(c *gin.Context) {
 	}
 
 	type linkedEntity struct {
-		ID     string `json:"id"`
-		Target string `json:"target"`
-		Type   string `json:"type"`
+		ID        string `json:"id"`
+		Target    string `json:"target"`
+		Type      string `json:"type"`
+		AvatarURL string `json:"avatar_url,omitempty"` // set for avatar correlations
 	}
 	type correlation struct {
 		Value    string         `json:"value"`
 		Count    int            `json:"count"`
+		Kind     string         `json:"kind,omitempty"` // "" | "avatar"
 		Entities []linkedEntity `json:"entities"`
 	}
 
@@ -253,6 +275,38 @@ func GetOsintCorrelations(c *gin.Context) {
 		}
 		out = append(out, correlation{Value: value, Count: len(set), Entities: ents})
 	}
+
+	// Avatar (perceptual) correlation: link accounts whose profile pictures match
+	// within a small Hamming distance — exact-value matching above can't catch a
+	// resized/recompressed copy of the same image, so this runs as its own pass.
+	scanUUIDs := make([]uuid.UUID, 0, len(scans))
+	for i := range scans {
+		scanUUIDs = append(scanUUIDs, scans[i].ID)
+	}
+	if len(scanUUIDs) > 0 {
+		var avFindings []models.OsintFinding
+		db.Where("scan_id IN ? AND value LIKE ?", scanUUIDs, "avatar_phash:%").Find(&avFindings)
+		refs := make([]osint.AvatarRef, 0, len(avFindings))
+		avatarByScan := map[string]string{} // scanID -> one avatar image URL for a thumbnail
+		for i := range avFindings {
+			if h := osint.HashFromAvatarValue(avFindings[i].Value); h != "" {
+				sid := avFindings[i].ScanID.String()
+				refs = append(refs, osint.AvatarRef{ScanID: sid, Hash: h})
+				if _, ok := avatarByScan[sid]; !ok && avFindings[i].SourceURL != "" {
+					avatarByScan[sid] = avFindings[i].SourceURL
+				}
+			}
+		}
+		for _, group := range osint.ClusterAvatarMatches(refs, 10) {
+			ents := make([]linkedEntity, 0, len(group))
+			for _, sid := range group {
+				s := scanByID[sid]
+				ents = append(ents, linkedEntity{ID: sid, Target: s.Target, Type: s.TargetType, AvatarURL: avatarByScan[sid]})
+			}
+			out = append(out, correlation{Value: "(shared avatar image)", Count: len(group), Kind: "avatar", Entities: ents})
+		}
+	}
+
 	sort.Slice(out, func(i, j int) bool { return out[i].Count > out[j].Count })
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": out})

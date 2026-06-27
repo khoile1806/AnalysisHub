@@ -67,9 +67,14 @@ func collectEmailValidate(ctx context.Context, env *collectorEnv) ([]models.Osin
 	out = append(out, newFinding("email_validate", "identity", "Mail exchanger",
 		strings.Join(hosts, ", ")))
 
-	// Active SMTP verification
+	// Active SMTP verification with CATCH-ALL detection. A "deliverable" verdict
+	// is only meaningful if the server does NOT accept arbitrary mailboxes: we
+	// therefore probe an improbable address at the same domain first. If that is
+	// accepted too, the domain is catch-all and the real address cannot be
+	// confirmed — reporting it as "deliverable" would be a false positive.
 	smtpFinding := newFinding("email_validate", "identity", "SMTP mailbox verification", "unverified (could not connect to MX)")
 	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	const probeLocal = "zzq9x7k3vt1p-no-such-user" // an address that should not exist
 	for _, mx := range hosts {
 		conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(mx, "25"))
 		if err != nil {
@@ -80,16 +85,24 @@ func collectEmailValidate(ctx context.Context, env *collectorEnv) ([]models.Osin
 			conn.Close()
 			continue
 		}
-		
+
 		client.Hello("forensichub.local")
 		client.Mail("ping@forensichub.local")
-		err = client.Rcpt(env.target)
-		if err == nil {
-			smtpFinding.Value = "mailbox confirmed deliverable (SMTP 250 OK)"
+		realOK := client.Rcpt(env.target) == nil
+		catchAll := client.Rcpt(probeLocal+"@"+domain) == nil
+
+		switch {
+		case realOK && catchAll:
+			smtpFinding.Value = "domain is catch-all (accepts any mailbox) - existence cannot be confirmed"
+			smtpFinding.Confidence = "unverified"
+			smtpFinding.Severity = "low"
+			smtpFinding.VerifyNote = "MX accepted a random probe address too - 'deliverable' is not a reliable signal here"
+		case realOK:
+			smtpFinding.Value = "mailbox confirmed deliverable (SMTP 250 OK, not catch-all)"
 			smtpFinding.Confidence = "verified"
 			smtpFinding.Severity = "info"
-		} else {
-			smtpFinding.Value = fmt.Sprintf("mailbox rejected (SMTP error: %v)", err)
+		default:
+			smtpFinding.Value = "mailbox rejected by MX - address likely does not exist"
 			smtpFinding.Confidence = "unverified"
 			smtpFinding.Severity = "medium"
 		}

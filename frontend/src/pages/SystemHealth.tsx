@@ -416,15 +416,20 @@ function HealthTab() {
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {data && (
-            <span className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border
-              ${overallOK
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${overallOK ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-              {overallOK ? 'All Systems Operational' : 'System Degraded'}
-            </span>
-          )}
+          {data && (() => {
+            const warn = data.status === 'warn'
+            const cls = overallOK ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+              : warn ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+              : 'bg-red-500/10 text-red-400 border-red-500/20'
+            const dot = overallOK ? 'bg-emerald-400 animate-pulse' : warn ? 'bg-yellow-400' : 'bg-red-400'
+            const label = overallOK ? 'All Systems Operational' : warn ? 'Degraded — Resource Pressure' : 'System Degraded'
+            return (
+              <span className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${cls}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                {label}
+              </span>
+            )
+          })()}
           {dataUpdatedAt > 0 && (
             <span className="text-[11px] text-gray-600">
               Updated {safeDistanceToNow(dataUpdatedAt, { addSuffix: true })}
@@ -478,6 +483,58 @@ function HealthTab() {
               ))}
             </div>
           </div>
+
+          {/* Platform internals — DB pool, runtime, activity, integrations */}
+          {(data.db_pool || data.runtime || data.activity || data.integrations) && (
+            <div>
+              <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3">
+                Platform Internals
+                {data.version && <span className="ml-2 text-gray-500 normal-case font-normal">v{data.version}</span>}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {data.db_pool && (
+                  <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 p-4">
+                    <div className="text-[11px] font-bold text-gray-500 uppercase mb-2">DB Pool</div>
+                    <div className="text-xs text-gray-300 space-y-1 font-mono">
+                      <div>in use: <span className={data.db_pool.in_use >= data.db_pool.max_open && data.db_pool.max_open > 0 ? 'text-red-400' : 'text-emerald-400'}>{data.db_pool.in_use}</span> / {data.db_pool.max_open}</div>
+                      <div>idle: {data.db_pool.idle} · open: {data.db_pool.open}</div>
+                      <div className={data.db_pool.wait_count > 0 ? 'text-yellow-400' : 'text-gray-500'}>waits: {data.db_pool.wait_count} ({data.db_pool.wait_ms}ms)</div>
+                    </div>
+                  </div>
+                )}
+                {data.runtime && (
+                  <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 p-4">
+                    <div className="text-[11px] font-bold text-gray-500 uppercase mb-2">Go Runtime</div>
+                    <div className="text-xs text-gray-300 space-y-1 font-mono">
+                      <div>goroutines: <span className={data.runtime.goroutines > 5000 ? 'text-red-400' : 'text-gray-300'}>{data.runtime.goroutines}</span></div>
+                      <div>heap: {data.runtime.heap_mb} MB</div>
+                      <div className="text-gray-500">{data.runtime.go_version}</div>
+                    </div>
+                  </div>
+                )}
+                {data.activity && (
+                  <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 p-4">
+                    <div className="text-[11px] font-bold text-gray-500 uppercase mb-2">Activity</div>
+                    <div className="text-xs text-gray-300 space-y-1 font-mono">
+                      <div>jobs: {data.activity.jobs_running} running · {data.activity.jobs_pending} pending</div>
+                      <div>OSINT scans: {data.activity.osint_running} running</div>
+                      <div>AI sessions: {data.activity.sessions_total}</div>
+                    </div>
+                  </div>
+                )}
+                {data.integrations && (
+                  <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 p-4">
+                    <div className="text-[11px] font-bold text-gray-500 uppercase mb-2">Integrations (active)</div>
+                    <div className="text-xs text-gray-300 space-y-1 font-mono">
+                      <div>SIEM: ELK {data.integrations.elk} · Splunk {data.integrations.splunk} · QRadar {data.integrations.qradar}</div>
+                      <div>OpenCTI: {data.integrations.opencti}</div>
+                      <div>AI providers: {data.integrations.ai_providers}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Server resources */}
           {data.server && (

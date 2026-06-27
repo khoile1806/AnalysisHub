@@ -29,11 +29,15 @@ func ValidateTarget(target, targetType string) error {
 	} else if strings.ContainsAny(t, " \t\n\r") {
 		return errors.New("target contains whitespace")
 	}
-	if len(t) > 255 {
+	if len(t) > 512 { // profile URLs can be longer than a bare identifier
 		return errors.New("target is too long")
 	}
 
 	switch targetType {
+	case TargetSocial:
+		if _, ok := ParseSocialProfile(t); !ok {
+			return fmt.Errorf("%q is not a recognisable social-media profile URL", t)
+		}
 	case TargetIP:
 		ip := net.ParseIP(t)
 		if ip == nil {

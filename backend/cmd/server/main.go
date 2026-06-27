@@ -170,6 +170,7 @@ func main() {
 	// ------------------------------------------------------------------ //
 	handlers.StartCVEUpdateWorker(hub)
 	handlers.StartNewsUpdateWorker(hub)
+	handlers.StartFleetScheduler(db, hub)
 
 	// Threat intel enrichment client — used by the AI analysis pipeline to
 	// automatically look up IPs, hashes, and domains before sending the
@@ -211,10 +212,17 @@ func main() {
 	// 9. Start HTTP server with graceful shutdown
 	// ------------------------------------------------------------------ //
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%s", cfg.ServerPort),
-		Handler:      router,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 60 * time.Second,
+		Addr:    fmt.Sprintf(":%s", cfg.ServerPort),
+		Handler: router,
+		// ReadHeaderTimeout guards against slow-loris on the request line/headers
+		// while allowing long bodies (large evidence uploads) and long responses.
+		ReadHeaderTimeout: 20 * time.Second,
+		// EdgeForensics scans (MFT walk + hashing, prefetch, process snapshots),
+		// large disk-image uploads and live-response collections legitimately run
+		// for minutes; the old 30s/60s limits cut them off mid-flight ("request
+		// timed out" / no results). Match the 600s collector/axios budget + margin.
+		ReadTimeout:  15 * time.Minute,
+		WriteTimeout: 15 * time.Minute,
 		IdleTimeout:  120 * time.Second,
 	}
 

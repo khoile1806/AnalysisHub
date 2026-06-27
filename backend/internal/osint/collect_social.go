@@ -40,8 +40,13 @@ type socialSite struct {
 	name    string
 	urlTmpl string // exactly one %s - the username
 	// existsMarker, when set, must appear in a 200 body to count as a hit
-	// (for platforms that return 200 for non-existent users).
+	// (for platforms that return 200 for non-existent users). A marker match is
+	// reported as HIGH confidence; a bare 200 with no marker is MEDIUM (it could
+	// be a soft-404 page).
 	existsMarker string
+	// notFoundMarker, when set, marks a 200 body that is actually a "no such
+	// user" page — used to defeat soft-404s that return 200 for everyone.
+	notFoundMarker string
 }
 
 // socialSitesChecked are platforms whose 404 / profile detection is reliable
@@ -49,51 +54,52 @@ type socialSite struct {
 // response is reported as "unverifiable", never as a hit - so the failure
 // mode is a false negative, not a false positive.
 var socialSitesChecked = []socialSite{
-	{"GitHub", "https://github.com/%s", ""},
-	{"GitLab", "https://gitlab.com/%s", ""},
-	{"Bitbucket", "https://bitbucket.org/%s/", ""},
-	{"Keybase", "https://keybase.io/%s", ""},
-	{"Reddit", "https://www.reddit.com/user/%s", ""},
-	{"npm", "https://www.npmjs.com/~%s", ""},
-	{"PyPI", "https://pypi.org/user/%s/", ""},
-	{"Docker Hub", "https://hub.docker.com/u/%s", ""},
-	{"Dev.to", "https://dev.to/%s", ""},
-	{"Medium", "https://medium.com/@%s", ""},
-	{"HackerOne", "https://hackerone.com/%s", ""},
-	{"TryHackMe", "https://tryhackme.com/p/%s", ""},
-	{"about.me", "https://about.me/%s", ""},
-	{"Gravatar", "https://gravatar.com/%s", ""},
-	{"CodePen", "https://codepen.io/%s", ""},
-	{"Telegram", "https://t.me/%s", "tgme_page_title"},
-	{"Hacker News", "https://news.ycombinator.com/user?id=%s", "created:"},
+	{name: "GitHub", urlTmpl: "https://github.com/%s"},
+	{name: "GitLab", urlTmpl: "https://gitlab.com/%s"},
+	{name: "Bitbucket", urlTmpl: "https://bitbucket.org/%s/"},
+	{name: "Keybase", urlTmpl: "https://keybase.io/%s"},
+	{name: "Reddit", urlTmpl: "https://www.reddit.com/user/%s"},
+	{name: "npm", urlTmpl: "https://www.npmjs.com/~%s"},
+	{name: "PyPI", urlTmpl: "https://pypi.org/user/%s/"},
+	{name: "Docker Hub", urlTmpl: "https://hub.docker.com/u/%s"},
+	{name: "Dev.to", urlTmpl: "https://dev.to/%s"},
+	{name: "Medium", urlTmpl: "https://medium.com/@%s"},
+	{name: "HackerOne", urlTmpl: "https://hackerone.com/%s"},
+	{name: "TryHackMe", urlTmpl: "https://tryhackme.com/p/%s"},
+	{name: "about.me", urlTmpl: "https://about.me/%s"},
+	{name: "Gravatar", urlTmpl: "https://gravatar.com/%s"},
+	{name: "CodePen", urlTmpl: "https://codepen.io/%s"},
+	{name: "Telegram", urlTmpl: "https://t.me/%s", existsMarker: "tgme_page_title"},
+	{name: "Hacker News", urlTmpl: "https://news.ycombinator.com/user?id=%s", existsMarker: "created:"},
 }
 
 // socialSitesManual are JS-walled platforms that cannot be checked reliably
 // from a server (they return 200 + a login wall for everyone). They are
 // emitted as direct candidate URLs for the analyst to open and confirm.
 var socialSitesManual = []socialSite{
-	{"X (Twitter)", "https://x.com/%s", ""},
-	{"Instagram", "https://www.instagram.com/%s/", ""},
-	{"Facebook", "https://www.facebook.com/%s", ""},
-	{"TikTok", "https://www.tiktok.com/@%s", ""},
-	{"YouTube", "https://www.youtube.com/@%s", ""},
-	{"LinkedIn", "https://www.linkedin.com/in/%s", ""},
-	{"Pinterest", "https://www.pinterest.com/%s/", ""},
-	{"Threads", "https://www.threads.net/@%s", ""},
-	{"Snapchat", "https://www.snapchat.com/add/%s", ""},
+	{name: "X (Twitter)", urlTmpl: "https://x.com/%s"},
+	{name: "Instagram", urlTmpl: "https://www.instagram.com/%s/"},
+	{name: "Facebook", urlTmpl: "https://www.facebook.com/%s"},
+	{name: "TikTok", urlTmpl: "https://www.tiktok.com/@%s"},
+	{name: "YouTube", urlTmpl: "https://www.youtube.com/@%s"},
+	{name: "LinkedIn", urlTmpl: "https://www.linkedin.com/in/%s"},
+	{name: "Pinterest", urlTmpl: "https://www.pinterest.com/%s/"},
+	{name: "Threads", urlTmpl: "https://www.threads.net/@%s"},
+	{name: "Snapchat", urlTmpl: "https://www.snapchat.com/add/%s"},
 }
 
-// checkSite probes one platform for a username. It returns (found, conclusive):
-// conclusive is false when the platform blocked us or replied ambiguously, in
-// which case the result must be ignored rather than reported.
-func checkSite(ctx context.Context, site socialSite, username string) (found, conclusive bool) {
+// checkSite probes one platform for a username. It returns (found, conclusive,
+// strong): conclusive is false when the platform blocked us or replied
+// ambiguously (ignore the result); strong is true only when a positive marker
+// matched (HIGH confidence) versus a bare 200 that could be a soft-404 (MEDIUM).
+func checkSite(ctx context.Context, site socialSite, username string) (found, conclusive, strong bool) {
 	u := fmt.Sprintf(site.urlTmpl, url.PathEscape(username))
 	cctx, cancel := context.WithTimeout(ctx, 9*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(cctx, http.MethodGet, u, nil)
 	if err != nil {
-		return false, false
+		return false, false, false
 	}
 	req.Header.Set("User-Agent", browserUA)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
@@ -101,21 +107,32 @@ func checkSite(ctx context.Context, site socialSite, username string) (found, co
 
 	resp, err := socialHTTPClient.Do(req)
 	if err != nil {
-		return false, false
+		return false, false, false
 	}
 	defer resp.Body.Close()
 
 	switch {
 	case resp.StatusCode == 404 || resp.StatusCode == 410:
-		return false, true // definitively absent
+		return false, true, true // definitively absent
 	case resp.StatusCode != 200:
-		return false, false // 3xx redirect / 403 / 429 / 5xx - unverifiable
+		return false, false, false // 3xx redirect / 403 / 429 / 5xx - unverifiable
 	}
-	if site.existsMarker == "" {
-		return true, true
+	// Read the body when we need it to disambiguate a 200 (marker checks).
+	if site.existsMarker == "" && site.notFoundMarker == "" {
+		return true, true, false // bare 200 — present but only MEDIUM confidence
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
-	return strings.Contains(string(body), site.existsMarker), true
+	bs := string(body)
+	if site.notFoundMarker != "" && strings.Contains(bs, site.notFoundMarker) {
+		return false, true, true // soft-404 detected — definitively absent
+	}
+	if site.existsMarker != "" {
+		if strings.Contains(bs, site.existsMarker) {
+			return true, true, true // positive marker — HIGH confidence
+		}
+		return false, true, true
+	}
+	return true, true, false
 }
 
 // collectSocialMedia checks a username across many platforms. Reliable
@@ -146,7 +163,7 @@ func collectSocialMedia(ctx context.Context, env *collectorEnv) ([]models.OsintF
 			}
 			defer func() { <-sem }()
 
-			found, conclusive := checkSite(ctx, s, username)
+			found, conclusive, strong := checkSite(ctx, s, username)
 			mu.Lock()
 			defer mu.Unlock()
 			if !conclusive {
@@ -154,8 +171,15 @@ func collectSocialMedia(ctx context.Context, env *collectorEnv) ([]models.OsintF
 				return
 			}
 			if found {
-				confirmed = append(confirmed, newFinding("social_search", "social",
-					"Profile found - "+s.name, fmt.Sprintf(s.urlTmpl, username)))
+				f := newFinding("social_search", "social",
+					"Profile found - "+s.name, fmt.Sprintf(s.urlTmpl, username))
+				if strong {
+					f.Confidence = "high"
+				} else {
+					f.Confidence = "medium"
+					f.VerifyNote = "HTTP 200 with no positive marker - may be a soft-404; verify by opening the link"
+				}
+				confirmed = append(confirmed, f)
 			}
 		}(site)
 	}

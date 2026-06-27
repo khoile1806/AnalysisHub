@@ -61,9 +61,12 @@ function OsintEntityNode({ data }: { data: { node: OsintGraphNode } }) {
       <Handle type="target" position={Position.Left} className="!w-2 !h-4 !rounded-sm !bg-gray-500 !border-gray-800" />
       
       <div className="flex items-center gap-3">
-        <div className={`p-2.5 rounded-lg border ${style.iconBg} shrink-0`}>
-          <Icon className="w-5 h-5" />
-        </div>
+        {node.avatar_url
+          ? <img src={node.avatar_url} alt="" referrerPolicy="no-referrer" loading="lazy"
+              className="w-10 h-10 rounded-lg object-cover border border-gray-700 shrink-0 bg-gray-900" />
+          : <div className={`p-2.5 rounded-lg border ${style.iconBg} shrink-0`}>
+              <Icon className="w-5 h-5" />
+            </div>}
         
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[13px] font-bold text-gray-100 truncate w-full block" title={node.target}>

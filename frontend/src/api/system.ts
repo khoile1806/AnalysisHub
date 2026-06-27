@@ -30,8 +30,17 @@ export interface AgentResource {
   disk_total_gb: number
 }
 
+export interface DBPool {
+  max_open: number; open: number; in_use: number; idle: number
+  wait_count: number; wait_ms: number
+}
+export interface RuntimeInfo { go_version: string; goroutines: number; heap_mb: number }
+export interface Integrations { elk: number; splunk: number; qradar: number; opencti: number; ai_providers: number }
+export interface Activity { jobs_pending: number; jobs_running: number; osint_running: number; sessions_total: number }
+
 export interface HealthData {
-  status: 'ok' | 'degraded'
+  status: 'ok' | 'degraded' | 'warn'
+  version?: string
   uptime_seconds: number
   components: ComponentStatus[]
   agents_online: number
@@ -43,6 +52,10 @@ export interface HealthData {
   checked_at: string
   server: ServerResources
   agent_resources: AgentResource[]
+  db_pool?: DBPool
+  runtime?: RuntimeInfo
+  integrations?: Integrations
+  activity?: Activity
 }
 
 export interface ProviderTokenStat {

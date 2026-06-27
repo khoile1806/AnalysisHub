@@ -23,7 +23,7 @@ import (
 // correlation (A2).
 
 var (
-	rlGitHub    = newRateLimiter(2 * time.Second)        // GitHub unauth search ~ 10/min
+	rlGitHub    = newRateLimiter(2 * time.Second)         // GitHub unauth search ~ 10/min
 	rlProxyNova = newRateLimiter(1500 * time.Millisecond) // ProxyNova comb is generous but be polite
 )
 
@@ -90,6 +90,8 @@ type githubUser struct {
 	Bio       string `json:"bio"`
 	Twitter   string `json:"twitter_username"`
 	HTMLURL   string `json:"html_url"`
+	AvatarURL string `json:"avatar_url"`
+	CreatedAt string `json:"created_at"`
 	PublicRpo int    `json:"public_repos"`
 }
 
@@ -121,6 +123,16 @@ func githubByUsername(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	}
 	if u.HTMLURL != "" {
 		out = append(out, newFinding("github_intel", "identity", "GitHub profile URL", u.HTMLURL))
+	}
+	if u.CreatedAt != "" {
+		out = append(out, accountCreatedFinding("github_intel", u.CreatedAt, u.HTMLURL))
+	}
+	// Avatar → perceptual fingerprint (cross-platform linking) + reverse search.
+	if u.AvatarURL != "" {
+		if h, ok := fetchAvatarHash(ctx, u.AvatarURL); ok {
+			out = append(out, avatarFinding("github_intel", u.AvatarURL, h))
+			out = append(out, avatarReverseFindings("github_intel", u.AvatarURL)...)
+		}
 	}
 	if u.Bio != "" {
 		out = append(out, newFinding("github_intel", "identity", "Bio", u.Bio))
@@ -321,7 +333,7 @@ func collectBreachLeak(ctx context.Context, env *collectorEnv) ([]models.OsintFi
 		}
 		f := newFinding("breach_leak", "breach", "Leaked credential", ident+" : "+masked)
 		f.Severity = "high"
-		f.VerifyNote = pwMeta // password length + character classes (no plaintext)
+		f.VerifyNote = pwMeta   // password length + character classes (no plaintext)
 		f.SourceURL = sourceURL // where this credential was discovered
 		// When the leaked identifier is an e-mail (e.g. a username query that hit
 		// "alice@corp.com:..."), that address de-anonymises the target.

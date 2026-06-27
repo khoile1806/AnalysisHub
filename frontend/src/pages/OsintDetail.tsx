@@ -5,7 +5,7 @@ import {
   ChevronLeft, Loader2, StopCircle, CheckCircle, XCircle, Clock,
   Fingerprint, ArrowRight, MinusCircle, Download, FileBarChart2,
   ListTree, AlertTriangle, ShieldCheck, ShieldPlus, Sparkles, ExternalLink,
-  Network, Copy, Globe, AtSign, MapPin,
+  Network, Copy, Globe, AtSign, MapPin, Upload,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
@@ -14,6 +14,7 @@ import remarkGfm from 'remark-gfm'
 import {
   osintApi, CATEGORY_LABELS, COLLECTOR_LABELS, parseRelated,
   type OsintScan, type OsintCollector, type OsintFinding, type RelatedEntity, type OsintTargetType,
+  type GeoPoint, type IdentityConfidence,
 } from '@/api/osint'
 import { analysisApi } from '@/api/analysis'
 import OsintGraphView from '@/components/OsintGraphView'
@@ -477,11 +478,19 @@ function FindingRow({ f, onPivot }: { f: OsintFinding; onPivot: (e: RelatedEntit
   const related = parseRelated(f.related_entities)
   const conf = f.confidence || undefined
   const sourceLabel = COLLECTOR_LABELS[f.source] ?? f.source
+  // Avatar fingerprint findings: show the actual picture as a thumbnail rather
+  // than the raw hash, so an analyst can eyeball the avatar being fingerprinted.
+  const isAvatar = f.value?.startsWith('avatar_phash:')
+  const avatarHash = isAvatar ? f.value.slice('avatar_phash:'.length) : ''
   return (
     <div className="flex items-start gap-3 py-2.5 px-3 border-b border-slate-800 last:border-0">
       <span className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase shrink-0 mt-0.5 border ${SEVERITY_COLOR[sev] ?? SEVERITY_COLOR.info}`}>
         {sev}
       </span>
+      {isAvatar && f.source_url && (
+        <img src={f.source_url} alt="" referrerPolicy="no-referrer" loading="lazy"
+          className="h-10 w-10 rounded object-cover bg-gray-900 border border-slate-700 shrink-0" />
+      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-200">{f.title}</span>
@@ -503,7 +512,20 @@ function FindingRow({ f, onPivot }: { f: OsintFinding; onPivot: (e: RelatedEntit
           )}
           <SourceLink url={f.source_url} />
         </div>
-        <FindingValue value={f.value} />
+        {isAvatar
+          ? (
+            <div className="mt-0.5 flex items-center gap-2">
+              <span className="font-mono text-[11px] text-gray-500">fingerprint <span className="text-gray-400">{avatarHash}</span></span>
+              {f.source_url && (
+                <a href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(f.source_url)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-900/20 text-emerald-300 border border-emerald-800/40 hover:bg-emerald-900/40 transition-colors">
+                  <ExternalLink className="h-3 w-3" /> Reverse search
+                </a>
+              )}
+            </div>
+          )
+          : <FindingValue value={f.value} />}
         <FindingData data={f.data} />
         {f.verify_note && (
           <div className="mt-1 text-[11px] text-gray-500 italic">{f.verify_note}</div>
@@ -814,64 +836,202 @@ function RelatedEntitiesPanel({ scanId, target, isRunning }: { scanId: string; t
 // Surfaces the lat/lon the geoip collector buries in a finding's Data JSON as a
 // readable location card with network ownership + an OpenStreetMap link (no map
 // tiles embedded, so it stays safe in air-gapped DFIR environments).
-interface GeoLoc { location: string; lat: number; lon: number }
+const IDENTITY_GRADE: Record<string, { label: string; cls: string; bar: string }> = {
+  strong:   { label: 'Strong',   cls: 'text-emerald-300 border-emerald-700/50', bar: 'bg-emerald-500' },
+  moderate: { label: 'Moderate', cls: 'text-yellow-300 border-yellow-700/50',  bar: 'bg-yellow-500' },
+  weak:     { label: 'Weak',     cls: 'text-orange-300 border-orange-700/50',  bar: 'bg-orange-500' },
+  minimal:  { label: 'Minimal',  cls: 'text-gray-400 border-slate-700',         bar: 'bg-gray-600' },
+}
 
-function GeolocationPanel({ scanId, isRunning }: { scanId: string; isRunning: boolean }) {
-  const { data: findings = [] } = useQuery({
-    queryKey: ['osint-findings', scanId],
-    queryFn: () => osintApi.findings(scanId),
-    refetchInterval: isRunning ? 4000 : false,
+// IdentityPanel shows how strongly the graph corroborates a single identity — a
+// 0-100 score, grade, and the independent signals behind it. Self-hides when
+// there are no identity signals (e.g. an infrastructure-only scan).
+function IdentityPanel({ scanId, isRunning }: { scanId: string; isRunning: boolean }) {
+  const { data } = useQuery({
+    queryKey: ['osint-identity', scanId],
+    queryFn: () => osintApi.identity(scanId),
+    refetchInterval: isRunning ? 5000 : false,
   })
-
-  const { locs, network } = useMemo(() => {
-    const locs: GeoLoc[] = []
-    const network: { label: string; value: string }[] = []
-    for (const f of findings) {
-      if (f.source !== 'geoip') continue
-      if (f.category === 'geolocation' && f.data) {
-        try {
-          const d = JSON.parse(f.data)
-          if (typeof d.lat === 'number' && typeof d.lon === 'number' && (d.lat !== 0 || d.lon !== 0)) {
-            locs.push({ location: f.value, lat: d.lat, lon: d.lon })
-          }
-        } catch { /* not coords */ }
-      }
-      if (f.category === 'network') network.push({ label: f.title, value: f.value })
-    }
-    return { locs, network }
-  }, [findings])
-
-  if (locs.length === 0) return null
+  if (!data || (data as IdentityConfidence).signals.length === 0) return null
+  const g = IDENTITY_GRADE[data.grade] ?? IDENTITY_GRADE.minimal
 
   return (
     <div className="card">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-          <MapPin className="h-4 w-4 text-emerald-400" /> Geolocation
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-900/30 text-emerald-300 border border-emerald-800/40">{locs.length}</span>
+          <ShieldCheck className="h-4 w-4 text-emerald-400" /> Identity confidence
         </h3>
+        <span className={`ml-auto text-[11px] font-mono px-1.5 py-0.5 rounded border ${g.cls}`}>{g.label} · {data.score}/100</span>
       </div>
-      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-        {locs.map((l, i) => (
-          <div key={i} className="rounded-lg border border-slate-800 bg-gray-900/40 p-3">
-            <div className="flex items-center gap-2 text-sm text-gray-200">
-              <MapPin className="h-4 w-4 text-emerald-400 shrink-0" />
-              <span className="font-medium">{l.location || 'Unknown'}</span>
+      <div className="p-4 space-y-3">
+        <div className="h-2 w-full rounded-full bg-gray-800 overflow-hidden">
+          <div className={`h-full ${g.bar} transition-all`} style={{ width: `${data.score}%` }} />
+        </div>
+        <p className="text-xs text-gray-400">{data.summary}</p>
+        <div className="space-y-1.5">
+          {data.signals.map((s) => (
+            <div key={s.key} className="flex items-center gap-2 text-xs">
+              <ShieldPlus className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span className="text-gray-200">{s.label}</span>
+              {s.detail && <span className="text-gray-500">— {s.detail}</span>}
+              <span className="ml-auto text-[10px] font-mono text-gray-600">+{s.weight}</span>
             </div>
-            <div className="mt-1 text-[11px] font-mono text-gray-500">{l.lat.toFixed(4)}, {l.lon.toFixed(4)}</div>
-            <a href={`https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lon}#map=8/${l.lat}/${l.lon}`}
-              target="_blank" rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-[11px] font-mono px-2 py-1 rounded bg-emerald-900/20 text-emerald-300 border border-emerald-800/40 hover:bg-emerald-900/40 transition-colors">
-              <ExternalLink className="h-3 w-3" /> View on OpenStreetMap
-            </a>
-          </div>
-        ))}
-      </div>
-      {network.length > 0 && (
-        <div className="px-4 pb-4 flex flex-wrap gap-x-4 gap-y-1">
-          {network.map((n, i) => (
-            <span key={i} className="text-[11px] text-gray-500"><span className="text-gray-600">{n.label}:</span> <span className="text-gray-300">{n.value}</span></span>
           ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// bboxDelta picks a map zoom window (degrees) for a precision level: a precise
+// EXIF fix is shown tight; a country-level hint is shown wide.
+function bboxDelta(precision?: string): number {
+  switch (precision) {
+    case 'exact': return 0.01
+    case 'city': return 0.15
+    case 'region': return 1.5
+    default: return 6 // country / unknown
+  }
+}
+
+// osmEmbedURL builds an embedded OpenStreetMap map (no JS library needed) with a
+// marker at (lat,lon), zoomed by the precision of the best estimate.
+function osmEmbedURL(lat: number, lon: number, precision?: string): string {
+  const d = bboxDelta(precision)
+  // OSM's embed endpoint expects raw commas in bbox/marker, so do not URL-encode.
+  const bbox = `${lon - d},${lat - d},${lon + d},${lat + d}`
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`
+}
+
+const GEO_SOURCE_LABEL: Record<string, string> = {
+  exif: 'Photo EXIF GPS', geoip: 'IP geolocation', phone: 'Phone region',
+  whois: 'WHOIS', profile: 'Profile',
+}
+const GEO_CONF_CLS: Record<string, string> = {
+  high: 'text-emerald-300 bg-emerald-900/30 border-emerald-800/40',
+  medium: 'text-yellow-300 bg-yellow-900/30 border-yellow-800/40',
+  low: 'text-gray-400 bg-gray-800 border-slate-700',
+}
+
+function GeoPointRow({ p }: { p: GeoPoint }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-gray-900/40 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-gray-200 min-w-0">
+          <MapPin className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span className="font-medium truncate">{p.place || `${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`}</span>
+        </div>
+        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${GEO_CONF_CLS[p.confidence] ?? GEO_CONF_CLS.low}`}>
+          {p.precision}/{p.confidence}
+        </span>
+      </div>
+      <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-500">
+        <span className="font-mono">{p.lat.toFixed(5)}, {p.lon.toFixed(5)}</span>
+        <span className="text-gray-600">·</span>
+        <span>{GEO_SOURCE_LABEL[p.source] ?? p.source}</span>
+        {p.target && <><span className="text-gray-600">·</span><span className="truncate">{p.target}</span></>}
+      </div>
+      <a href={`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=12/${p.lat}/${p.lon}`}
+        target="_blank" rel="noopener noreferrer"
+        className="mt-2 inline-flex items-center gap-1 text-[11px] font-mono px-2 py-1 rounded bg-emerald-900/20 text-emerald-300 border border-emerald-800/40 hover:bg-emerald-900/40 transition-colors">
+        <ExternalLink className="h-3 w-3" /> Open map
+      </a>
+    </div>
+  )
+}
+
+function PhotoGeoUpload({ scanId }: { scanId: string }) {
+  const qc = useQueryClient()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const mut = useMutation({
+    mutationFn: (file: File) => osintApi.addScanPhotoGeo(scanId, file),
+    onSuccess: (d) => {
+      if (d.found) {
+        toast.success('Photo GPS added to the map')
+        qc.invalidateQueries({ queryKey: ['osint-location', scanId] })
+        qc.invalidateQueries({ queryKey: ['osint-findings', scanId] })
+      } else {
+        toast(d.note || 'No EXIF GPS in this image', { icon: '🔍' })
+      }
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) mut.mutate(f); e.target.value = '' }} />
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={mut.isPending}
+        className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-300 border border-slate-700 hover:border-emerald-700 hover:text-emerald-300 transition-colors disabled:opacity-50"
+        title="Extract a photo's EXIF GPS and pin it on the map"
+      >
+        {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Add photo
+      </button>
+    </>
+  )
+}
+
+function GeolocationPanel({ scanId, isRunning }: { scanId: string; isRunning: boolean }) {
+  const { data } = useQuery({
+    queryKey: ['osint-location', scanId],
+    queryFn: () => osintApi.location(scanId),
+    refetchInterval: isRunning ? 5000 : false,
+  })
+
+  // No coordinates yet — still expose the EXIF photo uploader (it's the only way
+  // to add an exact fix for person/handle targets that have no IP geolocation).
+  if (!data || !data.found || !data.best) {
+    return (
+      <div className="card px-4 py-3 flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-gray-600" />
+        <span className="text-xs text-gray-500">No location resolved yet. Have a photo of the target? Extract its GPS:</span>
+        <span className="ml-auto"><PhotoGeoUpload scanId={scanId} /></span>
+      </div>
+    )
+  }
+  const best = data.best
+  const others = data.points.filter((p) => !(p.lat === best.lat && p.lon === best.lon && p.source === best.source))
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+          <MapPin className="h-4 w-4 text-emerald-400" /> Location
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-900/30 text-emerald-300 border border-emerald-800/40">{data.count}</span>
+        </h3>
+        <PhotoGeoUpload scanId={scanId} />
+        <span className="ml-auto text-[11px] text-gray-500">best estimate · {best.precision}/{best.confidence}</span>
+      </div>
+
+      {/* Embedded OpenStreetMap centered on the best estimate (no JS map lib). */}
+      <div className="relative">
+        <iframe
+          title="target-location-map"
+          className="w-full h-72 border-0 bg-gray-900"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          src={osmEmbedURL(best.lat, best.lon, best.precision)}
+        />
+        <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded bg-gray-950/80 backdrop-blur px-2.5 py-1.5 border border-slate-700">
+          <MapPin className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span className="text-xs text-gray-200 font-medium truncate">{best.place || `${best.lat.toFixed(4)}, ${best.lon.toFixed(4)}`}</span>
+          <span className="text-[10px] text-gray-500 font-mono">{GEO_SOURCE_LABEL[best.source] ?? best.source}</span>
+          {data.maps_url && (
+            <a href={data.maps_url} target="_blank" rel="noopener noreferrer"
+              className="ml-auto inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-300 border border-emerald-800/40 hover:bg-emerald-900/50 transition-colors shrink-0">
+              <ExternalLink className="h-3 w-3" /> Google Maps
+            </a>
+          )}
+        </div>
+      </div>
+
+      {others.length > 0 && (
+        <div className="p-4">
+          <p className="text-[11px] text-gray-500 mb-2">All located observations ({data.points.length}) — agreement across sources raises confidence:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {data.points.map((p, i) => <GeoPointRow key={i} p={p} />)}
+          </div>
         </div>
       )}
     </div>
@@ -1162,6 +1322,9 @@ export default function OsintDetailPage() {
 
       {/* Collector timeline */}
       <CollectorTimeline collectors={collectors} />
+
+      {/* Identity confidence — how strongly the graph corroborates one identity */}
+      <IdentityPanel scanId={scan.id} isRunning={isRunning} />
 
       {/* Related entities (IPs / domains / accounts) — self-hides when empty */}
       <RelatedEntitiesPanel scanId={scan.id} target={scan.target} isRunning={isRunning} />

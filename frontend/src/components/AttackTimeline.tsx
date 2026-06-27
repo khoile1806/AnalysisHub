@@ -3,13 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Clock, Plus, Trash2, Crosshair, Server, ShieldAlert,
   BrainCircuit, Search, PenLine, Filter, X, Wand2, AlertTriangle,
-  FolderUp, FileText, Download, Sparkles, HardDrive, Paperclip,
+  FolderUp, FileText, Download, Sparkles, HardDrive, Paperclip, Layers, Loader2, Pencil,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   timelineApi, MITRE_TACTICS, parseAttachments,
   type TimelineEvent, type TimelineSeverity, type CreateTimelineEvent, type TimelineAttachment,
+  type SuperArtifactSource,
 } from '@/api/timeline'
+import { agentsApi } from '@/api/agents'
 import { AttachmentsEditor, AttachmentsView } from '@/components/TimelineAttachments'
 import { elkResultsApi, analysisApi } from '@/api/analysis'
 import { evidenceApi, type CaseEvidence } from '@/api/evidence'
@@ -120,6 +122,93 @@ function AddEventForm({ caseId, onDone }: { caseId: string; onDone: () => void }
         <button className="btn-primary" disabled={!form.title || createMut.isPending}
           onClick={() => createMut.mutate()}>
           {createMut.isPending ? 'Saving…' : 'Add event'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Edit-event inline form (manual correction of any node) ──────────────────
+function EditEventForm({ caseId, event, onDone }: { caseId: string; event: TimelineEvent; onDone: () => void }) {
+  const qc = useQueryClient()
+  const toLocal = (iso: string) => {
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? '' : new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+  }
+  const [form, setForm] = useState<CreateTimelineEvent>({
+    event_time: toLocal(event.event_time),
+    title: event.title,
+    severity: event.severity,
+    host: event.host ?? '',
+    tactic: event.tactic ?? '',
+    technique: event.technique ?? '',
+    detail: event.detail ?? '',
+  })
+
+  const saveMut = useMutation({
+    mutationFn: () => timelineApi.update(event.id, {
+      ...form,
+      event_time: form.event_time ? new Date(form.event_time).toISOString() : undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', caseId] })
+      toast.success('Event updated')
+      onDone()
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  return (
+    <div className="space-y-2.5">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label text-[10px]">When (real activity time)</label>
+          <input type="datetime-local" className="input text-xs py-1" value={form.event_time}
+            onChange={(e) => setForm({ ...form, event_time: e.target.value })} />
+        </div>
+        <div>
+          <label className="label text-[10px]">Severity</label>
+          <select className="input text-xs py-1" value={form.severity}
+            onChange={(e) => setForm({ ...form, severity: e.target.value as TimelineSeverity })}>
+            {SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="label text-[10px]">Title</label>
+        <input className="input text-xs py-1" value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })} />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="label text-[10px]">Host</label>
+          <input className="input text-xs py-1" value={form.host}
+            onChange={(e) => setForm({ ...form, host: e.target.value })} />
+        </div>
+        <div>
+          <label className="label text-[10px]">MITRE Tactic</label>
+          <select className="input text-xs py-1" value={form.tactic}
+            onChange={(e) => setForm({ ...form, tactic: e.target.value })}>
+            <option value="">—</option>
+            {MITRE_TACTICS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label text-[10px]">Technique</label>
+          <input className="input text-xs py-1" placeholder="T1505.003" value={form.technique}
+            onChange={(e) => setForm({ ...form, technique: e.target.value })} />
+        </div>
+      </div>
+      <div>
+        <label className="label text-[10px]">Detail</label>
+        <textarea className="input text-xs min-h-[56px]" value={form.detail}
+          onChange={(e) => setForm({ ...form, detail: e.target.value })} />
+      </div>
+      <div className="flex justify-end gap-2">
+        <button className="btn-secondary text-xs py-1" onClick={onDone}>Cancel</button>
+        <button className="btn-primary text-xs py-1" disabled={!form.title || saveMut.isPending}
+          onClick={() => saveMut.mutate()}>
+          {saveMut.isPending ? 'Saving…' : 'Save changes'}
         </button>
       </div>
     </div>
@@ -452,6 +541,89 @@ function EvidencePanel({ caseId, agents, onDone }: { caseId: string; agents: any
 }
 
 // ── Main timeline ──────────────────────────────────────────────────────────
+// Super-timeline collections that map to an EdgeForensics agent endpoint.
+const SUPER_COLLECTIONS: { key: SuperArtifactSource['type']; label: string; run: (id: string) => Promise<any> }[] = [
+  { key: 'mft', label: 'MFT (file timeline)', run: (id) => agentsApi.parseMFT(id) },
+  { key: 'prefetch', label: 'Prefetch (executions)', run: (id) => agentsApi.parsePrefetch(id) },
+  { key: 'processes', label: 'Processes', run: (id) => agentsApi.parseProcessScan(id) },
+  { key: 'shimcache', label: 'Shimcache', run: (id) => agentsApi.parseShimcache(id) },
+]
+
+// SuperTimelineModal collects EdgeForensics artifacts from an online agent and
+// folds them into one chronological case timeline in a single action.
+function SuperTimelineModal({ caseId, agents, onDone }: { caseId: string; agents: any[]; onDone: () => void }) {
+  const qc = useQueryClient()
+  const online = agents.filter((a) => a.status === 'online')
+  const [agentId, setAgentId] = useState(online[0]?.id ?? '')
+  const [picked, setPicked] = useState<Record<string, boolean>>({ mft: true, prefetch: true, processes: true })
+  const [onlySusp, setOnlySusp] = useState(true)
+  const [step, setStep] = useState('')
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      const agent = agents.find((a) => a.id === agentId)
+      const host = agent?.hostname || agent?.name || ''
+      const sources: SuperArtifactSource[] = []
+      for (const col of SUPER_COLLECTIONS) {
+        if (!picked[col.key]) continue
+        setStep(`Collecting ${col.label}…`)
+        try {
+          const data = await col.run(agentId)
+          sources.push({ type: col.key, data })
+        } catch (e) {
+          toast.error(`${col.label}: ${getErrorMessage(e)}`)
+        }
+      }
+      if (sources.length === 0) throw new Error('no artifacts collected')
+      setStep('Building timeline…')
+      return timelineApi.buildSuper(caseId, { host, only_suspicious: onlySusp, sources })
+    },
+    onSuccess: (r) => {
+      toast.success(`Super-timeline built: ${r.events_created} event(s) added`)
+      qc.invalidateQueries({ queryKey: ['timeline', caseId] })
+      onDone()
+    },
+    onError: (e) => { setStep(''); toast.error(getErrorMessage(e)) },
+  })
+
+  return (
+    <div className="card p-4 space-y-3 border-emerald-500/30">
+      <h4 className="text-sm font-semibold text-gray-200 flex items-center gap-2"><Layers className="h-4 w-4 text-emerald-400" /> Build super-timeline</h4>
+      {online.length === 0 ? (
+        <p className="text-xs text-yellow-400">No online agent in this case. Bring an agent online to collect live artifacts.</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-xs text-gray-400">Agent
+              <select className="input mt-1 block" value={agentId} onChange={(e) => setAgentId(e.target.value)} disabled={mut.isPending}>
+                {online.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-gray-400">
+              <input type="checkbox" checked={onlySusp} onChange={(e) => setOnlySusp(e.target.checked)} disabled={mut.isPending} /> Only suspicious
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {SUPER_COLLECTIONS.map((c) => (
+              <label key={c.key} className="flex items-center gap-1.5 text-xs text-gray-300">
+                <input type="checkbox" checked={!!picked[c.key]} onChange={(e) => setPicked((p) => ({ ...p, [c.key]: e.target.checked }))} disabled={mut.isPending} /> {c.label}
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <button className="btn-primary flex items-center gap-2" disabled={mut.isPending || !agentId || !Object.values(picked).some(Boolean)} onClick={() => mut.mutate()}>
+              {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />} Build
+            </button>
+            {mut.isPending && <span className="text-xs text-gray-400">{step}</span>}
+            <button className="btn-secondary text-xs" onClick={onDone} disabled={mut.isPending}>Close</button>
+          </div>
+          <p className="text-[11px] text-gray-600">Runs the chosen EdgeForensics collections on the agent (UAC may prompt), then merges them into the case timeline.</p>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function AttackTimeline({ caseId, agents = [] }: { caseId: string; agents?: any[] }) {
   const qc = useQueryClient()
   const [adding, setAdding] = useState(false)
@@ -459,9 +631,12 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
   const [aiExtract, setAiExtract] = useState(false)
   const [aiRebuild, setAiRebuild] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
+  const [superOpen, setSuperOpen] = useState(false)
   const [hostFilter, setHostFilter] = useState('')
   const [sevFilter, setSevFilter] = useState<TimelineSeverity | ''>('')
+  const [sourceFilter, setSourceFilter] = useState('')
   const [editAttachFor, setEditAttachFor] = useState<string | null>(null)
+  const [editFor, setEditFor] = useState<string | null>(null)
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['timeline', caseId],
@@ -488,14 +663,19 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
     () => Array.from(new Set(events.map((e) => e.host).filter(Boolean))) as string[],
     [events],
   )
+  const sources = useMemo(
+    () => Array.from(new Set(events.map((e) => e.source).filter(Boolean))) as string[],
+    [events],
+  )
 
   const filtered = useMemo(() => {
     return events.filter((e) => {
       if (hostFilter && e.host !== hostFilter) return false
       if (sevFilter && e.severity !== sevFilter) return false
+      if (sourceFilter && e.source !== sourceFilter) return false
       return true
     })
-  }, [events, hostFilter, sevFilter])
+  }, [events, hostFilter, sevFilter, sourceFilter])
 
   // Group events by calendar day for readable separators.
   const grouped = useMemo(() => {
@@ -544,6 +724,16 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
             <option value="">All severity</option>
             {SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          {sources.length > 1 && (
+            <select className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300"
+              value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+              <option value="">All sources</option>
+              {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+          <button onClick={() => setSuperOpen((v) => !v)} className="btn-secondary text-xs py-1.5 border-emerald-500/40 text-emerald-300">
+            <Layers className="h-3.5 w-3.5" /> Super-timeline
+          </button>
           <button onClick={() => setEvidenceOpen((v) => !v)} className="btn-secondary text-xs py-1.5 border-sky-500/40 text-sky-300">
             <HardDrive className="h-3.5 w-3.5" /> Evidence
           </button>
@@ -562,6 +752,7 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
         </div>
       </div>
 
+      {superOpen && <SuperTimelineModal caseId={caseId} agents={agents} onDone={() => setSuperOpen(false)} />}
       {evidenceOpen && <EvidencePanel caseId={caseId} agents={agents} onDone={() => setEvidenceOpen(false)} />}
       {aiRebuild && <AIRebuild caseId={caseId} eventCount={events.length} onDone={() => setAiRebuild(false)} />}
       {aiExtract && <AIExtract caseId={caseId} onDone={() => setAiExtract(false)} />}
@@ -592,11 +783,14 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
               <div className="relative pl-6 space-y-3 before:absolute before:left-[7px] before:top-1 before:bottom-1 before:w-px before:bg-gray-800">
                 {dayEvents.map((e) => {
                   const st = SEVERITY_STYLE[e.severity]
-                  const Icon = SOURCE_ICON[e.source] ?? PenLine
+                  const Icon = SOURCE_ICON[e.source as keyof typeof SOURCE_ICON] ?? PenLine
                   return (
                     <div key={e.id} className="relative">
                       <span className={`absolute -left-[19px] top-2 h-3.5 w-3.5 rounded-full ${st.dot} ring-4 ring-gray-950`} />
                       <div className={`card p-3 ${st.border} hover:border-opacity-60 transition group`}>
+                        {editFor === e.id ? (
+                          <EditEventForm caseId={caseId} event={e} onDone={() => setEditFor(null)} />
+                        ) : (
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -638,6 +832,13 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
                           </div>
                           <div className="flex flex-col items-center gap-1.5 shrink-0">
                             <button
+                              onClick={() => setEditFor(e.id)}
+                              title="Edit this event by hand"
+                              className="text-gray-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
                               onClick={() => setEditAttachFor(editAttachFor === e.id ? null : e.id)}
                               title="Attach evidence / image / link"
                               className={`transition ${editAttachFor === e.id ? 'text-emerald-400' : 'text-gray-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100'}`}
@@ -652,6 +853,7 @@ export default function AttackTimeline({ caseId, agents = [] }: { caseId: string
                             </button>
                           </div>
                         </div>
+                        )}
                       </div>
                     </div>
                   )

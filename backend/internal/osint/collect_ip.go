@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/forensichub/backend/internal/models"
 )
@@ -99,7 +100,12 @@ type ipAPIResponse struct {
 	AS         string  `json:"as"`
 }
 
-// collectGeoIP resolves geolocation and network ownership via ip-api.com.
+// collectGeoIP resolves geolocation and network ownership via ip-api.com, then
+// CORROBORATES the position with a second free provider (ipwho.is). Agreement
+// between two independent geolocation databases is the strongest accuracy signal
+// we can get without a paid feed, so the consolidated "Location" finding carries
+// a confidence verdict (high when both agree within ~50 km, medium otherwise)
+// and a structured geo payload the location aggregator can rank.
 func collectGeoIP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	u := env.cfg.APIIpApiURL + url.PathEscape(env.target) +
 		"?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query"
@@ -121,14 +127,42 @@ func collectGeoIP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding
 	}
 
 	var out []models.OsintFinding
+
+	// Second opinion from ipwho.is (free, no key) for cross-validation.
+	confidence := "medium"
+	var verifyNote string
+	if w, ok := ipWhoLookup(ctx, env); ok && validCoord(w.Lat, w.Lon) {
+		dist := haversineKm(r.Lat, r.Lon, w.Lat, w.Lon)
+		if dist <= 50 {
+			confidence = "high"
+			verifyNote = fmt.Sprintf("corroborated by ipwho.is (%.0f km apart)", dist)
+		} else {
+			confidence = "low"
+			verifyNote = fmt.Sprintf("providers disagree: ip-api=%s vs ipwho.is=%s (%.0f km apart)",
+				joinNonEmpty(", ", r.City, r.Country), joinNonEmpty(", ", w.City, w.Country), dist)
+		}
+	} else {
+		verifyNote = "single-source geolocation (ipwho.is unavailable) - treat city as approximate"
+	}
+
+	// Attribution prefix so the finding states WHICH entity this location is for.
+	attribution := "location of IP " + env.target
 	loc := joinNonEmpty(", ", r.City, r.RegionName, r.Country)
-	if loc != "" {
-		f := newFinding("geoip", "geolocation", "Location", loc)
-		f.Data = toJSON(map[string]float64{"lat": r.Lat, "lon": r.Lon})
+	if loc != "" && validCoord(r.Lat, r.Lon) {
+		f := newFinding("geoip", "geolocation", "Location of IP "+env.target, loc)
+		f.Data = geoPayload(r.Lat, r.Lon, loc, "city", "geoip")
+		f.Confidence = confidence
+		f.VerifyNote = attribution + " — " + verifyNote
+		out = append(out, f)
+	} else if loc != "" {
+		f := newFinding("geoip", "geolocation", "Location of IP "+env.target, loc)
+		f.VerifyNote = attribution
 		out = append(out, f)
 	}
 	if r.Timezone != "" {
-		out = append(out, newFinding("geoip", "geolocation", "Timezone", r.Timezone))
+		f := newFinding("geoip", "geolocation", "Timezone", r.Timezone)
+		f.VerifyNote = "timezone of IP " + env.target
+		out = append(out, f)
 	}
 	if r.ISP != "" {
 		out = append(out, newFinding("geoip", "network", "ISP", r.ISP))
@@ -140,6 +174,40 @@ func collectGeoIP(ctx context.Context, env *collectorEnv) ([]models.OsintFinding
 		out = append(out, newFinding("geoip", "network", "Autonomous System", r.AS))
 	}
 	return stampSource(out, ipAPIViewerURL(env.target)), nil
+}
+
+// rlIPWho paces ipwho.is (free, no key, generous but be polite).
+var rlIPWho = newRateLimiter(1200 * time.Millisecond)
+
+// ipWhoCoord is the subset of the ipwho.is response we use for cross-validation.
+type ipWhoCoord struct {
+	Success   bool    `json:"success"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	City      string  `json:"city"`
+	Country   string  `json:"country"`
+}
+
+func (w ipWhoCoord) toGeo() (lat, lon float64) { return w.Latitude, w.Longitude }
+
+// ipWhoLookup fetches a second-opinion geolocation from ipwho.is.
+func ipWhoLookup(ctx context.Context, env *collectorEnv) (struct {
+	Lat, Lon     float64
+	City, Country string
+}, bool) {
+	var w ipWhoCoord
+	api := "https://ipwho.is/" + url.PathEscape(env.target) + "?fields=success,latitude,longitude,city,country"
+	st, err := cachedGetJSON(ctx, env.cache, "ipwho:"+env.target, rlIPWho, api, nil, &w, ttlGeoIP)
+	res := struct {
+		Lat, Lon     float64
+		City, Country string
+	}{}
+	if err != nil || st != 200 || !w.Success {
+		return res, false
+	}
+	res.Lat, res.Lon = w.toGeo()
+	res.City, res.Country = w.City, w.Country
+	return res, true
 }
 
 // -- Shodan InternetDB (free, no key) ------------------------------------------

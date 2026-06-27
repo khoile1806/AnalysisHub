@@ -7,19 +7,19 @@ import (
 	"io"
 	"log"
 	"log/slog"
-	"strconv"
-	"strings"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/forensichub/agent/internal/config"
 	"github.com/forensichub/agent/internal/executor"
-	"github.com/forensichub/agent/internal/ws"
 	"github.com/forensichub/agent/internal/parser"
+	"github.com/forensichub/agent/internal/ws"
 )
 
 func main() {
@@ -90,6 +90,32 @@ func main() {
 			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
 			os.Exit(1)
 		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-browser" {
+		outPath := os.Args[2]
+		res, err := parser.ScanBrowserHistory()
+		if err != nil {
+			os.WriteFile(outPath, []byte(fmt.Sprintf(`{"error":"%v"}`, err)), 0644)
+			os.Exit(1)
+		}
+		b, _ := json.Marshal(res)
+		os.WriteFile(outPath, b, 0644)
+		os.Exit(0)
+	}
+	if len(os.Args) >= 3 && os.Args[1] == "scan-triage" {
+		outPath := os.Args[2]
+		var types []string
+		if len(os.Args) >= 4 {
+			for _, p := range strings.Split(os.Args[3], ",") {
+				if p = strings.TrimSpace(p); p != "" {
+					types = append(types, p)
+				}
+			}
+		}
+		res := parser.CollectTriage(types)
 		b, _ := json.Marshal(res)
 		os.WriteFile(outPath, b, 0644)
 		os.Exit(0)

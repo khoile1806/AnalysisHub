@@ -19,6 +19,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
 	"github.com/forensichub/backend/internal/api/middleware"
@@ -34,10 +35,27 @@ var cveHTTPClient = &http.Client{Timeout: 30 * time.Second}
 // cveIDRegex matches well-formed CVE identifiers per MITRE format.
 var cveIDRegex = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
 
+// cveSearchSF collapses concurrent identical searches into a single upstream
+// NVD round-trip (thundering-herd protection), so many users searching the same
+// keyword while the cache is cold/refreshing only cost ONE slow NVD call.
+var cveSearchSF singleflight.Group
+
+// cveCacheEntry wraps cached search results with the time they were produced, so
+// stale-while-revalidate can decide whether to refresh in the background.
+type cveCacheEntry struct {
+	Data     []CveSummary `json:"data"`
+	CachedAt time.Time    `json:"cached_at"`
+}
+
 const (
 	githubBaseURL = "https://api.github.com/search/repositories"
 
-	cveSearchTTL = time.Hour
+	// cveSearchTTL is how long a cached search survives in Redis. It is long so
+	// stale entries remain available for stale-while-revalidate; cveSoftTTL marks
+	// when an entry is considered fresh — past it, the cache is still served
+	// instantly but a background refresh is kicked off.
+	cveSearchTTL = 24 * time.Hour
+	cveSoftTTL   = 15 * time.Minute
 	cveDetailTTL = 6 * time.Hour
 	cvePoCsTTL   = time.Hour
 
@@ -142,78 +160,107 @@ func SearchCVE(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	rdb := getRedis(c)
-	// v5: results are merged from NVD + WPScan, supporting multiple comma-separated queries.
-	cacheKey := "cve:search:v5:" + sha1Hex(fmt.Sprintf("%s|%s|%d", strings.ToLower(q), strings.ToLower(version), limit))
+	f := cveFetchFromCtx(c)
+	// v6: cache entry now wraps results + timestamp for stale-while-revalidate.
+	cacheKey := "cve:search:v6:" + sha1Hex(fmt.Sprintf("%s|%s|%d", strings.ToLower(q), strings.ToLower(version), limit))
 
+	audit := func(n int, note string) {
+		userID, _ := middleware.GetUserID(c)
+		var uidPtr *uuid.UUID
+		if userID != uuid.Nil {
+			uidPtr = &userID
+		}
+		res := q
+		if version != "" {
+			res = q + "@" + version
+		}
+		writeAudit(c, db, uidPtr, nil, "cve.search", res, fmt.Sprintf("%s: %d results", note, n))
+	}
+
+	// runSearch performs the actual upstream NVD work. It takes a plain context
+	// (no gin.Context) so it is safe to run in a detached background refresh.
+	// Returns the summaries and whether at least one query succeeded.
+	runSearch := func(rctx context.Context) ([]CveSummary, bool) {
+		var (
+			all      []CveSummary
+			failures int
+			mu       sync.Mutex
+			wg       sync.WaitGroup
+		)
+		for _, singleQ := range queries {
+			keyword := singleQ
+			if version != "" {
+				keyword = singleQ + " " + version
+			}
+			wg.Add(1)
+			go func(kw string) {
+				defer wg.Done()
+				res, err := searchNVD(rctx, f, kw, limit)
+				mu.Lock()
+				if err != nil {
+					log.Printf("[cve] nvd search error for %q: %v", kw, err)
+					failures++
+				} else {
+					all = append(all, res...)
+				}
+				mu.Unlock()
+			}(keyword)
+		}
+		wg.Wait()
+		if failures == len(queries) {
+			return nil, false // every query failed → don't cache, surface error
+		}
+		s := mergeCveSummaries(all)
+		enrichWithRiskData(rctx, s) // EPSS + KEV folded in before caching
+		return s, true
+	}
+
+	// loadFresh fetches + caches, collapsing concurrent identical calls via
+	// singleflight so a stampede of the same query hits NVD only once.
+	loadFresh := func(rctx context.Context) ([]CveSummary, bool) {
+		v, _, _ := cveSearchSF.Do(cacheKey, func() (interface{}, error) {
+			s, ok := runSearch(rctx)
+			if ok && rdb != nil {
+				if b, e := json.Marshal(cveCacheEntry{Data: s, CachedAt: time.Now().UTC()}); e == nil {
+					rdb.Set(context.Background(), cacheKey, b, cveSearchTTL)
+				}
+			}
+			return cveResult{sums: s, ok: ok}, nil
+		})
+		r, _ := v.(cveResult)
+		return r.sums, r.ok
+	}
+
+	// ── Stale-while-revalidate: serve cache instantly, refresh if stale ──
 	if rdb != nil {
 		if b, err := rdb.Get(ctx, cacheKey).Bytes(); err == nil {
-			var cached []CveSummary
-			if json.Unmarshal(b, &cached) == nil {
-				c.JSON(http.StatusOK, gin.H{"success": true, "data": cached})
+			var entry cveCacheEntry
+			if json.Unmarshal(b, &entry) == nil && entry.Data != nil {
+				c.JSON(http.StatusOK, gin.H{"success": true, "data": entry.Data})
+				if time.Since(entry.CachedAt) > cveSoftTTL {
+					// Stale → refresh in the background (detached context).
+					go loadFresh(context.Background())
+				}
+				audit(len(entry.Data), "cache")
 				return
 			}
 		}
 	}
 
-	var (
-		allNvdSummaries []CveSummary
-		nvdFailures     int
-		mu              sync.Mutex
-		wg              sync.WaitGroup
-	)
-
-	for _, singleQ := range queries {
-		keyword := singleQ
-		if version != "" {
-			keyword = singleQ + " " + version
-		}
-
-		wg.Add(1)
-		go func(kw string) {
-			defer wg.Done()
-			nvdRes, err := searchNVD(ctx, c, kw, limit)
-			mu.Lock()
-			if err != nil {
-				log.Printf("[cve] nvd search error for %q: %v", kw, err)
-				nvdFailures++
-			} else {
-				allNvdSummaries = append(allNvdSummaries, nvdRes...)
-			}
-			mu.Unlock()
-		}(keyword)
-	}
-
-	wg.Wait()
-
-	if nvdFailures > 0 && nvdFailures == len(queries) {
+	// ── Cache miss: fetch synchronously ──
+	summaries, ok := loadFresh(ctx)
+	if !ok {
 		c.JSON(http.StatusBadGateway, gin.H{"success": false, "error": "failed to fetch from NVD"})
 		return
 	}
-
-	summaries := mergeCveSummaries(allNvdSummaries)
-
-	// Risk enrichment happens before caching so cached responses already carry
-	// EPSS + KEV — the next cache hit doesn't re-spend FIRST.org calls.
-	enrichWithRiskData(ctx, summaries)
-
-	if rdb != nil {
-		if b, err := json.Marshal(summaries); err == nil {
-			rdb.Set(ctx, cacheKey, b, cveSearchTTL)
-		}
-	}
-
-	userID, _ := middleware.GetUserID(c)
-	var uidPtr *uuid.UUID
-	if userID != uuid.Nil {
-		uidPtr = &userID
-	}
-	auditResource := q
-	if version != "" {
-		auditResource = q + "@" + version
-	}
-	writeAudit(c, db, uidPtr, nil, "cve.search", auditResource, fmt.Sprintf("returned %d results", len(summaries)))
-
+	audit(len(summaries), "live")
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": summaries})
+}
+
+// cveResult is the singleflight payload for a search (results + success flag).
+type cveResult struct {
+	sums []CveSummary
+	ok   bool
 }
 
 // GetCVE handles GET /api/v1/cve/:id
@@ -241,7 +288,7 @@ func GetCVE(c *gin.Context) {
 
 	params := url.Values{}
 	params.Set("cveId", id)
-	raw, status, err := fetchNVD(ctx, c, params)
+	raw, status, err := fetchNVD(ctx, cveFetchFromCtx(c), params)
 	if err != nil {
 		log.Printf("[cve] nvd detail error: %v", err)
 		c.JSON(http.StatusBadGateway, gin.H{"success": false, "error": "failed to fetch from NVD"})
@@ -364,7 +411,7 @@ func GetCVERelatedIOCs(c *gin.Context) {
 // order is roughly CVE-ID ascending; the last page therefore contains the
 // newest CVEs for the keyword. The 50-result hard cap that motivated the
 // original "last page" hack is now 500, so the cliff is far less sharp.
-func searchNVD(ctx context.Context, c *gin.Context, keyword string, limit int) ([]CveSummary, error) {
+func searchNVD(ctx context.Context, f cveFetch, keyword string, limit int) ([]CveSummary, error) {
 	upper := strings.ToUpper(strings.TrimSpace(keyword))
 	var paramKey, paramVal string
 
@@ -379,15 +426,16 @@ func searchNVD(ctx context.Context, c *gin.Context, keyword string, limit int) (
 		paramVal = strings.TrimSpace(keyword)
 	}
 
-	// NVD API 2.0 sorts results by published date ascending.
-	// To get the newest CVEs efficiently, we fetch up to 2000 results (max allowed) in ONE request.
-	// For most keywords (like "jquery" which has ~150 results), this gets all CVEs in a single API call,
-	// avoiding the severe 30-second latency of making two sequential NVD requests.
+	// NVD API 2.0 sorts results by published date ASCENDING and has no sort
+	// parameter, so the newest CVEs are always on the LAST page. We fetch only
+	// `limit` rows per request (NOT 2000): a 2000-row page for a broad keyword
+	// like "windows" is several MB and routinely blows the 30s HTTP timeout —
+	// that was the source of the 502 "failed to fetch from NVD".
 	params := url.Values{}
 	params.Set(paramKey, paramVal)
-	params.Set("resultsPerPage", "2000")
+	params.Set("resultsPerPage", strconv.Itoa(limit))
 
-	raw, status, err := fetchNVD(ctx, c, params)
+	raw, status, err := fetchNVD(ctx, f, params)
 	if err != nil {
 		return nil, err
 	}
@@ -402,36 +450,28 @@ func searchNVD(ctx context.Context, c *gin.Context, keyword string, limit int) (
 		return nil, err
 	}
 
-	// If the keyword matched 2000 or fewer CVEs, we already have everything.
-	if meta.TotalResults <= 2000 {
-		summaries, err := parseNVDSummaries(raw)
-		if err != nil {
-			return nil, err
-		}
-		if len(summaries) > limit {
-			summaries = summaries[:limit]
-		}
-		return summaries, nil
+	// First page (startIndex 0) holds the OLDEST results. If the whole match set
+	// fits in one page, that page already contains everything — return it.
+	if meta.TotalResults <= limit {
+		return parseNVDSummaries(raw)
 	}
 
-	// If there are > 2000 results (e.g. "windows"), our first page contains the OLDEST CVEs.
-	// We must make a second request fetching the LAST page to get the NEWEST ones.
+	// Otherwise fetch the LAST page to surface the NEWEST `limit` CVEs. Both
+	// requests are small (`limit` rows), so even ultra-broad keywords stay fast.
 	startIdx := meta.TotalResults - limit
 	if startIdx < 0 {
 		startIdx = 0
 	}
-
-	params.Set("resultsPerPage", strconv.Itoa(limit))
 	params.Set("startIndex", strconv.Itoa(startIdx))
-	
-	raw, status, err = fetchNVD(ctx, c, params)
+
+	raw, status, err = fetchNVD(ctx, f, params)
 	if err != nil {
 		return nil, err
 	}
 	if status != http.StatusOK {
 		return nil, fmt.Errorf("NVD search status %d", status)
 	}
-	
+
 	return parseNVDSummaries(raw)
 }
 
@@ -456,24 +496,40 @@ func mergeCveSummaries(results []CveSummary) []CveSummary {
 	return out
 }
 
-func fetchNVD(ctx context.Context, c *gin.Context, params url.Values) ([]byte, int, error) {
-	nvdURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
+// cveFetch carries the NVD endpoint + API key, captured from the gin context so
+// background (stale-while-revalidate) refreshes can run after the request ends.
+type cveFetch struct {
+	nvdURL string
+	apiKey string
+}
+
+func cveFetchFromCtx(c *gin.Context) cveFetch {
+	f := cveFetch{nvdURL: "https://services.nvd.nist.gov/rest/json/cves/2.0"}
 	if c != nil {
 		if cfg, ok := c.Get("config"); ok {
-			nvdURL = cfg.(*config.Config).APINvdURL
+			f.nvdURL = cfg.(*config.Config).APINvdURL
 		}
+		if v, _ := c.Get("nvdAPIKey"); v != nil {
+			if key, _ := v.(string); key != "" {
+				f.apiKey = key
+			}
+		}
+	}
+	return f
+}
+
+func fetchNVD(ctx context.Context, f cveFetch, params url.Values) ([]byte, int, error) {
+	nvdURL := f.nvdURL
+	if nvdURL == "" {
+		nvdURL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nvdURL+"?"+params.Encode(), nil)
 	if err != nil {
 		return nil, 0, err
 	}
 	req.Header.Set("Accept", "application/json")
-	if c != nil {
-		if v, _ := c.Get("nvdAPIKey"); v != nil {
-			if key, _ := v.(string); key != "" {
-				req.Header.Set("apiKey", key)
-			}
-		}
+	if f.apiKey != "" {
+		req.Header.Set("apiKey", f.apiKey)
 	}
 	resp, err := cveHTTPClient.Do(req)
 	if err != nil {
@@ -817,4 +873,3 @@ func enrichWithRiskData(ctx context.Context, summaries []CveSummary) {
 		summaries[i].IsKEV = isCISAExploited(summaries[i].ID)
 	}
 }
-

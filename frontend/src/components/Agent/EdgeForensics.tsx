@@ -4,13 +4,16 @@ import { useQuery } from '@tanstack/react-query'
 import {
   HardDrive, Clock, ShieldAlert, Play, Search, File, Folder, AlertTriangle,
   ChevronRight, Copy, Hash, ShieldQuestion, Database, Save, Cpu, Power,
-  Network, Globe, Radio, Server, Crosshair, Zap, Boxes, Ban, History,
+  Network, Globe, Radio, Server, Crosshair, Zap, Boxes, Ban, History, GitBranch,
+  Archive, X, Loader2, CalendarPlus, Download, ArrowLeft,
 } from 'lucide-react'
-import { agentsApi, type Agent } from '@/api/agents'
+import { agentsApi, type Agent, type BrowserEntry, type TriageResult } from '@/api/agents'
+import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 import { intelApi } from '@/api/intel'
 import { osintApi } from '@/api/osint'
 import { timelineApi, type TimelineSeverity } from '@/api/timeline'
 import { casesApi } from '@/api/cases'
+import { evidenceApi } from '@/api/evidence'
 import { copyToClipboard } from '@/lib/utils'
 import { useRealtimeSSE } from '@/hooks/useRealtimeSSE'
 import IntelLookupModal from '@/components/IntelLookupModal'
@@ -168,12 +171,13 @@ function HashRow({ algo, value, onLookup }: { algo: string; value?: string; onLo
 }
 
 // ── MFT / File-forensic table ─────────────────────────────────────────────────
-function MFTTable({ data, iocMatches, onLookup, selected, onToggle }: {
+function MFTTable({ data, iocMatches, onLookup, selected, onToggle, onTrace }: {
   data: MFTEntry[]
   iocMatches: Set<string>
   onLookup: (t: LookupTarget) => void
   selected: Set<number>
   onToggle: (i: number) => void
+  onTrace: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [suspiciousOnly, setSuspiciousOnly] = useState(false)
@@ -304,6 +308,13 @@ function MFTTable({ data, iocMatches, onLookup, selected, onToggle }: {
                             {e.suspicious!.map((r, k) => <span key={k} className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">{r}</span>)}
                           </div>
                         )}
+                        {!e.is_dir && (
+                          <div className="pt-2">
+                            <button onClick={() => onTrace(e.name, 0)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title="Reconstruct where this file came from (which process created/ran it, when)">
+                              <GitBranch className="h-3.5 w-3.5" /> Trace origin
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )}
@@ -318,12 +329,13 @@ function MFTTable({ data, iocMatches, onLookup, selected, onToggle }: {
 }
 
 // ── Prefetch table ────────────────────────────────────────────────────────────
-function PrefetchTable({ data, iocMatches, onLookup, selected, onToggle }: {
+function PrefetchTable({ data, iocMatches, onLookup, selected, onToggle, onTrace }: {
   data: PrefetchEntry[]
   iocMatches: Set<string>
   onLookup: (t: LookupTarget) => void
   selected: Set<number>
   onToggle: (i: number) => void
+  onTrace: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [threatsOnly, setThreatsOnly] = useState(false)
@@ -448,6 +460,11 @@ function PrefetchTable({ data, iocMatches, onLookup, selected, onToggle }: {
                           <HashRow algo="md5" value={e.md5} onLookup={onLookup} />
                           <HashRow algo="sha256" value={e.sha256} onLookup={onLookup} />
                         </div>
+                        <div className="pt-2">
+                          <button onClick={() => onTrace(e.executable, 0)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title="Reconstruct this executable's origin (which process/user ran it, when)">
+                            <GitBranch className="h-3.5 w-3.5" /> Trace origin
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -462,13 +479,14 @@ function PrefetchTable({ data, iocMatches, onLookup, selected, onToggle }: {
 }
 
 // ── Process table (lineage tree + lineage/owner/cmdline/hash) ─────────────────
-function ProcessTable({ data, iocMatches, onLookup, selected, onToggle, onKill }: {
+function ProcessTable({ data, iocMatches, onLookup, selected, onToggle, onKill, onTrace }: {
   data: ProcessEntry[]
   iocMatches: Set<string>
   onLookup: (t: LookupTarget) => void
   selected: Set<number>
   onToggle: (i: number) => void
   onKill: (pid: number, name: string) => void
+  onTrace: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [threatsOnly, setThreatsOnly] = useState(false)
@@ -617,7 +635,10 @@ function ProcessTable({ data, iocMatches, onLookup, selected, onToggle, onKill }
                             {e.suspicious!.map((r, k) => <span key={k} className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px]">{r}</span>)}
                           </div>
                         )}
-                        <div className="pt-2">
+                        <div className="pt-2 flex items-center gap-2">
+                          <button onClick={() => onTrace(e.name, e.pid)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title="Reconstruct where this process came from (parent chain, user, start time, related traces)">
+                            <GitBranch className="h-3.5 w-3.5" /> Trace origin
+                          </button>
                           <button onClick={() => onKill(e.pid, e.name)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-red-600/90 hover:bg-red-600 text-white" title="Terminate this process on the endpoint (containment)">
                             <Ban className="h-3.5 w-3.5" /> Terminate process
                           </button>
@@ -646,13 +667,14 @@ const sigBadge = (s?: string) =>
 // against the saved baseline (drift detection).
 const autorunKey = (e: AutorunEntry) => `${e.category}|${e.location}|${e.command}`.toLowerCase()
 
-function AutorunsTable({ data, iocMatches, onLookup, selected, onToggle, driftKeys }: {
+function AutorunsTable({ data, iocMatches, onLookup, selected, onToggle, driftKeys, onTrace }: {
   data: AutorunEntry[]
   iocMatches: Set<string>
   onLookup: (t: LookupTarget) => void
   selected: Set<number>
   onToggle: (i: number) => void
   driftKeys?: Set<string> | null
+  onTrace: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [cat, setCat] = useState('all')
@@ -767,6 +789,7 @@ function AutorunsTable({ data, iocMatches, onLookup, selected, onToggle, driftKe
                         <div className="text-xs">
                           <span className="text-gray-500">Command:</span>
                           <div className="flex items-start gap-2 mt-0.5"><code className="font-mono text-amber-300/80 break-all flex-1">{e.command || '—'}</code>{e.command && <button onClick={() => copy('Command', e.command)} className="text-gray-600 hover:text-emerald-400 shrink-0"><Copy className="h-3.5 w-3.5" /></button>}</div>
+                          <div className="pt-2"><button onClick={() => onTrace(e.image_path || e.name, 0)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title="Reconstruct this autostart entry's origin (which process/user, when)"><GitBranch className="h-3.5 w-3.5" /> Trace origin</button></div>
                         </div>
                         {e.hashed && (
                           <div className="space-y-1 pt-1">
@@ -795,14 +818,17 @@ function AutorunsTable({ data, iocMatches, onLookup, selected, onToggle, driftKe
 
 // ── Main component ──────────────────────────────────────────────────────────
 export function EdgeForensics({ agent }: { agent: Agent }) {
-  const [activeTab, setActiveTab] = useState<'mft' | 'prefetch' | 'processes' | 'autoruns' | 'network' | 'dlls' | 'shimcache'>('mft')
+  const [activeTab, setActiveTab] = useState<'mft' | 'prefetch' | 'processes' | 'autoruns' | 'network' | 'dlls' | 'shimcache' | 'browser'>('mft')
   const [loading, setLoading] = useState(false)
   const [mftResults, setMftResults] = useState<MFTEntry[] | null>(null)
   const [prefetchResults, setPrefetchResults] = useState<PrefetchEntry[] | null>(null)
   const [processResults, setProcessResults] = useState<ProcessEntry[] | null>(null)
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
   const [autorunResults, setAutorunResults] = useState<AutorunEntry[] | null>(null)
   const [dllResults, setDllResults] = useState<DllEntry[] | null>(null)
   const [shimResults, setShimResults] = useState<ShimEntry[] | null>(null)
+  const [browserResults, setBrowserResults] = useState<BrowserEntry[] | null>(null)
+  const [showTriage, setShowTriage] = useState(false)
   const [mftPath, setMftPath] = useState<string>('C:\\Windows\\System32')
   const [iocMatches, setIocMatches] = useState<Set<string>>(new Set())
   const [lookup, setLookup] = useState<LookupTarget | null>(null)
@@ -817,7 +843,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
   const { data: cases = [] } = useQuery({ queryKey: ['cases'], queryFn: casesApi.list })
 
   const resetForScan = () => { setSelected(new Set()); setIocMatches(new Set()) }
-  const switchTab = (t: 'mft' | 'prefetch' | 'processes' | 'autoruns' | 'network' | 'dlls' | 'shimcache') => { setActiveTab(t); setSelected(new Set()) }
+  const switchTab = (t: 'mft' | 'prefetch' | 'processes' | 'autoruns' | 'network' | 'dlls' | 'shimcache' | 'browser') => { setActiveTab(t); setSelected(new Set()) }
   const toggleSelect = (i: number) => setSelected(p => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n })
 
   // After a scan, check all hashes against the IOC store to highlight matches.
@@ -954,6 +980,19 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`Shimcache parsed — ${arr.length} records`)
     } catch (err: any) {
       toast.error(err?.response?.data?.error || err.message || 'Shimcache scan failed')
+    } finally { setLoading(false) }
+  }
+
+  const handleBrowserScan = async () => {
+    setLoading(true); setBrowserResults(null); resetForScan()
+    try {
+      toast('Requesting UAC Elevation on Agent...', { icon: '🛡️' })
+      const data = await agentsApi.parseBrowser(agent.id)
+      const arr: BrowserEntry[] = Array.isArray(data) ? data : (data ? [data] : [])
+      setBrowserResults(arr)
+      toast.success(`Browser history parsed — ${arr.length} URLs`)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || 'Browser history scan failed')
     } finally { setLoading(false) }
   }
 
@@ -1178,14 +1217,24 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
         <button onClick={() => switchTab('shimcache')} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'shimcache' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
           <History className="h-4 w-4" /> Shimcache
         </button>
+        <button onClick={() => switchTab('browser')} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'browser' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
+          <Globe className="h-4 w-4" /> Browser
+        </button>
         <button onClick={() => switchTab('network')} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'network' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
           <Network className="h-4 w-4" /> Network
         </button>
-        <button onClick={handleQuickTriage} disabled={triaging || agent.status !== 'online'}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="One-click IR snapshot: Processes + Autoruns + Prefetch + Network, auto-IOC-matched and saved to the linked case">
-          {triaging ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Triaging…</> : <><Zap className="h-4 w-4" /> Quick Triage</>}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => setShowTriage(true)} disabled={agent.status !== 'online'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium text-xs bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            title="KAPE-style collection: gather a full artifact bundle in ONE elevated pass (one UAC) and save it to the case as evidence">
+            <Archive className="h-3.5 w-3.5" /> Triage Collection
+          </button>
+          <button onClick={handleQuickTriage} disabled={triaging || agent.status !== 'online'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            title="One-click IR snapshot: Processes + Autoruns + Prefetch + Network, auto-IOC-matched and saved to the linked case">
+            {triaging ? <><span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Triaging…</> : <><Zap className="h-3.5 w-3.5" /> Quick Triage</>}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -1197,8 +1246,8 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
             <div className="flex items-start justify-between mb-4 gap-4">
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
-                  {activeTab === 'mft' ? <HardDrive className="h-5 w-5 text-purple-400" /> : activeTab === 'prefetch' ? <Clock className="h-5 w-5 text-purple-400" /> : activeTab === 'processes' ? <Cpu className="h-5 w-5 text-purple-400" /> : activeTab === 'dlls' ? <Boxes className="h-5 w-5 text-purple-400" /> : activeTab === 'shimcache' ? <History className="h-5 w-5 text-purple-400" /> : <Power className="h-5 w-5 text-purple-400" />}
-                  {activeTab === 'mft' ? 'File System Forensics' : activeTab === 'prefetch' ? 'Prefetch Analysis' : activeTab === 'processes' ? 'Process Forensics' : activeTab === 'dlls' ? 'Loaded DLLs' : activeTab === 'shimcache' ? 'Shimcache (App Compat Cache)' : 'Autoruns / Persistence'}
+                  {activeTab === 'mft' ? <HardDrive className="h-5 w-5 text-purple-400" /> : activeTab === 'prefetch' ? <Clock className="h-5 w-5 text-purple-400" /> : activeTab === 'processes' ? <Cpu className="h-5 w-5 text-purple-400" /> : activeTab === 'dlls' ? <Boxes className="h-5 w-5 text-purple-400" /> : activeTab === 'shimcache' ? <History className="h-5 w-5 text-purple-400" /> : activeTab === 'browser' ? <Globe className="h-5 w-5 text-purple-400" /> : <Power className="h-5 w-5 text-purple-400" />}
+                  {activeTab === 'mft' ? 'File System Forensics' : activeTab === 'prefetch' ? 'Prefetch Analysis' : activeTab === 'processes' ? 'Process Forensics' : activeTab === 'dlls' ? 'Loaded DLLs' : activeTab === 'shimcache' ? 'Shimcache (App Compat Cache)' : activeTab === 'browser' ? 'Browser History' : 'Autoruns / Persistence'}
                 </h2>
                 <p className="text-sm text-gray-400 mt-1">
                   {activeTab === 'mft'
@@ -1211,6 +1260,8 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
                     ? 'Loaded modules across every process (ListDLLs-style), deduped + hashed + Authenticode-checked, with DLL-hijack / injection flags; auto-matched against your IOC store. Requires UAC.'
                     : activeTab === 'shimcache'
                     ? 'AppCompatCache (Shimcache) execution evidence — binaries the OS recorded as present/run, with file modified times. Complements Prefetch for execution triage. Requires UAC.'
+                    : activeTab === 'browser'
+                    ? 'Browser history across all local user profiles (Chrome / Edge / Brave / Firefox) — URL, title, visit count, last-visit time, with attribution to the owning user/profile and suspicion flags. Requires UAC to read other users’ profiles.'
                     : 'Native autostart / persistence enumeration (Run keys, services, scheduled tasks, startup, Winlogon, IFEO…) with executable hashes + Authenticode signature; auto-matched against your IOC store. Requires UAC.'}
                 </p>
               </div>
@@ -1221,7 +1272,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
                     <Radio className="h-4 w-4" /> {processLive ? 'Stop Live' : 'Go Live'}
                   </button>
                 )}
-                <button onClick={activeTab === 'mft' ? handleMftScan : activeTab === 'prefetch' ? handlePrefetchScan : activeTab === 'processes' ? handleProcessScan : activeTab === 'dlls' ? handleDllsScan : activeTab === 'shimcache' ? handleShimScan : handleAutorunsScan} disabled={loading || agent.status !== 'online' || (activeTab === 'processes' && processLive)}
+                <button onClick={activeTab === 'mft' ? handleMftScan : activeTab === 'prefetch' ? handlePrefetchScan : activeTab === 'processes' ? handleProcessScan : activeTab === 'dlls' ? handleDllsScan : activeTab === 'shimcache' ? handleShimScan : activeTab === 'browser' ? handleBrowserScan : handleAutorunsScan} disabled={loading || agent.status !== 'online' || (activeTab === 'processes' && processLive)}
                   className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Scanning...</> : <><Play className="h-4 w-4" /> Run Scan</>}
                 </button>
@@ -1281,37 +1332,42 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
             {/* Results */}
             {activeTab === 'mft' && mftResults && (
               mftResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><MFTTable data={mftResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><MFTTable data={mftResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no files found.</p></div>
             )}
             {activeTab === 'prefetch' && prefetchResults && (
               prefetchResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><PrefetchTable data={prefetchResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><PrefetchTable data={prefetchResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no entries found.</p></div>
             )}
             {activeTab === 'processes' && processLive && <LiveProcessMonitor agent={agent} />}
             {activeTab === 'processes' && !processLive && processResults && (
               processResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><ProcessTable data={processResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} onKill={handleKill} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><ProcessTable data={processResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} onKill={handleKill} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no processes found.</p></div>
             )}
             {activeTab === 'autoruns' && autorunResults && (
               autorunResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><AutorunsTable data={autorunResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} driftKeys={driftKeys} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><AutorunsTable data={autorunResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} driftKeys={driftKeys} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no autostart entries found.</p></div>
             )}
             {activeTab === 'dlls' && dllResults && (
               dllResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><DllsTable data={dllResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><DllsTable data={dllResults} iocMatches={iocMatches} onLookup={setLookup} selected={selected} onToggle={toggleSelect} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no modules found.</p></div>
             )}
             {activeTab === 'shimcache' && shimResults && (
               shimResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><ShimTable data={shimResults} selected={selected} onToggle={toggleSelect} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><ShimTable data={shimResults} selected={selected} onToggle={toggleSelect} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no Shimcache records found.</p></div>
             )}
+            {activeTab === 'browser' && browserResults && (
+              browserResults.length > 0
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><BrowserTable data={browserResults} onLookup={setLookup} /></div>
+                : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no browser history found.</p></div>
+            )}
 
-            {((activeTab === 'mft' && !mftResults) || (activeTab === 'prefetch' && !prefetchResults) || (activeTab === 'processes' && !processResults && !processLive) || (activeTab === 'autoruns' && !autorunResults) || (activeTab === 'dlls' && !dllResults) || (activeTab === 'shimcache' && !shimResults)) && !loading && agent.status === 'online' && (
+            {((activeTab === 'mft' && !mftResults) || (activeTab === 'prefetch' && !prefetchResults) || (activeTab === 'processes' && !processResults && !processLive) || (activeTab === 'autoruns' && !autorunResults) || (activeTab === 'dlls' && !dllResults) || (activeTab === 'shimcache' && !shimResults) || (activeTab === 'browser' && !browserResults)) && !loading && agent.status === 'online' && (
               <div className="text-center py-12 border-2 border-dashed border-gray-800 rounded-lg">
                 <Search className="h-8 w-8 text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-400 text-sm">Click "Run Scan" to trigger the UAC prompt on the agent.</p>
@@ -1324,6 +1380,8 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       </div>
 
       {lookup && <IntelLookupModal indicator={lookup.indicator} type={lookup.type} onClose={() => setLookup(null)} />}
+      {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
+      {showTriage && <TriageCollectionModal agent={agent} cases={cases} onClose={() => setShowTriage(false)} />}
     </div>
   )
 }
@@ -1392,6 +1450,7 @@ function NetworkRecon({ agent, cases, onLookup }: { agent: Agent; cases: any[]; 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [saveCaseId, setSaveCaseId] = useState<string>(agent.case_id ?? '')
   const [saving, setSaving] = useState(false)
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
   // Live stream (only active when the toggle is on and the agent is online).
   const { data: liveConns, connected } = useRealtimeSSE<Connection>(agent.id, 'netconn', live && agent.status === 'online')
@@ -1611,12 +1670,13 @@ function NetworkRecon({ agent, cases, onLookup }: { agent: Agent; cases: any[]; 
                         {c.remote_host && <div className="text-[11px] text-gray-500 truncate max-w-[220px]">{c.remote_host}</div>}
                       </td>
                       <td className="px-3 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${stateStyle(c.state)}`}>{c.state || '—'}</span></td>
-                      <td className="px-3 py-1.5">{routable && (
+                      <td className="px-3 py-1.5">
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => onLookup({ indicator: c.remote_addr, type: 'ip' })} title="Look up on VirusTotal" className="text-gray-500 hover:text-purple-400"><ShieldQuestion className="h-4 w-4" /></button>
-                          <button onClick={() => investigate(c.remote_addr)} title="Investigate this IP in OSINT" className="text-gray-500 hover:text-emerald-400"><Crosshair className="h-4 w-4" /></button>
+                          {routable && <button onClick={() => onLookup({ indicator: c.remote_addr, type: 'ip' })} title="Look up on VirusTotal" className="text-gray-500 hover:text-purple-400"><ShieldQuestion className="h-4 w-4" /></button>}
+                          {routable && <button onClick={() => investigate(c.remote_addr)} title="Investigate this IP in OSINT" className="text-gray-500 hover:text-emerald-400"><Crosshair className="h-4 w-4" /></button>}
+                          {c.process && <button onClick={() => setTraceTarget({ target: c.process, pid: c.pid || 0 })} title="Trace origin of the process behind this connection" className="text-gray-500 hover:text-emerald-400"><GitBranch className="h-4 w-4" /></button>}
                         </div>
-                      )}</td>
+                      </td>
                     </tr>
                   )
                 })}
@@ -1658,6 +1718,7 @@ function NetworkRecon({ agent, cases, onLookup }: { agent: Agent; cases: any[]; 
           <p className="text-gray-600 text-xs mt-1">No UAC needed — sockets are read in the agent's user context. Remote IPs auto-checked against your IOC store.</p>
         </div>
       )}
+      {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
     </div>
   )
 }
@@ -1711,10 +1772,11 @@ function LiveProcessMonitor({ agent }: { agent: Agent }) {
 }
 
 // ── Shimcache (AppCompatCache) table ─────────────────────────────────────────
-function ShimTable({ data, selected, onToggle }: {
+function ShimTable({ data, selected, onToggle, onTrace }: {
   data: ShimEntry[]
   selected: Set<number>
   onToggle: (i: number) => void
+  onTrace: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [threatsOnly, setThreatsOnly] = useState(false)
@@ -1770,7 +1832,10 @@ function ShimTable({ data, selected, onToggle }: {
                   </td>
                   <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{e.last_modified ? fmtTime(e.last_modified) : '—'}</td>
                   <td className="px-3 py-1.5 text-center whitespace-nowrap">
-                    {flagged ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-medium"><AlertTriangle className="h-2.5 w-2.5" /> Flag</span> : <span className="text-emerald-500/50 text-xs">OK</span>}
+                    <div className="inline-flex items-center gap-2">
+                      {flagged ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-medium"><AlertTriangle className="h-2.5 w-2.5" /> Flag</span> : <span className="text-emerald-500/50 text-xs">OK</span>}
+                      <button onClick={() => onTrace(e.path || e.name, 0)} className="text-gray-500 hover:text-emerald-400" title="Trace origin (which process ran this, when)"><GitBranch className="h-3.5 w-3.5" /></button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -1783,12 +1848,13 @@ function ShimTable({ data, selected, onToggle }: {
 }
 
 // ── Loaded DLLs (ListDLLs-style) table ───────────────────────────────────────
-function DllsTable({ data, iocMatches, onLookup, selected, onToggle }: {
+function DllsTable({ data, iocMatches, onLookup, selected, onToggle, onTrace }: {
   data: DllEntry[]
   iocMatches: Set<string>
   onLookup: (t: LookupTarget) => void
   selected: Set<number>
   onToggle: (i: number) => void
+  onTrace: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [threatsOnly, setThreatsOnly] = useState(false)
@@ -1893,6 +1959,7 @@ function DllsTable({ data, iocMatches, onLookup, selected, onToggle }: {
                             <HashRow algo="sha256" value={e.sha256} onLookup={onLookup} />
                           </div>
                         ) : <p className="text-[11px] text-gray-600">Not hashed (too large or unreadable).</p>}
+                        <div className="pt-2"><button onClick={() => onTrace(e.name, 0)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title="Reconstruct this module's origin (which process loaded it, when)"><GitBranch className="h-3.5 w-3.5" /> Trace origin</button></div>
                         {flagged && (
                           <div className="flex flex-wrap items-center gap-1.5 pt-1">
                             <span className="text-amber-400 text-xs font-medium">Flags:</span>
@@ -1907,6 +1974,337 @@ function DllsTable({ data, iocMatches, onLookup, selected, onToggle }: {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Browser history table ────────────────────────────────────────────────────
+function BrowserTable({ data, onLookup }: {
+  data: BrowserEntry[]
+  onLookup?: (t: LookupTarget) => void
+}) {
+  const [filter, setFilter] = useState('')
+  const [threatsOnly, setThreatsOnly] = useState(false)
+  const flaggedCount = data.filter(e => (e.suspicious?.length ?? 0) > 0).length
+  const f = filter.toLowerCase()
+  const rows = data.filter(e => {
+    const mf = !f || e.url.toLowerCase().includes(f) || (e.title ?? '').toLowerCase().includes(f) || e.profile.toLowerCase().includes(f)
+    return mf && (!threatsOnly || (e.suspicious?.length ?? 0) > 0)
+  })
+  const hostOf = (u: string) => { try { return new URL(u).hostname } catch { return '' } }
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-4 text-xs">
+        <span className="text-gray-400">{data.length.toLocaleString()} URLs</span>
+        {flaggedCount > 0 && <span className="flex items-center gap-1 text-amber-400 font-medium"><AlertTriangle className="h-3 w-3" /> {flaggedCount} flagged</span>}
+        <span className="text-gray-600">most-recent visit first</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+          <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by URL / title / profile..."
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-900 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500/60" />
+        </div>
+        {flaggedCount > 0 && (
+          <button onClick={() => setThreatsOnly(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${threatsOnly ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-200'}`}>
+            <AlertTriangle className="h-3 w-3" /> Threats only
+          </button>
+        )}
+      </div>
+      <div className="overflow-auto max-h-[560px] rounded-lg border border-gray-800">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-gray-900 z-10">
+            <tr className="border-b border-gray-800">
+              <th className="px-3 py-2 text-left text-gray-500 font-medium">Browser</th>
+              <th className="px-3 py-2 text-left text-gray-500 font-medium">Profile</th>
+              <th className="px-3 py-2 text-left text-gray-500 font-medium">URL / Title</th>
+              <th className="px-3 py-2 text-center text-gray-500 font-medium">Visits</th>
+              <th className="px-3 py-2 text-left text-gray-500 font-medium">Last visit</th>
+              <th className="px-3 py-2 text-center text-gray-500 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((e, i) => {
+              const host = hostOf(e.url)
+              return (
+                <tr key={i} className="border-b border-gray-900 hover:bg-white/5 group">
+                  <td className="px-3 py-2 text-gray-300 whitespace-nowrap">{e.browser}</td>
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap font-mono">{e.profile}</td>
+                  <td className="px-3 py-2 min-w-0 max-w-[520px]">
+                    <a href={e.url} target="_blank" rel="noreferrer" className="text-emerald-400/90 hover:text-emerald-300 break-all">{e.url}</a>
+                    {e.title && <div className="text-gray-500 truncate" title={e.title}>{e.title}</div>}
+                  </td>
+                  <td className="px-3 py-2 text-center text-gray-400">{e.visit_count}</td>
+                  <td className="px-3 py-2 text-gray-400 whitespace-nowrap font-mono">{e.last_visit ? safeFmt(e.last_visit) : '—'}</td>
+                  <td className="px-3 py-2 text-center whitespace-nowrap">
+                    {(e.suspicious?.length ?? 0) > 0
+                      ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400" title={e.suspicious!.join(', ')}><AlertTriangle className="h-2.5 w-2.5" /> {e.suspicious!.length}</span>
+                      : <span className="text-emerald-500/40">OK</span>}
+                    {onLookup && host && (
+                      <button onClick={() => onLookup({ indicator: host, type: 'domain' })} title={`IOC lookup: ${host}`}
+                        className="ml-2 text-gray-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity align-middle"><Search className="h-3 w-3 inline" /></button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// safeFmt renders an RFC3339 timestamp compactly, falling back to the raw string.
+function safeFmt(s: string): string {
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? s : d.toLocaleString()
+}
+
+// ── Triage Collection modal (KAPE-style 1-click bundle) ──────────────────────
+const TRIAGE_TYPES: { key: string; label: string; note: string }[] = [
+  { key: 'processes', label: 'Processes', note: 'running process tree + hashes' },
+  { key: 'autoruns', label: 'Autoruns', note: 'persistence / autostart' },
+  { key: 'shimcache', label: 'Shimcache', note: 'execution evidence' },
+  { key: 'prefetch', label: 'Prefetch', note: 'execution evidence' },
+  { key: 'dlls', label: 'Loaded DLLs', note: 'injected / hijacked modules' },
+  { key: 'netconn', label: 'Network', note: 'connections + DNS cache' },
+  { key: 'browser', label: 'Browser history', note: 'Chrome/Edge/Brave/Firefox' },
+  { key: 'mft', label: 'MFT (slow)', note: 'full file-system metadata — large' },
+]
+
+function TriageCollectionModal({ agent, cases, onClose }: {
+  agent: Agent
+  cases: any[]
+  onClose: () => void
+}) {
+  const [sel, setSel] = useState<Set<string>>(new Set(['processes', 'autoruns', 'shimcache', 'prefetch', 'dlls', 'netconn', 'browser']))
+  const [running, setRunning] = useState(false)
+  const [result, setResult] = useState<TriageResult | null>(null)
+  const [caseId, setCaseId] = useState<string>(agent.case_id ?? '')
+  const [saving, setSaving] = useState(false)
+  const [viewType, setViewType] = useState<string | null>(null) // artifact being analyzed in-app
+
+  const toggle = (k: string) => setSel(p => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n })
+  const viewArtifact = (result?.artifacts ?? []).find(a => a.type === viewType) ?? null
+
+  const run = async () => {
+    if (sel.size === 0) { toast.error('Select at least one artifact'); return }
+    setRunning(true); setResult(null); setViewType(null)
+    try {
+      toast('Triage — one UAC prompt, collecting in a single pass…', { icon: '🛡️' })
+      const r = await agentsApi.collectTriage(agent.id, Array.from(sel))
+      setResult(r)
+      const total = (r.artifacts ?? []).reduce((s, a) => s + (a.count ?? 0), 0)
+      toast.success(`Triage complete — ${total.toLocaleString()} records across ${r.artifacts?.length ?? 0} artifacts`)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || 'Triage collection failed')
+    } finally { setRunning(false) }
+  }
+
+  const download = () => {
+    if (!result) return
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const host = agent.hostname || agent.name
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `triage_${host}_${stamp}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const save = async () => {
+    if (!caseId || !result) return
+    setSaving(true)
+    try {
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const host = agent.hostname || agent.name
+      const fname = `triage_${host}_${stamp}.json`
+      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })
+      // NB: `File` is also imported from lucide-react (icon); use window.File for the DOM ctor.
+      const file = new window.File([blob], fname, { type: 'application/json' })
+      const total = (result.artifacts ?? []).reduce((s, a) => s + (a.count ?? 0), 0)
+      await evidenceApi.upload(caseId, file, host, `Triage collection — ${result.artifacts?.length ?? 0} artifacts, ${total} records`)
+      toast.success('Saved — view/download it under Case → Attack Timeline → Evidence', { duration: 6000 })
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || 'Save failed')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-deep-900 border border-slate-700 rounded-xl w-full max-w-5xl max-h-[88vh] shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 shrink-0">
+          {viewArtifact && (
+            <button onClick={() => setViewType(null)} title="Back to summary" className="text-gray-400 hover:text-emerald-300"><ArrowLeft className="h-4 w-4" /></button>
+          )}
+          <Archive className="h-4 w-4 text-amber-400" />
+          <h3 className="text-sm font-semibold text-gray-200">
+            Triage Collection — <span className="text-gray-400">{agent.hostname || agent.name}</span>
+            {viewArtifact && <span className="text-gray-500"> · <span className="font-mono text-amber-300">{viewArtifact.type}</span></span>}
+          </h3>
+          <button onClick={onClose} className="ml-auto text-gray-500 hover:text-gray-300"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="p-4 overflow-y-auto space-y-4 flex-1">
+          {viewArtifact ? (
+            <TriageArtifactTable type={viewArtifact.type} data={viewArtifact.data} />
+          ) : (
+          <>
+          <p className="text-sm text-gray-400">
+            Gather a forensic artifact bundle in <span className="text-gray-200">one elevated pass</span> (a single UAC prompt). Analyze it right here, save it to a case as evidence, or download it.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {TRIAGE_TYPES.map(t => (
+              <label key={t.key} className={`flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${sel.has(t.key) ? 'border-amber-500/50 bg-amber-900/15' : 'border-slate-800 bg-gray-900/40 hover:border-slate-600'}`}>
+                <input type="checkbox" checked={sel.has(t.key)} onChange={() => toggle(t.key)} className="mt-0.5" />
+                <span className="min-w-0">
+                  <span className="text-sm text-gray-200">{t.label}</span>
+                  <span className="block text-[11px] text-gray-500">{t.note}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          {result && (
+            <div className="rounded-lg border border-slate-800 bg-gray-900/40 p-3">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Collected (at {safeFmt(result.collected_at)}) · <span className="text-gray-600 normal-case">click an artifact to analyze</span></div>
+              <div className="space-y-1">
+                {(result.artifacts ?? []).map((a, i) => {
+                  const clickable = !a.error && a.count > 0
+                  return (
+                    <button key={i} disabled={!clickable} onClick={() => setViewType(a.type)}
+                      className={`flex items-center gap-2 text-xs w-full text-left rounded px-1.5 py-1 ${clickable ? 'hover:bg-white/5 cursor-pointer' : 'cursor-default'}`}>
+                      <span className="font-mono text-gray-300 w-24 shrink-0">{a.type}</span>
+                      {a.error
+                        ? <span className="text-red-400 truncate" title={a.error}>error: {a.error}</span>
+                        : <span className="text-emerald-400">{a.count.toLocaleString()} records</span>}
+                      {clickable && <ChevronRight className="h-3.5 w-3.5 text-gray-600 ml-auto" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 border-t border-slate-800 bg-gray-950/40 shrink-0">
+          <button onClick={run} disabled={running || agent.status !== 'online'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50 whitespace-nowrap">
+            {running ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Collecting…</> : <><Archive className="h-3.5 w-3.5" /> {result ? 'Re-collect' : 'Collect triage'}</>}
+          </button>
+          {result && (
+            <div className="flex items-center gap-2 ml-auto min-w-0">
+              <button onClick={download} title="Download the triage bundle (JSON) to inspect locally"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-slate-700 bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 transition whitespace-nowrap">
+                <Download className="h-3.5 w-3.5" /> Download
+              </button>
+              <select className="input text-xs py-1.5 max-w-[150px]" value={caseId} onChange={e => setCaseId(e.target.value)}>
+                <option value="">Select case…</option>
+                {cases.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button onClick={save} disabled={!caseId || saving}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarPlus className="h-3.5 w-3.5" />} Save evidence
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Preferred column order per artifact type; unknown types fall back to inferred keys.
+const TRIAGE_PREFERRED: Record<string, string[]> = {
+  processes: ['pid', 'ppid', 'name', 'user', 'path', 'cmdline', 'created', 'mem_kb'],
+  autoruns: ['category', 'name', 'command', 'image_path', 'user', 'enabled'],
+  shimcache: ['name', 'path', 'last_modified'],
+  prefetch: ['executable', 'run_count', 'last_run_time'],
+  dlls: ['name', 'path', 'process_count'],
+  netconn: ['proto', 'local_addr', 'local_port', 'remote_addr', 'remote_port', 'state', 'process', 'pid'],
+  browser: ['browser', 'profile', 'url', 'title', 'visit_count', 'last_visit'],
+}
+
+// TriageArtifactTable renders one artifact's records as a generic, filterable
+// table so the analyst can inspect the collected data in-app. Columns are chosen
+// per type (falling back to inferred scalar keys); `suspicious` becomes a Status
+// column. netconn data is an object → its .connections array is shown.
+function TriageArtifactTable({ type, data }: { type: string; data: unknown }) {
+  const [filter, setFilter] = useState('')
+
+  const rows: any[] = useMemo(() => {
+    if (type === 'netconn' && data && typeof data === 'object') return (data as any).connections ?? []
+    return Array.isArray(data) ? data : []
+  }, [type, data])
+
+  const columns = useMemo(() => {
+    if (rows.length === 0) return []
+    const sample = rows[0]
+    const isScalar = (v: any) => v === null || ['string', 'number', 'boolean'].includes(typeof v)
+    const preferred = (TRIAGE_PREFERRED[type] ?? []).filter((k) => k in sample)
+    const extra = Object.keys(sample).filter((k) => k !== 'suspicious' && isScalar(sample[k]) && !preferred.includes(k))
+    return [...preferred, ...extra].slice(0, 10)
+  }, [rows, type])
+
+  const f = filter.toLowerCase()
+  const filtered = useMemo(() => (f ? rows.filter((r) => JSON.stringify(r).toLowerCase().includes(f)) : rows), [rows, f])
+  const flaggedCount = useMemo(() => rows.filter((r) => Array.isArray(r?.suspicious) && r.suspicious.length).length, [rows])
+
+  if (rows.length === 0) return <p className="text-xs text-gray-500">No records in this artifact.</p>
+
+  const cell = (v: any) => {
+    if (v === null || v === undefined || v === '') return '—'
+    if (typeof v === 'boolean') return v ? 'yes' : 'no'
+    return String(v)
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-gray-400">{rows.length.toLocaleString()} records</span>
+        {flaggedCount > 0 && <span className="flex items-center gap-1 text-amber-400 text-xs"><AlertTriangle className="h-3 w-3" /> {flaggedCount} flagged</span>}
+        <div className="relative flex-1 max-w-md ml-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter records…"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-900 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:border-amber-500/60" />
+        </div>
+      </div>
+      <div className="overflow-auto max-h-[62vh] rounded-lg border border-gray-800">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-gray-900 z-10">
+            <tr className="border-b border-gray-800">
+              {columns.map((c) => <th key={c} className="px-3 py-2 text-left text-gray-500 font-medium whitespace-nowrap">{c}</th>)}
+              <th className="px-3 py-2 text-center text-gray-500 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.slice(0, 2000).map((r, i) => {
+              const flagged = Array.isArray(r?.suspicious) && r.suspicious.length > 0
+              return (
+                <tr key={i} className={`border-b border-gray-900 hover:bg-white/5 ${flagged ? 'bg-amber-500/5' : ''}`}>
+                  {columns.map((c) => {
+                    const mono = /path|cmdline|url|command|addr|image/.test(c)
+                    return <td key={c} className={`px-3 py-1.5 align-top ${mono ? 'font-mono text-gray-300 break-all max-w-[420px]' : 'text-gray-300 whitespace-nowrap'}`}>{cell(r[c])}</td>
+                  })}
+                  <td className="px-3 py-1.5 text-center whitespace-nowrap">
+                    {flagged
+                      ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400" title={r.suspicious.join(', ')}><AlertTriangle className="h-2.5 w-2.5" /> {r.suspicious.length}</span>
+                      : <span className="text-emerald-500/40">OK</span>}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        {filtered.length > 2000 && <div className="px-3 py-2 text-[11px] text-gray-500">Showing first 2,000 of {filtered.length.toLocaleString()} — use the filter to narrow.</div>}
       </div>
     </div>
   )

@@ -59,7 +59,7 @@ func TestMatchValue_NonStringExpected(t *testing.T) {
 
 func TestMatchSelection_AndAcrossFields_CaseInsensitiveKeys(t *testing.T) {
 	sel := map[string]interface{}{
-		"Image":       "cmd.exe",
+		"Image":         "cmd.exe",
 		"User|contains": "admin",
 	}
 	// Event keys differ in case from the selection keys — must still match.
@@ -160,6 +160,72 @@ func TestEvaluateCondition_Logic(t *testing.T) {
 		if got := evaluateCondition(c.cond, c.results); got != c.want {
 			t.Errorf("evaluateCondition(%q, %v)=%v want %v", c.cond, c.results, got, c.want)
 		}
+	}
+}
+
+func TestEvaluateCondition_ComplexBoolean(t *testing.T) {
+	cases := []struct {
+		cond    string
+		results map[string]bool
+		want    bool
+	}{
+		// Parentheses + mixed precedence.
+		{"(a or b) and not c", map[string]bool{"a": true, "b": false, "c": false}, true},
+		{"(a or b) and not c", map[string]bool{"a": true, "b": false, "c": true}, false},
+		{"a or b and c", map[string]bool{"a": true, "b": false, "c": false}, true}, // and binds tighter
+		{"a and b or c", map[string]bool{"a": false, "b": false, "c": true}, true},
+		{"not (a and b)", map[string]bool{"a": true, "b": false}, true},
+		{"not (a and b)", map[string]bool{"a": true, "b": true}, false},
+
+		// Quantifier aggregates over named selections.
+		{"2 of them", map[string]bool{"a": true, "b": true, "c": false}, true},
+		{"2 of them", map[string]bool{"a": true, "b": false, "c": false}, false},
+		{"all of them", map[string]bool{"a": true, "b": true}, true},
+
+		// "X of selection*" — pattern matched against selection NAMES.
+		{"1 of selection_*", map[string]bool{"selection_a": false, "selection_b": true, "filter": false}, true},
+		{"all of selection_*", map[string]bool{"selection_a": true, "selection_b": true, "filter": false}, true},
+		{"all of selection_*", map[string]bool{"selection_a": true, "selection_b": false, "filter": true}, false},
+		{"1 of sel* and not filter", map[string]bool{"sel1": true, "filter": false}, true},
+		{"1 of sel* and not filter", map[string]bool{"sel1": true, "filter": true}, false},
+	}
+	for _, c := range cases {
+		if got := evaluateCondition(c.cond, c.results); got != c.want {
+			t.Errorf("evaluateCondition(%q, %v)=%v want %v", c.cond, c.results, got, c.want)
+		}
+	}
+}
+
+func TestWildcardMatch(t *testing.T) {
+	cases := []struct {
+		pattern, name string
+		want          bool
+	}{
+		{"selection_*", "selection_a", true},
+		{"selection_*", "filter", false},
+		{"*_susp", "cmd_susp", true},
+		{"*_susp", "cmd_clean", false},
+		{"sel*ion", "selection", true},
+		{"exact", "exact", true},
+		{"exact", "other", false},
+	}
+	for _, c := range cases {
+		if got := wildcardMatch(c.pattern, c.name); got != c.want {
+			t.Errorf("wildcardMatch(%q,%q)=%v want %v", c.pattern, c.name, got, c.want)
+		}
+	}
+}
+
+func TestMatchSelection_AllModifier(t *testing.T) {
+	// CommandLine|contains|all: must contain EVERY listed substring.
+	sel := map[string]interface{}{
+		"CommandLine|contains|all": []interface{}{"-enc", "bypass"},
+	}
+	if !matchSelection(sel, event(map[string]interface{}{"CommandLine": "powershell -enc AAAA -ExecutionPolicy bypass"})) {
+		t.Error("|all should match when all substrings present")
+	}
+	if matchSelection(sel, event(map[string]interface{}{"CommandLine": "powershell -enc AAAA"})) {
+		t.Error("|all should fail when one substring missing")
 	}
 }
 

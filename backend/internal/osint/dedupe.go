@@ -15,7 +15,7 @@ import (
 // RelatedEntity is a pivot: an identifier discovered while investigating the
 // target that the operator can launch a fresh investigation against.
 type RelatedEntity struct {
-	Type  string `json:"type"`  // ip|domain|email|phone
+	Type  string `json:"type"` // ip|domain|email|phone
 	Value string `json:"value"`
 }
 
@@ -100,6 +100,12 @@ func dedupeKey(f *models.OsintFinding) string {
 var onConflictDedupe = clause.OnConflict{
 	Columns:   []clause.Column{{Name: "scan_id"}, {Name: "dedupe_key"}},
 	DoNothing: true,
+}
+
+// PersistFindings inserts manually-built findings (e.g. an analyst-uploaded
+// photo's EXIF GPS) through the same idempotent dedupe path collectors use.
+func PersistFindings(db *gorm.DB, findings []models.OsintFinding) int {
+	return persistFindings(db, findings)
 }
 
 // persistFindings dedupes in-memory, then bulk-inserts with ON CONFLICT DO

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -16,10 +17,14 @@ import (
 
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/sysinfo"
 	"github.com/forensichub/backend/internal/storage"
+	"github.com/forensichub/backend/internal/sysinfo"
 	"github.com/forensichub/backend/internal/ws"
 )
+
+// AppVersion is the build version surfaced on the health endpoint. Override at
+// build time with -ldflags "-X .../handlers.AppVersion=x.y.z".
+var AppVersion = "2.0"
 
 // SystemHandler serves system health and usage-statistics endpoints.
 type SystemHandler struct {
@@ -48,7 +53,7 @@ func NewSystemHandler(db *gorm.DB, rdb *redis.Client, store *storage.LocalStorag
 // componentStatus is a single checked subsystem.
 type componentStatus struct {
 	Name      string `json:"name"`
-	Status    string `json:"status"`    // "ok" | "warn" | "error"
+	Status    string `json:"status"` // "ok" | "warn" | "error"
 	LatencyMs int64  `json:"latency_ms"`
 	Detail    string `json:"detail"`
 }
@@ -122,13 +127,22 @@ func (h *SystemHandler) GetHealth(c *gin.Context) {
 		})
 	}
 
-	// ── Quick counters from DB ────────────────────────────────────
-	var agentsTotal, agentsOnline, jobsTotal, jobsRunning, sessionsTotal int64
-	h.db.Model(&models.Agent{}).Count(&agentsTotal)
-	h.db.Model(&models.Agent{}).Where("status = ?", "online").Count(&agentsOnline)
-	h.db.Model(&models.Job{}).Count(&jobsTotal)
-	h.db.Model(&models.Job{}).Where("status = ?", models.JobRunning).Count(&jobsRunning)
+	// ── Counters (combined per-table with FILTER, fewer round-trips) ──
+	var agentC struct{ Total, Online int64 }
+	h.db.Model(&models.Agent{}).
+		Select("COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'online') AS online").Scan(&agentC)
+	var jobC struct{ Total, Running, Pending int64 }
+	h.db.Model(&models.Job{}).
+		Select("COUNT(*) AS total, COUNT(*) FILTER (WHERE status = ?) AS running, COUNT(*) FILTER (WHERE status = ?) AS pending",
+			models.JobRunning, models.JobPending).Scan(&jobC)
+	agentsTotal, agentsOnline := agentC.Total, agentC.Online
+	jobsTotal, jobsRunning := jobC.Total, jobC.Running
+	var sessionsTotal int64
 	h.db.Model(&models.AnalysisSession{}).Count(&sessionsTotal)
+
+	// Activity / queue depth — live work in flight.
+	var osintRunning int64
+	h.db.Model(&models.OsintScan{}).Where("status = ?", "running").Count(&osintRunning)
 
 	// ── Server resource stats ─────────────────────────────────────
 	ramTotal, ramUsed, ramPercent := sysinfo.ReadMemInfo()
@@ -179,17 +193,79 @@ func (h *SystemHandler) GetHealth(c *gin.Context) {
 		})
 	}
 
+	// ── Resource pressure → warn (before anything actually fails) ──
+	resourceWarn := false
+	if diskPercent >= 90 || ramPercent >= 90 {
+		resourceWarn = true
+		components = append(components, componentStatus{
+			Name:   "Resources",
+			Status: "warn",
+			Detail: fmt.Sprintf("disk %.0f%%, RAM %.0f%% — running low", diskPercent, ramPercent),
+		})
+	}
+
+	// ── DB connection-pool stats (diagnose saturation) ──
+	dbPool := gin.H{}
+	if sqlDB, derr := h.db.DB(); derr == nil {
+		s := sqlDB.Stats()
+		dbPool = gin.H{
+			"max_open": s.MaxOpenConnections, "open": s.OpenConnections,
+			"in_use": s.InUse, "idle": s.Idle,
+			"wait_count": s.WaitCount, "wait_ms": s.WaitDuration.Milliseconds(),
+		}
+		// A persistently saturated pool with waits is a warning sign.
+		if s.MaxOpenConnections > 0 && s.WaitCount > 0 && s.InUse >= s.MaxOpenConnections {
+			resourceWarn = true
+		}
+	}
+
+	// ── Go runtime ──
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	runtimeInfo := gin.H{
+		"go_version": runtime.Version(),
+		"goroutines": runtime.NumGoroutine(),
+		"heap_mb":    ms.HeapAlloc / (1024 * 1024),
+	}
+
+	// ── Integrations wired (active configs / providers) ──
+	activeCount := func(model interface{}) int64 {
+		var n int64
+		h.db.Model(model).Where("is_active = ?", true).Count(&n)
+		return n
+	}
+	integrations := gin.H{
+		"elk":          activeCount(&models.ELKConfig{}),
+		"splunk":       activeCount(&models.SplunkConfig{}),
+		"qradar":       activeCount(&models.QRadarConfig{}),
+		"opencti":      activeCount(&models.OpenCTIConfig{}),
+		"ai_providers": activeCount(&models.AIProvider{}),
+	}
+
 	overallStatus := "ok"
-	if !overallOK {
+	switch {
+	case !overallOK:
 		overallStatus = "degraded"
+	case resourceWarn:
+		overallStatus = "warn"
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
 			"status":         overallStatus,
+			"version":        AppVersion,
 			"uptime_seconds": int64(time.Since(h.startTime).Seconds()),
 			"components":     components,
+			"db_pool":        dbPool,
+			"runtime":        runtimeInfo,
+			"integrations":   integrations,
+			"activity": gin.H{
+				"jobs_pending":   jobC.Pending,
+				"jobs_running":   jobsRunning,
+				"osint_running":  osintRunning,
+				"sessions_total": sessionsTotal,
+			},
 
 			// DB counters
 			"agents_online":    h.hub.ConnectedAgentCount(),
@@ -202,11 +278,11 @@ func (h *SystemHandler) GetHealth(c *gin.Context) {
 
 			// Server resources
 			"server": gin.H{
-				"cpu_count":    cpuCount,
-				"cpu_percent":  cpuPercent,
-				"ram_total_mb": ramTotal,
-				"ram_used_mb":  ramUsed,
-				"ram_percent":  ramPercent,
+				"cpu_count":     cpuCount,
+				"cpu_percent":   cpuPercent,
+				"ram_total_mb":  ramTotal,
+				"ram_used_mb":   ramUsed,
+				"ram_percent":   ramPercent,
 				"disk_total_gb": diskTotal,
 				"disk_used_gb":  diskUsed,
 				"disk_percent":  diskPercent,
@@ -344,10 +420,25 @@ func (h *SystemHandler) GetTokenStats(c *gin.Context) {
 		AvgTokens    float64    `json:"avg_tokens"`
 		LastUsed     *time.Time `json:"last_used"`
 	}
+	// Preload every referenced provider in ONE query (no per-row N+1).
+	provByID := map[string]models.AIProvider{}
+	{
+		ids := make([]string, 0, len(provRows))
+		for _, row := range provRows {
+			ids = append(ids, row.ProviderID)
+		}
+		if len(ids) > 0 {
+			var ps []models.AIProvider
+			h.db.Where("id IN ?", ids).Find(&ps)
+			for _, p := range ps {
+				provByID[p.ID.String()] = p
+			}
+		}
+	}
+
 	enriched := make([]enrichedRow, 0, len(provRows))
 	for _, row := range provRows {
-		var p models.AIProvider
-		h.db.First(&p, "id = ?", row.ProviderID)
+		p := provByID[row.ProviderID]
 		name := p.Name
 		if name == "" {
 			suffix := row.ProviderID

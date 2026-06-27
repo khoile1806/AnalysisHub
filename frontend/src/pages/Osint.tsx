@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
-  Image as ImageIcon, Upload, ScanSearch, Link2,
+  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
 import { CanaryPanel } from './CanaryTokens'
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import {
   osintApi, COLLECTOR_LABELS,
   type OsintScan, type OsintTargetType, type DetectResult, type ImageExtraction,
+  type EmailCandidate, type DocMetaResult,
 } from '@/api/osint'
 import { analysisApi } from '@/api/analysis'
 import { casesApi } from '@/api/cases'
@@ -39,7 +40,30 @@ export const TYPE_ICON: Record<OsintTargetType, React.ElementType> = {
   hash:     Hash,
   wallet:   Wallet,
   name:     User,
+  social_profile: Link2,
 }
+
+export const TYPE_LABEL: Record<OsintTargetType, string> = {
+  ip: 'IP address',
+  domain: 'Domain',
+  email: 'Email address',
+  phone: 'Phone number',
+  username: 'Username / handle',
+  hash: 'File hash',
+  wallet: 'Crypto wallet',
+  name: 'Person name',
+  social_profile: 'Social profile link',
+}
+
+// Clickable examples so the operator immediately understands what can be pasted.
+const TARGET_EXAMPLES: { label: string; value: string }[] = [
+  { label: 'Domain', value: 'example.com' },
+  { label: 'IP', value: '8.8.8.8' },
+  { label: 'Email', value: 'john.doe@example.com' },
+  { label: 'Username', value: 'johndoe' },
+  { label: 'Profile link', value: 'https://twitter.com/johndoe' },
+  { label: 'Phone', value: '+14155552671' },
+]
 
 function StatusIcon({ status }: { status: OsintScan['status'] }) {
   if (status === 'running') return <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
@@ -85,17 +109,29 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
     onError: (err) => toast.error(getErrorMessage(err)),
   })
 
-  // Detect the target type as the user finishes typing, to preview collectors.
-  const runDetect = async () => {
+  const [detecting, setDetecting] = useState(false)
+  const detectSeq = useRef(0)
+
+  // Live (debounced) type detection as the user types — previews the detected
+  // type + which collectors will run, so the input is no longer a blind text box.
+  useEffect(() => {
     const t = target.trim()
     setDetected(null); setDetectError('')
-    if (!t) return
-    try {
-      setDetected(await osintApi.detect(t))
-    } catch (err) {
-      setDetectError(getErrorMessage(err))
-    }
-  }
+    if (!t) { setDetecting(false); return }
+    setDetecting(true)
+    const seq = ++detectSeq.current
+    const timer = setTimeout(async () => {
+      try {
+        const res = await osintApi.detect(t)
+        if (seq === detectSeq.current) setDetected(res)
+      } catch (err) {
+        if (seq === detectSeq.current) setDetectError(getErrorMessage(err))
+      } finally {
+        if (seq === detectSeq.current) setDetecting(false)
+      }
+    }, 450)
+    return () => clearTimeout(timer)
+  }, [target])
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -121,34 +157,71 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
         <DialogHeader>
           <DialogTitle>New OSINT Investigation</DialogTitle>
           <DialogDescription>
-            Enter an IP, domain, email, phone, username, or full name — the type is detected automatically.
+            Enter an IP, domain, email, phone, username, full name, or a social-media profile link — the type is detected automatically.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
             <div>
               <label className="label">Target</label>
-              <input
-                className="input w-full font-mono"
-                placeholder="domain · IP · email · phone · username · full name · hash · wallet"
-                value={target}
-                onChange={e => setTarget(e.target.value)}
-                onBlur={runDetect}
-                disabled={mutation.isPending}
-                autoFocus
-              />
+              <div className="relative">
+                <ScanSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                <input
+                  className="input w-full font-mono pl-9 pr-9"
+                  placeholder="domain · IP · email · phone · username · profile link · name · hash · wallet"
+                  value={target}
+                  onChange={e => setTarget(e.target.value)}
+                  disabled={mutation.isPending}
+                  autoFocus
+                />
+                {detecting && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 animate-spin" />}
+                {!detecting && detected && (() => {
+                  const Icon = TYPE_ICON[detected.target_type as OsintTargetType] ?? Fingerprint
+                  return <Icon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
+                })()}
+              </div>
+
+              {/* Example chips — always visible so the box is self-explanatory;
+                  click to fill the field with a sample of each supported type. */}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-gray-600 mr-0.5">Examples:</span>
+                {TARGET_EXAMPLES.map(ex => (
+                  <button
+                    key={ex.value} type="button"
+                    title={ex.value}
+                    onClick={() => setTarget(ex.value)}
+                    className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-slate-700 text-gray-400 hover:border-emerald-700 hover:text-emerald-300 transition-colors"
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+
               {detected && (
-                <div className="mt-2 text-xs space-y-1">
-                  <p className="text-emerald-400 font-mono">
-                    Detected type: <span className="uppercase font-bold">{detected.target_type}</span>
-                  </p>
-                  <p className="text-gray-500">
-                    Collectors: {detected.collectors
+                <div className="mt-2 rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-2.5 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const Icon = TYPE_ICON[detected.target_type as OsintTargetType] ?? Fingerprint
+                      return <Icon className="h-4 w-4 text-emerald-400 shrink-0" />
+                    })()}
+                    <span className="text-xs font-semibold text-emerald-300">
+                      {TYPE_LABEL[detected.target_type as OsintTargetType] ?? detected.target_type.replace(/_/g, ' ')}
+                    </span>
+                    <span className="ml-auto text-[10px] font-mono text-gray-500">
+                      {detected.collectors.filter(c => !(detected.skipped_no_key ?? []).includes(c)).length} collectors
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {detected.collectors
                       .filter(c => !(detected.skipped_no_key ?? []).includes(c))
-                      .map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
-                  </p>
+                      .map(c => (
+                        <span key={c} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-800/70 text-gray-300 border border-slate-700">
+                          {COLLECTOR_LABELS[c] ?? c}
+                        </span>
+                      ))}
+                  </div>
                   {(detected.skipped_no_key?.length ?? 0) > 0 && (
-                    <p className="text-amber-500/80">
+                    <p className="text-[10px] text-amber-500/80">
                       Skipped (no API key): {detected.skipped_no_key!.map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
                     </p>
                   )}
@@ -368,6 +441,207 @@ function ImageExtractModal({ open, onClose }: { open: boolean; onClose: () => vo
   )
 }
 
+// ---- OSINT Tools Modal (email finder · doc metadata · reverse image) --------
+
+type ToolTab = 'email' | 'doc' | 'image'
+
+const EMAIL_STATUS_CLS: Record<string, string> = {
+  deliverable: 'text-emerald-300 bg-emerald-900/30 border-emerald-800/40',
+  catch_all:   'text-yellow-300 bg-yellow-900/30 border-yellow-800/40',
+  rejected:    'text-gray-500 bg-gray-800 border-slate-700',
+  unverified:  'text-gray-400 bg-gray-800 border-slate-700',
+}
+
+function ToolsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<ToolTab>('email')
+
+  // Email finder
+  const [emName, setEmName] = useState('')
+  const [emDomain, setEmDomain] = useState('')
+  const [emResult, setEmResult] = useState<EmailCandidate[] | null>(null)
+  const emailMut = useMutation({
+    mutationFn: () => osintApi.emailPermute(emName.trim(), emDomain.trim()),
+    onSuccess: (d) => { setEmResult(d.candidates); toast.success(`${d.candidates.length} candidate(s)`) },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  // Document metadata
+  const [docFile, setDocFile] = useState<File | null>(null)
+  const [docResult, setDocResult] = useState<DocMetaResult | null>(null)
+  const docMut = useMutation({
+    mutationFn: () => osintApi.extractDocMeta(docFile!),
+    onSuccess: (d) => { setDocResult(d); d.metadata.found ? toast.success('Metadata extracted') : toast('No author metadata found', { icon: '🔍' }) },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  // Reverse image (URL or upload)
+  const [imgURL, setImgURL] = useState('')
+  const [imgFile, setImgFile] = useState<File | null>(null)
+  const [imgResult, setImgResult] = useState<import('@/api/osint').ReverseImageResult | null>(null)
+  const imgMut = useMutation({
+    mutationFn: () => imgFile ? osintApi.reverseImageUpload(imgFile) : osintApi.reverseImage(imgURL.trim()),
+    onSuccess: (d) => setImgResult(d),
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  const scanMut = useMutation({
+    mutationFn: (target: string) => osintApi.create({ target }),
+    onSuccess: (scan) => { toast.success('Investigation started'); onClose(); navigate(`/osint/${scan.id}`) },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  const reset = () => {
+    setEmName(''); setEmDomain(''); setEmResult(null)
+    setDocFile(null); setDocResult(null); setImgURL(''); setImgFile(null); setImgResult(null)
+  }
+  const handleClose = () => { reset(); onClose() }
+
+  const busy = emailMut.isPending || docMut.isPending || imgMut.isPending
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>OSINT Tools</DialogTitle>
+          <DialogDescription>Standalone lookups: find a work e-mail, read a document's author metadata, or reverse-search an image.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex gap-1 border-b border-slate-800 px-1">
+          {([['email', 'Email Finder', Mail], ['doc', 'Doc Metadata', FileText], ['image', 'Reverse Image', ImageIcon]] as const).map(([k, label, Icon]) => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                tab === k ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+              <Icon className="h-3.5 w-3.5" /> {label}
+            </button>
+          ))}
+        </div>
+
+        <DialogBody className="space-y-4">
+          {tab === 'email' && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">Full name</label>
+                  <input className="input w-full" placeholder="John Doe" value={emName} onChange={e => setEmName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Company domain</label>
+                  <input className="input w-full font-mono" placeholder="acme.com" value={emDomain} onChange={e => setEmDomain(e.target.value)} />
+                </div>
+              </div>
+              <button className="btn-primary w-full flex items-center justify-center gap-2"
+                disabled={!emName.trim() || !emDomain.trim() || emailMut.isPending}
+                onClick={() => { setEmResult(null); emailMut.mutate() }}>
+                {emailMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {emailMut.isPending ? 'Validating mailboxes…' : 'Find e-mail'}
+              </button>
+              {emResult && (
+                <div className="space-y-1.5">
+                  {emResult.map((c) => (
+                    <div key={c.email} className="flex items-center gap-2 rounded border border-slate-700 bg-gray-900/40 px-3 py-2">
+                      <span className="font-mono text-xs text-gray-200 truncate flex-1">{c.email}</span>
+                      <span className="text-[10px] text-gray-600 font-mono">{c.pattern}</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${EMAIL_STATUS_CLS[c.status] ?? EMAIL_STATUS_CLS.unverified}`}>{c.status}</span>
+                      <button className="btn-secondary text-xs px-2 py-1" disabled={scanMut.isPending} onClick={() => scanMut.mutate(c.email)}>
+                        <Search className="h-3 w-3" /> Scan
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-gray-600">SMTP probing needs port 25 outbound; blocked networks return “unverified”.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'doc' && (
+            <>
+              <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-dashed border-gray-700 bg-gray-900/40 p-4 hover:border-emerald-700 transition-colors">
+                <Upload className="h-5 w-5 text-gray-500" />
+                <span className="text-sm text-gray-300 truncate">{docFile ? docFile.name : 'Choose a DOCX, XLSX, PPTX or PDF (≤ 30 MB)'}</span>
+                <input type="file" accept=".docx,.xlsx,.pptx,.pdf" className="hidden"
+                  onChange={(e) => { setDocFile(e.target.files?.[0] ?? null); setDocResult(null) }} />
+              </label>
+              <button className="btn-primary w-full flex items-center justify-center gap-2"
+                disabled={!docFile || docMut.isPending} onClick={() => docMut.mutate()}>
+                {docMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                {docMut.isPending ? 'Reading…' : 'Extract metadata'}
+              </button>
+              {docResult && (
+                <div className="space-y-2">
+                  <div className="rounded border border-slate-700 bg-gray-900/40 p-3 text-xs space-y-1">
+                    {([['Format', docResult.metadata.format], ['Author', docResult.metadata.creator], ['Last modified by', docResult.metadata.last_modified_by],
+                       ['Company', docResult.metadata.company], ['Application', docResult.metadata.application], ['Title', docResult.metadata.title],
+                       ['Created', docResult.metadata.created], ['Modified', docResult.metadata.modified]] as const)
+                      .filter(([, v]) => v).map(([k, v]) => (
+                        <div key={k} className="flex gap-2"><span className="text-gray-600 w-28 shrink-0">{k}</span><span className="text-gray-200 break-all">{v}</span></div>
+                      ))}
+                    {!docResult.metadata.found && <p className="text-gray-500">No author metadata (it may have been stripped).</p>}
+                  </div>
+                  {docResult.candidates.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="label">Author candidates</p>
+                      {docResult.candidates.map((cand) => (
+                        <div key={cand.value} className="flex items-center gap-2 rounded border border-slate-700 bg-gray-900/40 px-3 py-2">
+                          <span className="font-mono text-xs text-emerald-400 truncate flex-1">{cand.value}</span>
+                          <span className="text-[10px] text-gray-600 uppercase">{cand.type}</span>
+                          <button className="btn-secondary text-xs px-2 py-1" disabled={scanMut.isPending} onClick={() => scanMut.mutate(cand.value)}>
+                            <Search className="h-3 w-3" /> Scan
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'image' && (
+            <>
+              <div>
+                <label className="label">Public image URL</label>
+                <input className="input w-full font-mono" placeholder="https://example.com/avatar.jpg"
+                  value={imgURL} onChange={e => { setImgURL(e.target.value); setImgFile(null) }} disabled={!!imgFile} />
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-gray-600"><span className="flex-1 h-px bg-slate-800" />OR upload a local image<span className="flex-1 h-px bg-slate-800" /></div>
+              <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-dashed border-gray-700 bg-gray-900/40 p-3 hover:border-emerald-700 transition-colors">
+                <Upload className="h-4 w-4 text-gray-500" />
+                <span className="text-xs text-gray-300 truncate">{imgFile ? imgFile.name : 'Choose an image (fingerprint + face-search engines)'}</span>
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { setImgFile(e.target.files?.[0] ?? null); setImgURL(''); setImgResult(null) }} />
+              </label>
+              <button className="btn-primary w-full flex items-center justify-center gap-2"
+                disabled={(!imgURL.trim() && !imgFile) || imgMut.isPending} onClick={() => { setImgResult(null); imgMut.mutate() }}>
+                {imgMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                {imgFile ? 'Fingerprint + face-search links' : 'Build reverse-search links'}
+              </button>
+              {imgResult && (
+                <div className="space-y-1.5">
+                  {imgResult.fingerprint && (
+                    <p className="text-[11px] text-gray-400">Fingerprint: <span className="font-mono text-emerald-400">{imgResult.fingerprint}</span></p>
+                  )}
+                  {[...(imgResult.engines ?? []), ...(imgResult.face_engines ?? [])].map((e) => (
+                    <a key={e.name} href={e.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded border border-slate-700 bg-gray-900/40 px-3 py-2 hover:border-emerald-700 transition-colors">
+                      <ExternalLink className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span className="text-xs text-gray-200">{e.name}</span>
+                    </a>
+                  ))}
+                  {imgResult.note && <p className="text-[10px] text-gray-600">{imgResult.note}</p>}
+                </div>
+              )}
+            </>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <button type="button" className="btn-secondary" onClick={handleClose} disabled={busy}>Close</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ---- Page -------------------------------------------------------------------
 
 function TabButton({ active, onClick, icon: Icon, label }: {
@@ -395,6 +669,7 @@ export default function OsintPage() {
   const [tab, setTab] = useState<OsintTab>('investigations')
   const [newOpen, setNewOpen] = useState(false)
   const [imageOpen, setImageOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const { data: scans = [], isLoading } = useQuery({
@@ -425,6 +700,9 @@ export default function OsintPage() {
         </div>
         {tab === 'investigations' && (
           <div className="flex items-center gap-2">
+            <button className="btn-secondary flex items-center gap-2" onClick={() => setToolsOpen(true)} title="Email finder · document metadata · reverse image search">
+              <Wrench className="h-4 w-4" /> Tools
+            </button>
             <button className="btn-secondary flex items-center gap-2" onClick={() => setImageOpen(true)} title="Extract IOCs from an image (ransom note, screenshot) via OCR">
               <ImageIcon className="h-4 w-4" /> From Image
             </button>
@@ -504,6 +782,7 @@ export default function OsintPage() {
 
       <NewScanModal open={newOpen} onClose={() => setNewOpen(false)} />
       <ImageExtractModal open={imageOpen} onClose={() => setImageOpen(false)} />
+      <ToolsModal open={toolsOpen} onClose={() => setToolsOpen(false)} />
 
       <Dialog open={!!deleting} onOpenChange={o => !o && setDeleting(null)}>
         <DialogContent className="max-w-sm">

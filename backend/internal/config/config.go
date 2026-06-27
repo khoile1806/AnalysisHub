@@ -100,7 +100,13 @@ type Config struct {
 	// IP is treated as shared hosting and its co-hosted domains are recorded as
 	// findings but NOT auto-pivoted (they are other tenants, not the subject).
 	OsintCohostPivotMax int // default 5
-	
+
+	// OsintMaxPivotChildren bounds how many child scans one scan may auto-spawn.
+	// The budget is allocated round-robin across categories (IP / domain /
+	// account / other) so each related-entity class is investigated and no class
+	// (e.g. e-mails/usernames) is starved by a long list of IPs or domains.
+	OsintMaxPivotChildren int // default 12
+
 	// Configurable auto-pivot filter lists. If empty, the engine uses its built-in defaults.
 	OsintProviderSuffixes []string
 	OsintRDNSMarkers      []string
@@ -184,6 +190,7 @@ func Load() *Config {
 		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),
 		OsintCloudMaxCandidates:  getEnvInt("OSINT_CLOUD_MAX_CANDIDATES", 120),
 		OsintCohostPivotMax:      getEnvInt("OSINT_COHOST_PIVOT_MAX", 5),
+		OsintMaxPivotChildren:    getEnvInt("OSINT_MAX_PIVOT_CHILDREN", 12),
 		OsintMaxConcurrentScans:  getEnvInt("OSINT_MAX_CONCURRENT_SCANS", 6),
 		OsintProviderSuffixes:    parseCSV(getEnv("OSINT_PROVIDER_SUFFIXES", "")),
 		OsintRDNSMarkers:         parseCSV(getEnv("OSINT_RDNS_MARKERS", "")),

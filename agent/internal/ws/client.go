@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"io"
 	"log"
+	"log/slog"
+	"math/rand"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -180,9 +181,13 @@ func (c *Client) Run(ctx context.Context) {
 		default:
 		}
 
-		log.Printf("[ws] reconnecting in %s …", backoff)
+		// Equal jitter: wait between backoff/2 and backoff. Spreading the wait
+		// stops a whole fleet that dropped together (server restart, network
+		// blip) from reconnecting in lockstep and hammering the server.
+		wait := backoff/2 + time.Duration(rand.Int63n(int64(backoff/2)+1))
+		log.Printf("[ws] reconnecting in %s …", wait)
 		select {
-		case <-time.After(backoff):
+		case <-time.After(wait):
 		case <-ctx.Done():
 			return
 		}
@@ -371,6 +376,10 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			go c.handleEdgeParseDlls(msg)
 		case "edge_parse_shimcache":
 			go c.handleEdgeParseShimcache(msg)
+		case "edge_parse_browser":
+			go c.handleEdgeParseBrowser(msg)
+		case "edge_parse_triage":
+			go c.handleEdgeParseTriage(msg)
 		case "kill_process":
 			go c.handleKillProcess(msg)
 		case "ping":
@@ -547,7 +556,7 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 				toolID = executor.SanitizeFilename(msg.ToolName)
 			}
 			toolDir := filepath.Join(workDir, "tools", toolID)
-			
+
 			var dumpFile string
 			var maxSize int64
 			filepath.Walk(toolDir, func(path string, info os.FileInfo, err error) error {
@@ -913,6 +922,35 @@ func (c *Client) handleEdgeParseShimcache(msg inboundMsg) {
 		func() (any, error) { return parser.ScanShimcache() })
 }
 
+// handleEdgeParseBrowser recovers browser history (Chrome/Edge/Brave/Firefox)
+// across all local user profiles; elevated so other users' profiles are readable.
+func (c *Client) handleEdgeParseBrowser(msg inboundMsg) {
+	log.Printf("[edge_browser:%s] browser history scan", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Browser history scan", "browser", "scan-browser", "",
+		func() (any, error) { return parser.ScanBrowserHistory() })
+}
+
+// handleEdgeParseTriage runs a 1-click triage collection (KAPE-style) — a curated
+// set of collectors gathered in ONE elevated pass so the operator sees at most a
+// single UAC prompt. The requested artifact types arrive as a CSV in msg.Args.
+func (c *Client) handleEdgeParseTriage(msg inboundMsg) {
+	log.Printf("[edge_triage:%s] triage collection (types=%q)", msg.JobID, msg.Args)
+	types := splitCSV(msg.Args)
+	c.runEdgeScan(msg.JobID, "Triage collection", "triage", "scan-triage", msg.Args,
+		func() (any, error) { return parser.CollectTriage(types), nil })
+}
+
+// splitCSV parses a comma-separated list, trimming blanks.
+func splitCSV(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // handleKillProcess terminates a process (containment). Runs in-process when the
 // agent is already elevated, else via a UAC-elevated `kill <pid>` child so it can
 // terminate other users' / elevated processes.
@@ -1116,7 +1154,6 @@ if ($out) { $out | ConvertTo-Json -Compress -Depth 5 } else { '[]' }
 	_ = c.sendOutput(msg.JobID, "", true)
 }
 
-
 // handlePing responds to a server ping with a pong.
 func (c *Client) handlePing() {
 	if err := c.writeJSON(outboundMsg{Type: "pong"}); err != nil {
@@ -1128,8 +1165,44 @@ func (c *Client) handlePing() {
 // then deletes the agent binary itself — restoring the machine to its pre-agent
 // state. On Windows the binary self-delete is done via a background cmd.exe
 // process that waits for the agent to exit before removing it.
+// stopAllWork cancels every running job and closes every live PTY session so
+// their child processes are terminated cleanly rather than orphaned when the
+// agent exits. Used by handleCleanup before the binary self-deletes.
+func (c *Client) stopAllWork() {
+	c.runningJobsMu.Lock()
+	cancels := make([]context.CancelFunc, 0, len(c.runningJobs))
+	for id, cancel := range c.runningJobs {
+		cancels = append(cancels, cancel)
+		delete(c.runningJobs, id)
+	}
+	c.runningJobsMu.Unlock()
+	for _, cancel := range cancels {
+		cancel()
+	}
+
+	c.terminalSessionsMu.Lock()
+	sessions := make([]*terminal.Session, 0, len(c.terminalSessions))
+	for id, sess := range c.terminalSessions {
+		sessions = append(sessions, sess)
+		delete(c.terminalSessions, id)
+	}
+	c.terminalSessionsMu.Unlock()
+	for _, sess := range sessions {
+		_ = sess.Close()
+	}
+
+	if len(cancels) > 0 || len(sessions) > 0 {
+		log.Printf("[cleanup] stopped %d job(s) and %d terminal session(s)", len(cancels), len(sessions))
+	}
+}
+
 func (c *Client) handleCleanup() {
 	log.Println("[cleanup] received cleanup command — removing agent")
+
+	// Terminate our own children first so no tool/PTY process is orphaned when
+	// the binary self-deletes. This also releases file handles those children
+	// may hold under WorkDir, making the subsequent removal more reliable.
+	c.stopAllWork()
 
 	workDir := c.cfg.WorkDir
 	exePath, _ := os.Executable()
@@ -1161,7 +1234,15 @@ func (c *Client) handleCleanup() {
 		const ps1Body = `
 $workDir    = $env:FH_WORK_DIR
 $installDir = $env:FH_INSTALL_DIR
-Start-Sleep -Seconds 5
+$agentPid   = $env:FH_AGENT_PID
+# Wait for the agent process itself to exit so Windows releases its binary/log
+# handles, instead of guessing with a fixed sleep. This is both faster (no wait
+# when the agent exits immediately) and more reliable (no race if exit is slow).
+if ($agentPid) {
+    try { Wait-Process -Id ([int]$agentPid) -Timeout 30 -ErrorAction Stop } catch { Start-Sleep -Seconds 3 }
+} else {
+    Start-Sleep -Seconds 5
+}
 # Kill ForensicHub tool windows before deletion so their files are not locked.
 Get-Process | Where-Object { $_.MainWindowTitle -like 'ForensicHub - *' } |
     Stop-Process -Force -ErrorAction SilentlyContinue
@@ -1179,14 +1260,20 @@ Remove-Item -Force -Path $MyInvocation.MyCommand.Path -ErrorAction SilentlyConti
 		// Write UTF-8 BOM so PowerShell 5.1 reads the file correctly.
 		bom := []byte{0xEF, 0xBB, 0xBF}
 		ps1Content := append(bom, []byte(ps1Body)...)
-		ps1Path := filepath.Join(os.TempDir(), "forensichub_cleanup.ps1")
+		// Randomize the script name so a low-privilege user cannot pre-plant or
+		// symlink a predictable path in %TEMP% that we would then execute.
+		ps1Name := fmt.Sprintf("fh_cleanup_%d_%d.ps1", os.Getpid(), rand.Int31())
+		ps1Path := filepath.Join(os.TempDir(), ps1Name)
 		if err := os.WriteFile(ps1Path, ps1Content, 0o600); err != nil {
 			log.Printf("[cleanup] write PS1: %v", err)
 		}
 		log.Printf("[cleanup] scheduled removal of workDir=%q and installDir=%q via %s", workDir, installDir, ps1Path)
 
 		cmd := osExec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", ps1Path)
-		cmd.Env = append(os.Environ(), "FH_WORK_DIR="+workDir, "FH_INSTALL_DIR="+installDir)
+		cmd.Env = append(os.Environ(),
+			"FH_WORK_DIR="+workDir,
+			"FH_INSTALL_DIR="+installDir,
+			fmt.Sprintf("FH_AGENT_PID=%d", os.Getpid()))
 		cmd.Dir = os.TempDir()
 		// Detach from the agent's console so the window closes immediately on
 		// os.Exit — without CREATE_NEW_CONSOLE the child inherits our console

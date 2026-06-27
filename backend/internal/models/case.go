@@ -12,6 +12,9 @@ type Case struct {
 	Name        string    `gorm:"not null"                                       json:"name"`
 	Description string    `                                                      json:"description"`
 	Status      string    `gorm:"default:'open'"                                 json:"status"` // open | closed
+	// Summary is the latest AI-drafted executive narrative for the incident
+	// report (regenerated on demand); empty until generated.
+	Summary     string    `gorm:"type:text"                                      json:"summary,omitempty"`
 	CreatedBy   uuid.UUID `gorm:"type:uuid"                                      json:"created_by"`
 	CreatedAt   time.Time `                                                      json:"created_at"`
 	UpdatedAt   time.Time `                                                      json:"updated_at"`

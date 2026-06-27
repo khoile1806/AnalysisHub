@@ -78,6 +78,10 @@ func NewRouter(
 	{
 		// Hunting (Sigma Engine)
 		protected.POST("/hunting/sigma/scan", handlers.SigmaScan)
+		protected.POST("/hunting/sigma/sync", handlers.SigmaSync)
+
+		// Entity origin tracing (process/file/app lineage from EdgeForensics/EVTX).
+		protected.POST("/trace/entity", handlers.TraceEntity)
 
 		// Tools
 		protected.GET("/tools", handlers.ListTools)
@@ -105,6 +109,8 @@ func NewRouter(
 		protected.POST("/agents/:id/netscan", handlers.AgentNetworkParse)
 		protected.POST("/agents/:id/dlls", handlers.AgentDllsParse)
 		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
+		protected.POST("/agents/:id/browser", handlers.AgentBrowserParse)
+		protected.POST("/agents/:id/triage", handlers.AgentTriageCollect)
 		protected.POST("/agents/:id/baseline", handlers.SetAgentBaseline)
 		protected.GET("/agents/:id/baseline", handlers.GetAgentBaseline)
 		protected.POST("/agents/:id/kill", handlers.AgentKillProcess)
@@ -114,6 +120,18 @@ func NewRouter(
 		protected.GET("/agents/:id/fs/download", handlers.DownloadAgentPath)
 		protected.POST("/agents/:id/fs/download-bundle", handlers.DownloadAgentBundle)
 		protected.GET("/agents/binary/:platform", handlers.DownloadAgentBinary)
+
+		// Fleet management — groups/tags, bulk collection, scheduled collections.
+		fleetHandler := handlers.NewFleetHandler(db)
+		protected.GET("/agents/groups", fleetHandler.ListAgentGroups)
+		protected.PATCH("/agents/:id/tags", fleetHandler.SetAgentTags)
+		protected.POST("/agents/bulk/collect", fleetHandler.BulkCollect)
+		protected.GET("/agents/fleet/results", fleetHandler.ListFleetResults)
+		protected.GET("/agents/fleet/results/:id", fleetHandler.GetFleetResult)
+		protected.GET("/agents/scheduled-collections", fleetHandler.ListSchedules)
+		protected.POST("/agents/scheduled-collections", fleetHandler.CreateSchedule)
+		protected.PATCH("/agents/scheduled-collections/:id", fleetHandler.UpdateSchedule)
+		protected.DELETE("/agents/scheduled-collections/:id", fleetHandler.DeleteSchedule)
 
 		// Jobs
 		protected.GET("/jobs", handlers.ListJobs)
@@ -226,6 +244,13 @@ func NewRouter(
 		protected.GET("/osint/:id/graph", handlers.GetOsintGraph)
 		protected.GET("/osint/:id/graph/export", handlers.ExportOsintGraph)
 		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
+		protected.GET("/osint/:id/location", handlers.GetOsintLocation)
+		protected.GET("/osint/:id/identity", handlers.GetOsintIdentity)
+		protected.POST("/osint/extract-image-geo", handlers.ExtractImageGeo)
+		protected.POST("/osint/:id/add-photo-geo", handlers.AddScanPhotoGeo)
+		protected.POST("/osint/extract-doc-meta", handlers.ExtractDocMeta)
+		protected.POST("/osint/email-permute", handlers.EmailPermute)
+		protected.POST("/osint/reverse-image", handlers.ReverseImage)
 		protected.POST("/osint/promote-ioc", handlers.PromoteOsintIOC)
 
 		// OSINT watchlist — continuous monitoring (A4). Static "watches" segment
@@ -261,11 +286,15 @@ func NewRouter(
 		protected.PATCH("/cases/:id", casesHandler.UpdateCase)
 		protected.DELETE("/cases/:id", casesHandler.DeleteCase)
 		protected.GET("/cases/:id/summary", casesHandler.GetCaseSummary)
+		protected.GET("/cases/:id/report", casesHandler.CaseReport)
 		protected.POST("/cases/:id/import-offline-report", casesHandler.ImportOfflineReport)
 
 		// Attack Timeline
 		timelineHandler := handlers.NewTimelineHandler(db)
 		protected.GET("/cases/:id/timeline", timelineHandler.ListTimeline)
+		protected.GET("/cases/:id/timeline/super", timelineHandler.SuperTimeline)
+		protected.POST("/cases/:id/timeline/build-super", timelineHandler.BuildSuperTimeline)
+		protected.POST("/cases/:id/timeline/from-trace", timelineHandler.AddTraceToTimeline)
 		protected.GET("/cases/:id/attack-coverage", timelineHandler.AttackCoverage)
 		protected.POST("/cases/:id/import-artifacts", timelineHandler.ImportArtifacts)
 		protected.POST("/cases/:id/timeline", timelineHandler.CreateTimelineEvent)
@@ -301,6 +330,7 @@ func NewRouter(
 		protected.DELETE("/ai/sessions/:id", aiHandler.DeleteSession)
 		protected.POST("/cases/:id/timeline/ai-extract", aiHandler.ExtractTimeline)
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
+		protected.POST("/cases/:id/report/ai-summary", aiHandler.GenerateCaseSummary)
 		protected.POST("/cases/:id/evidence/:evidenceId/extract-timeline", aiHandler.ExtractTimelineFromEvidence)
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
 		// AI triage of an OSINT footprint (defensive summary + pivots)

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Search, Activity, AlertTriangle, ChevronRight, ShieldQuestion, Copy, Database, Save, ShieldAlert, ChevronDown,
+  Search, Activity, AlertTriangle, ChevronRight, ShieldQuestion, Copy, Database, Save, ShieldAlert, ChevronDown, GitBranch,
 } from 'lucide-react'
 import { agentsApi, type Agent } from '@/api/agents'
+import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 import { intelApi } from '@/api/intel'
 import { timelineApi, type TimelineSeverity } from '@/api/timeline'
 import { casesApi } from '@/api/cases'
@@ -121,6 +122,22 @@ const SYSMON_NAMES: Record<number, string> = {
   10: 'Process Access', 11: 'File Create', 12: 'Registry Object', 13: 'Registry Set', 15: 'FileCreateStreamHash',
   17: 'Pipe Created', 18: 'Pipe Connected', 19: 'WMI Filter', 20: 'WMI Consumer', 21: 'WMI Binding',
   22: 'DNS Query', 23: 'File Delete', 25: 'Process Tampering', 26: 'File Delete Detected',
+}
+
+// evtxTarget extracts the process/file an event is about (NewProcessName, Image,
+// …) as a basename, so it can be traced back to its origin. "" when none.
+function evtxTarget(e: EvtEvent): string {
+  const want = ['newprocessname', 'image', 'processname', 'targetimage', 'sourceimage', 'application', 'originalfilename', 'targetfilename']
+  const d = e.data || {}
+  for (const w of want) {
+    for (const k of Object.keys(d)) {
+      if (k.toLowerCase() === w && d[k] && d[k] !== '-') {
+        const v = d[k].trim()
+        return v.split(/[\\/]/).pop() || v
+      }
+    }
+  }
+  return ''
 }
 
 function eventName(e: EvtEvent): string {
@@ -255,6 +272,7 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [filter, setFilter] = useState('')
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
   const [iocMatches, setIocMatches] = useState<Set<string>>(new Set())
   const [lookup, setLookup] = useState<LookupTarget | null>(null)
@@ -526,6 +544,13 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
                               <pre className="flex-1 text-[11px] text-gray-400 font-mono whitespace-pre-wrap bg-black/30 p-2 rounded border border-gray-800/60 max-h-40 overflow-auto">{e.message}</pre>
                               <button onClick={() => copy('Message', e.message)} className="text-gray-600 hover:text-emerald-400 shrink-0"><Copy className="h-3.5 w-3.5" /></button>
                             </div>
+                            {evtxTarget(e) && (
+                              <div className="pt-1">
+                                <button onClick={() => setTraceTarget({ target: evtxTarget(e), pid: 0 })} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title={`Trace the origin of ${evtxTarget(e)} (parent process, user, when)`}>
+                                  <GitBranch className="h-3.5 w-3.5" /> Trace origin: {evtxTarget(e)}
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )}
@@ -539,6 +564,7 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
       </div>
 
       {lookup && <IntelLookupModal indicator={lookup.indicator} type={lookup.type} onClose={() => setLookup(null)} />}
+      {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
     </div>
   )
 }

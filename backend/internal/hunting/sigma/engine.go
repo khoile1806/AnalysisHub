@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -68,6 +69,13 @@ func (e *Engine) LoadDirectory(dir string) {
 
 // Scan takes an array of JSON objects (events) and evaluates them against all rules.
 func (e *Engine) Scan(jsonData string) ([]Alert, error) {
+	return e.ScanContext(context.Background(), jsonData)
+}
+
+// ScanContext is Scan with cancellation: a large event set against a large rule
+// set is bounded by ctx so a slow/abusive scan can be aborted (it is checked
+// once per event, between rule batches).
+func (e *Engine) ScanContext(ctx context.Context, jsonData string) ([]Alert, error) {
 	var events []map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonData), &events); err != nil {
 		// Try parsing as single object
@@ -83,6 +91,9 @@ func (e *Engine) Scan(jsonData string) ([]Alert, error) {
 
 	var alerts []Alert
 	for _, event := range events {
+		if err := ctx.Err(); err != nil {
+			return alerts, err
+		}
 		for _, rule := range e.rules {
 			if MatchEvent(rule, event) {
 				alerts = append(alerts, Alert{
@@ -96,4 +107,17 @@ func (e *Engine) Scan(jsonData string) ([]Alert, error) {
 	}
 
 	return alerts, nil
+}
+
+// RuleCount returns the number of currently loaded rules.
+func (e *Engine) RuleCount() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return len(e.rules)
+}
+
+// Reload re-reads all rules from a directory (used after a SigmaHQ sync).
+func (e *Engine) Reload(dir string) int {
+	e.LoadDirectory(dir)
+	return e.RuleCount()
 }

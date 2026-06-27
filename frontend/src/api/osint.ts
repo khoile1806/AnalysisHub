@@ -1,7 +1,7 @@
 import apiClient from './client'
 import { useAuthStore } from '@/store/auth'
 
-export type OsintTargetType = 'ip' | 'domain' | 'email' | 'phone' | 'username' | 'hash' | 'wallet' | 'name'
+export type OsintTargetType = 'ip' | 'domain' | 'email' | 'phone' | 'username' | 'hash' | 'wallet' | 'name' | 'social_profile'
 type OsintStatus = 'pending' | 'running' | 'done' | 'stopped' | 'failed'
 type OsintCollectorStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped'
 type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical'
@@ -122,6 +122,7 @@ export interface OsintGraphNode {
   depth: number
   findings: number
   root: boolean
+  avatar_url?: string
 }
 interface OsintGraphEdge {
   from: string
@@ -138,7 +139,8 @@ export interface OsintGraph {
 export interface OsintCorrelation {
   value: string
   count: number
-  entities: { id: string; target: string; type: OsintTargetType }[]
+  kind?: '' | 'avatar'
+  entities: { id: string; target: string; type: OsintTargetType; avatar_url?: string }[]
 }
 
 // ImageExtraction is the result of OCR + IOC extraction on an uploaded image:
@@ -146,6 +148,85 @@ export interface OsintCorrelation {
 export interface ImageExtraction {
   ocr_text: string
   candidates: { value: string; type: OsintTargetType }[]
+}
+
+// A single located observation about the target.
+export interface GeoPoint {
+  lat: number
+  lon: number
+  place?: string
+  precision: 'exact' | 'city' | 'region' | 'country'
+  source: 'exif' | 'geoip' | 'phone' | 'whois' | 'profile'
+  confidence: 'high' | 'medium' | 'low'
+  target?: string
+  source_url?: string
+}
+
+// OsintLocation is the aggregated location intel for an investigation graph.
+export interface OsintLocation {
+  found: boolean
+  count: number
+  points: GeoPoint[]
+  best?: GeoPoint
+  maps_url?: string
+}
+
+// ImageGeoResult is the native EXIF-GPS extraction outcome for one photo.
+export interface ImageGeoResult {
+  found: boolean
+  lat?: number
+  lon?: number
+  maps_url?: string
+  precision?: 'exact'
+  source?: 'exif'
+  note?: string
+}
+
+// EmailCandidate is one generated address + its MX validation verdict.
+export interface EmailCandidate {
+  email: string
+  pattern: string
+  status: 'deliverable' | 'rejected' | 'catch_all' | 'unverified'
+  confidence: 'high' | 'medium' | 'low'
+  note?: string
+}
+export interface EmailPermuteResult {
+  domain: string
+  candidates: EmailCandidate[]
+}
+
+// DocMetaResult is the author/tool metadata recovered from a document.
+export interface DocMetaResult {
+  metadata: {
+    format: string
+    creator?: string
+    last_modified_by?: string
+    company?: string
+    application?: string
+    title?: string
+    created?: string
+    modified?: string
+    found: boolean
+  }
+  candidates: { value: string; type: OsintTargetType }[]
+}
+
+// ReverseImageResult — reverse/face image-search links (+ fingerprint on upload).
+export interface ReverseImageResult {
+  image_url?: string
+  engines?: { name: string; url: string }[]      // URL-prefill engines
+  face_engines?: { name: string; url: string }[] // face search (manual upload)
+  fingerprint?: string                            // dHash of an uploaded image
+  note?: string
+}
+
+// IdentityConfidence scores how strongly the graph corroborates one identity.
+export interface IdentitySignal { key: string; label: string; weight: number; detail?: string }
+export interface IdentityConfidence {
+  score: number
+  grade: 'strong' | 'moderate' | 'weak' | 'minimal'
+  signals: IdentitySignal[]
+  summary: string
 }
 
 // CATEGORY_LABELS maps a finding category to its display heading.
@@ -160,6 +241,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   techstack:    'Technology Stack',
   vulnerability: 'Known Vulnerabilities (CVE)',
   cloud_exposure: 'Cloud Storage Exposure',
+  exposure:     'Public Exposure (Code / Paste)',
   reputation:   'Reputation / Threat Intel',
   ransomware:   'Ransomware Leak-Site',
   darkweb:      'Dark-Web Exposure',
@@ -193,6 +275,13 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   search_links:      'Search Pivots',
   maigret:           'Maigret (3000+ sites)',
   github_intel:      'GitHub Identity Leak',
+  keybase:           'Keybase (proven linked accounts)',
+  username_variants: 'Handle Variants',
+  social_profile:    'Social Profile Enrichment',
+  passive_dns:       'Passive DNS (history)',
+  wallet_label:      'Wallet Labeling / Abuse',
+  codeleak:          'Public-Code Secret Exposure',
+  paste:             'Paste-Site Monitoring',
   breach_leak:       'Breach / Paste Leak',
   stealer_intel:     'Info-Stealer Exposure',
   exposure_search:   'Brand Exposure Search',
@@ -281,6 +370,76 @@ export const osintApi = {
   // correlations returns shared indicators that link 2+ entities in the graph.
   correlations: async (id: string): Promise<OsintCorrelation[]> => {
     const { data } = await apiClient.get<ApiResponse<OsintCorrelation[]>>(`/osint/${id}/correlations`)
+    return data.data
+  },
+
+  // location aggregates every located finding across the graph (IP geo, EXIF GPS,
+  // phone region) into the single best coordinate estimate + all points for a map.
+  location: async (id: string): Promise<OsintLocation> => {
+    const { data } = await apiClient.get<ApiResponse<OsintLocation>>(`/osint/${id}/location`)
+    return data.data
+  },
+
+  // addScanPhotoGeo reads a photo's EXIF GPS and, if present, saves it as an
+  // exact location finding ON the scan (appears on the map). Image not stored.
+  addScanPhotoGeo: async (scanId: string, file: File): Promise<ImageGeoResult> => {
+    const fd = new FormData()
+    fd.append('image', file)
+    const { data } = await apiClient.post<ApiResponse<ImageGeoResult>>(`/osint/${scanId}/add-photo-geo`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data
+  },
+
+  // extractImageGeo reads a photo's EXIF GPS tags (exact coordinates) natively —
+  // no AI provider required. Returns { found:false } when EXIF was stripped.
+  extractImageGeo: async (file: File): Promise<ImageGeoResult> => {
+    const fd = new FormData()
+    fd.append('image', file)
+    const { data } = await apiClient.post<ApiResponse<ImageGeoResult>>('/osint/extract-image-geo', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data
+  },
+
+  // emailPermute generates corporate e-mail patterns for a name@domain and
+  // validates each via MX + catch-all detection.
+  emailPermute: async (name: string, domain: string, validate = true): Promise<EmailPermuteResult> => {
+    const { data } = await apiClient.post<ApiResponse<EmailPermuteResult>>('/osint/email-permute', { name, domain, validate })
+    return data.data
+  },
+
+  // extractDocMeta recovers author/tool metadata from a DOCX/XLSX/PPTX/PDF.
+  extractDocMeta: async (file: File): Promise<DocMetaResult> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const { data } = await apiClient.post<ApiResponse<DocMetaResult>>('/osint/extract-doc-meta', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data
+  },
+
+  // identity scores how strongly the graph corroborates one identity.
+  identity: async (id: string): Promise<IdentityConfidence> => {
+    const { data } = await apiClient.get<ApiResponse<IdentityConfidence>>(`/osint/${id}/identity`)
+    return data.data
+  },
+
+  // reverseImage builds reverse-image-search deep-links for a public image URL
+  // (URL-prefill engines + face-search engines).
+  reverseImage: async (imageURL: string): Promise<ReverseImageResult> => {
+    const { data } = await apiClient.post<ApiResponse<ReverseImageResult>>('/osint/reverse-image', { image_url: imageURL })
+    return data.data
+  },
+
+  // reverseImageUpload fingerprints a local image and returns face-search engines
+  // to upload it into (no public re-hosting of the file).
+  reverseImageUpload: async (file: File): Promise<ReverseImageResult> => {
+    const fd = new FormData()
+    fd.append('image', file)
+    const { data } = await apiClient.post<ApiResponse<ReverseImageResult>>('/osint/reverse-image', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     return data.data
   },
 

@@ -113,6 +113,18 @@ func (r *Runner) StartJob(tool BundleTool, customArgs string) (*Job, error) {
 
 	outputCh := make(chan string, 256)
 
+	// Single consumer: forward every line in order until ExecuteJob closes the
+	// channel. Using one consumer (not two) guarantees output ordering — two
+	// concurrent `range` loops would split buffered lines arbitrarily on close.
+	consumerDone := make(chan struct{})
+	go func() {
+		for line := range outputCh {
+			r.appendLine(job, line)
+			r.broadcast(job.ID, line, false)
+		}
+		close(consumerDone)
+	}()
+
 	go func() {
 		err := executor.ExecuteJob(ctx, req, bundleRoot, outputCh)
 		fin := time.Now()
@@ -131,22 +143,9 @@ func (r *Runner) StartJob(tool BundleTool, customArgs string) (*Job, error) {
 		}
 		r.mu.Unlock()
 
-		// Drain remaining lines after ExecuteJob closes the channel.
-		for line := range outputCh {
-			r.appendLine(job, line)
-			r.broadcast(job.ID, line, false)
-		}
-
+		<-consumerDone                // wait until all lines are flushed in order
 		r.broadcast(job.ID, "", true) // signal done to all SSE subscribers
 		cancel()
-	}()
-
-	// Forward output lines from channel to job.Output and subscribers.
-	go func() {
-		for line := range outputCh {
-			r.appendLine(job, line)
-			r.broadcast(job.ID, line, false)
-		}
 	}()
 
 	return job, nil

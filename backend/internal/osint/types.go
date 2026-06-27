@@ -37,6 +37,7 @@ const (
 	TargetHash     = "hash"   // file hash (md5/sha1/sha256) - DFIR IOC
 	TargetWallet   = "wallet" // crypto wallet (BTC/ETH) - money-trail DFIR
 	TargetName     = "name"   // free-text person / full name (allows spaces)
+	TargetSocial   = "social_profile" // a social-media profile URL (platform + handle)
 )
 
 // errNoAPIKey is returned by a collector whose optional API key is unset. The
@@ -105,6 +106,15 @@ func DetectTargetType(raw string) (string, error) {
 	if t == "" {
 		return "", errors.New("target is empty")
 	}
+	// A social-media profile LINK is detected BEFORE the URL is reduced to its
+	// host, so "https://twitter.com/johndoe" investigates the person (handle
+	// johndoe) rather than the platform domain. Only profile-shaped URLs match;
+	// a bare "twitter.com" still falls through to the domain branch below.
+	if strings.Contains(t, "/") || strings.Contains(t, "@") {
+		if _, ok := ParseSocialProfile(t); ok {
+			return TargetSocial, nil
+		}
+	}
 	// Strip a pasted URL down to its host so "https://example.com/x" works.
 	if i := strings.Index(t, "://"); i >= 0 {
 		t = t[i+3:]
@@ -160,8 +170,9 @@ func buildCollectors(targetType string) []collector {
 	switch targetType {
 	case TargetDomain:
 		return []collector{
-			{"rdap", collectDomainRDAP},
+		{"rdap", collectDomainRDAP},
 			{"dns", collectDNS},
+			{"passive_dns", collectPassiveDNS},
 			{"crtsh", collectCrtSh},
 			{"subbrute", collectSubBrute},
 			{"host_search", collectHostSearch},
@@ -178,6 +189,8 @@ func buildCollectors(targetType string) []collector {
 			{"pulsedive", collectPulsedive},
 			{"ransomwatch", collectRansomwareWatch},
 			{"breach_leak", collectBreachLeak},
+			{"codeleak", collectCodeLeak},
+			{"paste", collectPaste},
 			{"stealer_intel", collectStealerIntel},
 			{"exposure_search", collectExposureSearch},
 			{"darkweb", collectDarkWeb},
@@ -215,6 +228,7 @@ func buildCollectors(targetType string) []collector {
 	case TargetWallet:
 		return []collector{
 			{"blockchain", collectBlockchain},
+			{"wallet_label", collectWalletLabel},
 			{"local_intel", collectLocalThreatIntel},
 		}
 	case TargetEmail:
@@ -227,6 +241,8 @@ func buildCollectors(targetType string) []collector {
 			{"xposed", collectXposedOrNot},
 			{"leakcheck", collectLeakCheck},
 			{"breach_leak", collectBreachLeak},
+			{"codeleak", collectCodeLeak},
+			{"paste", collectPaste},
 			{"stealer_intel", collectStealerIntel},
 			{"darkweb", collectDarkWeb},
 			{"search_links", collectSearchLinks},
@@ -248,12 +264,21 @@ func buildCollectors(targetType string) []collector {
 	case TargetUsername:
 		return []collector{
 			{"maigret", collectMaigret},
+			{"username_variants", collectUsernameVariants},
 			{"github_intel", collectGitHubIntel},
+			{"keybase", collectKeybase},
 			{"social_search", collectSocialMedia},
 			{"leakcheck", collectLeakCheck},
 			{"breach_leak", collectBreachLeak},
+			{"paste", collectPaste},
 			{"stealer_intel", collectStealerIntel},
 			{"search_links", collectSearchLinks},
+		}
+	case TargetSocial:
+		// A profile link: enrich the platform profile, then pivot the handle into
+		// the full username investigation (maigret/github/keybase/leaks/…).
+		return []collector{
+			{"social_profile", collectSocialProfile},
 		}
 	}
 	return nil

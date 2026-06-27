@@ -19,6 +19,12 @@ type Agent struct {
 	LastSeen    *time.Time `                                                      json:"last_seen"`
 	Description string     `                                                      json:"description"`
 
+	// Fleet management — group an agent into a logical set (e.g. "Finance",
+	// "DMZ-servers") and tag it freely. Tags is a JSON string array. GroupName
+	// is indexed so a group can be selected cheaply for bulk operations.
+	GroupName string `gorm:"index"             json:"group_name"`
+	Tags      string `gorm:"type:text"         json:"tags"` // JSON array of strings
+
 	// Resource telemetry — updated via resource_report WebSocket messages
 	CPUPercent  float64 `gorm:"default:0" json:"cpu_percent"`
 	MemUsedMB   int64   `gorm:"default:0" json:"mem_used_mb"`

@@ -92,3 +92,59 @@ func TestInPivotScopeDomainRootUnchanged(t *testing.T) {
 		t.Error("unrelated domain should be out of scope for a domain root")
 	}
 }
+
+// TestPivotCategory verifies related-entity types map to the budget classes.
+func TestPivotCategory(t *testing.T) {
+	cases := map[string]string{
+		TargetIP:       "ip",
+		TargetDomain:   "domain",
+		TargetEmail:    "account",
+		TargetUsername: "account",
+		TargetName:     "account",
+		TargetPhone:    "other",
+		TargetWallet:   "other",
+		TargetHash:     "other",
+	}
+	for ttype, want := range cases {
+		if got := pivotCategory(ttype); got != want {
+			t.Errorf("pivotCategory(%q)=%q want %q", ttype, got, want)
+		}
+	}
+}
+
+// TestRoundRobinSelect_BalancesCategories proves accounts are NOT starved by a
+// long list of IPs/domains: with a budget of 6 across many IPs/domains plus a
+// couple of accounts, each class is represented.
+func TestRoundRobinSelect_BalancesCategories(t *testing.T) {
+	buckets := map[string][]string{
+		"ip":      {"1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4", "5.5.5.5"},
+		"domain":  {"a.com", "b.com", "c.com", "d.com"},
+		"account": {"joe@acme.com", "jane"},
+	}
+	got := roundRobinSelect(buckets, []string{"ip", "domain", "account", "other"}, 6)
+	if len(got) != 6 {
+		t.Fatalf("expected 6 selected, got %d", len(got))
+	}
+	has := func(v string) bool {
+		for _, g := range got {
+			if g == v {
+				return true
+			}
+		}
+		return false
+	}
+	// Both accounts must survive the cap even though IPs/domains outnumber them.
+	if !has("joe@acme.com") || !has("jane") {
+		t.Errorf("accounts were starved by IPs/domains: %v", got)
+	}
+}
+
+// TestRoundRobinSelect_DrainsWhenUnderBudget returns everything if budget exceeds
+// the candidate count.
+func TestRoundRobinSelect_DrainsWhenUnderBudget(t *testing.T) {
+	buckets := map[string][]string{"ip": {"1.1.1.1"}, "account": {"x"}}
+	got := roundRobinSelect(buckets, []string{"ip", "domain", "account", "other"}, 10)
+	if len(got) != 2 {
+		t.Fatalf("expected all 2 items, got %d", len(got))
+	}
+}
