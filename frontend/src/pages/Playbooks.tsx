@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BookOpen, TerminalSquare, ShieldAlert, Briefcase, ChevronRight,
-  Target, Crosshair, Server, Lock, Download, HardDrive, Cpu, Scan, FileText, Activity, Search, ExternalLink, Play, CheckSquare
+  Target, Crosshair, Server, Lock, Download, HardDrive, Cpu, Scan, FileText, Activity, Search, ExternalLink, Play, CheckSquare,
+  Network, ShieldCheck, Globe, Key, Terminal, Database, Cloud, Bug, GitBranch, Radio, Boxes, FileWarning, UserCheck, Folder, Eye, Radar,
 } from 'lucide-react'
 import { PLAYBOOKS, type Playbook } from '@/data/playbooks'
 
 const ICONS: Record<string, any> = {
   TerminalSquare, ShieldAlert, Briefcase, Target, Crosshair, Server,
-  Lock, Download, HardDrive, Cpu, Scan, FileText, Activity, Search
+  Lock, Download, HardDrive, Cpu, Scan, FileText, Activity, Search,
+  Network, ShieldCheck, Globe, Key, Terminal, Database, Cloud, Bug, GitBranch, Radio, Boxes, FileWarning, UserCheck, Folder, Eye, Radar,
 }
 
 const COLORS: Record<string, { bg: string; border: string; text: string }> = {

@@ -81,4 +81,13 @@ export const openctiApi = {
     const { data } = await api.post('/iocs', payload)
     return data
   },
+  // Bulk import — free-form text and/or values; auto-classified + deduped server-side.
+  bulkCreateIOCs: async (payload: { text?: string; values?: string[]; source?: string }):
+    Promise<{ created: number; skipped: number; unrecognized: number }> => {
+    const { data } = await api.post('/iocs/bulk', payload)
+    return data
+  },
+  deleteIOC: async (id: number): Promise<void> => {
+    await api.delete(`/iocs/${id}`)
+  },
 }

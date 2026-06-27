@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { openctiApi, OpenCTIConfig, OpenCTIConfigPayload, ManualIOCPayload } from '@/api/opencti'
+import { openctiApi, OpenCTIConfig, OpenCTIConfigPayload } from '@/api/opencti'
 import {
   elkApi,
   ELKConfig,
@@ -15,18 +15,13 @@ import { qradarApi, QRadarConfig } from '@/api/qradar'
 import { useAuthStore } from '@/store/auth'
 import toast from 'react-hot-toast'
 import {
-  Database, RefreshCw, ShieldAlert, FileText, Globe, Server, Search,
-  Plus, X, Zap, Code2, PieChart as PieChartIcon, Activity,
+  ShieldAlert, Server, Search,
+  Plus, X, Zap, Code2,
   Upload, Pencil, Trash2, CheckCircle2, Rocket, FileSearch, Layers
 } from 'lucide-react'
-import {
-  PieChart, Pie, Cell, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  AreaChart, Area
-} from 'recharts'
 import { JsonViewer } from '@/components/JsonViewer'
 
-type TabType = 'hunt' | 'iocs' | 'connections'
+type TabType = 'hunt' | 'connections'
 
 // ---------------------------------------------------------------------------
 // Page shell 
@@ -36,7 +31,6 @@ export default function ELKHuntingPage() {
 
   const tabs: { id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'hunt',        label: 'Threat Hunt',   icon: Search },
-    { id: 'iocs',        label: 'IOC Library',   icon: Database },
     { id: 'connections', label: 'Integrations',  icon: Layers },
   ]
 
@@ -75,7 +69,6 @@ export default function ELKHuntingPage() {
       </div>
 
       {activeTab === 'hunt'        && <HuntTab />}
-      {activeTab === 'iocs'        && <IOCsTab />}
       {activeTab === 'connections' && <ConnectionsTab />}
     </div>
   )
@@ -904,289 +897,6 @@ function OpenCTIProfileModal({ profile, onClose }: { profile?: OpenCTIConfig; on
               className="px-5 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg disabled:opacity-50 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all"
             >
               {mutation.isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Profile'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// IOC DATABASE TAB
-// ---------------------------------------------------------------------------
-function IOCsTab() {
-  const qc = useQueryClient()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  const { data: iocs, isLoading } = useQuery({
-    queryKey: ['iocs'],
-    queryFn: openctiApi.listIOCs,
-  })
-
-  const syncMutation = useMutation({
-    mutationFn: openctiApi.sync,
-    onSuccess: (data) => {
-      toast.success(data.message)
-      qc.invalidateQueries({ queryKey: ['iocs'] })
-    },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Sync failed'),
-  })
-
-  const getIconForType = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'ipv4-addr':
-      case 'ipv6-addr':   return <Server className="h-4 w-4 text-blue-400" />
-      case 'domain-name':
-      case 'url':         return <Globe className="h-4 w-4 text-purple-400" />
-      case 'file':
-      case 'file-hash':   return <FileText className="h-4 w-4 text-orange-400" />
-      default:            return <ShieldAlert className="h-4 w-4 text-gray-400" />
-    }
-  }
-
-  const iocTypeData = useMemo(() => {
-    if (!iocs) return []
-    const counts: Record<string, number> = {}
-    iocs.forEach((ioc: any) => { counts[ioc.type] = (counts[ioc.type] || 0) + 1 })
-    const COLORS = ['#3b82f6', '#a855f7', '#f97316', '#10b981', '#ef4444', '#06b6d4']
-    return Object.entries(counts).map(([name, value], idx) => ({ name, value, color: COLORS[idx % COLORS.length] }))
-  }, [iocs])
-
-  const iocSourceData = useMemo(() => {
-    if (!iocs) return []
-    const counts: Record<string, number> = { 'OpenCTI': 0, 'Manual': 0 }
-    iocs.forEach((ioc: any) => {
-      const src = ioc.source === 'Manual' ? 'Manual' : 'OpenCTI'
-      counts[src] = (counts[src] || 0) + 1
-    })
-    return [
-      { name: 'OpenCTI', value: counts['OpenCTI'], fill: '#10b981' },
-      { name: 'Manual',  value: counts['Manual'],  fill: '#8b5cf6' },
-    ].filter(item => item.value > 0)
-  }, [iocs])
-
-  const iocTimelineData = useMemo(() => {
-    if (!iocs) return []
-    const counts: Record<string, number> = {}
-    iocs.forEach((ioc: any) => {
-      if (!ioc.created_at) return
-      const date = new Date(ioc.created_at).toISOString().split('T')[0]
-      counts[date] = (counts[date] || 0) + 1
-    })
-    return Object.entries(counts)
-      .map(([date, count]) => ({ date, count }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-14)
-  }, [iocs])
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {iocs && iocs.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-900/40 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm shadow-sm relative overflow-hidden group hover:border-purple-500/30 transition-colors">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-purple-500/10"></div>
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
-              <PieChartIcon className="h-4 w-4 text-purple-400" /> IOC Distribution
-            </h3>
-            <div className="h-[200px] w-full relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={iocTypeData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
-                    {iocTypeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(30, 41, 59, 0.8)', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} itemStyle={{ color: '#f1f5f9', fontSize: '12px', fontWeight: 500 }} />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
-          <div className="bg-gray-900/40 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm shadow-sm relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-emerald-500/10"></div>
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
-              <Database className="h-4 w-4 text-emerald-400" /> Source Breakdown
-            </h3>
-            <div className="h-[200px] w-full relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={iocSourceData} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} opacity={0.5} />
-                  <XAxis type="number" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} width={60} />
-                  <Tooltip cursor={{ fill: 'rgba(30, 41, 59, 0.5)' }} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(30, 41, 59, 0.8)', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} />
-                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
-                    {iocSourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} fillOpacity={0.9} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
-          <div className="bg-gray-900/40 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm shadow-sm relative overflow-hidden group hover:border-blue-500/30 transition-colors">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-blue-500/10"></div>
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
-              <Activity className="h-4 w-4 text-blue-400" /> Sync Timeline
-            </h3>
-            <div className="h-[200px] w-full relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={iocTimelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorTimeline" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.05}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.5} />
-                  <XAxis dataKey="date" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(val) => val.substring(5)} />
-                  <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(30, 41, 59, 0.8)', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} labelStyle={{ color: '#94a3b8' }} />
-                  <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTimeline)" activeDot={{ r: 6, fill: '#60a5fa', stroke: '#1e3a8a', strokeWidth: 2 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 shadow-sm backdrop-blur-sm">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-100">IOC Library</h2>
-          <p className="text-sm text-gray-500 font-medium mt-0.5">{iocs?.length || 0} indicators retrieved from OpenCTI or added manually</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm border border-gray-700"
-          >
-            <Plus className="h-4 w-4" /> Add Manual IOC
-          </button>
-          <button
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            {syncMutation.isPending ? 'Syncing…' : 'Sync OpenCTI'}
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl overflow-hidden flex flex-col shadow-sm backdrop-blur-sm" style={{ height: 'calc(100vh - 250px)' }}>
-        <div className="overflow-auto flex-1 custom-scrollbar">
-          <table className="w-full text-left text-sm text-gray-400 relative">
-            <thead className="bg-gray-950/90 text-gray-500 uppercase text-[11px] font-bold tracking-wider sticky top-0 z-10 backdrop-blur-md">
-              <tr>
-                <th className="px-6 py-4 border-b border-gray-800">Type</th>
-                <th className="px-6 py-4 border-b border-gray-800">Indicator Value</th>
-                <th className="px-6 py-4 border-b border-gray-800">Description</th>
-                <th className="px-6 py-4 border-b border-gray-800">Date Synced</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800/50">
-              {isLoading ? (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                  <div className="flex flex-col items-center justify-center gap-3">
-                    <div className="h-6 w-6 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                    Loading IOCs...
-                  </div>
-                </td></tr>
-              ) : !iocs || iocs.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-3">
-                    <Database className="h-10 w-10 text-gray-700/50" />
-                    <p className="text-gray-400 font-medium">No indicators found</p>
-                    <p className="text-gray-500 text-sm">Click "Sync OpenCTI" to fetch data or add one manually.</p>
-                  </div>
-                </td></tr>
-              ) : (
-                iocs.map((ioc: any) => (
-                  <tr key={ioc.id} className="hover:bg-gray-800/40 transition-colors group">
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-1.5 rounded-lg bg-gray-950 border border-gray-800 group-hover:border-gray-700 transition-colors">
-                          {getIconForType(ioc.type)}
-                        </div>
-                        <span className="font-medium text-gray-300">{ioc.type}</span>
-                        {ioc.source === 'Manual' && (
-                          <span className="ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]">MANUAL</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5 font-mono text-xs text-emerald-400 break-all bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors">{ioc.value}</td>
-                    <td className="px-6 py-3.5 max-w-xs truncate text-gray-300" title={ioc.description}>{ioc.description || <span className="text-gray-600 italic">No description</span>}</td>
-                    <td className="px-6 py-3.5 whitespace-nowrap text-gray-500 font-medium">{new Date(ioc.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isModalOpen && <AddManualIOCModal onClose={() => setIsModalOpen(false)} />}
-    </div>
-  )
-}
-
-function AddManualIOCModal({ onClose }: { onClose: () => void }) {
-  const qc = useQueryClient()
-  const addMutation = useMutation({
-    mutationFn: openctiApi.addManualIOC,
-    onSuccess: (data) => {
-      toast.success(data.message)
-      qc.invalidateQueries({ queryKey: ['iocs'] })
-      onClose()
-    },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to add manual IOC'),
-  })
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    const payload: ManualIOCPayload = {
-      type: fd.get('type') as string,
-      value: fd.get('value') as string,
-    }
-    const description = fd.get('description') as string
-    if (description) payload.description = description
-    addMutation.mutate(payload)
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden scale-in-95 animate-in duration-200">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800 bg-gray-950/50">
-          <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
-            <Plus className="h-5 w-5 text-emerald-500" /> Add Manual IOC
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 transition-colors bg-gray-800 hover:bg-gray-700 rounded-full p-1"><X className="h-4 w-4" /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-400">Indicator Type</label>
-            <select name="type" required className="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all shadow-inner">
-              <option value="IPv4-Addr">IPv4 Address</option>
-              <option value="Domain-Name">Domain Name</option>
-              <option value="File-Hash">File Hash (MD5, SHA256...)</option>
-              <option value="URL">URL</option>
-              <option value="Email-Address">Email Address</option>
-              <option value="Mac-Addr">MAC Address</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-400">Value / Pattern</label>
-            <input name="value" type="text" required placeholder="e.g. 192.168.1.1 or malicious.com" className="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 font-mono shadow-inner transition-all" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-400">Description (Optional)</label>
-            <textarea name="description" rows={3} placeholder="Context or attribution..." className="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 resize-none shadow-inner transition-all" />
-          </div>
-          <div className="pt-4 border-t border-gray-800/60 flex justify-end gap-3 mt-6">
-            <button type="button" onClick={onClose} className="px-5 py-2 text-sm font-medium text-gray-400 hover:text-gray-200 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">Cancel</button>
-            <button type="submit" disabled={addMutation.isPending} className="px-5 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg disabled:opacity-50 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all">
-              {addMutation.isPending ? 'Adding...' : 'Add Indicator'}
             </button>
           </div>
         </form>

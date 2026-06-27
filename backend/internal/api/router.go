@@ -111,6 +111,7 @@ func NewRouter(
 		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
 		protected.POST("/agents/:id/browser", handlers.AgentBrowserParse)
 		protected.POST("/agents/:id/triage", handlers.AgentTriageCollect)
+		protected.POST("/agents/:id/ioc-sweep", handlers.AgentIOCSweep)
 		protected.POST("/agents/:id/baseline", handlers.SetAgentBaseline)
 		protected.GET("/agents/:id/baseline", handlers.GetAgentBaseline)
 		protected.POST("/agents/:id/kill", handlers.AgentKillProcess)
@@ -179,6 +180,8 @@ func NewRouter(
 		protected.POST("/opencti/sync", handlers.SyncOpenCTI)
 		protected.GET("/iocs", handlers.ListIOCs)
 		protected.POST("/iocs", handlers.CreateManualIOC)
+		protected.POST("/iocs/bulk", handlers.BulkCreateIOCs)
+		protected.DELETE("/iocs/:id", handlers.DeleteIOC)
 		// Batch IOC matching — any scan view highlights values already in the store.
 		protected.POST("/iocs/match", handlers.MatchIOCs)
 

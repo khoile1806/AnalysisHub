@@ -804,6 +804,16 @@ func AgentEvtxParse(c *gin.Context) {
 // and writes the HTTP response. It also polls agent liveness so a mid-scan
 // disconnect fails fast with a clear error instead of hanging until the deadline.
 func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID string) {
+	if data, ok := awaitEdgeJSONBytes(c, hub, outCh, agentID); ok {
+		c.Data(http.StatusOK, "application/json", data)
+	}
+}
+
+// awaitEdgeJSONBytes waits for the agent's edge-scan artifact and RETURNS the raw
+// JSON bytes instead of writing the HTTP response, so callers (e.g. IOC sweep)
+// can post-process the data server-side. On any failure it writes the error
+// response itself and returns ok=false.
+func awaitEdgeJSONBytes(c *gin.Context, hub *ws.Hub, outCh chan string, agentID string) ([]byte, bool) {
 	var finalData string
 	var agentError string
 	offline := time.NewTicker(8 * time.Second)
@@ -814,12 +824,13 @@ func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID
 			if result == "__DONE__" {
 				if agentError != "" {
 					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": agentError})
-				} else if finalData != "" {
-					c.Data(http.StatusOK, "application/json", []byte(finalData))
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+					return nil, false
 				}
-				return
+				if finalData == "" {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "no data returned"})
+					return nil, false
+				}
+				return []byte(finalData), true
 			}
 			if strings.HasPrefix(result, "[agent error]") {
 				agentError = strings.TrimPrefix(result, "[agent error] ")
@@ -829,11 +840,11 @@ func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID
 		case <-offline.C:
 			if !hub.IsAgentOnline(agentID) {
 				c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent disconnected during scan"})
-				return
+				return nil, false
 			}
 		case <-c.Request.Context().Done():
 			c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
-			return
+			return nil, false
 		}
 	}
 }

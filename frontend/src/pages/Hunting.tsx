@@ -19,6 +19,11 @@ import {
   Cpu,
   Eye,
   Activity,
+  Loader2,
+  AlertTriangle,
+  CalendarPlus,
+  Radar,
+  Database,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { safeDistanceToNow } from '@/lib/utils'
@@ -32,6 +37,9 @@ import { toolsApi } from '@/api/tools'
 import { agentsApi } from '@/api/agents'
 import { jobsApi } from '@/api/jobs'
 import { casesApi } from '@/api/cases'
+import { traceApi } from '@/api/trace'
+import { openctiApi } from '@/api/opencti'
+import type { IOCSweepResult } from '@/api/agents'
 import { JobStatusBadge, AgentStatusBadge } from '@/components/StatusBadge'
 import { getErrorMessage } from '@/lib/utils'
 import {
@@ -656,10 +664,191 @@ function DeploymentsTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Live IOC Sweep tab — push indicators to an agent, collect live artifacts and
+// match server-side. Bridges threat-intel → endpoint.
+// ---------------------------------------------------------------------------
+const SWEEP_TYPES: { key: string; label: string }[] = [
+  { key: 'processes', label: 'Processes' },
+  { key: 'dlls', label: 'Loaded DLLs' },
+  { key: 'netconn', label: 'Network' },
+  { key: 'browser', label: 'Browser' },
+  { key: 'autoruns', label: 'Autoruns' },
+  { key: 'shimcache', label: 'Shimcache' },
+  { key: 'prefetch', label: 'Prefetch' },
+]
+
+const IND_BADGE: Record<string, string> = {
+  hash: 'text-purple-300 border-purple-700/50 bg-purple-900/20',
+  ip: 'text-cyan-300 border-cyan-700/50 bg-cyan-900/20',
+  domain: 'text-blue-300 border-blue-700/50 bg-blue-900/20',
+  filename: 'text-amber-300 border-amber-700/50 bg-amber-900/20',
+}
+
+function IOCSweepTab() {
+  const { data: agents = [] } = useQuery({ queryKey: ['agents'], queryFn: () => agentsApi.list() })
+  const { data: cases = [] } = useQuery({ queryKey: ['cases'], queryFn: () => casesApi.list() })
+  const online = agents.filter((a) => a.status === 'online')
+
+  const [agentId, setAgentId] = useState('')
+  const [text, setText] = useState('')
+  const [types, setTypes] = useState<Set<string>>(new Set(['processes', 'dlls', 'netconn', 'browser', 'autoruns']))
+  const [result, setResult] = useState<IOCSweepResult | null>(null)
+  const [running, setRunning] = useState(false)
+  const [caseId, setCaseId] = useState('')
+
+  const toggle = (k: string) => setTypes((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n })
+  const indicators = text.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean)
+  const agent = agents.find((a) => a.id === agentId)
+
+  const loadMut = useMutation({
+    mutationFn: () => openctiApi.listIOCs(),
+    onSuccess: (store) => {
+      if (store.length === 0) { toast('IOC store is empty — add some under Threat Intelligence → IOC Store', { icon: 'ℹ️' }); return }
+      const existing = new Set(text.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))
+      const add = store.map((i) => i.value).filter((v) => !existing.has(v))
+      setText([...Array.from(existing), ...add].join('\n'))
+      toast.success(`Loaded ${add.length} indicator(s) from the IOC store`)
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const run = async () => {
+    if (!agentId) { toast.error('Select an online agent'); return }
+    if (indicators.length === 0) { toast.error('Enter at least one indicator'); return }
+    if (types.size === 0) { toast.error('Select at least one artifact'); return }
+    setRunning(true); setResult(null)
+    try {
+      toast('Sweeping endpoint — one UAC prompt, collecting + matching…', { icon: '🛡️' })
+      const r = await agentsApi.iocSweep(agentId, indicators, Array.from(types))
+      setResult(r)
+      toast.success(r.matches.length > 0
+        ? `${r.matches.length} match(es) found across ${r.indicators} indicator(s)`
+        : `No matches — ${r.indicators} indicator(s) clean on this host`)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally { setRunning(false) }
+  }
+
+  const addMut = useMutation({
+    mutationFn: () => traceApi.addToCase(caseId, {
+      host: agent?.hostname || agent?.name || '',
+      target: 'IOC sweep',
+      events: (result?.matches ?? []).map((m) => ({
+        time: new Date().toISOString(),
+        kind: 'log' as const,
+        title: `IOC match: ${m.indicator} (${m.indicator_type}) in ${m.artifact}`,
+        detail: m.context,
+        source: 'ioc-sweep',
+      })),
+    }),
+    onSuccess: (r) => toast.success(`Added ${r.events_created} match(es) to the case timeline`),
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
+  return (
+    <div className="space-y-4">
+      <div className="card p-4 space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div>
+            <label className="label text-xs">Target agent (online)</label>
+            <select className="input" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
+              <option value="">Select agent…</option>
+              {online.map((a) => <option key={a.id} value={a.id}>{a.name} — {a.hostname || a.ip_address}</option>)}
+            </select>
+            {online.length === 0 && <p className="text-[11px] text-yellow-400 mt-1">No online agent.</p>}
+            <div className="mt-3">
+              <label className="label text-xs">Artifacts to sweep</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {SWEEP_TYPES.map((t) => (
+                  <label key={t.key} className={`flex items-center gap-1.5 text-xs rounded-lg border px-2.5 py-1 cursor-pointer ${types.has(t.key) ? 'border-emerald-500/50 bg-emerald-900/15 text-emerald-300' : 'border-gray-700 text-gray-400'}`}>
+                    <input type="checkbox" checked={types.has(t.key)} onChange={() => toggle(t.key)} /> {t.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label text-xs mb-0">Indicators (one per line — hashes / IPs / domains / file names; type auto-detected)</label>
+              <button onClick={() => loadMut.mutate()} disabled={loadMut.isPending}
+                className="flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                title="Load all indicators from the central IOC Store">
+                {loadMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />} Load from IOC store
+              </button>
+            </div>
+            <textarea className="input font-mono text-xs min-h-[140px]" placeholder={'evil.exe\n45.77.12.34\nbad-c2.com\n<sha256>'}
+              value={text} onChange={(e) => setText(e.target.value)} />
+            <p className="text-[11px] text-gray-500 mt-1">{indicators.length} indicator(s) parsed</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={run} disabled={running || !agentId || indicators.length === 0}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50">
+            {running ? <><Loader2 className="h-4 w-4 animate-spin" /> Sweeping…</> : <><Radar className="h-4 w-4" /> Run sweep</>}
+          </button>
+          <p className="text-[11px] text-gray-600">Collects live artifacts on the endpoint (one UAC prompt) and matches indicators server-side. Works on Windows &amp; Linux agents.</p>
+        </div>
+      </div>
+
+      {result && (
+        <div className="card p-4 space-y-3">
+          <div className="flex items-center gap-3 flex-wrap text-xs">
+            <span className="text-gray-400">{result.indicators} indicator(s)</span>
+            {result.matches.length > 0
+              ? <span className="flex items-center gap-1 text-red-400 font-semibold"><AlertTriangle className="h-3.5 w-3.5" /> {result.matches.length} match(es)</span>
+              : <span className="flex items-center gap-1 text-emerald-400 font-semibold">No matches — host clean</span>}
+            <span className="text-gray-600 ml-auto">
+              scanned: {Object.entries(result.scanned).map(([k, v]) => `${k} ${v}`).join(' · ')}
+            </span>
+          </div>
+
+          {result.matches.length > 0 && (
+            <>
+              <div className="overflow-auto max-h-[480px] rounded-lg border border-gray-800">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-gray-900 z-10">
+                    <tr className="border-b border-gray-800">
+                      <th className="px-3 py-2 text-left text-gray-500 font-medium">Indicator</th>
+                      <th className="px-3 py-2 text-left text-gray-500 font-medium">Type</th>
+                      <th className="px-3 py-2 text-left text-gray-500 font-medium">Artifact</th>
+                      <th className="px-3 py-2 text-left text-gray-500 font-medium">Where found</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.matches.map((m, i) => (
+                      <tr key={i} className="border-b border-gray-900 hover:bg-white/5 bg-red-500/5">
+                        <td className="px-3 py-1.5 font-mono text-red-300 break-all max-w-[220px]">{m.indicator}</td>
+                        <td className="px-3 py-1.5"><span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${IND_BADGE[m.indicator_type] ?? 'text-gray-400 border-slate-700'}`}>{m.indicator_type}</span></td>
+                        <td className="px-3 py-1.5 text-gray-400">{m.artifact}</td>
+                        <td className="px-3 py-1.5 font-mono text-gray-300 break-all">{m.context}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="input text-xs py-1.5 max-w-[200px]" value={caseId} onChange={(e) => setCaseId(e.target.value)}>
+                  <option value="">Select case…</option>
+                  {cases.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <button onClick={() => addMut.mutate()} disabled={!caseId || addMut.isPending}
+                  className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50">
+                  {addMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarPlus className="h-3.5 w-3.5" />} Add matches to case timeline
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Page shell with tabs
 // ---------------------------------------------------------------------------
 export default function HuntingPage() {
-  const [tab, setTab] = useState<'scenarios' | 'deployments'>('scenarios')
+  const [tab, setTab] = useState<'scenarios' | 'deployments' | 'ioc-sweep'>('scenarios')
 
   return (
     <div className="space-y-5">
@@ -678,10 +867,11 @@ export default function HuntingPage() {
         {[
           { key: 'scenarios', label: 'Scenarios' },
           { key: 'deployments', label: 'Deployments' },
+          { key: 'ioc-sweep', label: 'IOC Sweep' },
         ].map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key as 'scenarios' | 'deployments')}
+            onClick={() => setTab(t.key as 'scenarios' | 'deployments' | 'ioc-sweep')}
             className={`px-4 py-2 text-sm font-medium transition border-b-2 -mb-px ${
               tab === t.key
                 ? 'border-emerald-500 text-emerald-400'
@@ -693,7 +883,9 @@ export default function HuntingPage() {
         ))}
       </div>
 
-      {tab === 'scenarios' ? <ScenariosTab /> : <DeploymentsTab />}
+      {tab === 'scenarios' && <ScenariosTab />}
+      {tab === 'deployments' && <DeploymentsTab />}
+      {tab === 'ioc-sweep' && <IOCSweepTab />}
     </div>
   )
 }

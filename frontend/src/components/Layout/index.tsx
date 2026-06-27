@@ -11,6 +11,7 @@ import {
   Bug,
   ShieldAlert,
   LibraryBig,
+  Database,
   Fingerprint,
   ArrowUp,
   Briefcase,
@@ -75,6 +76,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/cve',            icon: Bug,         label: 'Vulnerability Search' },
       { to: '/cve-collection', icon: LibraryBig,  label: 'Threat Intelligence' },
+      { to: '/ioc-store',      icon: Database,    label: 'IOC Store' },
       { to: '/osint',          icon: Fingerprint, label: 'OSINT' },
     ]
   },
@@ -98,6 +100,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'yara-scanner': 'YARA Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',
+  'ioc-store': 'IOC Store',
   'osint': 'OSINT',
   'collection-checklist': 'Evidence & Compliance',
   'playbooks': 'Playbooks',

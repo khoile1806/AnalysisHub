@@ -508,5 +508,236 @@ export const PLAYBOOKS: Playbook[] = [
       { title: 'NIST SP 800-61 Rev. 2: Inappropriate Usage', url: 'https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final' },
       { title: 'CISA: Insider Threat Mitigation Guide', url: 'https://www.cisa.gov/insider-threat-mitigation' }
     ]
+  },
+  {
+    id: 'cloud-compromise',
+    title: 'Cloud Account & Infrastructure Compromise',
+    description: 'Quy trình ứng phó khi tài khoản đám mây (AWS / Azure / GCP) bị chiếm đoạt do lộ access key, IAM cấu hình sai, hoặc lạm dụng OAuth. Tập trung vào thu hồi quyền khẩn cấp, điều tra qua Control-Plane Logs (CloudTrail / Activity Log / Audit Logs) và truy vết hành vi leo thang đặc quyền, đào tiền ảo, hoặc tuồn dữ liệu S3/Blob.',
+    type: 'Incident Response',
+    platforms: ['AWS', 'Azure', 'GCP'],
+    mitre: 'T1078.004 (Valid Accounts: Cloud) & T1098 (Account Manipulation)',
+    color: 'sky',
+    icon: 'Cloud',
+    goals: [
+      'Containment: Thu hồi/disable khẩn cấp access key và session bị lộ; cô lập tài nguyên đang bị lạm dụng.',
+      'Visibility: Dựng lại toàn bộ chuỗi API call của kẻ tấn công qua CloudTrail / Azure Activity / GCP Audit.',
+      'Privilege Tracking: Phát hiện hành vi tạo IAM user/role mới, gắn policy AdministratorAccess, hoặc tạo access key dự phòng (backdoor).',
+      'Impact: Đánh giá dữ liệu bị truy cập (S3/Blob/GCS), instance bị spin-up (cryptomining), và chi phí phát sinh bất thường.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Thu hồi quyền & Cô lập (Containment)',
+        content: '**Hành động khẩn cấp:**\n- **Vô hiệu hóa access key** bị lộ ngay (AWS: `aws iam update-access-key --status Inactive`; KHÔNG xóa vội để giữ dấu vết điều tra).\n- **Revoke active sessions:** Azure AD `Revoke-AzureADUserAllRefreshToken`; AWS gắn inline policy `AWSRevokeOlderSessions` (Deny với `aws:TokenIssueTime` < now).\n- Reset mật khẩu + bật MFA cho mọi tài khoản nghi ngờ; gỡ các ứng dụng **OAuth/Service Principal** lạ được cấp quyền.\n- Cô lập tài nguyên đang bị lạm dụng (Security Group "deny-all", stop instance lạ) nhưng **snapshot trước khi tắt** để giữ chứng cứ.',
+        icon: 'Lock'
+      },
+      {
+        title: 'Bước 2: Điều tra Control-Plane Logs',
+        content: '**Truy vết hành vi qua nhật ký API:**\n- **AWS CloudTrail:** lọc theo `userIdentity.accessKeyId` bị lộ; chú ý `sourceIPAddress` (IP lạ / VPN / Tor), `userAgent` bất thường (`aws-cli`, `Boto3`, `kali`).\n- **Azure:** Sign-in Logs (impossible travel, IP lạ) + Activity Log (thao tác quản trị).\n- **GCP:** Cloud Audit Logs (Admin Activity).\n- Đánh dấu các call nhạy cảm: `CreateUser`, `CreateAccessKey`, `AttachUserPolicy`, `CreateLoginProfile`, `PutBucketPolicy`, `GetSecretValue`, `AssumeRole`.\n- Truy vết khoảnh khắc đầu tiên access key được dùng từ IP lạ = thời điểm xâm nhập (Initial Access).',
+        icon: 'Search'
+      },
+      {
+        title: 'Bước 3: Săn Persistence & Privilege Escalation',
+        content: '**Tìm cửa hậu kẻ tấn công cài lại:**\n- Liệt kê IAM user/role tạo gần đây; soát access key thứ 2 gắn vào tài khoản hợp lệ (backdoor phổ biến nhất).\n- Tìm policy quá rộng vừa gắn (`*:*`, `AdministratorAccess`), Lambda/Function lạ, EC2 user-data chứa script.\n- Kiểm tra **federation/identity**: IdP mới, trust policy của role bị sửa cho phép external account assume.\n- AWS: rà `aws iam list-users/list-roles/list-access-keys`; tìm `CreateRole` + `sts:AssumeRole` cross-account.',
+        icon: 'Key'
+      },
+      {
+        title: 'Bước 4: Đánh giá Thiệt hại (Data & Cost)',
+        content: '**Xác định bán kính vụ nổ:**\n- **Data access:** S3 Server Access / CloudTrail data events — bucket nào bị `GetObject`/`ListBucket` hàng loạt; bật cảnh báo nếu PII/secret bị tải.\n- **Cryptomining:** instance GPU/compute lạ mới spin-up ở region không dùng; kiểm tra Cost Explorer / Billing alerts tăng đột biến.\n- **Secrets:** Secrets Manager / Key Vault / Parameter Store có bị `GetSecretValue` không → coi như mọi secret đã lộ, **xoay vòng toàn bộ**.\n- Lập danh sách IOC (IP, access key, role ARN) đẩy vào timeline + chặn ở WAF/SCP.',
+        icon: 'Database'
+      },
+      {
+        title: 'Bước 5: Khắc phục & Củng cố (Hardening)',
+        content: '**Ngăn tái diễn:**\n- Xoay vòng (rotate) toàn bộ key/secret; chuyển sang **IAM Roles / short-lived credentials** thay cho long-lived keys.\n- Bật **MFA bắt buộc**, GuardDuty / Defender for Cloud / Security Command Center.\n- Áp **SCP/Org Policy** chặn region không dùng và hành vi nhạy cảm; bật CloudTrail multi-region + log file validation (chống xóa log).\n- Quét IaC (Terraform/CloudFormation) tìm hardcoded secret; tích hợp secret scanning vào CI/CD.',
+        icon: 'ShieldCheck'
+      }
+    ],
+    references: [
+      { title: 'AWS: Security Incident Response Guide', url: 'https://docs.aws.amazon.com/whitepapers/latest/aws-security-incident-response-guide/welcome.html' },
+      { title: 'Microsoft: Investigate compromised cloud accounts', url: 'https://learn.microsoft.com/en-us/security/operations/incident-response-playbooks' },
+      { title: 'MITRE ATT&CK Cloud Matrix', url: 'https://attack.mitre.org/matrices/enterprise/cloud/' }
+    ]
+  },
+  {
+    id: 'malware-analysis',
+    title: 'Malware Triage & Reverse Engineering',
+    description: 'Quy trình phân tích một mẫu mã độc (sample) thu được — từ phân loại nhanh (triage), phân tích tĩnh (static), phân tích động trong sandbox cô lập, tới trích xuất IOC và viết signature phát hiện. Áp dụng an toàn trong môi trường lab cách ly, KHÔNG chạy mẫu trên máy production.',
+    type: 'Malware Response',
+    platforms: ['Windows', 'Linux'],
+    mitre: 'TA0002 (Execution) & TA0005 (Defense Evasion)',
+    color: 'rose',
+    icon: 'Bug',
+    goals: [
+      'Identification: Định danh nhanh chủng mã độc qua hash, signature và threat-intel.',
+      'Static Analysis: Trích xuất chuỗi, import table, capabilities mà không cần chạy mẫu.',
+      'Dynamic Analysis: Quan sát hành vi (file/registry/network) trong sandbox cô lập.',
+      'Detection Engineering: Trích xuất IOC + viết YARA/Sigma rule để săn trên diện rộng.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: An toàn Lab & Triage Hash',
+        content: '**Chuẩn bị môi trường cô lập:**\n- Phân tích trong **VM cô lập** (host-only network, snapshot sạch để revert), tuyệt đối không trên máy thật.\n- Tính hash: `sha256sum sample` (Linux) / `Get-FileHash` (Windows).\n- Tra hash trên **VirusTotal / MalwareBazaar / Hybrid-Analysis** — nếu đã biết, lấy luôn family + IOC; **không upload mẫu nhạy cảm của khách hàng** lên dịch vụ public (chỉ tra hash).\n- Xác định loại file thực sự bằng `file sample` và magic bytes (đừng tin đuôi mở rộng).',
+        icon: 'Scan'
+      },
+      {
+        title: 'Bước 2: Phân tích Tĩnh (Static Analysis)',
+        content: '**Bóc tách không cần chạy:**\n- **Strings:** `strings -a -n 8 sample` (+ `strings -e l` cho Unicode) → tìm URL/IP/domain C2, mutex, registry path, lệnh.\n- **PE/ELF:** `pecheck` / PEStudio / `readelf -a` xem import table — `WinHttpConnect`, `CreateRemoteThread`, `VirtualAllocEx` (injection), `CryptEncrypt` (ransomware).\n- **Packer detection:** Detect It Easy (DIE) — entropy cao = packed/encrypted (UPX, Themida).\n- **Capabilities:** chạy **CAPA** (Mandiant) để tự suy ra hành vi (persistence, anti-debug, C2) từ binary.',
+        icon: 'FileText'
+      },
+      {
+        title: 'Bước 3: Phân tích Động (Dynamic / Sandbox)',
+        content: '**Quan sát hành vi khi thực thi:**\n- Chạy trong **Cuckoo / CAPE / Any.Run** hoặc lab tự dựng với **Procmon + Process Hacker + Regshot + Wireshark/FakeNet-NG/INetSim**.\n- Ghi nhận: file tạo/sửa, registry Run keys, scheduled task, service mới (persistence).\n- **Network:** dùng INetSim/FakeNet để giả lập internet → bắt domain/IP C2, User-Agent, beacon interval ngay cả khi C2 đã chết.\n- Quan sát process injection (parent-child bất thường), self-deletion, anti-VM checks.',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 4: Trích xuất IOC & Viết Detection',
+        content: '**Biến phân tích thành khả năng phát hiện:**\n- Tổng hợp IOC: file hash, C2 IP/domain, mutex, file path, registry key, scheduled task name.\n- Viết **YARA rule** dựa trên chuỗi/byte-pattern đặc trưng (ưu tiên các chuỗi hiếm, không trùng phần mềm sạch) — nạp vào YARA Scanner để quét toàn fleet.\n- Viết **Sigma rule** cho hành vi (VD: `w3wp.exe` spawn `cmd.exe`, registry Run key mới) → đẩy vào ELK/SIEM.\n- Đưa IOC vào **IOC Sweep** để quét ngay các endpoint khác xem máy nào đã nhiễm.',
+        icon: 'Crosshair'
+      }
+    ],
+    references: [
+      { title: 'MalwareBazaar (abuse.ch)', url: 'https://bazaar.abuse.ch/' },
+      { title: 'Mandiant CAPA — capability detection', url: 'https://github.com/mandiant/capa' },
+      { title: 'YARA Documentation', url: 'https://yara.readthedocs.io/' },
+      { title: 'SANS FOR610: Reverse-Engineering Malware', url: 'https://www.sans.org/cyber-security-courses/reverse-engineering-malware-malware-analysis-tools-techniques/' }
+    ]
+  },
+  {
+    id: 'linux-rootkit',
+    title: 'Linux Server Intrusion & Rootkit Hunting',
+    description: 'Quy trình điều tra chuyên sâu máy chủ Linux bị xâm nhập — từ SSH/dịch vụ bị khai thác, leo thang đặc quyền, tới cài cắm rootkit (userland LD_PRELOAD hoặc kernel LKM) và backdoor bền bỉ. Tập trung phát hiện các thủ thuật che giấu tiến trình/cổng/file mà công cụ hệ thống thông thường không thấy.',
+    type: 'Threat Hunting',
+    platforms: ['Linux'],
+    mitre: 'T1014 (Rootkit) & T1505 (Server Software Component)',
+    color: 'amber',
+    icon: 'Terminal',
+    goals: [
+      'Visibility: Thu thập snapshot tiến trình/mạng/account/persistence trước khi kẻ tấn công kịp dọn dấu vết.',
+      'Detection: Phát hiện rootkit che giấu (process/port/file ẩn) bằng cách so sánh chéo nhiều nguồn dữ liệu.',
+      'Persistence Hunting: Truy tìm backdoor trong cron, systemd, SSH keys, LD_PRELOAD, SUID, kernel modules.',
+      'Root Cause: Xác định điểm xâm nhập ban đầu (SSH brute-force, dịch vụ web/CVE chưa vá).'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Triage Trực tiếp (Live Response)',
+        content: '**Thu thập nhanh trước khi mất dấu:**\n- Process: `ps auxf`, `pstree -ap` — chú ý tiến trình chạy từ `/tmp`, `/dev/shm`, `/var/tmp`, tên ngẫu nhiên, hoặc `[kworker]` giả.\n- Network: `ss -antup`, `lsof -i -n -P` — kết nối ra ngoài lạ, cổng lắng nghe không rõ.\n- Account: `cat /etc/passwd` (UID 0 ngoài root!), `last`/`lastb` (brute-force), `cat ~/.bash_history`.\n- **Trên ForensicHub:** chạy **Triage Collection** (processes/netconn/autoruns) hoặc **IOC Sweep** trực tiếp trên agent Linux.',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 2: Phát hiện Rootkit (Cross-View Detection)',
+        content: '**So sánh chéo để lộ thứ bị che giấu:**\n- **Process ẩn:** đối chiếu `ps` vs liệt kê trực tiếp `/proc/[pid]` (`ls /proc | grep -E "^[0-9]+"`). PID có trong /proc nhưng `ps` không thấy = rootkit userland.\n- **Port ẩn:** so `ss`/`netstat` vs `/proc/net/tcp` thô. Port trong /proc/net nhưng tool không hiện = bị hook.\n- **File ẩn / LD_PRELOAD:** `cat /etc/ld.so.preload` (phải rỗng); `echo $LD_PRELOAD`; tìm .so lạ.\n- Chạy **chkrootkit** và **rkhunter**; kiểm tra kernel modules: `lsmod`, `cat /proc/modules` — module không ký/không rõ nguồn.\n- So hash binary hệ thống (`ls`, `ps`, `netstat`, `ss`) với gói gốc: `rpm -Va` / `debsums -c`.',
+        icon: 'Eye'
+      },
+      {
+        title: 'Bước 3: Săn Persistence & Backdoor',
+        content: '**Mọi nơi kẻ tấn công bám trụ:**\n- **Cron:** `/etc/crontab`, `/etc/cron.d/*`, `/var/spool/cron/*`, các thư mục `cron.{hourly,daily}`.\n- **systemd:** `systemctl list-unit-files --state=enabled`; unit .service trỏ tới binary lạ; timers.\n- **SSH:** `~/.ssh/authorized_keys` (key lạ = backdoor), `sshd_config` (`PermitRootLogin yes`, `AuthorizedKeysCommand`).\n- **Shell init:** `~/.bashrc`, `~/.profile`, `/etc/profile.d/*`.\n- **SUID/SGID lạ:** `find / -perm -4000 -type f 2>/dev/null` — so với baseline; SUID trong /tmp hoặc /home = nguy hiểm.\n- **Capabilities:** `getcap -r / 2>/dev/null`.',
+        icon: 'Key'
+      },
+      {
+        title: 'Bước 4: Điều tra Nguyên nhân & Timeline',
+        content: '**Tìm điểm vào & dựng dòng thời gian:**\n- Logs: `/var/log/auth.log` hoặc `/var/log/secure` (SSH), `journalctl`, log của web server (Apache/Nginx) tìm RCE/webshell.\n- Filesystem timeline: `find / -newermt "2026-06-01" ! -newermt "2026-06-28" -type f 2>/dev/null`; hoặc `debugfs`/`mac_robber` + `mactime` để dựng MAC timeline.\n- Đối chiếu thời điểm SSH login lạ / sửa file persistence với thời điểm dịch vụ bị khai thác.\n- Đẩy phát hiện vào **Attack Timeline** của case; trích IOC chạy **IOC Sweep** trên các máy Linux còn lại.',
+        icon: 'Search'
+      },
+      {
+        title: 'Bước 5: Khôi phục (Eradication)',
+        content: '**Làm sạch an toàn:**\n- Với máy nhiễm rootkit kernel: **không tin tưởng** vào việc gỡ thủ công — chuẩn nhất là **cài lại OS sạch** từ media tin cậy và khôi phục dữ liệu đã kiểm chứng.\n- Xoay vòng toàn bộ credential/SSH key của máy đó (coi như đã lộ).\n- Vá lỗ hổng điểm vào, tắt password-auth SSH (chỉ key + MFA), giới hạn SUID, bật auditd + file integrity monitoring (AIDE).',
+        icon: 'ShieldCheck'
+      }
+    ],
+    references: [
+      { title: 'MITRE ATT&CK: Rootkit (T1014)', url: 'https://attack.mitre.org/techniques/T1014/' },
+      { title: 'chkrootkit', url: 'http://www.chkrootkit.org/' },
+      { title: 'Rootkit Hunter (rkhunter)', url: 'https://rkhunter.sourceforge.net/' }
+    ]
+  },
+  {
+    id: 'supply-chain',
+    title: 'Supply Chain & Compromised Software',
+    description: 'Quy trình ứng phó khi phần mềm/bản cập nhật/thư viện phụ thuộc (dependency) đáng tin cậy bị cài cắm mã độc — kiểu SolarWinds, 3CX, XZ Utils, hoặc package độc trên npm/PyPI. Tập trung xác định phạm vi triển khai, cô lập artifact nhiễm, và truy vết hành vi hậu cài đặt.',
+    type: 'Incident Response',
+    platforms: ['Windows', 'Linux', 'CI/CD'],
+    mitre: 'T1195 (Supply Chain Compromise)',
+    color: 'orange',
+    icon: 'GitBranch',
+    goals: [
+      'Scope: Xác định toàn bộ hệ thống đã cài phiên bản phần mềm/package bị nhiễm.',
+      'Containment: Dừng triển khai, gỡ artifact độc khỏi registry nội bộ và pipeline CI/CD.',
+      'Detection: Truy tìm hành vi hậu cài đặt (C2 beacon, persistence) trên các máy đã cài.',
+      'Trust Restoration: Xác minh tính toàn vẹn chuỗi build và khôi phục về phiên bản sạch đã kiểm chứng.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Xác định Phạm vi Triển khai (Scoping)',
+        content: '**Tìm mọi nơi đã cài bản nhiễm:**\n- Lấy IOC chính thức từ nhà cung cấp/CISA: version number, file hash, C2 domain.\n- Truy vấn fleet: phần mềm/version cụ thể (qua **IOC Sweep** với filename/hash, OSQuery, hoặc Autoruns/Triage).\n- CI/CD & dev: `package-lock.json`/`yarn.lock`/`requirements.txt`/`go.sum` chứa package+version độc; quét artifact registry nội bộ (Nexus/Artifactory).\n- Lập danh sách máy/pipeline bị ảnh hưởng = "blast radius".',
+        icon: 'Search'
+      },
+      {
+        title: 'Bước 2: Cô lập Artifact & Dừng Lan rộng',
+        content: '**Chặn nguồn lây:**\n- Gỡ/cách ly version độc khỏi registry nội bộ và mirror; **pin** về version sạch đã biết.\n- Tạm dừng các pipeline CI/CD đang pull dependency tự động; bật chế độ chỉ cho phép package đã allowlist.\n- Cô lập mạng các máy đã cài (nhất là máy có quyền cao / build server) nhưng snapshot trước.\n- Thu hồi credential/secret mà phần mềm nhiễm có thể truy cập (build secrets, signing keys).',
+        icon: 'Lock'
+      },
+      {
+        title: 'Bước 3: Truy vết Hành vi Hậu cài đặt',
+        content: '**Mã độc supply-chain thường "ngủ" rồi mới hành động:**\n- Phân tích kết nối mạng từ các máy đã cài tới C2 domain/IP đã biết (xem playbook C2 Beaconing).\n- Soát persistence mới xuất hiện quanh thời điểm cài/cập nhật: service, scheduled task, autoruns.\n- Trên build server: kiểm tra binary output có bị chèn code/sửa sau khi compile không (so hash với reproducible build).\n- Dùng **AI Analysis** + **Attack Timeline** để dựng chuỗi: thời điểm cập nhật → kích hoạt → C2 → hành vi.',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 4: Khôi phục & Củng cố Chuỗi Cung ứng',
+        content: '**Phục hồi niềm tin:**\n- Rollback toàn bộ về version sạch; rebuild từ source đã kiểm chứng trên môi trường build sạch.\n- Xoay vòng mọi secret/signing key có thể đã lộ.\n- Triển khai phòng ngừa: **SBOM** (Software Bill of Materials), ký số artifact (Sigstore/cosign), dependency pinning + hash verification, quét SCA (Snyk/Dependabot/Trivy) trong CI.\n- Bật cảnh báo khi có dependency mới/lạ được kéo vào build.',
+        icon: 'ShieldCheck'
+      }
+    ],
+    references: [
+      { title: 'CISA: Securing the Software Supply Chain', url: 'https://www.cisa.gov/resources-tools/resources/securing-software-supply-chain-series' },
+      { title: 'MITRE ATT&CK: Supply Chain Compromise (T1195)', url: 'https://attack.mitre.org/techniques/T1195/' },
+      { title: 'SLSA — Supply-chain Levels for Software Artifacts', url: 'https://slsa.dev/' }
+    ]
+  },
+  {
+    id: 'c2-beaconing',
+    title: 'C2 Beaconing & Network Threat Hunting',
+    description: 'Quy trình săn lùng kênh điều khiển từ xa (Command & Control) ẩn trong lưu lượng mạng — beacon định kỳ (Cobalt Strike, Sliver, Metasploit), DNS tunneling, và C2 trá hình qua dịch vụ hợp pháp (Domain Fronting, Slack/Telegram/GitHub). Tập trung phát hiện mẫu hành vi (pattern) thay vì chỉ chữ ký tĩnh.',
+    type: 'Threat Hunting',
+    platforms: ['Network', 'Windows', 'Linux'],
+    mitre: 'T1071 (Application Layer Protocol) & T1572 (Protocol Tunneling)',
+    color: 'indigo',
+    icon: 'Radio',
+    goals: [
+      'Detection: Phát hiện beacon định kỳ (regular interval) qua phân tích tần suất kết nối.',
+      'Identification: Nhận diện DNS tunneling và C2 trá hình qua dịch vụ cloud hợp pháp.',
+      'Attribution: Map kết nối C2 về process + user + host khởi tạo (qua netconn/EDR).',
+      'Containment: Chặn C2 ở firewall/DNS sinkhole và cô lập endpoint bị điều khiển.'
+    ],
+    steps: [
+      {
+        title: 'Bước 1: Phát hiện Beacon định kỳ (Periodicity)',
+        content: '**Beacon = kết nối đều đặn như nhịp tim:**\n- Phân tích NetFlow/Zeek `conn.log`: gom theo cặp (src, dst) và tính khoảng cách thời gian giữa các kết nối. Khoảng cách đều (VD: cứ 60s ± jitter) tới cùng một đích = beacon.\n- Dùng **RITA** (Real Intelligence Threat Analytics) trên dữ liệu Zeek để chấm điểm beacon tự động.\n- Chú ý kết nối ra ngoài với payload nhỏ, đều, kéo dài nhiều giờ/ngày tới IP/domain ít danh tiếng (low reputation).\n- Trên endpoint: dùng **Network** tab / **Triage** thu netconn, tìm process giữ kết nối outbound dai dẳng tới port lạ (4444, 8080, 443 tới IP thô).',
+        icon: 'Activity'
+      },
+      {
+        title: 'Bước 2: Săn DNS Tunneling',
+        content: '**C2 giấu trong truy vấn DNS:**\n- Phân tích DNS logs: số lượng truy vấn TXT/NULL/CNAME cao bất thường tới một domain.\n- Subdomain dài, entropy cao (chuỗi base32/base64 ngẫu nhiên) như `aGVsbG8d3.tunnel.evil.com` = dữ liệu được mã hoá tuồn qua DNS.\n- Một domain nhận hàng nghìn subdomain duy nhất = dấu hiệu rõ của tunneling (iodine, dnscat2).\n- Đối chiếu domain với threat-intel; sinkhole domain nghi ngờ.',
+        icon: 'Globe'
+      },
+      {
+        title: 'Bước 3: Phát hiện C2 trá hình (Legit-Service Abuse)',
+        content: '**C2 núp sau dịch vụ hợp pháp:**\n- **Domain Fronting / SNI mismatch:** SNI trỏ CDN hợp pháp (cloudfront, azureedge) nhưng Host header khác — kiểm tra TLS metadata.\n- **JA3/JA3S fingerprint:** so chữ ký TLS client với danh sách JA3 của Cobalt Strike/Sliver đã biết.\n- C2 qua API hợp pháp: traffic đều tới `api.telegram.org`, `slack.com`, `raw.githubusercontent.com`, Pastebin từ process không phải trình duyệt.\n- User-Agent mặc định của framework (Cobalt Strike profile cũ), hoặc thiếu hẳn các header trình duyệt thường có.',
+        icon: 'Network'
+      },
+      {
+        title: 'Bước 4: Quy về Endpoint (Attribution)',
+        content: '**Từ IP/domain → process khởi tạo:**\n- Trên máy nghi ngờ, dùng **Network** tab / **Triage** map kết nối C2 về **process + pid + image path + user**.\n- Dùng **Trace Origin** để dựng lineage: process nào sinh ra nó, cha là ai, chạy lúc nào, user nào.\n- Kiểm tra process có phải binary hợp lệ bị inject không (parent bất thường, không có trên đĩa, chạy từ /tmp).\n- Trích IOC (C2 IP/domain, hash process) → **IOC Sweep** quét toàn fleet tìm máy khác cùng bị điều khiển.',
+        icon: 'Crosshair'
+      },
+      {
+        title: 'Bước 5: Chặn & Cô lập (Containment)',
+        content: '**Cắt kênh điều khiển:**\n- Chặn C2 IP/domain ở firewall/proxy; **DNS sinkhole** domain độc.\n- Cô lập mạng endpoint bị điều khiển (giữ kết nối tới server quản lý để điều tra tiếp).\n- Kill process C2 + xoá persistence liên quan (xem playbook tương ứng theo loại payload).\n- Theo dõi xem có beacon dự phòng (fallback C2) kích hoạt không sau khi chặn kênh chính.',
+        icon: 'ShieldCheck'
+      }
+    ],
+    references: [
+      { title: 'Active Countermeasures: RITA (beacon analysis)', url: 'https://www.activecountermeasures.com/free-tools/rita/' },
+      { title: 'MITRE ATT&CK: Application Layer Protocol (T1071)', url: 'https://attack.mitre.org/techniques/T1071/' },
+      { title: 'Zeek Network Security Monitor', url: 'https://zeek.org/' }
+    ]
   }
 ]

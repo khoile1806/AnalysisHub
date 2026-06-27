@@ -18,6 +18,7 @@ const JobsPage = lazy(() => import('@/pages/Jobs'))
 const JobDetailPage = lazy(() => import('@/pages/JobDetail'))
 const CVEPage = lazy(() => import('@/pages/CVE'))
 const OpenCTIPage = lazy(() => import('@/pages/OpenCTI'))
+const IOCManagementPage = lazy(() => import('@/pages/IOCManagement'))
 const CVECollectionPage = lazy(() => import('@/pages/CVECollection'))
 const OsintPage = lazy(() => import('@/pages/Osint'))
 const OsintDetailPage = lazy(() => import('@/pages/OsintDetail'))
@@ -242,6 +243,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <OpenCTIPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/ioc-store"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <IOCManagementPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

@@ -41,6 +41,19 @@ export interface TriageResult {
   artifacts: TriageArtifact[]
 }
 
+export interface IOCMatch {
+  indicator: string
+  indicator_type: string
+  artifact: string
+  context: string
+}
+
+export interface IOCSweepResult {
+  indicators: number
+  scanned: Record<string, number>
+  matches: IOCMatch[]
+}
+
 export interface CreateAgentData {
   name: string
   description: string
@@ -176,6 +189,14 @@ export const agentsApi = {
   collectTriage: async (id: string, types?: string[]): Promise<TriageResult> => {
     const { data } = await apiClient.post(`/agents/${id}/triage`, { types: types ?? [] }, { timeout: 900_000 })
     return data
+  },
+
+  // Live IOC sweep: push indicators to the agent, collect live artifacts and
+  // match them server-side. Returns the hits with attribution.
+  iocSweep: async (id: string, indicators: string[], types?: string[]): Promise<IOCSweepResult> => {
+    const { data } = await apiClient.post<{ success: boolean; data: IOCSweepResult }>(
+      `/agents/${id}/ioc-sweep`, { indicators, types: types ?? [] }, { timeout: 900_000 })
+    return data.data
   },
 
   // Baseline & drift: store a known-good snapshot, fetch it to diff later.
