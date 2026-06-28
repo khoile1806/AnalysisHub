@@ -1,71 +1,168 @@
 # ForensicHub v2
 
-Nền tảng Điều phối DFIR (Digital Forensics and Incident Response) tập trung. Hệ thống bao gồm Backend (Go), Frontend (React), Agent (Go) và công cụ Webshell Scanner tích hợp sẵn. Tất cả được triển khai dễ dàng qua Docker Compose.
+Nền tảng điều phối DFIR (Digital Forensics & Incident Response) tập trung — Backend (Go), Frontend (React), Agent (Go) và các công cụ tích hợp, triển khai bằng Docker Compose.
+
+> Tài liệu này **chỉ hướng dẫn cấu hình và khởi động** dự án.
 
 ---
 
-## 🚀 Cài đặt & Khởi chạy nhanh (Local)
+## 1. Yêu cầu hệ thống
 
-**Yêu cầu hệ thống:**
-- Docker Engine ≥ 24 và Docker Compose v2.
-- RAM tối thiểu 4GB.
-
-**Các bước thực hiện:**
-
-1. **Clone dự án và tạo cấu hình môi trường:**
-   ```bash
-   git clone <repo-url> ForensicHub
-   cd ForensicHub
-   cp .env.example .env
-   ```
-
-2. **Khởi chạy hệ thống bằng Docker Compose:**
-   ```bash
-   docker compose up -d --build
-   ```
-   *Lưu ý: Lần build đầu tiên có thể mất 5-10 phút.*
-
-3. **Truy cập hệ thống:**
-   - **URL:** `http://localhost:3000`
-   - **Tài khoản mặc định:** `admin@forensichub.local`
-   - **Mật khẩu mặc định:** `Admin@123456`
+- **Docker Engine ≥ 24** và **Docker Compose v2** (`docker compose`).
+- RAM tối thiểu **4 GB** (khuyến nghị 8 GB).
+- Cổng trống trên máy host: **3000** (giao diện), **43888** (backend/canary), **7681** (volatility sandbox).
+- `git` để clone mã nguồn.
 
 ---
 
-## ⚙️ Cấu hình cần thiết (`.env`)
+## 2. Lấy mã nguồn & tạo file cấu hình
 
-Mọi cấu hình hệ thống nằm trong file `.env`. Dưới đây là các biến môi trường quan trọng nhất cần thiết lập (đặc biệt khi triển khai lên môi trường thực tế):
-
-| Biến môi trường | Giải thích | Mặc định (Local) |
-|---|---|---|
-| `JWT_SECRET` | Khóa bí mật mã hóa token. **Bắt buộc thay đổi ở Production** (>= 32 ký tự). | `change_this_jwt_secret...` |
-| `POSTGRES_PASSWORD` | Mật khẩu cho cơ sở dữ liệu PostgreSQL. | `forensic_secret` |
-| `REDIS_PASSWORD` | Mật khẩu cho Redis cache. | `redis_secret` |
-| `PUBLIC_URL` | URL công khai của Backend (VD: `https://hub.example.com`). Bắt buộc cấu hình để Agent có thể kết nối tới Backend. | *(trống)* |
-| `VITE_API_URL` | URL API cho Frontend. Nếu thay đổi biến này, bạn bắt buộc phải build lại Frontend. | `http://localhost:8080` |
-| `VITE_WS_URL` | URL WebSocket cho Frontend. | `ws://localhost:8080` |
-| `ALLOWED_ORIGINS` | Các URL Frontend được phép gọi API (CORS). | *(trống)* |
-
----
-
-## 🛠 Hướng dẫn Build Agent và Tools
-
-### 1. Build Agent (Go)
-Agent là phần mềm chạy trên máy đích để nhận lệnh từ hệ thống.
 ```bash
-cd agent
-# Build cho Windows
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o forensichub-agent.exe ./cmd/agent
-
-# Build cho Linux
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o forensichub-agent-linux ./cmd/agent
+git clone <repo-url> ForensicHub-v2
+cd ForensicHub-v2
+cp .env.example .env
 ```
-*(Mẹo: Trên giao diện Dashboard -> mục Agents sẽ cung cấp sẵn đoạn script lệnh tải và cài đặt tự động cho từng hệ điều hành).*
 
-### 2. Build Webshell Scanner (Windows .exe)
-Công cụ tích hợp dùng để dò quét mã độc trên máy chủ mục tiêu. Bạn có thể tự build file `.exe` bằng 1 dòng lệnh PowerShell sau (yêu cầu máy có cài sẵn Python):
+Mọi cấu hình nằm trong file **`.env`**. Mở ra và chỉnh trước khi khởi động.
 
-```powershell
-cd tools\webshell-scanner ; python -m venv .venv ; .\.venv\Scripts\python.exe -m pip install -e ".[dev]" ; .\.venv\Scripts\python.exe -m PyInstaller build.spec --clean --noconfirm --distpath dist\windows
+---
+
+## 3. Cấu hình `.env`
+
+### 3.1. BẮT BUỘC đổi trước khi chạy production
+
+| Biến | Ý nghĩa | Lưu ý |
+|------|---------|-------|
+| `POSTGRES_PASSWORD` | Mật khẩu PostgreSQL | Đặt mật khẩu mạnh |
+| `REDIS_PASSWORD` | Mật khẩu Redis | Đặt mật khẩu mạnh |
+| `JWT_SECRET` | Khóa ký token đăng nhập | **Tối thiểu 32 ký tự** |
+| `AES_ENCRYPTION_KEY` | Khóa mã hóa thông tin tích hợp (OpenCTI…) | **Phải dài đúng 32 byte** |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Tài khoản quản trị khởi tạo lần đầu | Đổi mật khẩu sau khi đăng nhập |
+
+> ⚠️ `AES_ENCRYPTION_KEY` sai độ dài (khác 32 byte) sẽ khiến backend báo lỗi khi lưu cấu hình tích hợp.
+
+### 3.2. Mạng & truy cập
+
+| Biến | Mặc định | Ý nghĩa |
+|------|----------|---------|
+| `FRONTEND_PORT` | `3000` | Cổng truy cập giao diện web |
+| `CANARY_PORT` | `43888` | Cổng publish backend (phục vụ canary link `/c/<slug>`) |
+| `PUBLIC_URL` | *(trống)* | URL công khai của server để **Agent** kết nối về và sinh script cài đặt. VD: `http://192.168.1.10:8080` hoặc `https://hub.example.com`. Để trống → tự suy ra từ request. |
+| `ALLOWED_ORIGINS` | localhost | Danh sách origin được phép (CORS + WebSocket), phân tách bằng dấu phẩy. **Phải chứa mọi URL dùng để mở frontend.** |
+| `USE_HTTPS` | `false` | Đặt `true` nếu chạy sau proxy SSL không gửi `X-Forwarded-Proto`. |
+
+> `VITE_API_URL` / `VITE_WS_URL`: nên **để trống** để bundle frontend chạy được cả qua LAN lẫn domain mà không cần build lại (nginx của frontend tự proxy `/api`, `/ws`, `/catch` về backend). Nếu đặt giá trị cụ thể thì phải **build lại frontend** khi đổi.
+
+### 3.3. Tùy chọn (có thể để trống lúc đầu)
+
+- **CVE Intel:** `NVD_API_KEY`, `GITHUB_TOKEN` — nâng giới hạn tần suất tra cứu CVE.
+- **Threat Intel / OSINT:** `VIRUSTOTAL_1..4`, `SHODAN`, `ABUSEIPDB`, `ALIENVAULT`, `ABUSE_CH_API_KEY`, `PULSEDIVE_API_KEY`… — **mỗi key đều tùy chọn**, thiếu key chỉ bỏ qua đúng nguồn đó (nhiều nguồn chạy không cần key).
+- **Canary alerts:** `NOTIFY_WEBHOOK_URL`, `NOTIFY_TELEGRAM_TOKEN`, `NOTIFY_TELEGRAM_CHAT_ID` — gửi cảnh báo khi canary token bị mở.
+- **Cloudflare Tunnel:** `CLOUDFLARE_TUNNEL_TOKEN`, `CANARY_BASE_URL` — che IP thật cho canary link (xem mục 7).
+- **Reporting:** `PDF_RENDERER_URL` — bộ render HTML→PDF ngoài (vd Gotenberg); để trống thì xuất HTML + in-PDF của trình duyệt.
+
+*(Xem chú thích chi tiết từng biến ngay trong `.env.example`.)*
+
+---
+
+## 4. Khởi động
+
+```bash
+docker compose up -d --build
 ```
-File thực thi sau khi hoàn tất sẽ nằm tại: `tools\webshell-scanner\dist\windows\webshell-scanner.exe`.
+
+- Lần build đầu mất khoảng **5–10 phút**.
+- Các service: `postgres`, `redis`, `tor`, `backend`, `frontend`, `volatility_sandbox`.
+- DB migration + tạo tài khoản admin chạy tự động khi backend khởi động lần đầu.
+
+Kiểm tra trạng thái:
+```bash
+docker compose ps
+docker compose logs -f backend
+```
+
+---
+
+## 5. Truy cập hệ thống
+
+- **Giao diện:** `http://localhost:3000` (hoặc `http://<IP-máy-host>:3000`).
+- **Đăng nhập:** dùng `ADMIN_EMAIL` / `ADMIN_PASSWORD` đã đặt trong `.env`.
+- Sau khi đăng nhập, **đổi mật khẩu admin** ngay.
+
+---
+
+## 6. Cài Agent lên máy cần điều tra
+
+Agent được tạo và lấy script cài đặt **từ trong giao diện** (không cần build tay):
+
+1. Đặt `PUBLIC_URL` trong `.env` thành địa chỉ server mà máy endpoint truy cập tới được, rồi khởi động lại backend.
+2. Vào **Endpoints & Tools → Agents → New Agent**.
+3. Sao chép lệnh cài đặt (`install.ps1` cho Windows / `install.sh` cho Linux) và chạy trên máy đích.
+4. Agent tự kết nối về server và hiện trạng thái **online**.
+
+> Nếu cần build agent thủ công: `cd agent && GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o forensichub-agent.exe ./cmd/agent` (đổi `GOOS=linux` cho Linux).
+
+---
+
+## 7. Tùy chọn: Cloudflare Tunnel (ẩn IP cho canary link)
+
+1. Tạo tunnel ở Cloudflare Zero Trust → Networks → Tunnels, lấy token.
+2. Điền vào `.env`: `CLOUDFLARE_TUNNEL_TOKEN=...` và `CANARY_BASE_URL=https://<hostname-tunnel>`.
+3. Trên dashboard tunnel, map Public Hostname → Service `HTTP → backend:8080`, Path `/c/*`.
+4. Khởi động kèm profile:
+   ```bash
+   docker compose --profile tunnel up -d
+   ```
+
+---
+
+## 8. Vận hành
+
+```bash
+# Xem log
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Dừng (giữ dữ liệu)
+docker compose down
+
+# Khởi động lại
+docker compose up -d
+
+# Cập nhật mã nguồn rồi build lại
+git pull
+docker compose up -d --build
+
+# XÓA TOÀN BỘ dữ liệu (DB, Redis, storage) — KHÔNG THỂ KHÔI PHỤC
+docker compose down -v
+```
+
+---
+
+## 9. Chạy ở chế độ phát triển (không Docker, tùy chọn)
+
+Cần **Go ≥ 1.22** và **Node ≥ 20**. Vẫn cần PostgreSQL + Redis (có thể chạy riêng bằng `docker compose up -d postgres redis`).
+
+```bash
+# Backend
+cd backend
+go run ./cmd/server         # đọc cấu hình từ ../.env hoặc biến môi trường
+
+# Frontend
+cd frontend
+npm install
+npm run dev                 # mặc định http://localhost:5173
+```
+
+---
+
+## 10. Khắc phục sự cố thường gặp
+
+| Triệu chứng | Cách xử lý |
+|-------------|-----------|
+| Không đăng nhập được | Kiểm tra `JWT_SECRET` (≥32 ký tự) và xem log `backend`. |
+| Lỗi khi lưu tích hợp (OpenCTI…) | `AES_ENCRYPTION_KEY` phải **đúng 32 byte**. |
+| Trình duyệt báo lỗi CORS / WebSocket | Thêm URL frontend vào `ALLOWED_ORIGINS`. |
+| Agent không online | Kiểm tra `PUBLIC_URL` đúng địa chỉ endpoint truy cập được; cổng không bị firewall chặn. |
+| Cổng bị trùng | Đổi `FRONTEND_PORT` / `CANARY_PORT` trong `.env`. |
+| Backend không khởi động | `docker compose logs backend`; thường do `.env` thiếu/sai biến bắt buộc. |
