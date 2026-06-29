@@ -10,7 +10,7 @@ Nền tảng điều phối DFIR (Digital Forensics & Incident Response) tập t
 
 - **Docker Engine ≥ 24** và **Docker Compose v2** (`docker compose`).
 - RAM tối thiểu **4 GB** (khuyến nghị 8 GB).
-- Cổng trống trên máy host: **3000** (giao diện), **43888** (backend/canary), **7681** (volatility sandbox).
+- Cổng trống trên máy host: **3000** (giao diện), **43888** (backend/canary). Sandbox volatility (ttyd) **không** mở cổng host — backend reverse-proxy có xác thực admin tại `/api/v1/sandbox/terminal`.
 - `git` để clone mã nguồn.
 
 ---

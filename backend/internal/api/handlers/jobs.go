@@ -727,15 +727,15 @@ func GetJobReport(c *gin.Context) {
 	lines := strings.Split(job.Output, "\n")
 
 	html := buildJobReportHTML(jobReportData{
-		JobID:     id.String(),
-		ToolName:  toolName,
-		AgentName: agentName,
-		Args:      job.Args,
-		Status:    string(job.Status),
-		StartedAt: started,
+		JobID:      id.String(),
+		ToolName:   toolName,
+		AgentName:  agentName,
+		Args:       job.Args,
+		Status:     string(job.Status),
+		StartedAt:  started,
 		FinishedAt: finished,
-		Duration:  duration,
-		Lines:     lines,
+		Duration:   duration,
+		Lines:      lines,
 	})
 
 	download := c.Query("download") == "true"

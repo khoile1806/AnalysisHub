@@ -25,14 +25,14 @@ func TestValidRedirectTarget(t *testing.T) {
 
 func TestNormalizeURL(t *testing.T) {
 	cases := map[string]string{
-		"":                              "",
-		"  ":                            "",
+		"":                               "",
+		"  ":                             "",
 		"vnexpress.net/a-b-5089809.html": "https://vnexpress.net/a-b-5089809.html",
-		"example.com":                   "https://example.com",
-		"http://example.com":            "http://example.com",
-		"https://example.com/x":         "https://example.com/x",
-		"HTTPS://Example.com":           "HTTPS://Example.com", // scheme already present (any case)
-		"  example.com/p  ":             "https://example.com/p",
+		"example.com":                    "https://example.com",
+		"http://example.com":             "http://example.com",
+		"https://example.com/x":          "https://example.com/x",
+		"HTTPS://Example.com":            "HTTPS://Example.com", // scheme already present (any case)
+		"  example.com/p  ":              "https://example.com/p",
 	}
 	for in, want := range cases {
 		if got := normalizeURL(in); got != want {
@@ -47,12 +47,12 @@ func TestNormalizeURL(t *testing.T) {
 
 func TestCanarySlugify(t *testing.T) {
 	cases := map[string]string{
-		"":                "",
-		"  ":              "",
-		"My Bait Link":    "My-Bait-Link",
-		"safe_slug-123":   "safe_slug-123",
-		"weird!@#$chars":  "weirdchars",
-		"keep.Case-AZ09":  "keepCase-AZ09", // '.' dropped, case preserved
+		"":               "",
+		"  ":             "",
+		"My Bait Link":   "My-Bait-Link",
+		"safe_slug-123":  "safe_slug-123",
+		"weird!@#$chars": "weirdchars",
+		"keep.Case-AZ09": "keepCase-AZ09", // '.' dropped, case preserved
 	}
 	for in, want := range cases {
 		if got := canarySlugify(in); got != want {
@@ -77,16 +77,16 @@ func TestRandomSlugUnguessable(t *testing.T) {
 
 func TestIsPrivateOrLoopback(t *testing.T) {
 	cases := map[string]bool{
-		"127.0.0.1":     true,
-		"10.1.2.3":      true,
-		"192.168.0.5":   true,
-		"172.16.0.1":    true,
-		"::1":           true,
-		"169.254.1.1":   true,
-		"not-an-ip":     true, // unparseable → treated as non-routable
-		"8.8.8.8":       false,
-		"1.1.1.1":       false,
-		"203.0.113.10":  false,
+		"127.0.0.1":    true,
+		"10.1.2.3":     true,
+		"192.168.0.5":  true,
+		"172.16.0.1":   true,
+		"::1":          true,
+		"169.254.1.1":  true,
+		"not-an-ip":    true, // unparseable → treated as non-routable
+		"8.8.8.8":      false,
+		"1.1.1.1":      false,
+		"203.0.113.10": false,
 	}
 	for ip, want := range cases {
 		if got := isPrivateOrLoopback(ip); got != want {
@@ -129,7 +129,7 @@ func TestIsBotUserAgent(t *testing.T) {
 
 func TestParseUserAgent(t *testing.T) {
 	cases := []struct {
-		ua                          string
+		ua                           string
 		wantBrowser, wantOS, wantDev string
 	}{
 		{

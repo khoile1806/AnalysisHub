@@ -47,7 +47,7 @@ func UploadMemoryDump(c *gin.Context) {
 
 	dumpDir := "/app/storage/memory_dumps"
 	os.MkdirAll(dumpDir, 0755)
-	
+
 	// Prevent directory traversal
 	fileName := filepath.Base(file.Filename)
 	destPath := filepath.Join(dumpDir, fileName)

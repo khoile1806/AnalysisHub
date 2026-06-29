@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"github.com/google/uuid"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
-	"github.com/google/uuid"
 
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -25,6 +25,7 @@ import (
 	"github.com/forensichub/backend/internal/hunting/sigma"
 	"github.com/forensichub/backend/internal/logger"
 	"github.com/forensichub/backend/internal/models"
+	"github.com/forensichub/backend/internal/oob"
 	"github.com/forensichub/backend/internal/osint"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
@@ -203,10 +204,37 @@ func main() {
 	}, cfg, enrichClient, rdb)
 	slog.Info("osint engine initialised")
 
+	// OOB interaction server ("Catch" — Interactsh / Burp-Collaborator style).
+	// Records out-of-band DNS/HTTP/SMTP callbacks to confirm blind vulns on
+	// authorised engagements. Listeners only start when OOB_ENABLED=true and a
+	// delegated OOB_DOMAIN is set; otherwise the API still serves (register/poll)
+	// but reports the server as not running.
+	oobServer := oob.New(db, oob.Options{
+		Enabled:    cfg.OOBEnabled,
+		Domain:     cfg.OOBDomain,
+		PublicIP:   cfg.OOBPublicIP,
+		PublicIPv6: cfg.OOBPublicIPv6,
+		NSName:     cfg.OOBNSName,
+		DNSPort:    cfg.OOBDNSPort,
+		HTTPPort:   cfg.OOBHTTPPort,
+		HTTPSPort:  cfg.OOBHTTPSPort,
+		SMTPPort:   cfg.OOBSMTPPort,
+		TLSCert:    cfg.OOBTLSCert,
+		TLSKey:     cfg.OOBTLSKey,
+		LDAPPort:   cfg.OOBLDAPPort,
+		RMIPort:    cfg.OOBRMIPort,
+	})
+	oobServer.Start()
+	handlers.StartOobRetentionWorker(db, cfg.OOBRetentionDays, cfg.OOBMaxPerClient)
+
+	// SSE hub for real-time OOB interaction streaming (no polling needed).
+	oobHub := oob.NewHub()
+	oobServer.SetHub(oobHub) // OAST (DNS/SMTP) captures also push live SSE events
+
 	// ------------------------------------------------------------------ //
 	// 8. Build Gin router
 	// ------------------------------------------------------------------ //
-	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient, osintEngine)
+	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient, osintEngine, oobServer, oobHub)
 
 	// ------------------------------------------------------------------ //
 	// 9. Start HTTP server with graceful shutdown
@@ -253,6 +281,9 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown error", "error", err)
 	}
+
+	// Stop the OOB interaction listeners (DNS/HTTP/SMTP).
+	oobServer.Shutdown(shutdownCtx)
 
 	// Close DB connection pool.
 	if sqlDB, err := db.DB(); err == nil {
@@ -343,8 +374,6 @@ func seedTools(db *gorm.DB, store *storage.LocalStorage) error {
 			}
 		}
 	}
-
-
 
 	// Seed Memory Dump Tool
 	var memCount int64

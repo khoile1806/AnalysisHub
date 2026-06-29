@@ -218,13 +218,13 @@ func syncAllFeeds(hub *ws.Hub) {
 
 	sem := make(chan struct{}, newsGlobalConcurrency)
 	var (
-		wg         sync.WaitGroup
-		hostMu     sync.Mutex
+		wg        sync.WaitGroup
+		hostMu    sync.Mutex
 		hostLocks = map[string]chan struct{}{}
-		okCount    int32
-		failCount  int32
-		newCount   int32
-		stats      sync.Mutex
+		okCount   int32
+		failCount int32
+		newCount  int32
+		stats     sync.Mutex
 	)
 
 	acquireHost := func(rawurl string) {

@@ -247,9 +247,9 @@ func (h *CasesHandler) GetCaseSummary(c *gin.Context) {
 			"jobs":           jobs,
 			"checklist_runs": checklistRuns,
 			"osint": gin.H{
-				"investigations":  osintRoots,
-				"total_scans":     osintTotalScans,
-				"total_findings":  osintTotalFindings,
+				"investigations": osintRoots,
+				"total_scans":    osintTotalScans,
+				"total_findings": osintTotalFindings,
 			},
 		},
 	})

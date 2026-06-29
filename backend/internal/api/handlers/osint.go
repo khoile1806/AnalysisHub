@@ -35,9 +35,9 @@ func mustGetOsintEngine(c *gin.Context) (*osint.Engine, bool) {
 type createOsintScanRequest struct {
 	Name      string  `json:"name"`
 	Target    string  `json:"target" binding:"required"`
-	AutoPivot bool    `json:"auto_pivot"`     // recursively investigate discovered entities
-	MaxDepth  int     `json:"max_depth"`      // pivot depth limit (default 2 when auto_pivot)
-	CaseID    *string `json:"case_id"`        // optional: file this investigation under a DFIR case
+	AutoPivot bool    `json:"auto_pivot"` // recursively investigate discovered entities
+	MaxDepth  int     `json:"max_depth"`  // pivot depth limit (default 2 when auto_pivot)
+	CaseID    *string `json:"case_id"`    // optional: file this investigation under a DFIR case
 }
 
 // DetectOsintTarget classifies a target string without creating a scan, so the

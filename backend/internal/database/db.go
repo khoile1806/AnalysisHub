@@ -91,6 +91,9 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.CanaryToken{},
 		&models.CanaryHit{},
 		&models.CanaryAlert{},
+		&models.OobClient{},
+		&models.OobInteraction{},
+		&models.OobResponseRule{},
 		&models.AgentBaseline{},
 		&models.ScheduledCollection{},
 		&models.FleetCollectionResult{},
@@ -132,6 +135,19 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_iocs_lower_value ON iocs (lower(value))`).Error; err != nil {
 		slog.Warn("could not create iocs lower(value) index; large-store IOC lookups may be slow", "error", err)
 	}
+
+	// OOB "Catch" interactions: a composite index for the hot per-session,
+	// newest-first query, plus pg_trgm GIN indexes so the `?q=` substring search
+	// (ILIKE '%term%') uses an index instead of a full table scan as the table
+	// grows. CREATE EXTENSION needs privileges; all steps are best-effort and
+	// search still works (just slower) without them.
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS pg_trgm`).Error; err != nil {
+		slog.Warn("could not enable pg_trgm; OOB search will run unindexed", "error", err)
+	}
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_oob_inter_client_created ON oob_interactions (client_id, created_at DESC)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_oob_inter_path_trgm ON oob_interactions USING gin (path gin_trgm_ops)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_oob_inter_raw_trgm ON oob_interactions USING gin (raw_request gin_trgm_ops)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_oob_inter_ua_trgm ON oob_interactions USING gin (user_agent gin_trgm_ops)`)
 
 	slog.Info("migrations applied successfully")
 	return db, nil

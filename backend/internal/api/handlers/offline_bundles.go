@@ -67,11 +67,11 @@ func GenerateOfflineBundle(c *gin.Context) {
 	_ = store
 
 	var req struct {
-		Name     string   `json:"name"     binding:"required"`
-		ToolIDs  []string `json:"tool_ids" binding:"required,min=1"`
-		Platform string   `json:"platform"`
-		CaseID         string   `json:"case_id"`   // optional: link bundle to a case
-		CaseName       string   `json:"case_name"` // optional: display name of the case
+		Name           string   `json:"name"     binding:"required"`
+		ToolIDs        []string `json:"tool_ids" binding:"required,min=1"`
+		Platform       string   `json:"platform"`
+		CaseID         string   `json:"case_id"`          // optional: link bundle to a case
+		CaseName       string   `json:"case_name"`        // optional: display name of the case
 		CustomYaraRule string   `json:"custom_yara_rule"` // optional: custom YARA rule content
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -132,8 +132,6 @@ func GenerateOfflineBundle(c *gin.Context) {
 	// Derive a safe filename base.
 	safeBundle := safeZipName(req.Name)
 	ts := time.Now().Format("20060102")
-
-
 
 	zipName := fmt.Sprintf("offline-bundle-%s-%s.zip", safeBundle, ts)
 

@@ -107,9 +107,6 @@ COPY --from=agent-builder /agent/agent-offline-linux    /app/defaults/agent-offl
 # Copy internal data like cve_collection.json
 COPY --from=builder /build/data /app/data
 
-# Copy documentation for playbooks
-COPY ./docs /app/docs
-
 # Default integrated tools (e.g. YARA Scanner bundle, WinPmem)
 COPY --from=scanner-bundler /app/defaults/yara-scanner.zip /app/defaults/yara-scanner.zip
 COPY --from=scanner-bundler /app/defaults/winpmem.exe      /app/defaults/winpmem.exe

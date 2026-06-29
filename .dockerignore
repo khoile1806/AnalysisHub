@@ -1,0 +1,29 @@
+# Build context for the backend image is the repo ROOT (compose: context: .).
+# Keep it lean and reproducible: never ship local-only artifacts into the image
+# — the build compiles everything from source. (The frontend build uses its own
+# context ./frontend with frontend/.dockerignore.)
+
+# Version control
+.git
+.gitignore
+
+# Secrets / local environment — must never enter an image layer
+.env
+.env.*
+!.env.example
+
+# Node / frontend build output
+**/node_modules
+frontend/dist
+
+# Go + agent build artifacts (the image rebuilds these from source)
+backend/bin
+backend/server
+*.exe
+agent/bin
+agent/forensichub-agent
+agent/forensichub-agent-*
+
+# Runtime data that shouldn't be baked in
+backend/data/logs
+*.log

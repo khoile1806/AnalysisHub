@@ -74,11 +74,27 @@ services:
     # directly at CANARY_BASE_URL (http://<host>:43888). Container listens on 8080.
     ports:
       - "${CANARY_PORT:-43888}:8080"
+      # OOB interaction server ("Catch"). Uncomment when OOB_ENABLED=true and the
+      # OOB_DOMAIN's NS records are delegated to this host. These bind privileged
+      # host ports (53/udp+tcp, 80, 25) that often clash with systemd-resolved /
+      # a web server — free them first. HTTPS (443) only if OOB_TLS_CERT is set.
+      # - "53:53/udp"
+      # - "53:53/tcp"
+      # - "80:80"
+      # - "25:25"
+      # - "443:443"
+      # - "1389:1389"   # JNDI/LDAP catcher (Log4Shell)
+      # - "1099:1099"   # JNDI/RMI catcher
     # Pull every key/setting from .env (VirusTotal, Shodan, abuse.ch, proxy, …)
     # into the container. Explicit `environment:` entries below still win for the
     # container-internal values (DB/Redis hostnames, Tor service name).
+    # Optional: a fresh clone has no .env (it's gitignored). required:false lets
+    # `docker compose up` still boot using the ${VAR:-default} fallbacks in the
+    # environment block below. Copy .env.example → .env to supply real secrets /
+    # API keys (see README).
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - APP_ENV=${APP_ENV:-development}
       - SERVER_PORT=${SERVER_PORT:-8080}
@@ -99,6 +115,18 @@ services:
       # Dark-web crawler dials the in-stack Tor service (overrides any .env value,
       # which uses 127.0.0.1 for local runs). General API traffic does NOT use Tor.
       - OSINT_TOR_PROXY=socks5://tor:9050
+      # Internal address of the volatility/kali ttyd terminal the backend
+      # reverse-proxies (admin-gated). Not published on the host.
+      - SANDBOX_TERMINAL_URL=${SANDBOX_TERMINAL_URL:-http://volatility_sandbox:7681}
+      # OOB interaction server ("Catch"). Disabled unless OOB_ENABLED=true AND the
+      # OOB_DOMAIN zone is delegated to OOB_PUBLIC_IP. See .env.example for setup.
+      - OOB_ENABLED=${OOB_ENABLED:-false}
+      - OOB_DOMAIN=${OOB_DOMAIN:-}
+      - OOB_PUBLIC_IP=${OOB_PUBLIC_IP:-}
+      - OOB_PUBLIC_IPV6=${OOB_PUBLIC_IPV6:-}
+      - OOB_NS_NAME=${OOB_NS_NAME:-}
+      - OOB_TLS_CERT=${OOB_TLS_CERT:-}
+      - OOB_TLS_KEY=${OOB_TLS_KEY:-}
     volumes:
       - storage_data:/app/storage
       - ./backend/data:/app/data
@@ -116,16 +144,27 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # Volatility + Kali offensive sandbox. The ttyd web terminal is intentionally
+  # NOT published on the host — the backend reverse-proxies to it on the internal
+  # network (volatility_sandbox:7681) behind an admin JWT, so there is no
+  # unauthenticated shell exposed. Tool egress is routed through the `tor`
+  # service (see the Dockerfile) to avoid leaking the host IP during scans.
   volatility_sandbox:
     build:
       context: ./volatility
       dockerfile: Dockerfile
     container_name: forensichub_volatility
-    ports:
-      - "7681:7681"
+    # No host port mapping — reachable only via the backend sandbox proxy.
+    expose:
+      - "7681"
     volumes:
       - storage_data:/app/storage
-    privileged: true
+    # privileged dropped — volatility only reads dump files. If raw-packet
+    # tooling is ever needed locally, add `cap_add: [NET_RAW, NET_ADMIN]`
+    # instead of full privilege (Tor scans use connect scans, no raw caps).
+    depends_on:
+      tor:
+        condition: service_started
     restart: unless-stopped
 
   frontend:

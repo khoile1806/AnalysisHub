@@ -248,7 +248,7 @@ footer{text-align:center;color:#475569;font-size:12px;padding:24px}
 <div class="summary">`)
 	sb.WriteString(fmt.Sprintf(`<div class="score"><div class="n" style="color:%s">%d%%</div><div class="l">Compliance Score</div></div>`, scoreColor(score), score))
 	stats := []struct {
-		n int
+		n    int
 		l, c string
 	}{
 		{total, "Total", "#6366f1"},
@@ -356,7 +356,7 @@ footer{text-align:center;color:#475569;font-size:12px;padding:24px}
 }
 
 type fwRow struct {
-	name                      string
+	name                           string
 	total, pass, fail, partial, na int
 }
 

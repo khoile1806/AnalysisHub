@@ -8,6 +8,7 @@ import (
 	"github.com/forensichub/backend/internal/api/handlers"
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
+	"github.com/forensichub/backend/internal/oob"
 	"github.com/forensichub/backend/internal/osint"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
@@ -25,6 +26,8 @@ func NewRouter(
 	cfg *config.Config,
 	enrich *threatintel.EnrichClient,
 	osintEngine *osint.Engine,
+	oobServer *oob.Server,
+	oobHub *oob.Hub,
 ) *gin.Engine {
 	router := gin.New()
 	// Allow large multipart uploads (memory dumps, disk images) to be streamed
@@ -36,6 +39,15 @@ func NewRouter(
 	router.MaxMultipartMemory = 8 << 30 // 8 GB
 
 	handlers.SetAllowedOrigins(cfg.AllowedOrigins)
+
+	// Only trust forwarded headers from an explicit proxy allowlist when set, so
+	// X-Forwarded-For / X-Forwarded-Proto can't be spoofed to forge the source
+	// IP / scheme on captured OOB callbacks. Empty = gin default (trust all).
+	if len(cfg.TrustedProxies) > 0 {
+		if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+			gin.DefaultErrorWriter.Write([]byte("invalid TRUSTED_PROXIES: " + err.Error() + "\n"))
+		}
+	}
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -49,6 +61,8 @@ func NewRouter(
 		c.Set("storage", store)
 		c.Set("redis", rdb)
 		c.Set("osintEngine", osintEngine)
+		c.Set("oobServer", oobServer)
+		c.Set("oobHub", oobHub)
 		c.Set("jwtSecret", jwtSecret)
 		c.Set("nvdAPIKey", cfg.NVDAPIKey)
 		c.Set("githubToken", cfg.GitHubToken)
@@ -267,6 +281,34 @@ func NewRouter(
 		protected.GET("/osint/watches/:id/alerts", handlers.ListOsintWatchAlerts)
 		protected.POST("/osint/watches/:id/alerts/seen", handlers.MarkOsintWatchAlertsSeen)
 
+		// OOB interaction server ("Catch" — Interactsh / Burp-Collaborator style).
+		// Confirms blind vulns (SSRF, blind XXE/RCE/SQLi, email-header injection)
+		// by recording out-of-band DNS/HTTP/SMTP callbacks. Static "oob" segment
+		// sits alongside the "/osint/:id" param routes.
+		protected.GET("/osint/oob/config", handlers.GetOobConfig)
+		protected.POST("/osint/oob/register", handlers.RegisterOobClient)
+		protected.GET("/osint/oob/clients", handlers.ListOobClients)
+		protected.GET("/osint/oob/clients/:id", handlers.GetOobClient)
+		protected.PATCH("/osint/oob/clients/:id", handlers.UpdateOobClient)
+		protected.DELETE("/osint/oob/clients/:id", handlers.DeleteOobClient)
+		protected.DELETE("/osint/oob/clients/:id/interactions", handlers.ClearOobInteractions)
+		protected.POST("/osint/oob/clients/:id/seen", handlers.MarkOobInteractionsSeen)
+		protected.PATCH("/osint/oob/clients/:id/interactions/:iid", handlers.PatchOobInteraction)
+		protected.DELETE("/osint/oob/clients/:id/interactions/:iid", handlers.DeleteOobInteraction)
+		protected.POST("/osint/oob/clients/:id/interactions/:iid/promote-ioc", handlers.PromoteOobInteractionIOC)
+		// Conditional response rules (Burp-style match → response).
+		protected.GET("/osint/oob/clients/:id/rules", handlers.ListOobRules)
+		protected.POST("/osint/oob/clients/:id/rules", handlers.CreateOobRule)
+		protected.PATCH("/osint/oob/clients/:id/rules/:rid", handlers.UpdateOobRule)
+		protected.DELETE("/osint/oob/clients/:id/rules/:rid", handlers.DeleteOobRule)
+		protected.POST("/osint/oob/clients/:id/payload", handlers.GenerateOobPayload)
+		protected.PATCH("/osint/oob/clients/:id/response", handlers.UpdateOobResponse)
+		protected.PATCH("/osint/oob/clients/:id/notify", handlers.UpdateOobNotify)
+		protected.GET("/osint/oob/clients/:id/interactions", handlers.ListOobInteractions)
+		protected.GET("/osint/oob/clients/:id/stream", handlers.StreamOobInteractions)
+		// Smart multi-layer decoder for inspecting captured callback data.
+		protected.POST("/osint/oob/decode", handlers.SmartDecode)
+
 		// CVE Collection
 		protected.GET("/cve-collection", handlers.GetCVECollection)
 		protected.GET("/cve-collection/stream", handlers.StreamCVECollection)
@@ -277,6 +319,12 @@ func NewRouter(
 		protected.GET("/memory/dumps", handlers.ListMemoryDumps)
 		protected.POST("/memory/upload", handlers.UploadMemoryDump)
 		protected.DELETE("/memory/dumps/:filename", handlers.DeleteMemoryDump)
+
+		// Sandbox terminal — issue the iframe's path-scoped cookie. Mounted here
+		// (behind AuthMiddleware) so the SPA's Bearer fetch authenticates; the
+		// handler enforces the admin role. The proxy itself is registered below
+		// outside this group with its own cookie-aware auth.
+		protected.POST("/sandbox/grant", handlers.SandboxGrant)
 
 		// News (used by CVE → News tab inside ForensicHub).
 		protected.GET("/news", handlers.GetNews)
@@ -385,6 +433,23 @@ func NewRouter(
 	canaryPublic := handlers.NewCanaryHandler(db)
 	router.GET("/c/:slug", canaryPublic.ServeCanary)
 	router.POST("/c/:slug", canaryPublic.CollectCanary)
+
+	// Public OOB webhook receiver — instant HTTP "Catch" endpoint (no auth, no
+	// DNS, no extra ports). Any method/path to /oob/r/<token> is captured and
+	// attributed to the session. Mounted at the root so the URL stays short.
+	router.Any("/oob/r/:token", handlers.OobWebhookInbound)
+	router.Any("/oob/r/:token/*path", handlers.OobWebhookInbound)
+
+	// Sandbox terminal reverse proxy — the volatility/kali ttyd container is not
+	// published on the host; this is the only way to reach it, and SandboxAuth
+	// requires an admin JWT (header / ?token= / fh_sandbox cookie). Any method so
+	// asset GETs and the WebSocket upgrade both pass through.
+	if sandbox, err := handlers.NewSandboxHandler(cfg.SandboxTerminalURL); err != nil {
+		// Bad URL is a config error, not fatal — the rest of the API still runs.
+		gin.DefaultErrorWriter.Write([]byte("sandbox terminal disabled: " + err.Error() + "\n"))
+	} else {
+		v1.Any("/sandbox/terminal/*proxyPath", handlers.SandboxAuth, sandbox.Proxy)
+	}
 
 	// Install scripts — handler validates the agent token inline.
 	v1.GET("/agents/:id/install.ps1", handlers.GetAgentInstallScript)

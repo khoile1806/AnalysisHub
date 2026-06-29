@@ -21,7 +21,7 @@ import (
 // FileIOC is a single classified entry produced by the line parser.
 type FileIOC struct {
 	Value    string `json:"value"`
-	Type     string `json:"type"`              // IPv4-Addr | IPv6-Addr | File-Hash | Domain-Name | URL | Email-Address | Mac-Addr | Other
+	Type     string `json:"type"` // IPv4-Addr | IPv6-Addr | File-Hash | Domain-Name | URL | Email-Address | Mac-Addr | Other
 	LineNo   int    `json:"line_no"`
 	Original string `json:"original,omitempty"`
 }

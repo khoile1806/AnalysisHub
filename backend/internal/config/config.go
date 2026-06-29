@@ -115,12 +115,12 @@ type Config struct {
 	// store once a collector flags it malicious with high confidence — closing the
 	// OSINT → defence loop (ELK auto-hunt then searches the logs for it).
 	OsintAutoPromote bool
-	
+
 	// Threat-feed / reputation keys (all optional). abuse.ch (ThreatFox/URLhaus/
 	// MalwareBazaar) share one Auth-Key; Pulsedive and GreyNoise have their own.
-	AbuseChKey    string
-	PulsediveKey  string
-	GreyNoiseKey  string
+	AbuseChKey   string
+	PulsediveKey string
+	GreyNoiseKey string
 
 	// ── Dark-web (Phase 3) ───────────────────────────────────────────────
 	// Enterprise aggregator API keys (seams — empty unless the org licenses one).
@@ -141,41 +141,79 @@ type Config struct {
 	// automatically to every EXTERNAL fetch (OSINT, threat-intel, CVE, news…).
 	// Internal SIEM connectors (ELK/Splunk/QRadar/OpenCTI) bypass it. Empty =
 	// direct. OutboundNoProxy is an optional comma-separated NO_PROXY list.
-	OutboundProxy   string
-	OutboundNoProxy string
-	APINumVerifyURL   string // NumVerify validate endpoint
-	APIIpApiURL       string // ip-api.com geolocation endpoint
-	APIWebArchiveURL  string // Wayback Machine CDX endpoint
+	OutboundProxy    string
+	OutboundNoProxy  string
+	APINumVerifyURL  string // NumVerify validate endpoint
+	APIIpApiURL      string // ip-api.com geolocation endpoint
+	APIWebArchiveURL string // Wayback Machine CDX endpoint
 
 	// LogPath is the directory where date-stamped log files are written.
 	// Defaults to "data/logs" (relative to CWD) for local dev.
 	// In Docker set LOG_PATH=/app/data/logs via the compose environment block.
 	LogPath string
+
+	// ── OOB interaction server (Catch — Interactsh / Burp-Collaborator style) ──
+	// A controlled DNS + HTTP(S) + SMTP endpoint that records out-of-band
+	// callbacks from a target, used to confirm blind vulns (SSRF, blind XXE/RCE,
+	// blind SQLi, email-header injection) on authorised engagements.
+	//
+	// Requires a real domain whose NS records are DELEGATED to OOBPublicIP (so
+	// the internet resolves *.OOBDomain to this server). Disabled by default.
+	OOBEnabled    bool   // master switch — start the listeners
+	OOBDomain     string // delegated zone, e.g. "oob.example.com" (no trailing dot)
+	OOBPublicIP   string // public IPv4 the DNS A answers + payloads advertise
+	OOBPublicIPv6 string // optional public IPv6 for AAAA answers
+	OOBNSName     string // this server's NS hostname for SOA/NS (default ns1.<domain>)
+	OOBDNSPort    string // UDP+TCP DNS listen port (default 53)
+	OOBHTTPPort   string // HTTP catch-all port (default 80; empty/0 disables)
+	OOBHTTPSPort  string // HTTPS catch-all port (default 443; needs cert/key)
+	OOBSMTPPort   string // SMTP catch-all port (default 25; empty/0 disables)
+	OOBTLSCert    string // PEM cert path for the HTTPS catch-all (wildcard *.OOBDomain)
+	OOBTLSKey     string // PEM key path for the HTTPS catch-all
+	OOBLDAPPort   string // JNDI/LDAP callback catcher (Log4Shell) — default 1389 (empty/0 disables)
+	OOBRMIPort    string // JNDI/RMI callback catcher — default 1099 (empty/0 disables)
+
+	// Anti-abuse / retention for the public webhook receiver.
+	OOBRateLimitPerMin int // max recorded hits per token per minute (default 600)
+	OOBMaxPerClient    int // max stored interactions per session (default 10000; 0 = unlimited)
+	OOBRetentionDays   int // delete interactions older than this many days (default 30; 0 = keep)
+
+	// TrustedProxies, when set (comma-separated IPs/CIDRs), is passed to gin's
+	// SetTrustedProxies so X-Forwarded-For / X-Forwarded-Proto are only honoured
+	// from the real front proxy — preventing source-IP/scheme spoofing. Empty
+	// keeps gin's default (trust all) for backward compatibility.
+	TrustedProxies []string
+
+	// SandboxTerminalURL is the internal address of the volatility/kali ttyd web
+	// terminal. The sandbox is NOT published on the host — the backend reverse-
+	// proxies to it behind an admin JWT (see handlers/sandbox.go), so this is a
+	// container-network address. Defaults to the compose service name.
+	SandboxTerminalURL string
 }
 
 // Load reads configuration from environment variables, applying defaults where appropriate.
 func Load() *Config {
 	return &Config{
-		ServerPort:    getEnv("SERVER_PORT", "8080"),
-		PostgresDSN:   getEnv("POSTGRES_DSN", "host=localhost user=forensichub password=forensichub dbname=forensichub port=5432 sslmode=disable TimeZone=UTC"),
-		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
-		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production-use-a-long-random-string"),
-		StoragePath:   getEnv("STORAGE_PATH", "/app/storage"),
-		AdminEmail:    getEnv("ADMIN_EMAIL", "admin@forensichub.local"),
-		AdminPassword: getEnv("ADMIN_PASSWORD", "ChangeMe!2024"),
-		AppEnv:        getEnv("APP_ENV", "development"),
-		PublicURL:      getEnv("PUBLIC_URL", ""),
+		ServerPort:          getEnv("SERVER_PORT", "8080"),
+		PostgresDSN:         getEnv("POSTGRES_DSN", "host=localhost user=forensichub password=forensichub dbname=forensichub port=5432 sslmode=disable TimeZone=UTC"),
+		RedisAddr:           getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:       getEnv("REDIS_PASSWORD", ""),
+		JWTSecret:           getEnv("JWT_SECRET", "change-me-in-production-use-a-long-random-string"),
+		StoragePath:         getEnv("STORAGE_PATH", "/app/storage"),
+		AdminEmail:          getEnv("ADMIN_EMAIL", "admin@forensichub.local"),
+		AdminPassword:       getEnv("ADMIN_PASSWORD", "ChangeMe!2024"),
+		AppEnv:              getEnv("APP_ENV", "development"),
+		PublicURL:           getEnv("PUBLIC_URL", ""),
 		CanaryBaseURL:       getEnv("CANARY_BASE_URL", ""),
 		NotifyWebhookURL:    getEnv("NOTIFY_WEBHOOK_URL", ""),
 		NotifyTelegramToken: getEnv("NOTIFY_TELEGRAM_TOKEN", ""),
 		NotifyTelegramChat:  getEnv("NOTIFY_TELEGRAM_CHAT_ID", ""),
-		UseHTTPS:       getEnv("USE_HTTPS", "false") == "true",
-		AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "")),
-		NVDAPIKey:        getEnv("NVD_API_KEY", ""),
-		APINvdURL:        getEnv("API_NVD_URL", "https://services.nvd.nist.gov/rest/json/cves/2.0"),
-		GitHubToken:      getEnv("GITHUB_TOKEN", ""),
-		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "default-insecure-key-exct-32-byt"),
+		UseHTTPS:            getEnv("USE_HTTPS", "false") == "true",
+		AllowedOrigins:      parseOrigins(getEnv("ALLOWED_ORIGINS", "")),
+		NVDAPIKey:           getEnv("NVD_API_KEY", ""),
+		APINvdURL:           getEnv("API_NVD_URL", "https://services.nvd.nist.gov/rest/json/cves/2.0"),
+		GitHubToken:         getEnv("GITHUB_TOKEN", ""),
+		AESEncryptionKey:    getEnv("AES_ENCRYPTION_KEY", "default-insecure-key-exct-32-byt"),
 
 		VirusTotalKeys: loadVirusTotalKeys(),
 		AbuseIPDBKey:   getEnv("ABUSEIPDB", ""),
@@ -195,19 +233,40 @@ func Load() *Config {
 		OsintProviderSuffixes:    parseCSV(getEnv("OSINT_PROVIDER_SUFFIXES", "")),
 		OsintRDNSMarkers:         parseCSV(getEnv("OSINT_RDNS_MARKERS", "")),
 		OsintAutoPromote:         getEnv("OSINT_AUTO_PROMOTE", "true") != "false",
-		AbuseChKey:        getEnv("ABUSE_CH_API_KEY", ""),
-		PulsediveKey:      getEnv("PULSEDIVE_API_KEY", ""),
-		GreyNoiseKey:      getEnv("GREYNOISE_API_KEY", ""),
-		FlareKey:          getEnv("FLARE_API_KEY", ""),
-		DarkOwlKey:        getEnv("DARKOWL_API_KEY", ""),
-		Intel471Key:       getEnv("INTEL471_API_KEY", ""),
-		DarkWebSources:    parseCSV(getEnv("OSINT_DARKWEB_SOURCES", "")),
-		TorProxy:          getEnv("OSINT_TOR_PROXY", ""),
-		OutboundProxy:     getEnv("OUTBOUND_PROXY", ""),
-		OutboundNoProxy:   getEnv("OUTBOUND_NO_PROXY", ""),
-		APINumVerifyURL:   getEnv("API_NUMVERIFY_URL", "http://apilayer.net/api/validate"),
-		APIIpApiURL:       getEnv("API_IP_API_URL", "http://ip-api.com/json/"),
-		APIWebArchiveURL:  getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
+		AbuseChKey:               getEnv("ABUSE_CH_API_KEY", ""),
+		PulsediveKey:             getEnv("PULSEDIVE_API_KEY", ""),
+		GreyNoiseKey:             getEnv("GREYNOISE_API_KEY", ""),
+		FlareKey:                 getEnv("FLARE_API_KEY", ""),
+		DarkOwlKey:               getEnv("DARKOWL_API_KEY", ""),
+		Intel471Key:              getEnv("INTEL471_API_KEY", ""),
+		DarkWebSources:           parseCSV(getEnv("OSINT_DARKWEB_SOURCES", "")),
+		TorProxy:                 getEnv("OSINT_TOR_PROXY", ""),
+		SandboxTerminalURL:       getEnv("SANDBOX_TERMINAL_URL", "http://volatility_sandbox:7681"),
+
+		OOBEnabled:    getEnv("OOB_ENABLED", "false") == "true",
+		OOBDomain:     strings.ToLower(strings.TrimSuffix(getEnv("OOB_DOMAIN", ""), ".")),
+		OOBPublicIP:   getEnv("OOB_PUBLIC_IP", ""),
+		OOBPublicIPv6: getEnv("OOB_PUBLIC_IPV6", ""),
+		OOBNSName:     getEnv("OOB_NS_NAME", ""),
+		OOBDNSPort:    getEnv("OOB_DNS_PORT", "53"),
+		OOBHTTPPort:   getEnv("OOB_HTTP_PORT", "80"),
+		OOBHTTPSPort:  getEnv("OOB_HTTPS_PORT", "443"),
+		OOBSMTPPort:   getEnv("OOB_SMTP_PORT", "25"),
+		OOBTLSCert:    getEnv("OOB_TLS_CERT", ""),
+		OOBTLSKey:     getEnv("OOB_TLS_KEY", ""),
+		OOBLDAPPort:   getEnv("OOB_LDAP_PORT", "1389"),
+		OOBRMIPort:    getEnv("OOB_RMI_PORT", "1099"),
+
+		OOBRateLimitPerMin: getEnvInt("OOB_RATE_LIMIT_PER_MIN", 600),
+		OOBMaxPerClient:    getEnvInt("OOB_MAX_PER_CLIENT", 10000),
+		OOBRetentionDays:   getEnvInt("OOB_RETENTION_DAYS", 30),
+
+		TrustedProxies:   parseCSV(getEnv("TRUSTED_PROXIES", "")),
+		OutboundProxy:    getEnv("OUTBOUND_PROXY", ""),
+		OutboundNoProxy:  getEnv("OUTBOUND_NO_PROXY", ""),
+		APINumVerifyURL:  getEnv("API_NUMVERIFY_URL", "http://apilayer.net/api/validate"),
+		APIIpApiURL:      getEnv("API_IP_API_URL", "http://ip-api.com/json/"),
+		APIWebArchiveURL: getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
 
 		LogPath: getEnv("LOG_PATH", "data/logs"),
 	}

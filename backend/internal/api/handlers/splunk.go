@@ -397,5 +397,3 @@ func GetSplunkIndices(c *gin.Context) {
 
 	c.JSON(http.StatusOK, indices)
 }
-
-

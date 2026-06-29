@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,12 @@ import (
 	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/models"
 )
+
+// dummyBcryptHash is compared against the supplied password when the account
+// does not exist, so a missing user takes roughly the same time as a wrong
+// password — closing the timing side-channel that would otherwise reveal which
+// emails are registered.
+var dummyBcryptHash, _ = bcrypt.GenerateFromPassword([]byte("invalid-placeholder-password"), bcrypt.DefaultCost)
 
 // loginRequest is the expected JSON body for the login endpoint.
 type loginRequest struct {
@@ -37,14 +44,37 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+	rdb := getRedis(c)
+	clientIP := c.ClientIP()
+
+	// Reject attempts that are currently locked out before touching the DB.
+	if blocked, retryAfter, reason := loginThrottleCheck(ctx, rdb, req.Email, clientIP); blocked {
+		writeAudit(c, db, nil, nil, "auth.login.blocked", req.Email, "login blocked ("+reason+")")
+		secs := int(retryAfter.Seconds()) + 1
+		c.Header("Retry-After", strconv.Itoa(secs))
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"success":     false,
+			"error":       "too many failed attempts, try again later",
+			"retry_after": secs,
+		})
+		return
+	}
+
 	var user models.User
 	if err := db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		// Equalize timing with the wrong-password path to avoid user enumeration.
+		_ = bcrypt.CompareHashAndPassword(dummyBcryptHash, []byte(req.Password))
+		loginThrottleFail(ctx, rdb, req.Email, clientIP)
+		writeAudit(c, db, nil, nil, "auth.login.failed", req.Email, "unknown account from "+clientIP)
 		// Return generic message to avoid user enumeration.
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid email or password"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		loginThrottleFail(ctx, rdb, req.Email, clientIP)
+		writeAudit(c, db, &user.ID, nil, "auth.login.failed", user.ID.String(), "bad password from "+clientIP)
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "invalid email or password"})
 		return
 	}
@@ -55,6 +85,9 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "could not generate token"})
 		return
 	}
+
+	// Successful login — clear the account's failed-attempt counters.
+	loginThrottleReset(ctx, rdb, req.Email)
 
 	writeAudit(c, db, &user.ID, nil, "auth.login", user.ID.String(), "user logged in")
 

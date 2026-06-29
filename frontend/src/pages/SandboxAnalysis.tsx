@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Trash2, Terminal as TerminalIcon, Cpu, RefreshCw, Server, MemoryStick, Database, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -29,12 +29,27 @@ export default function SandboxAnalysis() {
   const isSidebarOpen = useUiStore(s => s.memorySidebarOpen)
   const setIsSidebarOpen = useUiStore(s => s.setMemorySidebarOpen)
 
-  // Initialize terminal URL to point to the ttyd server
-  useState(() => {
-    const protocol = window.location.protocol
-    const hostname = window.location.hostname
-    setTerminalUrl(`${protocol}//${hostname}:7681`)
-  })
+  // The ttyd terminal is no longer exposed on a host port — the backend
+  // reverse-proxies it behind an admin JWT. Browsers can't attach an
+  // Authorization header to an <iframe>, so we first ask the backend to drop a
+  // short-lived, path-scoped HttpOnly cookie (the "grant"), then load the
+  // same-origin proxy path; the cookie authenticates the iframe + its WebSocket.
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    fetch('/api/v1/sandbox/grant', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('grant failed')
+        if (!cancelled) setTerminalUrl('/api/v1/sandbox/terminal/')
+      })
+      .catch(() => {
+        if (!cancelled) toast.error('Không khởi tạo được terminal (cần quyền admin)')
+      })
+    return () => { cancelled = true }
+  }, [token])
 
   const { data: dumps = [], isLoading, refetch } = useQuery<DumpFile[]>({
     queryKey: ['memory-dumps'],

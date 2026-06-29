@@ -58,6 +58,7 @@ func (h *CanaryHandler) view(c *gin.Context, t models.CanaryToken) canaryTokenVi
 //  1. the token's own BaseURL override,
 //  2. the global CANARY_BASE_URL config (a shared front/disposable domain),
 //  3. the request-derived server host (last resort — exposes the real host).
+//
 // This lets operators keep the real ForensicHub address off the generated link.
 func (h *CanaryHandler) canaryBase(c *gin.Context, t models.CanaryToken) string {
 	if b := strings.TrimRight(strings.TrimSpace(t.BaseURL), "/"); b != "" {

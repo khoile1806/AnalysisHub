@@ -378,4 +378,3 @@ func RunQRadarHunt(c *gin.Context) {
 
 	c.JSON(http.StatusOK, elkResp)
 }
-

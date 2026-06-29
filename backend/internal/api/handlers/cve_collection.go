@@ -455,7 +455,6 @@ func syncFromCIRCL(hub *ws.Hub) {
 	log.Printf("[cve-worker] CIRCL sync complete, added %d new CVEs", newCount)
 }
 
-
 // StreamCVECollection pushes signals to the client over SSE whenever the collection changes.
 func StreamCVECollection(c *gin.Context) {
 	hub, ok := mustGetHub(c)
