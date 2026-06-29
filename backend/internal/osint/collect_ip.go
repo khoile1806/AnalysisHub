@@ -192,14 +192,14 @@ func (w ipWhoCoord) toGeo() (lat, lon float64) { return w.Latitude, w.Longitude 
 
 // ipWhoLookup fetches a second-opinion geolocation from ipwho.is.
 func ipWhoLookup(ctx context.Context, env *collectorEnv) (struct {
-	Lat, Lon     float64
+	Lat, Lon      float64
 	City, Country string
 }, bool) {
 	var w ipWhoCoord
 	api := "https://ipwho.is/" + url.PathEscape(env.target) + "?fields=success,latitude,longitude,city,country"
 	st, err := cachedGetJSON(ctx, env.cache, "ipwho:"+env.target, rlIPWho, api, nil, &w, ttlGeoIP)
 	res := struct {
-		Lat, Lon     float64
+		Lat, Lon      float64
 		City, Country string
 	}{}
 	if err != nil || st != 200 || !w.Success {

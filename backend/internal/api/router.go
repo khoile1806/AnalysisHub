@@ -423,6 +423,8 @@ func NewRouter(
 		protected.GET("/system/health", sysHandler.GetHealth)
 		protected.GET("/system/token-stats", sysHandler.GetTokenStats)
 		protected.GET("/system/proxy", sysHandler.GetProxyStatus)
+		protected.PATCH("/system/proxy", sysHandler.SetProxy)
+		protected.POST("/system/proxy/check", sysHandler.CheckProxy)
 		protected.POST("/system/proxy/validate", sysHandler.ValidateProxy)
 	}
 

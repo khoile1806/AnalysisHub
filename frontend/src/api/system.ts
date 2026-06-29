@@ -85,6 +85,24 @@ export interface TokenStatsData {
   recent: RecentSession[]
 }
 
+export interface ProxyHealth {
+  healthy: boolean
+  last_check: string
+  latency_ms: number
+  error?: string
+}
+
+export interface ProxyStatus {
+  outbound_configured: boolean
+  outbound_proxy: string
+  no_proxy: string
+  fallback_direct: boolean
+  health: ProxyHealth
+  tor_configured: boolean
+  tor_proxy: string
+  darkweb_sources: number
+}
+
 interface ApiResponse<T> {
   success: boolean
   data: T
@@ -98,6 +116,21 @@ export const systemApi = {
 
   getTokenStats: async (): Promise<TokenStatsData> => {
     const { data } = await apiClient.get<ApiResponse<TokenStatsData>>('/system/token-stats')
+    return data.data
+  },
+
+  getProxy: async (): Promise<ProxyStatus> => {
+    const { data } = await apiClient.get<ApiResponse<ProxyStatus>>('/system/proxy')
+    return data.data
+  },
+
+  setProxy: async (body: { proxy_url: string; no_proxy?: string; fallback_direct?: boolean }): Promise<ProxyStatus> => {
+    const { data } = await apiClient.patch<ApiResponse<ProxyStatus>>('/system/proxy', body)
+    return data.data
+  },
+
+  checkProxy: async (): Promise<ProxyStatus> => {
+    const { data } = await apiClient.post<ApiResponse<ProxyStatus>>('/system/proxy/check')
     return data.data
   },
 }

@@ -102,9 +102,9 @@ func collectPulsedive(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	u := "https://pulsedive.com/api/info.php?indicator=" + url.QueryEscape(env.target) +
 		"&key=" + url.QueryEscape(env.keys.Pulsedive)
 	var r struct {
-		Risk        string `json:"risk"`
-		Type        string `json:"type"`
-		Threats     []struct {
+		Risk    string `json:"risk"`
+		Type    string `json:"type"`
+		Threats []struct {
 			Name string `json:"name"`
 		} `json:"threats"`
 		Error string `json:"error"`

@@ -30,7 +30,7 @@ func collectRansomwareWatch(ctx context.Context, env *collectorEnv) ([]models.Os
 	u := "https://api.ransomware.live/v2/searchvictims/" + url.PathEscape(keyword)
 	var victims []struct {
 		Victim      string `json:"victim"`
-		Group       string `json:"group"`      // ransomware group (was wrongly "group_name" -> blank)
+		Group       string `json:"group"` // ransomware group (was wrongly "group_name" -> blank)
 		Domain      string `json:"domain"`
 		Published   string `json:"published"`
 		Attackdate  string `json:"attackdate"`

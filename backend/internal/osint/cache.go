@@ -26,8 +26,8 @@ const (
 	ttlTyposquat  = 12 * time.Hour
 	ttlNVD        = 24 * time.Hour // CVE lists for a fixed product@version change slowly
 	ttlReputation = 6 * time.Hour  // abuse.ch / pulsedive / greynoise / abuseipdb verdicts
-	ttlCrtSh      = 6 * time.Hour   // CT-log subdomain set grows slowly
-	ttlWayback    = 24 * time.Hour  // archived-URL history is effectively append-only
+	ttlCrtSh      = 6 * time.Hour  // CT-log subdomain set grows slowly
+	ttlWayback    = 24 * time.Hour // archived-URL history is effectively append-only
 )
 
 // osintCache is a thin TTL cache over Redis for idempotent third-party lookups

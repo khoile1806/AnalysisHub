@@ -14,6 +14,7 @@ import (
 
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 
+	"github.com/forensichub/backend/internal/egress"
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -61,7 +62,7 @@ var webtechClient = &http.Client{
 		return nil
 	},
 	Transport: &http.Transport{
-		Proxy:           http.ProxyFromEnvironment,
+		Proxy:           egress.Proxy,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}, //nolint:gosec // fingerprint-only, content is not trusted
 		MaxIdleConns:    8,
 		IdleConnTimeout: 30 * time.Second,

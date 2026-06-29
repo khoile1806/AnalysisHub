@@ -472,7 +472,7 @@ func collectWayback(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 type vtDomainResponse struct {
 	Data struct {
 		Attributes struct {
-			Reputation       int `json:"reputation"`
+			Reputation        int `json:"reputation"`
 			LastAnalysisStats struct {
 				Harmless   int `json:"harmless"`
 				Malicious  int `json:"malicious"`

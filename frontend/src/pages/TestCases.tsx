@@ -1380,6 +1380,135 @@ const CATEGORIES: CategoryDef[] = [
           }
         },
       },
+      {
+        id: 'PROXY-06',
+        name: 'Proxy Status Includes Live Health',
+        what: 'GET /system/proxy — the live status carries a health snapshot (healthy/last_check/latency)',
+        expected: 'data.health exists with a boolean "healthy" and numeric "latency_ms"',
+        async run() {
+          const { data } = await apiClient.get('/system/proxy')
+          const hh = data.data?.health
+          if (!hh) throw new Error('No health object in proxy status')
+          if (typeof hh.healthy !== 'boolean') throw new Error('health.healthy must be boolean')
+          if (typeof hh.latency_ms !== 'number') throw new Error('health.latency_ms must be number')
+          if (typeof data.data?.fallback_direct !== 'boolean') throw new Error('fallback_direct must be boolean')
+          return `OK — healthy: ${hh.healthy} | latency: ${hh.latency_ms}ms | fallback-direct: ${data.data.fallback_direct}`
+        },
+      },
+      {
+        id: 'PROXY-07',
+        name: 'On-demand Proxy Health Probe',
+        what: 'POST /system/proxy/check — run the health probe immediately and return a fresh snapshot',
+        expected: 'Returns status with a health.last_check timestamp',
+        async run() {
+          const { data } = await apiClient.post('/system/proxy/check')
+          const lc = data.data?.health?.last_check
+          if (!lc) throw new Error('No health.last_check after probe')
+          return `OK — probed at ${lc} (healthy: ${data.data.health.healthy})`
+        },
+      },
+    ],
+  },
+
+  // ─── 12. OOB / Catch (Interaction Server) ─────────────────────────────────
+  {
+    id: 'oob',
+    label: 'Catch (OOB)',
+    icon: Crosshair,
+    color: 'text-rose-400',
+    borderColor: 'border-rose-500/30',
+    bgColor: 'bg-rose-500/5',
+    tests: [
+      {
+        id: 'OOB-01',
+        name: 'Webhook Mode Always Ready',
+        what: 'GET /osint/oob/config — webhook receiver runs on this backend with no extra setup',
+        expected: 'webhook_ready=true and webhook_base ends with /oob/r/',
+        async run() {
+          const { data } = await apiClient.get('/osint/oob/config')
+          const d = data.data
+          if (!d?.webhook_ready) throw new Error('webhook_ready is not true')
+          if (!String(d.webhook_base).endsWith('/oob/r/')) throw new Error(`unexpected webhook_base: ${d.webhook_base}`)
+          return `OK — webhook ready | base: ${d.webhook_base} | OAST domain: ${d.domain || '(unset)'}`
+        },
+      },
+      {
+        id: 'OOB-02',
+        name: 'Session Lifecycle (register → delete)',
+        what: 'POST /osint/oob/register then DELETE the session',
+        expected: 'register returns correlation_id + secret + payload.webhook; delete returns 200',
+        async run() {
+          const { data } = await apiClient.post('/osint/oob/register', { name: 'testcase-lifecycle' })
+          const c = data.data?.client
+          if (!c?.id || !c?.correlation_id) throw new Error('register missing client id/correlation_id')
+          if (!c?.secret) throw new Error('register did not return a secret')
+          if (!data.data?.payload?.webhook) throw new Error('register did not return a webhook payload')
+          await apiClient.delete(`/osint/oob/clients/${c.id}`)
+          return `OK — created+deleted session ${c.correlation_id}`
+        },
+      },
+      {
+        id: 'OOB-03',
+        name: 'Smart Decoder Peels Multiple Layers',
+        what: 'POST /osint/oob/decode with url(base64("id=42&role=admin"))',
+        expected: 'layers ≥ 2 and final = "id=42&role=admin"',
+        async run() {
+          const inner = btoa('id=42&role=admin')
+          const enc = encodeURIComponent(inner)
+          const { data } = await apiClient.post('/osint/oob/decode', { input: enc })
+          const d = data.data
+          if (!d) throw new Error('no decode result')
+          if (d.layers < 2) throw new Error(`expected ≥2 layers, got ${d.layers}`)
+          if (d.final !== 'id=42&role=admin') throw new Error(`final = "${d.final}"`)
+          return `OK — peeled ${d.layers} layers → ${d.final}`
+        },
+      },
+      {
+        id: 'OOB-04',
+        name: 'Webhook Capture End-to-End',
+        what: 'Register → fire an HTTP callback to the webhook URL → poll interactions',
+        expected: 'The fired GET is captured and listed for the session',
+        async run() {
+          const { data } = await apiClient.post('/osint/oob/register', { name: 'testcase-capture' })
+          const c = data.data.client
+          const webhook: string = data.data.payload.webhook
+          try {
+            await fetch(`${webhook}/tc-probe?x=1`, { method: 'GET' })
+            await new Promise(r => setTimeout(r, 1200))
+            const res = await apiClient.get(`/osint/oob/clients/${c.id}/interactions`)
+            const hits = res.data.data as Array<{ method?: string; path?: string }>
+            if (!hits.length) throw new Error('callback was not captured')
+            const hit = hits.find(h => (h.path ?? '').includes('tc-probe'))
+            if (!hit) throw new Error('captured interactions do not include the probe path')
+            return `OK — captured ${hits.length} interaction(s): ${hit.method} ${hit.path}`
+          } finally {
+            await apiClient.delete(`/osint/oob/clients/${c.id}`).catch(() => {})
+          }
+        },
+      },
+      {
+        id: 'OOB-05',
+        name: 'Conditional Response Rule Matches',
+        what: 'Add a rule (POST → 418) → fire GET (default 200) and POST (rule 418)',
+        expected: 'GET returns 200, POST returns 418 with the rule body',
+        async run() {
+          const { data } = await apiClient.post('/osint/oob/register', { name: 'testcase-rule' })
+          const c = data.data.client
+          const webhook: string = data.data.payload.webhook
+          try {
+            await apiClient.post(`/osint/oob/clients/${c.id}/rules`, {
+              match_method: 'POST', status: 418, content_type: 'text/plain', body: 'teapot', priority: 0,
+            })
+            const g = await fetch(`${webhook}/r`, { method: 'GET' })
+            const pst = await fetch(`${webhook}/r`, { method: 'POST', body: 'a=1' })
+            if (g.status !== 200) throw new Error(`GET expected 200, got ${g.status}`)
+            if (pst.status !== 418) throw new Error(`POST expected 418, got ${pst.status}`)
+            return `OK — GET→200, POST→418 (rule matched)`
+          } finally {
+            await apiClient.delete(`/osint/oob/clients/${c.id}`).catch(() => {})
+          }
+        },
+      },
     ],
   },
 ]

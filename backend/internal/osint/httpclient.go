@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/forensichub/backend/internal/egress"
 )
 
 const (
@@ -23,7 +25,7 @@ const (
 var osintHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
 	Transport: &http.Transport{
-		Proxy:           http.ProxyFromEnvironment, // honour the project-wide egress proxy
+		Proxy:           egress.Proxy, // project-wide egress proxy (live, health-checked)
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    32,
 		IdleConnTimeout: 60 * time.Second,
@@ -71,10 +73,10 @@ func (r *rateLimiter) wait(ctx context.Context) error {
 
 // Per-API limiters - sized to each provider's free-tier budget.
 var (
-	rlCrtSh = newRateLimiter(3 * time.Second)        // crt.sh is slow & rate-limited
-	rlRDAP  = newRateLimiter(1 * time.Second)        // rdap.org is a redirector to many registries
+	rlCrtSh = newRateLimiter(3 * time.Second)         // crt.sh is slow & rate-limited
+	rlRDAP  = newRateLimiter(1 * time.Second)         // rdap.org is a redirector to many registries
 	rlIPAPI = newRateLimiter(1500 * time.Millisecond) // ip-api.com free ~ 45 req/min
-	rlVT    = newRateLimiter(16 * time.Second)       // VirusTotal free ~ 4 req/min
+	rlVT    = newRateLimiter(16 * time.Second)        // VirusTotal free ~ 4 req/min
 )
 
 // httpGetBody performs a rate-limited GET and returns the (capped) body and

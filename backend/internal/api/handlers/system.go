@@ -15,7 +15,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"github.com/forensichub/backend/internal/api/middleware"
 	"github.com/forensichub/backend/internal/config"
+	"github.com/forensichub/backend/internal/egress"
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/sysinfo"
@@ -310,22 +312,10 @@ func maskProxyURL(raw string) string {
 	return u.Scheme + "://" + u.Host
 }
 
-// GetProxyStatus GET /api/v1/system/proxy
-// Reports the EFFECTIVE egress-proxy configuration (read from the process env
-// applied at startup) without exposing any secret. Lets the test suite verify
-// the project-wide proxy plumbing is in place and safely masked.
-func (h *SystemHandler) GetProxyStatus(c *gin.Context) {
-	getEnvAny := func(keys ...string) string {
-		for _, k := range keys {
-			if v := strings.TrimSpace(os.Getenv(k)); v != "" {
-				return v
-			}
-		}
-		return ""
-	}
-
-	outbound := getEnvAny("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy")
-	tor := getEnvAny("OSINT_TOR_PROXY")
+// proxyStatusData builds the masked, live egress-proxy + health snapshot.
+func proxyStatusData() gin.H {
+	proxy, noProxy, fallback, health := egress.Status()
+	tor := strings.TrimSpace(os.Getenv("OSINT_TOR_PROXY"))
 
 	darkSources := 0
 	if v := strings.TrimSpace(os.Getenv("OSINT_DARKWEB_SOURCES")); v != "" {
@@ -336,17 +326,59 @@ func (h *SystemHandler) GetProxyStatus(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"outbound_configured": outbound != "",
-			"outbound_proxy":      maskProxyURL(outbound),
-			"no_proxy":            getEnvAny("NO_PROXY", "no_proxy"),
-			"tor_configured":      tor != "",
-			"tor_proxy":           maskProxyURL(tor),
-			"darkweb_sources":     darkSources,
-		},
-	})
+	return gin.H{
+		"outbound_configured": proxy != "",
+		"outbound_proxy":      maskProxyURL(proxy),
+		"no_proxy":            noProxy,
+		"fallback_direct":     fallback,
+		"health":              health, // {healthy, last_check, latency_ms, error}
+		"tor_configured":      tor != "",
+		"tor_proxy":           maskProxyURL(tor),
+		"darkweb_sources":     darkSources,
+	}
+}
+
+// GetProxyStatus GET /api/v1/system/proxy
+// Reports the LIVE egress-proxy configuration + latest health probe, secrets
+// masked.
+func (h *SystemHandler) GetProxyStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": proxyStatusData()})
+}
+
+// SetProxy PATCH /api/v1/system/proxy
+// Updates the egress proxy at RUNTIME (no restart) — every outbound client picks
+// it up on its next request. Admin only.
+func (h *SystemHandler) SetProxy(c *gin.Context) {
+	if middleware.GetRole(c) != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "admin role required"})
+		return
+	}
+	var req struct {
+		ProxyURL       string `json:"proxy_url"`
+		NoProxy        string `json:"no_proxy"`
+		FallbackDirect bool   `json:"fallback_direct"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	p := strings.TrimSpace(req.ProxyURL)
+	if p != "" {
+		u, err := url.Parse(p)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "socks5") {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "proxy URL must be http(s) or socks5"})
+			return
+		}
+	}
+	egress.Set(p, config.EffectiveNoProxy(req.NoProxy), req.FallbackDirect)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": proxyStatusData()})
+}
+
+// CheckProxy POST /api/v1/system/proxy/check
+// Runs the proxy health probe immediately and returns the fresh result.
+func (h *SystemHandler) CheckProxy(c *gin.Context) {
+	egress.CheckNow()
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": proxyStatusData()})
 }
 
 // ValidateProxy POST /api/v1/system/proxy/validate

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/forensichub/backend/internal/config"
+	"github.com/forensichub/backend/internal/egress"
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -78,8 +79,8 @@ type aggregatorSeam struct {
 	key  string
 }
 
-func (a *aggregatorSeam) Name() string      { return a.name }
-func (a *aggregatorSeam) Configured() bool   { return strings.TrimSpace(a.key) != "" }
+func (a *aggregatorSeam) Name() string     { return a.name }
+func (a *aggregatorSeam) Configured() bool { return strings.TrimSpace(a.key) != "" }
 func (a *aggregatorSeam) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {
 	// Seam: wire the licensed vendor API here. Until then a configured key is a
 	// no-op rather than an error, so it never breaks a scan.
@@ -92,7 +93,7 @@ type hibpProvider struct {
 	key string
 }
 
-func (p *hibpProvider) Name() string    { return "HaveIBeenPwned" }
+func (p *hibpProvider) Name() string     { return "HaveIBeenPwned" }
 func (p *hibpProvider) Configured() bool { return strings.TrimSpace(p.key) != "" }
 func (p *hibpProvider) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {
 	var hits []DarkWebHit
@@ -101,7 +102,7 @@ func (p *hibpProvider) Search(ctx context.Context, selectors []string) ([]DarkWe
 		if !strings.Contains(sel, "@") {
 			continue // Skip non-emails for now to avoid spamming the API
 		}
-		
+
 		target := fmt.Sprintf("https://haveibeenpwned.com/api/v3/breachedaccount/%s?truncateResponse=false", url.PathEscape(sel))
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 		if err != nil {
@@ -117,7 +118,7 @@ func (p *hibpProvider) Search(ctx context.Context, selectors []string) ([]DarkWe
 		if err != nil {
 			continue
 		}
-		
+
 		if resp.StatusCode == 200 {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
@@ -150,11 +151,11 @@ type dehashedProvider struct {
 	key string
 }
 
-func (p *dehashedProvider) Name() string    { return "Dehashed" }
+func (p *dehashedProvider) Name() string     { return "Dehashed" }
 func (p *dehashedProvider) Configured() bool { return strings.TrimSpace(p.key) != "" }
 func (p *dehashedProvider) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {
 	var hits []DarkWebHit
-	
+
 	// Dehashed key is usually "email:apikey" or just "apikey" depending on config.
 	// For this integration we expect the standard "email:apikey" format in the ENV.
 	creds := strings.SplitN(p.key, ":", 2)
@@ -201,10 +202,16 @@ func (p *dehashedProvider) Search(ctx context.Context, selectors []string) ([]Da
 						break // limit to top 10 to avoid noise
 					}
 					var snippetParts []string
-					if entry.Email != "" { snippetParts = append(snippetParts, "Email: "+entry.Email) }
-					if entry.Password != "" { snippetParts = append(snippetParts, "Password: "+entry.Password) }
-					if entry.Hash != "" { snippetParts = append(snippetParts, "Hash: "+entry.Hash) }
-					
+					if entry.Email != "" {
+						snippetParts = append(snippetParts, "Email: "+entry.Email)
+					}
+					if entry.Password != "" {
+						snippetParts = append(snippetParts, "Password: "+entry.Password)
+					}
+					if entry.Hash != "" {
+						snippetParts = append(snippetParts, "Hash: "+entry.Hash)
+					}
+
 					hits = append(hits, DarkWebHit{
 						Source:   "Dehashed",
 						Title:    fmt.Sprintf("Leak in %s", entry.Database),
@@ -235,7 +242,7 @@ func newCrawlerProvider(sources []string, proxy string) *crawlerProvider {
 	tr := &http.Transport{
 		// Default to the project-wide egress proxy; a dedicated Tor SOCKS5 proxy
 		// (for .onion sources) overrides it when configured.
-		Proxy:           http.ProxyFromEnvironment,
+		Proxy:           egress.Proxy,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    8,
 		IdleConnTimeout: 30 * time.Second,
@@ -254,7 +261,7 @@ func newCrawlerProvider(sources []string, proxy string) *crawlerProvider {
 	}
 }
 
-func (c *crawlerProvider) Name() string    { return "crawler" }
+func (c *crawlerProvider) Name() string     { return "crawler" }
 func (c *crawlerProvider) Configured() bool { return len(c.sources) > 0 }
 
 func (c *crawlerProvider) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {

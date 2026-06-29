@@ -7,11 +7,11 @@ import (
 
 func TestExtractVersion(t *testing.T) {
 	cases := map[string]string{
-		"nginx/1.18.0":          "1.18.0",
-		"OpenSSH_8.2p1 Ubuntu":  "8.2",
-		"Apache/2.4.49 (Unix)":  "2.4.49",
-		"no version here":       "",
-		"PHP/7.4.3":             "7.4.3",
+		"nginx/1.18.0":         "1.18.0",
+		"OpenSSH_8.2p1 Ubuntu": "8.2",
+		"Apache/2.4.49 (Unix)": "2.4.49",
+		"no version here":      "",
+		"PHP/7.4.3":            "7.4.3",
 	}
 	for in, want := range cases {
 		if got := extractVersion(in); got != want {

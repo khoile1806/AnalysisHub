@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"sync/atomic"
 	"testing"
+
+	"github.com/forensichub/backend/internal/egress"
 )
 
 // proxyURLFor calls a transport's Proxy func for a sample request and returns
@@ -50,8 +52,8 @@ func TestExternalClientsHonorEnvProxy(t *testing.T) {
 			t.Errorf("%s: Proxy is nil — will NOT honour OUTBOUND_PROXY", name)
 			continue
 		}
-		if !samePtr(tr.Proxy, http.ProxyFromEnvironment) {
-			t.Errorf("%s: Proxy is not http.ProxyFromEnvironment", name)
+		if !samePtr(tr.Proxy, egress.Proxy) {
+			t.Errorf("%s: Proxy is not egress.Proxy", name)
 		}
 	}
 }
@@ -73,8 +75,8 @@ func TestCrawlerProxySelection(t *testing.T) {
 		t.Error("expected viaTor=false when no proxy is configured")
 	}
 	tr := transportOf(c2.client)
-	if tr.Proxy == nil || !samePtr(tr.Proxy, http.ProxyFromEnvironment) {
-		t.Error("crawler with no Tor proxy should fall back to http.ProxyFromEnvironment")
+	if tr.Proxy == nil || !samePtr(tr.Proxy, egress.Proxy) {
+		t.Error("crawler with no Tor proxy should fall back to egress.Proxy")
 	}
 }
 

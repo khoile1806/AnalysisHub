@@ -40,12 +40,12 @@ func collectThreatFox(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	var r struct {
 		QueryStatus string `json:"query_status"`
 		Data        []struct {
-			IOC             string `json:"ioc"`
-			ThreatType      string `json:"threat_type"`
-			Malware         string `json:"malware"`
+			IOC              string `json:"ioc"`
+			ThreatType       string `json:"threat_type"`
+			Malware          string `json:"malware"`
 			MalwarePrintable string `json:"malware_printable"`
-			ConfidenceLevel int    `json:"confidence_level"`
-			FirstSeen       string `json:"first_seen"`
+			ConfidenceLevel  int    `json:"confidence_level"`
+			FirstSeen        string `json:"first_seen"`
 		} `json:"data"`
 	}
 	status, err := cachedPostJSON(ctx, env.cache, "threatfox:"+strings.ToLower(env.target), rlAbuseCh,

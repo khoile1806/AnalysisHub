@@ -71,8 +71,8 @@ func TestTypoVariants(t *testing.T) {
 
 func TestSplitRegistrable(t *testing.T) {
 	cases := map[string][2]string{
-		"example.com":   {"example", "com"},
-		"foo.co.uk":     {"foo", "co.uk"},
+		"example.com":    {"example", "com"},
+		"foo.co.uk":      {"foo", "co.uk"},
 		"a.b.example.io": {"example", "io"},
 	}
 	for host, want := range cases {

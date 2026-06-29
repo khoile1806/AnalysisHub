@@ -5,6 +5,7 @@ import (
 
 	"github.com/forensichub/backend/internal/config"
 )
+
 // placeholderDomains are reserved/test domains (RFC 2606 + common throwaways)
 // that carry no real footprint — auto-pivoting into them only wastes scans.
 var placeholderDomains = map[string]bool{

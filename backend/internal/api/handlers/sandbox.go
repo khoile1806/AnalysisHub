@@ -92,7 +92,11 @@ func SandboxGrant(c *gin.Context) {
 		return
 	}
 
-	secure := strings.HasPrefix(getServerURL(c), "https")
+	// Mark the cookie Secure based on the BROWSER's actual scheme (not PUBLIC_URL):
+	// a Secure cookie is dropped by the browser over plain http (localhost / LAN),
+	// which would silently break the iframe auth. Honour the proxy's
+	// X-Forwarded-Proto or a direct TLS connection.
+	secure := c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https")
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(sandboxCookieName, token, int(sandboxCookieTTL.Seconds()), "/api/v1/sandbox/terminal", "", secure, true)
 	c.JSON(http.StatusOK, gin.H{"success": true})

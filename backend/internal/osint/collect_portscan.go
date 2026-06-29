@@ -50,8 +50,8 @@ var sshBannerRe = regexp.MustCompile(`SSH-\d+\.\d+-([A-Za-z0-9_.\-]+)`)
 // thousands of sockets at once and exhaust ephemeral ports / file descriptors.
 // Initialised once from config on first use.
 var (
-	portscanHostSem  chan struct{}
-	portscanSemOnce  sync.Once
+	portscanHostSem chan struct{}
+	portscanSemOnce sync.Once
 )
 
 // acquireHostSlot blocks until a host-scan slot is free or ctx is cancelled. It

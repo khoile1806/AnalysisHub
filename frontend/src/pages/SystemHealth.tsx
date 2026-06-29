@@ -1,11 +1,12 @@
 import { useState, Component, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Activity, BrainCircuit, Database, HardDrive,
   RefreshCw, Server, Wifi, CheckCircle2, AlertTriangle,
   XCircle, Clock, Loader2, Zap, BarChart3, Cpu,
-  History, ChevronDown, ChevronUp, MemoryStick,
+  History, ChevronDown, ChevronUp, MemoryStick, Network, Save,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { systemApi, type ComponentStatus, type ProviderTokenStat, type RecentSession, type ServerResources, type AgentResource } from '@/api/system'
 import { safeDistanceToNow, safeFormat } from '@/lib/utils'
 
@@ -208,6 +209,93 @@ function fmtGB(gb: number): string {
 // ──────────────────────────────────────────────────────────────────────────────
 // Server Resources section
 // ──────────────────────────────────────────────────────────────────────────────
+
+function EgressProxySection() {
+  const qc = useQueryClient()
+  const { data: p } = useQuery({ queryKey: ['proxy-status'], queryFn: systemApi.getProxy, refetchInterval: 30_000 })
+  const [editing, setEditing] = useState(false)
+  const [proxyUrl, setProxyUrl] = useState('')
+  const [noProxy, setNoProxy] = useState('')
+  const [fallback, setFallback] = useState(false)
+
+  const startEdit = () => {
+    setProxyUrl(p?.outbound_proxy ?? '')
+    setNoProxy(p?.no_proxy ?? '')
+    setFallback(p?.fallback_direct ?? false)
+    setEditing(true)
+  }
+
+  const save = useMutation({
+    mutationFn: () => systemApi.setProxy({ proxy_url: proxyUrl.trim(), no_proxy: noProxy.trim(), fallback_direct: fallback }),
+    onSuccess: (d) => { qc.setQueryData(['proxy-status'], d); setEditing(false); toast.success('Proxy updated (no restart needed)') },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Update failed'),
+  })
+  const check = useMutation({
+    mutationFn: () => systemApi.checkProxy(),
+    onSuccess: (d) => { qc.setQueryData(['proxy-status'], d); toast.success('Proxy probed') },
+  })
+
+  const h = p?.health
+  const configured = p?.outbound_configured
+  const healthy = h?.healthy
+  const statusColor = !configured ? 'text-gray-400' : healthy ? 'text-emerald-400' : 'text-rose-400'
+  const StatusIcon = !configured ? Network : healthy ? CheckCircle2 : XCircle
+
+  return (
+    <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 p-4 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <StatusIcon className={`h-4 w-4 ${statusColor}`} />
+          <span className={`text-sm font-medium ${statusColor}`}>
+            {!configured ? 'Direct (no proxy)' : healthy ? 'Proxy healthy' : 'Proxy unhealthy'}
+          </span>
+          {configured && h && (
+            <span className="text-xs text-gray-500">· {h.latency_ms}ms · {safeDistanceToNow(h.last_check)}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => check.mutate()} disabled={check.isPending}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-white/5 text-gray-300 hover:bg-white/10 disabled:opacity-40">
+            <RefreshCw className={`h-3 w-3 ${check.isPending ? 'animate-spin' : ''}`} /> Test now
+          </button>
+          {!editing && (
+            <button onClick={startEdit} className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-gray-300 hover:bg-white/10">Configure</button>
+          )}
+        </div>
+      </div>
+
+      {!editing ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div><div className="text-gray-500 mb-0.5">Proxy URL</div><div className="text-gray-200 font-mono truncate" title={p?.outbound_proxy}>{p?.outbound_proxy || '—'}</div></div>
+          <div><div className="text-gray-500 mb-0.5">No-proxy</div><div className="text-gray-200 font-mono truncate" title={p?.no_proxy}>{p?.no_proxy || '—'}</div></div>
+          <div><div className="text-gray-500 mb-0.5">Auto fallback-direct</div><div className={p?.fallback_direct ? 'text-amber-300' : 'text-gray-400'}>{p?.fallback_direct ? 'enabled' : 'disabled'}</div></div>
+          <div><div className="text-gray-500 mb-0.5">Tor (dark-web)</div><div className="text-gray-200 font-mono truncate">{p?.tor_configured ? p?.tor_proxy : '—'}</div></div>
+          {configured && !healthy && h?.error && (
+            <div className="col-span-2 sm:col-span-4 text-rose-400/90 break-all">⚠ {h.error}</div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <input value={proxyUrl} onChange={e => setProxyUrl(e.target.value)} placeholder="http://host:port or socks5://host:port (empty = direct)"
+            className="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-gray-200 font-mono" />
+          <input value={noProxy} onChange={e => setNoProxy(e.target.value)} placeholder="No-proxy (comma-separated hosts/CIDRs)"
+            className="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-gray-200 font-mono" />
+          <label className="flex items-center gap-2 text-xs text-gray-400">
+            <input type="checkbox" checked={fallback} onChange={e => setFallback(e.target.checked)} />
+            Auto fall back to a direct connection when the proxy is unhealthy
+          </label>
+          <div className="flex items-center justify-end gap-2">
+            <button onClick={() => setEditing(false)} className="text-xs px-3 py-1 rounded-md bg-white/5 text-gray-400 hover:bg-white/10">Cancel</button>
+            <button onClick={() => save.mutate()} disabled={save.isPending}
+              className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/20 disabled:opacity-40">
+              <Save className="h-3 w-3" /> Apply (no restart)
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ServerResourcesSection({ res }: { res: ServerResources }) {
   const hasData = res.ram_total_mb > 0 || res.disk_total_gb > 0 || res.cpu_count > 0
@@ -543,6 +631,12 @@ function HealthTab() {
               <ServerResourcesSection res={data.server} />
             </div>
           )}
+
+          {/* Egress proxy health + runtime control */}
+          <div>
+            <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3">Egress Proxy</h3>
+            <EgressProxySection />
+          </div>
 
           {/* Agent resource telemetry */}
           <div>

@@ -34,9 +34,9 @@ const (
 	TargetEmail    = "email"
 	TargetPhone    = "phone"
 	TargetUsername = "username"
-	TargetHash     = "hash"   // file hash (md5/sha1/sha256) - DFIR IOC
-	TargetWallet   = "wallet" // crypto wallet (BTC/ETH) - money-trail DFIR
-	TargetName     = "name"   // free-text person / full name (allows spaces)
+	TargetHash     = "hash"           // file hash (md5/sha1/sha256) - DFIR IOC
+	TargetWallet   = "wallet"         // crypto wallet (BTC/ETH) - money-trail DFIR
+	TargetName     = "name"           // free-text person / full name (allows spaces)
 	TargetSocial   = "social_profile" // a social-media profile URL (platform + handle)
 )
 
@@ -170,7 +170,7 @@ func buildCollectors(targetType string) []collector {
 	switch targetType {
 	case TargetDomain:
 		return []collector{
-		{"rdap", collectDomainRDAP},
+			{"rdap", collectDomainRDAP},
 			{"dns", collectDNS},
 			{"passive_dns", collectPassiveDNS},
 			{"crtsh", collectCrtSh},

@@ -23,10 +23,10 @@ type rdapEntity struct {
 }
 
 type rdapResponse struct {
-	LdhName     string      `json:"ldhName"`
-	Handle      string      `json:"handle"`
-	Status      []string    `json:"status"`
-	Events      []rdapEvent `json:"events"`
+	LdhName     string       `json:"ldhName"`
+	Handle      string       `json:"handle"`
+	Status      []string     `json:"status"`
+	Events      []rdapEvent  `json:"events"`
 	Entities    []rdapEntity `json:"entities"`
 	Nameservers []struct {
 		LdhName string `json:"ldhName"`

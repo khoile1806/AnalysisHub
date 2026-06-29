@@ -141,11 +141,17 @@ type Config struct {
 	// automatically to every EXTERNAL fetch (OSINT, threat-intel, CVE, news…).
 	// Internal SIEM connectors (ELK/Splunk/QRadar/OpenCTI) bypass it. Empty =
 	// direct. OutboundNoProxy is an optional comma-separated NO_PROXY list.
-	OutboundProxy    string
-	OutboundNoProxy  string
-	APINumVerifyURL  string // NumVerify validate endpoint
-	APIIpApiURL      string // ip-api.com geolocation endpoint
-	APIWebArchiveURL string // Wayback Machine CDX endpoint
+	OutboundProxy   string
+	OutboundNoProxy string
+	// OutboundProxyFallback: when true, egress automatically falls back to a
+	// DIRECT connection if the configured proxy is unhealthy (keeps fetches
+	// working at the cost of anonymity). OutboundProxyProbe is the URL the
+	// background health checker GETs through the proxy.
+	OutboundProxyFallback bool
+	OutboundProxyProbe    string
+	APINumVerifyURL       string // NumVerify validate endpoint
+	APIIpApiURL           string // ip-api.com geolocation endpoint
+	APIWebArchiveURL      string // Wayback Machine CDX endpoint
 
 	// LogPath is the directory where date-stamped log files are written.
 	// Defaults to "data/logs" (relative to CWD) for local dev.
@@ -261,12 +267,14 @@ func Load() *Config {
 		OOBMaxPerClient:    getEnvInt("OOB_MAX_PER_CLIENT", 10000),
 		OOBRetentionDays:   getEnvInt("OOB_RETENTION_DAYS", 30),
 
-		TrustedProxies:   parseCSV(getEnv("TRUSTED_PROXIES", "")),
-		OutboundProxy:    getEnv("OUTBOUND_PROXY", ""),
-		OutboundNoProxy:  getEnv("OUTBOUND_NO_PROXY", ""),
-		APINumVerifyURL:  getEnv("API_NUMVERIFY_URL", "http://apilayer.net/api/validate"),
-		APIIpApiURL:      getEnv("API_IP_API_URL", "http://ip-api.com/json/"),
-		APIWebArchiveURL: getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
+		TrustedProxies:        parseCSV(getEnv("TRUSTED_PROXIES", "")),
+		OutboundProxy:         getEnv("OUTBOUND_PROXY", ""),
+		OutboundNoProxy:       getEnv("OUTBOUND_NO_PROXY", ""),
+		OutboundProxyFallback: getEnv("OUTBOUND_PROXY_FALLBACK_DIRECT", "false") == "true",
+		OutboundProxyProbe:    getEnv("OUTBOUND_PROXY_PROBE_URL", "https://www.google.com/generate_204"),
+		APINumVerifyURL:       getEnv("API_NUMVERIFY_URL", "http://apilayer.net/api/validate"),
+		APIIpApiURL:           getEnv("API_IP_API_URL", "http://ip-api.com/json/"),
+		APIWebArchiveURL:      getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
 
 		LogPath: getEnv("LOG_PATH", "data/logs"),
 	}

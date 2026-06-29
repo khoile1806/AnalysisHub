@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +21,7 @@ import (
 	"github.com/forensichub/backend/internal/api/handlers"
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/database"
+	"github.com/forensichub/backend/internal/egress"
 	"github.com/forensichub/backend/internal/hunting/sigma"
 	"github.com/forensichub/backend/internal/logger"
 	"github.com/forensichub/backend/internal/models"
@@ -49,11 +49,20 @@ func main() {
 	// Initialize Sigma Engine
 	sigma.Init("tools/sigma-rules")
 
-	// Apply the project-wide egress proxy as early as possible (before any HTTP
-	// client makes a request). Every external fetch that uses the default
-	// transport or http.ProxyFromEnvironment then routes through it automatically;
-	// internal SIEM connectors keep their own proxy-less transports and bypass it.
-	applyOutboundProxy(cfg)
+	// Project-wide egress proxy. Held in a live config (internal/egress) so it can
+	// be changed at runtime with no restart, with periodic health checking and an
+	// optional auto-fall-back to direct when the proxy is down. We point the
+	// default transport (used by threat-intel, CVE, AI, news, notify, OOB enrich)
+	// at egress.Proxy; OSINT collectors reference it directly. Internal SIEM
+	// connectors keep their own proxy-less transports and bypass it by design.
+	egress.Init(cfg.OutboundProxy, config.EffectiveNoProxy(cfg.OutboundNoProxy), cfg.OutboundProxyFallback, cfg.OutboundProxyProbe)
+	if tr, ok := http.DefaultTransport.(*http.Transport); ok {
+		tr.Proxy = egress.Proxy
+	}
+	egress.StartHealthCheck(60 * time.Second)
+	if cfg.OutboundProxy != "" {
+		slog.Info("outbound proxy enabled (live + health-checked)", "fallback_direct", cfg.OutboundProxyFallback)
+	}
 
 	// ------------------------------------------------------------------ //
 	// 2.5 Initialise file-based logging
@@ -446,26 +455,4 @@ func seedScenarios(db *gorm.DB) error {
 		slog.Info("seeded hunting scenario", "name", sc.Name)
 	}
 	return nil
-}
-
-// applyOutboundProxy installs the project-wide egress proxy by exporting the
-// standard HTTP_PROXY/HTTPS_PROXY/NO_PROXY variables. Every HTTP client that
-// uses the default transport or http.ProxyFromEnvironment (OSINT, threat-intel,
-// CVE, news, AI) then routes through it automatically. Internal SIEM connectors
-// keep proxy-less transports and are unaffected. Must run before the first
-// outbound request so net/http caches the right config.
-func applyOutboundProxy(cfg *config.Config) {
-	p := strings.TrimSpace(cfg.OutboundProxy)
-	if p == "" {
-		return
-	}
-	for _, k := range []string{"HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"} {
-		_ = os.Setenv(k, p)
-	}
-	// Always keep loopback/local traffic (SIEM, Redis, DB health probes over
-	// HTTP) off the proxy, plus any operator-supplied exceptions.
-	noProxy := config.EffectiveNoProxy(cfg.OutboundNoProxy)
-	_ = os.Setenv("NO_PROXY", noProxy)
-	_ = os.Setenv("no_proxy", noProxy)
-	slog.Info("outbound proxy enabled for external fetches", "proxy", p, "no_proxy", noProxy)
 }

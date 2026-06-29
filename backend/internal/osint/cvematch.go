@@ -34,7 +34,7 @@ func extractVersion(s string) string {
 
 // nvdCVEResponse is the minimal slice of the NVD 2.0 schema the matcher reads.
 type nvdCVEResponse struct {
-	TotalResults  int `json:"totalResults"`
+	TotalResults    int `json:"totalResults"`
 	Vulnerabilities []struct {
 		CVE struct {
 			ID           string `json:"id"`
@@ -62,11 +62,11 @@ type nvdMetric struct {
 
 // cveHit is one matched CVE with its score, used for sorting before emission.
 type cveHit struct {
-	id     string
-	score  float64
-	sev    string
-	desc   string
-	isKEV  bool
+	id    string
+	score float64
+	sev   string
+	desc  string
+	isKEV bool
 }
 
 // lookupCVEs queries NVD for CVEs affecting product@version using Fuzzy Matching

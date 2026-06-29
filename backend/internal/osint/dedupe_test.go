@@ -11,10 +11,10 @@ import (
 // trailing dot collapses to one key.
 func TestNormValue(t *testing.T) {
 	cases := map[string]string{
-		"Example.COM.":   "example.com",
-		"  host.tld  ":   "host.tld",
-		"a.b.c...":       "a.b.c",
-		"NoChange":       "nochange",
+		"Example.COM.": "example.com",
+		"  host.tld  ": "host.tld",
+		"a.b.c...":     "a.b.c",
+		"NoChange":     "nochange",
 	}
 	for in, want := range cases {
 		if got := normValue(in); got != want {

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/forensichub/backend/internal/egress"
 	"github.com/forensichub/backend/internal/models"
 )
 
@@ -27,7 +28,7 @@ var socialHTTPClient = &http.Client{
 		return http.ErrUseLastResponse
 	},
 	Transport: &http.Transport{
-		Proxy:             http.ProxyFromEnvironment,
+		Proxy:             egress.Proxy,
 		TLSClientConfig:   &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:      32,
 		IdleConnTimeout:   30 * time.Second,
