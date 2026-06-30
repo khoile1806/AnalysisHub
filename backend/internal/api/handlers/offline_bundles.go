@@ -21,14 +21,22 @@ import (
 
 // offlineBundleTool mirrors the JSON shape written to bundle.json inside
 // the generated ZIP. Kept local to this handler — no shared model needed.
+type offlineBundlePreset struct {
+	Label string `json:"label"`
+	Args  string `json:"args"`
+}
+
 type offlineBundleTool struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	Description    string `json:"description"`
-	FileName       string `json:"file_name"`
-	ExecutablePath string `json:"executable_path"`
-	DefaultArgs    string `json:"default_args"`
-	Category       string `json:"category"`
+	ID             string                `json:"id"`
+	Name           string                `json:"name"`
+	Description    string                `json:"description"`
+	FileName       string                `json:"file_name"`
+	ExecutablePath string                `json:"executable_path"`
+	DefaultArgs    string                `json:"default_args"`
+	Category       string                `json:"category"`
+	RequiresAdmin  bool                  `json:"requires_admin,omitempty"`
+	Presets        []offlineBundlePreset `json:"presets,omitempty"`
+	ReportPath     string                `json:"report_path,omitempty"`
 }
 
 type offlineBundleManifest struct {
@@ -37,7 +45,34 @@ type offlineBundleManifest struct {
 	Platform  string              `json:"platform"`
 	CaseID    string              `json:"case_id,omitempty"`
 	CaseName  string              `json:"case_name,omitempty"`
+	Operator  string              `json:"operator,omitempty"`
 	Tools     []offlineBundleTool `json:"tools"`
+	// Reference holds the operator-selected checklists + playbooks, embedded so
+	// the offline agent can show them as a hunting guide. Pass-through JSON.
+	Reference json.RawMessage `json:"reference,omitempty"`
+}
+
+// offlineToolExtras returns manifest extras (presets, report path, admin flag)
+// for a tool, derived from its name/category. This is the data-driven home of
+// what used to be hard-coded in the agent UI (webshell C:\/IIS/Users buttons).
+func offlineToolExtras(name, category string) (requiresAdmin bool, presets []offlineBundlePreset, reportPath string) {
+	ln := strings.ToLower(name)
+	lc := strings.ToLower(category)
+	if strings.Contains(ln, "webshell") {
+		presets = []offlineBundlePreset{
+			{Label: "C:\\", Args: `scan C:\ --out report`},
+			{Label: "IIS", Args: `scan C:\inetpub\wwwroot --out report`},
+			{Label: "Users", Args: `scan C:\Users --out report`},
+			{Label: "/var/www", Args: `scan /var/www --out report`},
+		}
+		reportPath = "report/report.html"
+	}
+	// Live-system collectors generally need elevation for full coverage.
+	if strings.Contains(lc, "collect") || strings.Contains(lc, "triage") || strings.Contains(lc, "memory") ||
+		strings.Contains(ln, "autorun") || strings.Contains(ln, "process") || strings.Contains(ln, "registry") {
+		requiresAdmin = true
+	}
+	return
 }
 
 // GenerateOfflineBundle builds a self-contained ZIP bundle for offline hunting.
@@ -67,12 +102,13 @@ func GenerateOfflineBundle(c *gin.Context) {
 	_ = store
 
 	var req struct {
-		Name           string   `json:"name"     binding:"required"`
-		ToolIDs        []string `json:"tool_ids" binding:"required,min=1"`
-		Platform       string   `json:"platform"`
-		CaseID         string   `json:"case_id"`          // optional: link bundle to a case
-		CaseName       string   `json:"case_name"`        // optional: display name of the case
-		CustomYaraRule string   `json:"custom_yara_rule"` // optional: custom YARA rule content
+		Name           string          `json:"name"     binding:"required"`
+		ToolIDs        []string        `json:"tool_ids" binding:"required,min=1"`
+		Platform       string          `json:"platform"`
+		CaseID         string          `json:"case_id"`          // optional: link bundle to a case
+		CaseName       string          `json:"case_name"`        // optional: display name of the case
+		CustomYaraRule string          `json:"custom_yara_rule"` // optional: custom YARA rule content
+		Reference      json.RawMessage `json:"reference"`        // optional: embedded checklists + playbooks (pass-through)
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -97,6 +133,10 @@ func GenerateOfflineBundle(c *gin.Context) {
 		return
 	}
 
+	// Operator identity for chain-of-custody (best-effort).
+	operator, _ := c.Get("userEmail")
+	operatorStr, _ := operator.(string)
+
 	// Build manifest.
 	manifest := offlineBundleManifest{
 		Name:      req.Name,
@@ -104,6 +144,8 @@ func GenerateOfflineBundle(c *gin.Context) {
 		Platform:  req.Platform,
 		CaseID:    req.CaseID,
 		CaseName:  req.CaseName,
+		Operator:  operatorStr,
+		Reference: req.Reference,
 	}
 	for _, t := range tools {
 		args := t.Args
@@ -112,6 +154,7 @@ func GenerateOfflineBundle(c *gin.Context) {
 			args += " --all-files --yara-rules custom_rules"
 		}
 
+		requiresAdmin, presets, reportPath := offlineToolExtras(t.Name, t.Category)
 		manifest.Tools = append(manifest.Tools, offlineBundleTool{
 			ID:             t.ID.String(),
 			Name:           t.Name,
@@ -120,6 +163,9 @@ func GenerateOfflineBundle(c *gin.Context) {
 			ExecutablePath: t.ExecutablePath,
 			DefaultArgs:    args,
 			Category:       t.Category,
+			RequiresAdmin:  requiresAdmin,
+			Presets:        presets,
+			ReportPath:     reportPath,
 		})
 	}
 

@@ -4,491 +4,425 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ForensicHub Offline Agent</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<!-- Self-contained: NO external resources (works on an air-gapped target). -->
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg: #0A0A0F;
-  --surface: rgba(20, 25, 35, 0.6);
-  --surface-hover: rgba(40, 48, 65, 0.7);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
-  --text: #F8FAFC;
-  --muted: #94A3B8;
-  --accent: #0EA5E9;
-  --accent-glow: rgba(14, 165, 233, 0.4);
-  --purple: #8B5CF6;
-  --purple-glow: rgba(139, 92, 246, 0.4);
-  --green: #10B981;
-  --yellow: #F59E0B;
-  --red: #EF4444;
-  --panel-blur: blur(24px);
-}
-body{
-  font-family:'Inter',system-ui,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  font-size:14px;
-  overflow:hidden;
-  background-image: 
-    radial-gradient(circle at 15% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 85% 100%, rgba(14, 165, 233, 0.12) 0%, transparent 40%);
-}
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0b1020; --panel:#131a2b; --panel2:#0f1626; --border:#243049; --border2:#33415f;
+    --text:#e6edf6; --muted:#8b98ad; --accent:#3b82f6; --accent2:#2563eb;
+    --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --purple:#8b5cf6; --cyan:#06b6d4;
+    --crit:#ef4444; --high:#f59e0b; --med:#fbbf24; --low:#60a5fa; --info:#8b98ad;
+  }
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-direction:column;overflow:hidden}
+  code,pre,.mono{font-family:'Cascadia Mono',Consolas,'Courier New',monospace}
+  button{font-family:inherit;cursor:pointer}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
 
-/* ── Header ── */
-header{background:var(--surface);backdrop-filter:var(--panel-blur);-webkit-backdrop-filter:var(--panel-blur);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-shrink:0;box-shadow:0 4px 30px rgba(0,0,0,0.2);z-index:10}
-header h1{font-size:18px;font-weight:700;background:linear-gradient(90deg,#F8FAFC,#94A3B8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.02em}
-header .badge{background:linear-gradient(135deg, var(--accent), var(--purple));color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:9999px;letter-spacing:.15em;box-shadow:0 0 12px var(--purple-glow)}
-.sysinfo{margin-left:auto;display:flex;gap:20px;font-size:12px;color:var(--muted)}
-.sysinfo span{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
-.sysinfo span b{color:var(--text);font-weight:600}
+  /* Header */
+  header{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+  .brand small{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .bundle{margin-left:6px;font-size:12px;color:var(--muted)}
+  .bundle b{color:var(--text)}
+  .sys{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:4px 9px;font-size:12px;color:var(--muted)}
+  .chip b{color:var(--text);font-weight:600}
+  .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid}
+  .pill.ok{color:var(--green);border-color:#1d5e3a;background:rgba(34,197,94,.1)}
+  .pill.warn{color:var(--amber);border-color:#6b4a14;background:rgba(245,158,11,.1)}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:8px;border:1px solid var(--border2);background:var(--panel2);color:var(--text);font-size:13px;font-weight:600;transition:.15s}
+  .btn:hover{border-color:var(--accent);background:#172238}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.sm{padding:4px 9px;font-size:12px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
 
-/* ── Layout ── */
-.layout{display:flex;flex:1;overflow:hidden;position:relative}
+  /* Tabs */
+  nav.tabs{display:flex;gap:2px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+  .tab{display:flex;align-items:center;gap:8px;padding:11px 16px;color:var(--muted);font-weight:600;font-size:13px;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
+  .tab .badge{background:var(--border2);color:var(--text);font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;min-width:18px;text-align:center}
+  .tab .badge.alert{background:var(--red);color:#fff}
 
-/* ── Tool panel ── */
-.tool-panel{width:320px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);backdrop-filter:var(--panel-blur);-webkit-backdrop-filter:var(--panel-blur);z-index:5}
-.panel-header{padding:16px 20px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.panel-header::before{content:'';display:block;width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent-glow)}
-.tools-list{flex:1;overflow-y:auto;padding:12px}
-.tool-card{background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;transition:all .2s cubic-bezier(0.4,0,0.2,1)}
-.tool-card:hover{border-color:var(--border-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.2);background:rgba(255,255,255,0.02)}
-.tool-card.selected{border-color:var(--accent);background:linear-gradient(to bottom, rgba(14,165,233,0.05), transparent);box-shadow:0 0 0 1px var(--accent), 0 4px 20px var(--accent-glow)}
-.tool-info{padding:14px 16px;cursor:pointer}
-.tool-name{font-weight:600;font-size:14px;color:#fff;letter-spacing:-0.01em;display:flex;align-items:center;justify-content:space-between}
-.tool-desc{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
-.tool-cat{font-size:10px;background:rgba(0,0,0,0.4);color:var(--muted);padding:3px 8px;border-radius:6px;display:inline-block;margin-top:8px;font-weight:500;border:1px solid rgba(255,255,255,0.05)}
-.tool-actions{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.3);display:none}
-.tool-card.selected .tool-actions{display:block;animation:slideDown .2s ease-out}
-@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-.args-input{width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'Fira Code',monospace;font-size:12px;margin-bottom:10px;outline:none;transition:border-color .2s}
-.args-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(14,165,233,0.2)}
-.btn{padding:8px 16px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
-.btn:active{transform:translateY(0)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-run{background:linear-gradient(135deg, var(--green), #059669);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,0.3);width:100%}
-.btn-stop{background:linear-gradient(135deg, var(--red), #DC2626);color:#fff;box-shadow:0 4px 12px rgba(239,68,68,0.3)}
-.btn-sm{padding:5px 12px;font-size:12px}
+  /* Content */
+  main{flex:1;overflow:hidden;position:relative}
+  .view{position:absolute;inset:0;overflow-y:auto;padding:18px;display:none}
+  .view.active{display:block}
 
-/* ── Main panel ── */
-.main-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:rgba(0,0,0,0.2)}
-.jobs-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);backdrop-filter:var(--panel-blur);padding:0 20px;flex-shrink:0;overflow-x:auto}
-.tab{padding:14px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:all .2s;position:relative}
-.tab:hover{color:var(--text);background:rgba(255,255,255,0.02)}
-.tab.active{color:var(--accent);font-weight:600}
-.tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent);box-shadow:0 -2px 8px var(--accent-glow)}
-.tab .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.tab-actions{margin-left:auto;display:flex;align-items:center;gap:12px;padding:8px 0}
-.job-view{flex:1;overflow:hidden;display:flex;flex-direction:column;display:none}
-.job-view.active{display:flex}
+  /* Collect */
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .actions select{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px}
+  .banner{display:none;align-items:center;gap:12px;background:rgba(245,158,11,.08);border:1px solid #6b4a14;border-radius:10px;padding:10px 14px;margin-bottom:14px;color:var(--amber);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px}
+  .card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .card .name{font-weight:600;font-size:14px}
+  .card .cat{font-size:10px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.04em}
+  .card .desc{color:var(--muted);font-size:12px;line-height:1.5;margin:7px 0 10px}
+  .card .adm{color:var(--amber);font-size:11px;margin-bottom:8px}
+  .card .presets{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+  .args{width:100%;background:var(--panel2);border:1px solid var(--border2);border-radius:7px;padding:7px 9px;color:var(--text);font-size:12px;margin-bottom:9px}
+  .args:focus{outline:none;border-color:var(--accent)}
 
-/* welcome screen */
-.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:16px;background:radial-gradient(circle at center, rgba(30,41,59,0.3) 0%, transparent 70%)}
-.welcome svg{opacity:.2;color:var(--accent);filter:drop-shadow(0 0 20px var(--accent-glow));width:64px;height:64px}
-.welcome p{font-size:15px;letter-spacing:-0.01em}
-.welcome .highlight{color:var(--text);font-weight:600;background:rgba(255,255,255,0.05);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+  /* Jobs */
+  .jobs-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;height:100%}
+  .jobs-list{background:var(--panel);border:1px solid var(--border);border-radius:11px;overflow-y:auto;padding:8px}
+  .job-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer}
+  .job-row:hover{background:var(--panel2)}
+  .job-row.active{background:#172238;border:1px solid var(--border2)}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .dot.running{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.4s infinite}
+  .dot.done{background:var(--green)} .dot.failed{background:var(--red)} .dot.stopped{background:var(--amber)} .dot.pending{background:var(--muted)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .job-row .jn{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .job-row .jt{font-size:11px;color:var(--muted)}
+  .terminal{background:var(--panel);border:1px solid var(--border);border-radius:11px;display:flex;flex-direction:column;overflow:hidden}
+  .term-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+  .term-head .tt{font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .term-out{flex:1;overflow-y:auto;padding:12px 14px;font-family:'Cascadia Mono',Consolas,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-all;background:#070b14;color:#c9d4e3}
+  .ln-err{color:#fca5a5} .ln-ok{color:#86efac} .ln-warn{color:#fcd34d} .ln-agent{color:#93c5fd}
 
-/* output terminal */
-.output-term{flex:1;overflow-y:auto;background:#050508;padding:20px 24px;font-family:'Fira Code','Cascadia Code',monospace;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-all;color:#A3E635;box-shadow:inset 0 0 40px rgba(0,0,0,0.5)}
-.output-term .line-err{color:#FCA5A5;text-shadow:0 0 8px rgba(252,165,165,0.3)}
-.output-term .line-warn{color:#FDE68A}
-.output-term .line-ok{color:#86EFAC;text-shadow:0 0 8px rgba(134,239,172,0.2)}
-.job-meta-bar{padding:12px 24px;background:var(--surface);backdrop-filter:var(--panel-blur);border-top:1px solid var(--border);display:flex;align-items:center;gap:16px;font-size:12px;font-weight:500;color:var(--muted);flex-shrink:0}
-.status-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-.status-running{background:var(--accent);box-shadow:0 0 10px var(--accent-glow);animation:pulse 1.5s infinite}
-.status-done{background:var(--green);box-shadow:0 0 10px rgba(16,185,129,0.4)}
-.status-failed{background:var(--red);box-shadow:0 0 10px rgba(239,68,68,0.4)}
-.status-stopped{background:var(--yellow);box-shadow:0 0 10px rgba(245,158,11,0.4)}
-.status-pending{background:var(--muted)}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(0.85)}}
+  /* Findings */
+  .counts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .scount{font-size:12px;font-weight:700;border-radius:8px;padding:5px 11px;border:1px solid}
+  .find-row{display:flex;gap:12px;align-items:flex-start;padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px}
+  .sev{font-size:10px;font-weight:800;text-transform:uppercase;min-width:64px}
+  .find-tool{color:var(--muted);min-width:130px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .find-title{font-family:'Cascadia Mono',Consolas,monospace;word-break:break-all;color:var(--text)}
 
-/* report bar */
-.report-bar{background:rgba(15,23,42,0.8);backdrop-filter:var(--panel-blur);border-top:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-shrink:0}
-.report-bar .info{font-size:13px;color:var(--text);font-weight:500;flex:1}
-
-/* scrollbar */
-::-webkit-scrollbar{width:8px;height:8px}
-::-webkit-scrollbar-track{background:rgba(0,0,0,0.1)}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+  /* Guide */
+  .acc{background:var(--panel);border:1px solid var(--border);border-radius:11px;margin-bottom:12px;overflow:hidden}
+  .acc-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;user-select:none}
+  .acc-head:hover{background:var(--panel2)}
+  .acc-head .at{font-weight:600;flex:1}
+  .acc-head .meta{font-size:11px;color:var(--muted)}
+  .acc-body{display:none;border-top:1px solid var(--border);padding:6px 16px 14px}
+  .acc.open .acc-body{display:block}
+  .phase{margin-top:12px}
+  .phase .ph-label{font-size:11px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .gitem{padding:8px 0;border-bottom:1px solid var(--border)}
+  .gitem .gl{display:flex;gap:8px;align-items:center}
+  .gitem .pri{font-size:9px;font-weight:800;text-transform:uppercase;padding:1px 6px;border-radius:5px}
+  .gitem .gp{font-size:12px;color:var(--muted);margin:3px 0 6px}
+  .gitem .cmd{display:flex;align-items:center;gap:6px;background:#070b14;border:1px solid var(--border);border-radius:6px;padding:5px 8px;margin-top:4px;font-family:'Cascadia Mono',Consolas,monospace;font-size:11px;color:#9ae6b4}
+  .gitem .cmd code{flex:1;word-break:break-all}
+  .step{margin:10px 0;padding:10px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:9px}
+  .step .st{font-weight:600;margin-bottom:5px}
+  .step .sc{font-size:12px;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+  .goals{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .goal{font-size:11px;background:rgba(59,130,246,.1);border:1px solid #1e3a5f;color:#93c5fd;border-radius:6px;padding:3px 9px}
+  .refs a{color:var(--accent);font-size:12px;text-decoration:none}
+  .empty{color:var(--muted);text-align:center;padding:48px 20px;font-size:13px}
+  .input{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:7px 10px;font-size:12px}
+  .input:focus{outline:none;border-color:var(--accent)}
 </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <h1>ForensicHub Offline Agent</h1>
-    <div id="bundle-name" style="font-size:12px;color:var(--muted);margin-top:2px;font-weight:500">Loading bundle…</div>
+  <div class="brand"><span class="logo">⛬</span><div>ForensicHub<br><small>Offline Agent</small></div></div>
+  <div class="bundle" id="bundle">Loading…</div>
+  <div class="sys">
+    <span class="chip">🖥 <b id="si-host">—</b></span>
+    <span class="chip">🌐 <b id="si-ip">—</b></span>
+    <span class="chip">⚙ <b id="si-os">—</b></span>
+    <span class="pill" id="si-elev">—</span>
   </div>
-  <span class="badge">OFFLINE</span>
-  <div class="sysinfo">
-    <span><b id="si-host">—</b></span>
-    <span><b id="si-ip">—</b></span>
-    <span><b id="si-os">—</b></span>
-  </div>
+  <button class="btn primary" onclick="generateReport()">⬇ Report</button>
 </header>
 
-<div class="layout">
-  <!-- Tool panel -->
-  <div class="tool-panel">
-    <div class="panel-header">Bundled Tools</div>
-    <div class="tools-list" id="tools-list">
-      <div style="padding:30px 20px;text-align:center;color:var(--muted);font-size:13px">Loading tools…</div>
-    </div>
-  </div>
+<nav class="tabs">
+  <button class="tab active" data-tab="collect" onclick="showTab('collect')">▶ Collect</button>
+  <button class="tab" data-tab="jobs" onclick="showTab('jobs')">⚡ Jobs <span class="badge" id="badge-jobs">0</span></button>
+  <button class="tab" data-tab="findings" onclick="showTab('findings')">⚑ Findings <span class="badge" id="badge-find">0</span></button>
+  <button class="tab" data-tab="guide" onclick="showTab('guide')">📋 Guide</button>
+</nav>
 
-  <!-- Main panel -->
-  <div class="main-panel">
-    <div class="jobs-tabs" id="jobs-tabs">
-      <div style="display:flex;align-items:center;padding:0 8px;color:var(--muted);font-size:13px" id="no-jobs-msg">
-        Select a tool to begin
-      </div>
-      <div class="tab-actions">
-        <button class="btn btn-sm" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)" onclick="refreshJobs()">↻ Refresh</button>
-        <button class="btn btn-sm" style="background:linear-gradient(135deg, var(--purple), #7C3AED);color:#fff;box-shadow:0 4px 12px var(--purple-glow)" onclick="generateReport()">⬇ Report</button>
-      </div>
+<main>
+  <!-- COLLECT -->
+  <section class="view active" id="view-collect">
+    <div class="banner" id="elevate-banner">
+      <span>⚠ Some tools need Administrator.</span>
+      <button class="btn sm" style="background:var(--amber);color:#1a1206;border:none" onclick="elevate()">⛨ Restart as Administrator</button>
     </div>
+    <div class="actions">
+      <button class="btn primary" id="collect-btn" onclick="runPlaybook()">⚡ Collect Everything</button>
+      <select id="playbook-select" style="display:none"></select>
+      <select id="throttle-select" title="Cap CPU/RAM so a heavy tool can't freeze this machine during hunting" onchange="setThrottle()">
+        <option value="off">⚡ Full speed (no cap)</option>
+        <option value="low">🐢 Throttle · 50% CPU · 2 GB</option>
+        <option value="min">🐌 Minimal · 25% CPU · 1 GB · idle</option>
+      </select>
+      <input class="input" id="tool-search" placeholder="Search tools…" oninput="renderTools()" style="margin-left:auto;width:220px">
+    </div>
+    <div class="grid" id="tools-grid"><div class="empty">Loading tools…</div></div>
+  </section>
 
-    <div id="job-views">
-      <div class="job-view active" id="view-welcome">
-        <div class="welcome">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-          <p>Select a tool from the left panel and press <span class="highlight">Run ▶</span></p>
-          <p style="font-size:12px;color:var(--muted)">Terminal output will be streamed here in real-time.</p>
+  <!-- JOBS -->
+  <section class="view" id="view-jobs">
+    <div class="jobs-wrap">
+      <div class="jobs-list" id="jobs-list"><div class="empty">No jobs yet.<br>Run a tool or “Collect Everything”.</div></div>
+      <div class="terminal">
+        <div class="term-head">
+          <span class="tt" id="term-title">Output</span>
+          <span class="dot" id="term-dot" style="display:none"></span>
+          <span id="term-status" style="font-size:12px;color:var(--muted)"></span>
+          <button class="btn sm" id="term-stop" style="display:none" onclick="stopActive()">■ Stop</button>
+          <a class="btn sm" id="term-report" style="display:none" target="_blank">◳ View Report</a>
         </div>
+        <div class="term-out mono" id="term-out"><div class="empty">Select a job to view its output.</div></div>
       </div>
     </div>
+  </section>
 
-    <div class="report-bar">
-      <span class="info" id="report-info">System Ready · No jobs run yet</span>
-      <button class="btn" style="background:linear-gradient(135deg, var(--purple), #7C3AED);color:#fff;box-shadow:0 4px 12px var(--purple-glow)" onclick="generateReport()">⬇ Generate Full Report</button>
-    </div>
-  </div>
-</div>
+  <!-- FINDINGS -->
+  <section class="view" id="view-findings">
+    <div class="counts" id="find-counts"></div>
+    <input class="input" id="find-filter" placeholder="Filter findings…" oninput="renderFindings()" style="width:260px;margin-bottom:12px">
+    <div id="find-list"><div class="empty">No findings yet. Findings appear here as tools complete.</div></div>
+  </section>
+
+  <!-- GUIDE -->
+  <section class="view" id="view-guide">
+    <div id="guide-body"><div class="empty">No guide embedded in this bundle.</div></div>
+  </section>
+</main>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-var tools = [];
-var jobs = {};        // jobID → { id, toolName, status, eventSource }
-var activeTab = null;
-var selectedTool = null;
+var state = { os:'', elevated:false, tools:[], playbooks:[], jobs:{}, findings:[], activeJob:null, es:null, reference:null };
 
-// ── Boot ───────────────────────────────────────────────────────────────────
-window.onload = function() {
-  loadSysinfo();
-  loadTools();
-  setInterval(refreshJobs, 5000);
+window.onload = function(){
+  loadSysinfo(); loadManifest(); loadReference(); loadLimits();
+  setInterval(refreshJobs, 4000);
+  setInterval(loadFindings, 4000);
 };
 
-function loadSysinfo() {
-  fetch('/api/sysinfo').then(r => r.json()).then(d => {
-    document.getElementById('si-host').textContent = d.hostname || '—';
-    document.getElementById('si-ip').textContent   = d.ip      || '—';
-    document.getElementById('si-os').textContent   = (d.os || '') + ' ' + (d.arch || '');
-  }).catch(() => {});
+function esc(s){ s=String(s==null?'':s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===t); });
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id==='view-'+t); });
 }
 
-function loadTools() {
-  fetch('/api/tools').then(r => r.json()).then(data => {
-    tools = data.tools || [];
-    document.getElementById('bundle-name').textContent = data.bundle_name || 'Offline Bundle';
-    renderTools();
-  }).catch(e => {
-    document.getElementById('tools-list').innerHTML =
-      '<div style="padding:16px;color:#ef4444;font-size:12px">Failed to load tools: ' + e + '</div>';
-  });
+function loadSysinfo(){
+  fetch('/api/sysinfo').then(r=>r.json()).then(function(d){
+    state.os = d.os||''; state.elevated = !!d.elevated;
+    document.getElementById('si-host').textContent = d.hostname||'—';
+    document.getElementById('si-ip').textContent = d.ip||'—';
+    document.getElementById('si-os').textContent = (d.os||'')+' '+(d.arch||'');
+    var p = document.getElementById('si-elev');
+    p.textContent = d.elevated ? 'ADMIN' : 'standard';
+    p.className = 'pill ' + (d.elevated ? 'ok' : 'warn');
+    // OS is now known — re-render the guide so platform filtering is correct
+    // even if /api/reference resolved before /api/sysinfo (race).
+    if(state.reference) renderGuide(state.reference);
+  }).catch(function(){});
 }
 
-function renderTools() {
-  var list = document.getElementById('tools-list');
-  if (!tools.length) {
-    list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px">No tools in this bundle</div>';
-    return;
-  }
-  list.innerHTML = '';
-  tools.forEach(function(t) {
-    var isWebshell = t.name.toLowerCase().indexOf('webshell') !== -1;
-    var extraUI = '';
-    if (isWebshell) {
-      var isWin = document.getElementById('si-os').textContent.indexOf('windows') !== -1;
-      var buttons = isWin ? 
-        '<div style="display:flex;gap:4px;margin-top:6px;">' +
-        '<button class="btn btn-sm" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)" onclick="document.getElementById(\'args-' + t.id + '\').value=\'scan C:\\\\ --out report\'">C:\\</button>' +
-        '<button class="btn btn-sm" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)" onclick="document.getElementById(\'args-' + t.id + '\').value=\'scan C:\\\\inetpub\\\\wwwroot --out report\'">IIS</button>' +
-        '<button class="btn btn-sm" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)" onclick="document.getElementById(\'args-' + t.id + '\').value=\'scan C:\\\\Users --out report\'">Users</button>' +
-        '</div>' : 
-        '<div style="font-size:11px;color:var(--muted);margin-top:4px;">Ví dụ: scan /var/www --out report</div>';
-        
-      extraUI = '<div style="font-size:11px;color:var(--accent);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)">' +
-                'Hướng dẫn: Gõ lệnh theo định dạng <code>scan [đường dẫn] --out report</code>' + buttons + '</div>';
-    }
-
-    var card = document.createElement('div');
-    card.className = 'tool-card';
-    card.id = 'tool-' + t.id;
-    card.innerHTML =
-      '<div class="tool-info" onclick="selectTool(\'' + t.id + '\')">' +
-        '<div class="tool-name">' + esc(t.name) + '</div>' +
-        (t.description ? '<div class="tool-desc">' + esc(t.description) + '</div>' : '') +
-        (t.category    ? '<span class="tool-cat">' + esc(t.category) + '</span>' : '') +
-      '</div>' +
-      '<div class="tool-actions">' +
-        '<input class="args-input" id="args-' + t.id + '" placeholder="Arguments…" value="' + esc(t.default_args || '') + '">' +
-        '<div style="display:flex;gap:6px">' +
-          '<button class="btn btn-run" onclick="runTool(\'' + t.id + '\')">▶ Run</button>' +
-        '</div>' +
-        extraUI +
-      '</div>';
-    list.appendChild(card);
-  });
+// Resource throttle presets — the executor enforces these via a job object
+// (Windows) / cgroup (Linux) over the whole tool process tree.
+var THROTTLE_PRESETS = {
+  off: { cpu_limit:0,  ram_limit:0,    priority:'normal' },
+  low: { cpu_limit:50, ram_limit:2048, priority:'normal' },
+  min: { cpu_limit:25, ram_limit:1024, priority:'idle'   }
+};
+function presetKeyFor(d){
+  for(var k in THROTTLE_PRESETS){ var p=THROTTLE_PRESETS[k];
+    if(p.cpu_limit===(d.cpu_limit||0) && p.ram_limit===(d.ram_limit||0) && p.priority===(d.priority||'normal')) return k; }
+  return null; // custom value set elsewhere
+}
+function loadLimits(){
+  fetch('/api/limits').then(function(r){return r.json();}).then(function(d){
+    var k=presetKeyFor(d); if(k) document.getElementById('throttle-select').value=k;
+  }).catch(function(){});
+}
+function setThrottle(){
+  var k=document.getElementById('throttle-select').value, p=THROTTLE_PRESETS[k]||THROTTLE_PRESETS.off;
+  fetch('/api/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(function(){});
 }
 
-function selectTool(id) {
-  if (selectedTool === id) {
-    // toggle off
-    var card = document.getElementById('tool-' + selectedTool);
-    if (card) card.classList.remove('selected');
-    selectedTool = null;
-    return;
-  }
-  if (selectedTool) {
-    var prev = document.getElementById('tool-' + selectedTool);
-    if (prev) prev.classList.remove('selected');
-  }
-  selectedTool = id;
-  var card = document.getElementById('tool-' + id);
-  if (card) {
-    card.classList.add('selected');
-    var inp = document.getElementById('args-' + id);
-    if (inp) inp.focus();
-  }
+function loadManifest(){
+  fetch('/api/manifest').then(r=>r.json()).then(function(d){
+    state.tools = d.tools||[]; state.playbooks = d.playbooks||[];
+    document.getElementById('bundle').innerHTML = '<b>'+esc(d.name||'Offline Bundle')+'</b>' + (d.case_name?(' · '+esc(d.case_name)):'') + (d.operator?(' · '+esc(d.operator)):'');
+    renderTools(); renderPlaybooks();
+    document.getElementById('elevate-banner').style.display = (d.requires_admin && !d.elevated) ? 'flex' : 'none';
+  }).catch(function(e){ document.getElementById('tools-grid').innerHTML='<div class="empty">Failed to load bundle: '+esc(e)+'</div>'; });
 }
 
-// ── Run tool ───────────────────────────────────────────────────────────────
-function runTool(toolId) {
-  var inp = document.getElementById('args-' + toolId);
-  var args = inp ? inp.value : '';
-  var btn = inp ? inp.parentElement.querySelector('.btn-run') : null;
-  if (btn) btn.disabled = true;
-
-  fetch('/api/jobs', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({tool_id: toolId, args: args})
-  })
-  .then(r => r.json())
-  .then(function(job) {
-    if (btn) btn.disabled = false;
-    if (job.error) { alert('Error: ' + job.error); return; }
-    addJobTab(job);
-    openTab(job.id);
-    streamJob(job.id);
-  })
-  .catch(function(e) {
-    if (btn) btn.disabled = false;
-    alert('Failed to start job: ' + e);
-  });
-}
-
-// ── Tabs ───────────────────────────────────────────────────────────────────
-function addJobTab(job) {
-  jobs[job.id] = { id: job.id, toolName: job.tool_name, status: job.status || 'running' };
-
-  document.getElementById('no-jobs-msg').style.display = 'none';
-
-  // Tab
-  var tabs = document.getElementById('jobs-tabs');
-  var tab = document.createElement('div');
-  tab.className = 'tab';
-  tab.id = 'tab-' + job.id;
-  tab.onclick = function() { openTab(job.id); };
-  tab.innerHTML =
-    '<span class="dot status-running" id="dot-' + job.id + '"></span>' +
-    '<span id="tab-label-' + job.id + '">' + esc(job.tool_name) + '</span>';
-  // Insert before tab-actions
-  var actions = tabs.querySelector('.tab-actions');
-  tabs.insertBefore(tab, actions);
-
-  // View
-  var views = document.getElementById('job-views');
-  var view = document.createElement('div');
-  view.className = 'job-view';
-  view.id = 'view-' + job.id;
-  view.innerHTML =
-    '<div class="output-term" id="output-' + job.id + '"></div>' +
-    '<div class="job-meta-bar">' +
-      '<span class="status-dot status-running" id="status-dot-' + job.id + '"></span>' +
-      '<span id="status-text-' + job.id + '">running…</span>' +
-      '<span style="margin-left:auto">' +
-        '<button class="btn btn-stop btn-sm" id="stop-btn-' + job.id + '" onclick="stopJob(\'' + job.id + '\')">■ Stop</button>' +
-      '</span>' +
+/* ── Collect ── */
+function renderTools(){
+  var q = (document.getElementById('tool-search').value||'').toLowerCase();
+  var grid = document.getElementById('tools-grid');
+  var list = state.tools.filter(function(t){ return !q || (t.name+' '+(t.category||'')+' '+(t.description||'')).toLowerCase().indexOf(q)!==-1; });
+  if(!list.length){ grid.innerHTML='<div class="empty">No tools.</div>'; return; }
+  grid.innerHTML = list.map(function(t){
+    var presets = (t.presets&&t.presets.length) ? '<div class="presets">'+t.presets.map(function(p){
+      return '<button class="btn sm" onclick="setArgs(\''+t.id+'\','+JSON.stringify(JSON.stringify(p.args))+')">'+esc(p.label)+'</button>'; }).join('')+'</div>' : '';
+    return '<div class="card">'+
+      '<div class="top"><span class="name">'+esc(t.name)+'</span>'+(t.category?'<span class="cat">'+esc(t.category)+'</span>':'')+'</div>'+
+      (t.description?'<div class="desc">'+esc(t.description)+'</div>':'')+
+      (t.requires_admin?'<div class="adm">⚠ needs Administrator</div>':'')+
+      presets+
+      '<input class="args mono" id="args-'+t.id+'" placeholder="Arguments…" value="'+esc(t.default_args||'')+'">'+
+      '<button class="btn primary sm" onclick="runTool(\''+t.id+'\')">▶ Run</button>'+
     '</div>';
-  views.appendChild(view);
+  }).join('');
+}
+function setArgs(id, jsonArgs){ var el=document.getElementById('args-'+id); if(el) el.value=JSON.parse(jsonArgs); }
+
+function renderPlaybooks(){
+  var sel=document.getElementById('playbook-select'), btn=document.getElementById('collect-btn');
+  if(!state.playbooks.length){ sel.style.display='none'; return; }
+  if(state.playbooks.length===1){ sel.style.display='none'; btn.textContent='⚡ '+state.playbooks[0].name; return; }
+  sel.style.display='block';
+  sel.innerHTML = state.playbooks.map(function(p,i){ return '<option value="'+i+'">'+esc(p.name)+(p.steps?' ('+p.steps.length+')':'')+'</option>'; }).join('');
+  btn.textContent='⚡ Run Playbook';
+}
+function runPlaybook(){
+  var idx=0, sel=document.getElementById('playbook-select');
+  if(sel && sel.style.display!=='none') idx=parseInt(sel.value||'0',10);
+  var pb=state.playbooks[idx]; if(!pb) return;
+  var btn=document.getElementById('collect-btn'); btn.disabled=true;
+  fetch('/api/jobs/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playbook_id:pb.id})})
+    .then(r=>r.json()).then(function(){ btn.disabled=false; showTab('jobs'); setTimeout(refreshJobs,400); })
+    .catch(function(e){ btn.disabled=false; alert('Batch failed: '+e); });
+}
+function runTool(id){
+  var el=document.getElementById('args-'+id); var args=el?el.value:'';
+  fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool_id:id,args:args})})
+    .then(r=>r.json()).then(function(job){ if(job.error){ alert('Error: '+job.error); return; } showTab('jobs'); refreshJobs(); setTimeout(function(){ openJob(job.id); },200); })
+    .catch(function(e){ alert('Run failed: '+e); });
+}
+function elevate(){
+  if(!confirm('Restart the agent as Administrator? A UAC prompt appears and this window reopens elevated.')) return;
+  fetch('/api/elevate',{method:'POST'}).then(r=>r.json()).then(function(d){ if(d.error) alert('Elevation failed: '+d.error); }).catch(function(){});
 }
 
-function openTab(jobId) {
-  // deactivate all
-  document.querySelectorAll('.job-view').forEach(function(v){ v.classList.remove('active'); });
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-
-  document.getElementById('view-welcome').style.display = 'none';
-  var view = document.getElementById('view-' + jobId);
-  if (view) view.classList.add('active');
-  var tab = document.getElementById('tab-' + jobId);
-  if (tab) tab.classList.add('active');
-  activeTab = jobId;
+/* ── Jobs ── */
+function refreshJobs(){
+  fetch('/api/jobs').then(r=>r.json()).then(function(d){
+    var jobs=d.jobs||[];
+    document.getElementById('badge-jobs').textContent = jobs.length;
+    var run = jobs.filter(function(j){return j.status==='running';}).length;
+    var list=document.getElementById('jobs-list');
+    if(!jobs.length){ list.innerHTML='<div class="empty">No jobs yet.<br>Run a tool or “Collect Everything”.</div>'; return; }
+    list.innerHTML = jobs.slice().reverse().map(function(j){
+      var act = (state.activeJob===j.id)?' active':'';
+      return '<div class="job-row'+act+'" onclick="openJob(\''+j.id+'\')">'+
+        '<span class="dot '+j.status+'"></span>'+
+        '<div style="flex:1;min-width:0"><div class="jn">'+esc(j.tool_name)+'</div><div class="jt">'+esc(j.status)+(j.duration_seconds?(' · '+j.duration_seconds.toFixed(1)+'s'):'')+'</div></div>'+
+      '</div>';
+    }).join('');
+  }).catch(function(){});
 }
-
-// ── SSE output streaming ───────────────────────────────────────────────────
-function streamJob(jobId) {
-  var term = document.getElementById('output-' + jobId);
-  if (!term) return;
-
-  var es = new EventSource('/api/jobs/' + jobId + '/stream');
-  if (jobs[jobId]) jobs[jobId].eventSource = es;
-
-  es.onmessage = function(e) {
-    if (e.data === '__DONE__') {
-      es.close();
-      return;
-    }
-    appendLine(term, e.data);
+function openJob(id){
+  state.activeJob=id; refreshJobs();
+  var tool=null; fetch('/api/jobs/'+id).then(r=>r.json()).then(function(job){
+    document.getElementById('term-title').textContent = job.tool_name + (job.args?(' '+job.args):'');
+    var def = state.tools.filter(function(t){return t.id===job.tool_id;})[0];
+    var rep=document.getElementById('term-report');
+    if(job.status==='done' && def && def.report_path){ rep.style.display='inline-flex'; rep.href='/artifacts/tools/'+job.tool_id+'/'+def.report_path; }
+    else rep.style.display='none';
+    streamJob(id);
+  });
+}
+function streamJob(id){
+  if(state.es){ state.es.close(); state.es=null; }
+  var out=document.getElementById('term-out'); out.innerHTML='';
+  var dot=document.getElementById('term-dot'), stat=document.getElementById('term-status'), stop=document.getElementById('term-stop');
+  dot.style.display='inline-block'; dot.className='dot running'; stat.textContent='running…'; stop.style.display='inline-flex';
+  var es=new EventSource('/api/jobs/'+id+'/stream'); state.es=es;
+  es.onmessage=function(e){
+    if(e.data==='__DONE__'){ es.close(); dot.className='dot done'; stat.textContent='finished'; stop.style.display='none'; fetch('/api/jobs/'+id).then(r=>r.json()).then(function(j){ if(j.status==='failed'){dot.className='dot failed';stat.textContent='failed';} else if(j.status==='stopped'){dot.className='dot stopped';stat.textContent='stopped';} openJobReportBtn(j); }); return; }
+    var div=document.createElement('div'); var l=e.data.toLowerCase();
+    if(l.indexOf('[agent]')!==-1) div.className='ln-agent';
+    else if(l.indexOf('error')!==-1||l.indexOf('fail')!==-1) div.className='ln-err';
+    else if(l.indexOf('found')!==-1||l.indexOf('success')!==-1||l.indexOf('match')!==-1) div.className='ln-ok';
+    else if(l.indexOf('warn')!==-1) div.className='ln-warn';
+    div.textContent=e.data; out.appendChild(div);
+    out.scrollTop=out.scrollHeight;
   };
+  es.onerror=function(){ es.close(); };
+}
+function openJobReportBtn(job){
+  var def=state.tools.filter(function(t){return t.id===job.tool_id;})[0];
+  var rep=document.getElementById('term-report');
+  if(job.status==='done' && def && def.report_path){ rep.style.display='inline-flex'; rep.href='/artifacts/tools/'+job.tool_id+'/'+def.report_path; } else rep.style.display='none';
+}
+function stopActive(){ if(state.activeJob) fetch('/api/jobs/'+state.activeJob+'/stop',{method:'POST'}); }
 
-  es.onerror = function() {
-    es.close();
-    // Fetch final status
-    refreshJobStatus(jobId);
-  };
+/* ── Findings ── */
+var SEVC={critical:'#ef4444',high:'#f59e0b',medium:'#fbbf24',low:'#60a5fa',info:'#8b98ad'};
+function loadFindings(){
+  fetch('/api/findings').then(r=>r.json()).then(function(d){ state.findings=d.findings||[]; renderFindings(); }).catch(function(){});
+}
+function renderFindings(){
+  var f=state.findings;
+  document.getElementById('badge-find').textContent=f.length;
+  var bf=document.getElementById('badge-find'); bf.className='badge'+(f.filter(function(x){return x.severity==='critical'||x.severity==='high';}).length?' alert':'');
+  var counts={critical:0,high:0,medium:0,low:0,info:0}; f.forEach(function(x){counts[x.severity]=(counts[x.severity]||0)+1;});
+  document.getElementById('find-counts').innerHTML=['critical','high','medium','low','info'].filter(function(s){return counts[s];}).map(function(s){
+    return '<span class="scount" style="color:'+SEVC[s]+';border-color:'+SEVC[s]+'55;background:'+SEVC[s]+'18">'+counts[s]+' '+s+'</span>'; }).join('') || '';
+  var q=(document.getElementById('find-filter').value||'').toLowerCase();
+  var rows=f.filter(function(x){return !q||(x.title+' '+x.tool).toLowerCase().indexOf(q)!==-1;}).slice(0,400);
+  var list=document.getElementById('find-list');
+  if(!rows.length){ list.innerHTML='<div class="empty">'+(f.length?'No findings match the filter.':'No findings yet. Findings appear here as tools complete.')+'</div>'; return; }
+  list.innerHTML=rows.map(function(x){ var c=SEVC[x.severity]||'#8b98ad';
+    return '<div class="find-row"><span class="sev" style="color:'+c+'">'+esc(x.severity)+'</span><span class="find-tool">'+esc(x.tool)+'</span><span class="find-title">'+esc(x.title)+'</span></div>'; }).join('');
 }
 
-function appendLine(term, text) {
-  var line = document.createElement('div');
-  // Simple coloring heuristic
-  var lower = text.toLowerCase();
-  if (lower.includes('[!]') || lower.includes('error') || lower.includes('fail')) {
-    line.className = 'line-err';
-  } else if (lower.includes('warn') || lower.includes('[?]')) {
-    line.className = 'line-warn';
-  } else if (lower.includes('[+]') || lower.includes('found') || lower.includes('done')) {
-    line.className = 'line-ok';
+/* ── Guide ── */
+function loadReference(){
+  fetch('/api/reference').then(r=>r.json()).then(function(d){ state.reference=d; renderGuide(d); }).catch(function(){});
+}
+function renderGuide(ref){
+  var body=document.getElementById('guide-body');
+  var os=(state.os||'').toLowerCase();
+  var cl=(ref&&ref.checklists)||[], pb=(ref&&ref.playbooks)||[];
+  if(!cl.length && !pb.length){ body.innerHTML='<div class="empty">No guide was embedded in this bundle.<br>Add checklists/playbooks when generating the bundle.</div>'; return; }
+  var html='';
+  if(cl.length){
+    html+='<h3 style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px">Checklists</h3>';
+    cl.forEach(function(c,ci){
+      var sec='';
+      (c.sections||[]).forEach(function(s){
+        var items=(s.items||[]).filter(function(it){ return !it.platform || !os || String(it.platform).toLowerCase()===os; });
+        if(!items.length) return;
+        sec+='<div class="phase"><div class="ph-label">'+esc(s.phase?('Phase '+s.phase+' · '):'')+esc(s.label)+'</div>';
+        items.forEach(function(it){
+          var pc=SEVC[it.priority]||'#8b98ad';
+          sec+='<div class="gitem"><div class="gl"><span class="pri" style="color:'+pc+';background:'+pc+'1f">'+esc(it.priority||'')+'</span><b>'+esc(it.label)+'</b></div>';
+          if(it.purpose) sec+='<div class="gp">'+esc(it.purpose)+'</div>';
+          (it.commands||[]).forEach(function(cmd){ sec+='<div class="cmd"><code>'+esc(cmd)+'</code><button class="btn sm" onclick="copyText('+JSON.stringify(JSON.stringify(cmd))+')">copy</button></div>'; });
+          sec+='</div>';
+        });
+        sec+='</div>';
+      });
+      html+='<div class="acc" id="acc-cl-'+ci+'"><div class="acc-head" onclick="toggleAcc(\'acc-cl-'+ci+'\')"><span style="color:var(--cyan)">☑</span><span class="at">'+esc(c.name)+'</span><span class="meta">checklist</span><span>▾</span></div><div class="acc-body">'+(sec||'<div class="gp">No items for this OS.</div>')+'</div></div>';
+    });
   }
-  line.textContent = text;
-  term.appendChild(line);
-  term.scrollTop = term.scrollHeight;
-}
-
-// ── Job status ─────────────────────────────────────────────────────────────
-function refreshJobStatus(jobId) {
-  fetch('/api/jobs/' + jobId)
-    .then(r => r.json())
-    .then(function(job) { updateJobStatus(job); })
-    .catch(() => {});
-}
-
-function refreshJobs() {
-  fetch('/api/jobs').then(r => r.json()).then(function(data) {
-    (data.jobs || []).forEach(function(job) { updateJobStatus(job); });
-    updateReportInfo(data.jobs || []);
-  }).catch(() => {});
-}
-
-function updateJobStatus(job) {
-  var dot = document.getElementById('dot-' + job.id);
-  var sdot = document.getElementById('status-dot-' + job.id);
-  var stxt = document.getElementById('status-text-' + job.id);
-  var stopBtn = document.getElementById('stop-btn-' + job.id);
-  var cls = 'status-' + job.status;
-
-  if (dot) { dot.className = 'dot ' + cls; }
-  if (sdot) { sdot.className = 'status-dot ' + cls; }
-  if (stxt) {
-    var dur = '';
-    if (job.duration_seconds > 0) {
-      dur = ' · ' + (job.duration_seconds < 60
-        ? job.duration_seconds.toFixed(1) + 's'
-        : Math.floor(job.duration_seconds/60) + 'm ' + (job.duration_seconds%60|0) + 's');
-    }
-    stxt.textContent = job.status + dur;
+  if(pb.length){
+    html+='<h3 style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:18px 0 10px">Playbooks</h3>';
+    pb.forEach(function(p,pi){
+      var inner='';
+      if(p.description) inner+='<div class="gp" style="margin-top:8px">'+esc(p.description)+'</div>';
+      if(p.goals&&p.goals.length) inner+='<div class="goals">'+p.goals.map(function(g){return '<span class="goal">'+esc(g)+'</span>';}).join('')+'</div>';
+      (p.steps||[]).forEach(function(st){ inner+='<div class="step"><div class="st">'+esc(st.title)+'</div><div class="sc">'+esc(st.content)+'</div></div>'; });
+      if(p.references&&p.references.length) inner+='<div class="refs" style="margin-top:10px">'+p.references.map(function(r){return '<div>🔗 <a href="'+esc(r.url)+'" target="_blank">'+esc(r.title)+'</a></div>';}).join('')+'</div>';
+      html+='<div class="acc" id="acc-pb-'+pi+'"><div class="acc-head" onclick="toggleAcc(\'acc-pb-'+pi+'\')"><span style="color:var(--purple)">📖</span><span class="at">'+esc(p.title)+'</span><span class="meta">'+((p.steps||[]).length)+' steps</span><span>▾</span></div><div class="acc-body">'+inner+'</div></div>';
+    });
   }
-  if (stopBtn && (job.status !== 'running')) {
-    stopBtn.style.display = 'none';
-  }
-
-  // If job finished and output is not yet fully shown, fetch and display
-  if (job.status === 'done' || job.status === 'failed' || job.status === 'stopped') {
-    var term = document.getElementById('output-' + job.id);
-    if (term && term.children.length === 0 && job.output) {
-      job.output.split('\n').forEach(function(l) { appendLine(term, l); });
-    }
-  }
-  
-  if (job.status === 'done' && job.tool_name.toLowerCase().replace(/[\\s_-]/g, '').indexOf('webshellscanner') !== -1) {
-    if (!document.getElementById('report-btn-' + job.id)) {
-      var btn = document.createElement('button');
-      btn.className = 'btn btn-sm';
-      btn.id = 'report-btn-' + job.id;
-      btn.style = 'background:var(--accent);color:#fff;margin-left:8px;box-shadow:0 0 10px rgba(16,185,129,0.3)';
-      btn.textContent = '◳ View HTML Report';
-      btn.onclick = function() { window.open('/artifacts/tools/' + job.tool_id + '/report/report.html', '_blank'); };
-      if (stxt && stxt.parentNode) {
-        stxt.parentNode.insertBefore(btn, stxt.nextSibling);
-      }
-    }
-  }
+  body.innerHTML=html;
 }
+function toggleAcc(id){ document.getElementById(id).classList.toggle('open'); }
+function copyText(json){ try{ navigator.clipboard.writeText(JSON.parse(json)); }catch(e){} }
 
-function updateReportInfo(jobList) {
-  var done = jobList.filter(function(j){ return j.status === 'done'; }).length;
-  var total = jobList.length;
-  document.getElementById('report-info').textContent =
-    total === 0
-      ? 'No jobs run yet'
-      : done + ' of ' + total + ' tool(s) completed';
-}
-
-// ── Stop job ───────────────────────────────────────────────────────────────
-function stopJob(jobId) {
-  fetch('/api/jobs/' + jobId + '/stop', {method:'POST'})
-    .then(() => refreshJobStatus(jobId))
-    .catch(() => {});
-}
-
-// ── Report ─────────────────────────────────────────────────────────────────
-function generateReport() {
-  // Download HTML report
-  var a = document.createElement('a');
-  a.href = '/api/report?format=html';
-  a.download = '';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  // Also trigger JSON after short delay
-  setTimeout(function() {
-    var b = document.createElement('a');
-    b.href = '/api/report?format=json';
-    b.download = '';
-    document.body.appendChild(b);
-    b.click();
-    document.body.removeChild(b);
-  }, 500);
-}
-
-// ── Util ───────────────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
+function generateReport(){ window.open('/api/report?format=html','_blank'); }
 </script>
 </body>
 </html>

@@ -13,7 +13,26 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { toolsApi } from '@/api/tools'
-import { generateOfflineBundle } from '@/api/offline_bundles'
+import { casesApi } from '@/api/cases'
+import { generateOfflineBundle, type BundleReference } from '@/api/offline_bundles'
+import { PLAYBOOK_CHECKLISTS } from '@/data/playbookChecklists'
+import { COMPLIANCE_SECTIONS } from '@/data/complianceChecklist'
+import { PLAYBOOKS } from '@/data/playbooks'
+
+// All embeddable checklists, normalised to one shape: the IR playbook checklists
+// plus the compliance audit (sourced from COMPLIANCE_SECTIONS, not the empty
+// PLAYBOOK_CHECKLISTS['compliance']). Both share items:{win,linux}.
+type GuideItem = { label: string; commands: string[]; purpose?: string; priority?: string }
+type GuideSection = { phase: string; label: string; items: { win: GuideItem[]; linux: GuideItem[] } }
+const CHECKLIST_SOURCES: Record<string, { label: string; sections: GuideSection[] }> = (() => {
+  const src: Record<string, { label: string; sections: GuideSection[] }> = {}
+  Object.keys(PLAYBOOK_CHECKLISTS).forEach((k) => {
+    if (k === 'compliance') return
+    src[k] = { label: PLAYBOOKS.find((p) => p.id === k)?.title || k, sections: PLAYBOOK_CHECKLISTS[k] as unknown as GuideSection[] }
+  })
+  src['compliance'] = { label: 'Compliance & Security Audit', sections: COMPLIANCE_SECTIONS as unknown as GuideSection[] }
+  return src
+})()
 import { CategoryBadge, PlatformBadge } from '@/components/StatusBadge'
 import { formatBytes } from '@/lib/utils'
 
@@ -48,10 +67,23 @@ export default function OfflineBundles() {
   const [search, setSearch] = useState('')
   const [customYaraName, setCustomYaraName] = useState<string>('')
   const [customYaraContent, setCustomYaraContent] = useState<string>('')
+  const [caseId, setCaseId] = useState('')
+  const [selectedChecklists, setSelectedChecklists] = useState<Set<string>>(new Set())
+  const [selectedPlaybooks, setSelectedPlaybooks] = useState<Set<string>>(new Set())
+
+  // Options for the embeddable hunting guide (frontend-static data).
+  const checklistOptions = Object.entries(CHECKLIST_SOURCES).map(([id, v]) => ({
+    id,
+    label: v.label,
+  }))
 
   const { data: tools = [], isLoading } = useQuery({
     queryKey: ['tools'],
     queryFn: () => toolsApi.list(),
+  })
+  const { data: cases = [] } = useQuery({
+    queryKey: ['cases'],
+    queryFn: () => casesApi.list(),
   })
 
   const filtered = tools.filter((t) => {
@@ -90,11 +122,39 @@ export default function OfflineBundles() {
     setGenerating(true)
     const tid = toast.loading('Generating bundle…')
     try {
+      const selectedCase = cases.find((c) => c.id === caseId)
+
+      // Build the embedded hunting guide from the selected checklists + playbooks.
+      let reference: BundleReference | undefined
+      if (selectedChecklists.size > 0 || selectedPlaybooks.size > 0) {
+        reference = {
+          checklists: Array.from(selectedChecklists).map((key) => ({
+            id: key,
+            name: CHECKLIST_SOURCES[key]?.label || key,
+            sections: (CHECKLIST_SOURCES[key]?.sections || []).map((s) => ({
+              phase: s.phase,
+              label: s.label,
+              items: [
+                ...s.items.win.map((it) => ({ label: it.label, commands: it.commands, purpose: it.purpose, priority: it.priority, platform: 'windows' })),
+                ...s.items.linux.map((it) => ({ label: it.label, commands: it.commands, purpose: it.purpose, priority: it.priority, platform: 'linux' })),
+              ],
+            })),
+          })),
+          playbooks: Array.from(selectedPlaybooks).map((id) => {
+            const p = PLAYBOOKS.find((x) => x.id === id)!
+            return { id: p.id, title: p.title, description: p.description, goals: p.goals, steps: p.steps, references: p.references }
+          }),
+        }
+      }
+
       await generateOfflineBundle({
         name: bundleName.trim(),
         tool_ids: Array.from(selectedIDs),
         platform,
+        case_id: caseId || undefined,
+        case_name: selectedCase?.name || undefined,
         custom_yara_rule: customYaraContent || undefined,
+        reference,
       })
       toast.success('Bundle downloaded!', { id: tid })
     } catch (err) {
@@ -214,6 +274,54 @@ export default function OfflineBundles() {
                 onChange={(e) => setBundleName(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500/50 transition-colors"
               />
+            </div>
+
+            {/* Case linkage — so the returned report auto-correlates back */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">Link to Case <span className="text-gray-500 font-normal">(optional)</span></label>
+              <select
+                value={caseId}
+                onChange={(e) => setCaseId(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500/50 transition-colors"
+              >
+                <option value="">— No case —</option>
+                {cases.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-500 mt-1">The case is baked into the bundle so the returned report routes back to it.</p>
+            </div>
+
+            {/* Hunting guide: embed checklists + reference playbooks */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-200 mb-2">Hunting Guide <span className="text-gray-500 font-normal">(optional)</span></label>
+              <p className="text-[11px] text-gray-500 mb-2">Embed checklists & playbooks so the responder can follow them on the target — viewable in the agent's <b>Guide</b> tab.</p>
+              {checklistOptions.length > 0 && (
+                <div className="mb-2">
+                  <div className="text-[11px] font-semibold text-gray-400 mb-1">Checklists (Evidence & Compliance)</div>
+                  <div className="max-h-28 overflow-y-auto rounded-lg border border-gray-700 bg-gray-800/60 p-2 space-y-1">
+                    {checklistOptions.map((o) => (
+                      <label key={o.id} className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer hover:text-white">
+                        <input type="checkbox" checked={selectedChecklists.has(o.id)}
+                          onChange={() => setSelectedChecklists((prev) => { const n = new Set(prev); n.has(o.id) ? n.delete(o.id) : n.add(o.id); return n })} />
+                        {o.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="text-[11px] font-semibold text-gray-400 mb-1">Reference Playbooks</div>
+                <div className="max-h-28 overflow-y-auto rounded-lg border border-gray-700 bg-gray-800/60 p-2 space-y-1">
+                  {PLAYBOOKS.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer hover:text-white">
+                      <input type="checkbox" checked={selectedPlaybooks.has(p.id)}
+                        onChange={() => setSelectedPlaybooks((prev) => { const n = new Set(prev); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n })} />
+                      {p.title}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Platform */}

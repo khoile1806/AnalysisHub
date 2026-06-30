@@ -1,5 +1,21 @@
 import { useAuthStore } from '@/store/auth'
 
+export interface BundleReference {
+  checklists: {
+    id: string
+    name: string
+    sections: { phase: string; label: string; items: { label: string; commands: string[]; purpose?: string; priority?: string; platform?: string }[] }[]
+  }[]
+  playbooks: {
+    id: string
+    title: string
+    description?: string
+    goals?: string[]
+    steps?: { title: string; content: string }[]
+    references?: { title: string; url: string }[]
+  }[]
+}
+
 export interface GenerateBundleRequest {
   name: string
   tool_ids: string[]
@@ -7,6 +23,7 @@ export interface GenerateBundleRequest {
   case_id?: string
   case_name?: string
   custom_yara_rule?: string
+  reference?: BundleReference
 }
 
 // generateOfflineBundle sends a POST and triggers a ZIP file download.

@@ -184,6 +184,17 @@ type Config struct {
 	OOBMaxPerClient    int // max stored interactions per session (default 10000; 0 = unlimited)
 	OOBRetentionDays   int // delete interactions older than this many days (default 30; 0 = keep)
 
+	// ── Vulnerability scanner (httpx + nuclei against OSINT-discovered assets) ──
+	// Active/intrusive: admin-gated, scope-checked, routed through a proxy.
+	VulnScanEnabled         bool   // master switch for the feature
+	VulnScanMaxConcurrent   int    // engine-wide concurrent scans (default 2)
+	VulnScanProxy           string // egress proxy for scanner traffic; empty falls back to TorProxy → OutboundProxy
+	VulnScanRateLimit       int    // nuclei -rate-limit (default 150)
+	VulnScanConcurrency     int    // nuclei -concurrency (default 25)
+	VulnScanToolTimeout     int    // httpx stage budget, seconds (default 300)
+	VulnScanNucleiTimeout   int    // nuclei stage budget, seconds (default 1200)
+	VulnScanNucleiTemplates string // optional nuclei -templates dir (empty = nuclei default)
+
 	// TrustedProxies, when set (comma-separated IPs/CIDRs), is passed to gin's
 	// SetTrustedProxies so X-Forwarded-For / X-Forwarded-Proto are only honoured
 	// from the real front proxy — preventing source-IP/scheme spoofing. Empty
@@ -266,6 +277,15 @@ func Load() *Config {
 		OOBRateLimitPerMin: getEnvInt("OOB_RATE_LIMIT_PER_MIN", 600),
 		OOBMaxPerClient:    getEnvInt("OOB_MAX_PER_CLIENT", 10000),
 		OOBRetentionDays:   getEnvInt("OOB_RETENTION_DAYS", 30),
+
+		VulnScanEnabled:         getEnv("VULNSCAN_ENABLED", "true") == "true",
+		VulnScanMaxConcurrent:   getEnvInt("VULNSCAN_MAX_CONCURRENT", 2),
+		VulnScanProxy:           getEnv("VULNSCAN_PROXY", ""),
+		VulnScanRateLimit:       getEnvInt("VULNSCAN_RATE_LIMIT", 150),
+		VulnScanConcurrency:     getEnvInt("VULNSCAN_CONCURRENCY", 25),
+		VulnScanToolTimeout:     getEnvInt("VULNSCAN_TOOL_TIMEOUT", 300),
+		VulnScanNucleiTimeout:   getEnvInt("VULNSCAN_NUCLEI_TIMEOUT", 1200),
+		VulnScanNucleiTemplates: getEnv("VULNSCAN_NUCLEI_TEMPLATES", ""),
 
 		TrustedProxies:        parseCSV(getEnv("TRUSTED_PROXIES", "")),
 		OutboundProxy:         getEnv("OUTBOUND_PROXY", ""),

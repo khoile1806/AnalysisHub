@@ -77,10 +77,34 @@ RUN wget -qO winpmem.exe https://github.com/Velocidex/WinPmem/releases/download/
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
+# Stage 1.6: Vulnerability scanner tools (httpx + nuclei) + nuclei templates.
+# Pulls the latest ProjectDiscovery release binaries (linux/amd64) and a shallow
+# clone of nuclei-templates. All best-effort: if a download fails the vuln-scan
+# feature degrades (the tool reports "not installed") instead of breaking the
+# image build.
+FROM alpine:3.19 AS scanner-tools
+RUN apk add --no-cache curl unzip git ca-certificates
+RUN set -eux; mkdir -p /out; \
+    for tool in httpx nuclei subfinder naabu; do \
+      url=$(curl -fsSL "https://api.github.com/repos/projectdiscovery/$tool/releases/latest" \
+            | grep -o "https://[^\"]*_linux_amd64\.zip" | head -1); \
+      if [ -n "$url" ]; then \
+        curl -fsSL "$url" -o "/tmp/$tool.zip" && unzip -o "/tmp/$tool.zip" "$tool" -d /out || \
+        echo "[build] $tool download failed — vuln-scan will report it missing"; \
+      else echo "[build] could not resolve $tool release URL"; fi; \
+    done; \
+    chmod +x /out/* 2>/dev/null || true
+RUN git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates /out/nuclei-templates \
+    || echo "[build] nuclei-templates clone failed — nuclei will fall back to its own discovery"
+
+# ─────────────────────────────────────────────────────────────────────────── #
+
 # Stage 2: Minimal runtime image
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates tzdata && \
+# libpcap + gcompat: naabu's release binary is CGO/glibc-linked (libpcap), so it
+# needs the glibc-compat shim to run on musl/alpine.
+RUN apk add --no-cache ca-certificates tzdata libpcap gcompat && \
     addgroup -S appgroup && \
     adduser -S -h /home/appuser appuser -G appgroup
 
@@ -110,6 +134,12 @@ COPY --from=builder /build/data /app/data
 # Default integrated tools (e.g. YARA Scanner bundle, WinPmem)
 COPY --from=scanner-bundler /app/defaults/yara-scanner.zip /app/defaults/yara-scanner.zip
 COPY --from=scanner-bundler /app/defaults/winpmem.exe      /app/defaults/winpmem.exe
+
+# Vulnerability scanner binaries (httpx, nuclei) + nuclei templates. The COPY of
+# the whole /out dir tolerates a partially-failed download stage (missing tools
+# just won't be on PATH → the feature reports them as "not installed").
+COPY --from=scanner-tools /out/ /usr/local/bin/
+RUN mv /usr/local/bin/nuclei-templates /app/nuclei-templates 2>/dev/null || mkdir -p /app/nuclei-templates
 
 # Create required directories and fix ownership
 RUN mkdir -p /app/storage /app/agent-bins /app/defaults \

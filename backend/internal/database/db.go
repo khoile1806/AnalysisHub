@@ -97,6 +97,9 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.AgentBaseline{},
 		&models.ScheduledCollection{},
 		&models.FleetCollectionResult{},
+		&models.VulnScan{},
+		&models.VulnTool{},
+		&models.VulnFinding{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
@@ -119,6 +122,13 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	}
 	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_osint_finding_dedupe ON osint_findings (scan_id, dedupe_key)`).Error; err != nil {
 		slog.Warn("could not create unique OSINT dedupe index; finding dedupe will run in best-effort mode", "error", err)
+	}
+
+	// Vulnerability-scan finding dedupe: same (scan_id, dedupe_key) pattern so the
+	// streaming nuclei inserter can ON CONFLICT DO NOTHING without duplicating a
+	// re-emitted match.
+	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_vuln_finding_dedupe ON vuln_findings (scan_id, dedupe_key)`).Error; err != nil {
+		slog.Warn("could not create unique vuln-scan dedupe index; finding dedupe will run in best-effort mode", "error", err)
 	}
 
 	// Partial unique index so automated timeline ingestion (super-timeline, ELK

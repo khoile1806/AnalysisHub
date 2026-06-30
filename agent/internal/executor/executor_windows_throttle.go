@@ -5,6 +5,7 @@ package executor
 import (
 	"fmt"
 	"unsafe"
+
 	"golang.org/x/sys/windows"
 )
 
@@ -19,70 +20,112 @@ const (
 	jobObjectCpuRateControlHardCap     = 0x4
 )
 
-func applyHardLimitsWindows(pid int, cpuLimitPercent int, ramLimitMB int) error {
-	if cpuLimitPercent <= 0 && ramLimitMB <= 0 {
-		return nil
-	}
-
-	jobHandle, err := windows.CreateJobObject(nil, nil)
+// createLimitedJob creates a Windows job object used to (a) optionally hard-cap
+// CPU% and RAM (MB) for every process placed in it and (b) tie the lifetime of
+// the whole process tree to the returned handle (KILL_ON_JOB_CLOSE). Limits and
+// tree membership are inherited by every child a member process spawns, so a job
+// assigned to the launcher transparently covers powershell and the real tool.
+//
+// The caller OWNS the returned handle and must keep it open for the tool's
+// lifetime, then CloseHandle it. Because of KILL_ON_JOB_CLOSE, closing the last
+// handle while the tool is still running terminates the entire tree — that is
+// exactly how the agent implements "stop" and guarantees no orphaned children if
+// the agent itself dies. A job is created even when no limits are requested, so
+// the agent can always terminate the tree atomically.
+//
+// Note: a process elevated through UAC (Start-Process -Verb RunAs) is created by
+// the AppInfo service, not as a child of the launcher, so it BREAKS OUT of this
+// job. Resource caps therefore do not apply to tools that self-elevate; this is
+// an inherent Windows limitation, not a bug here.
+func createLimitedJob(cpuLimitPercent, ramLimitMB int) (windows.Handle, error) {
+	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
-		return fmt.Errorf("CreateJobObject: %w", err)
+		return 0, fmt.Errorf("CreateJobObject: %w", err)
 	}
 
+	var extInfo windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+	extInfo.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 	if ramLimitMB > 0 {
-		var extInfo windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION
-		extInfo.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_JOB_MEMORY
+		extInfo.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_JOB_MEMORY
 		extInfo.JobMemoryLimit = uintptr(ramLimitMB) * 1024 * 1024
-
-		_, err = windows.SetInformationJobObject(
-			jobHandle,
-			windows.JobObjectExtendedLimitInformation,
-			uintptr(unsafe.Pointer(&extInfo)),
-			uint32(unsafe.Sizeof(extInfo)),
-		)
-		if err != nil {
-			windows.CloseHandle(jobHandle)
-			return fmt.Errorf("SetInformationJobObject (Memory): %w", err)
-		}
+	}
+	if _, err = windows.SetInformationJobObject(
+		job,
+		windows.JobObjectExtendedLimitInformation,
+		uintptr(unsafe.Pointer(&extInfo)),
+		uint32(unsafe.Sizeof(extInfo)),
+	); err != nil {
+		windows.CloseHandle(job)
+		return 0, fmt.Errorf("SetInformationJobObject (Extended): %w", err)
 	}
 
 	if cpuLimitPercent > 0 {
-		var cpuInfo jobobjectCpuRateControlInformation
-		cpuInfo.ControlFlags = jobObjectCpuRateControlEnable | jobObjectCpuRateControlHardCap
-		cpuInfo.CpuRate = uint32(cpuLimitPercent * 100)
-
-		_, err = windows.SetInformationJobObject(
-			jobHandle,
+		// CpuRate is a hard cap expressed in 1/100 of a percent of TOTAL system
+		// capacity across all logical processors (50% -> 5000, 100% -> 10000).
+		rate := uint32(cpuLimitPercent * 100)
+		if rate > 10000 {
+			rate = 10000
+		}
+		cpuInfo := jobobjectCpuRateControlInformation{
+			ControlFlags: jobObjectCpuRateControlEnable | jobObjectCpuRateControlHardCap,
+			CpuRate:      rate,
+		}
+		if _, err = windows.SetInformationJobObject(
+			job,
 			jobObjectCpuRateControlInformation,
 			uintptr(unsafe.Pointer(&cpuInfo)),
 			uint32(unsafe.Sizeof(cpuInfo)),
-		)
-		if err != nil {
-			windows.CloseHandle(jobHandle)
-			return fmt.Errorf("SetInformationJobObject (CPU): %w", err)
+		); err != nil {
+			windows.CloseHandle(job)
+			return 0, fmt.Errorf("SetInformationJobObject (CPU): %w", err)
 		}
 	}
 
-	procHandle, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(pid))
+	return job, nil
+}
+
+// assignProcessToJob places an already-created process (ideally still suspended,
+// so it has not yet spawned children) into the job. Every process the member
+// later creates inherits the job, so the caps and tree-kill cover the whole tree.
+func assignProcessToJob(job windows.Handle, pid int) error {
+	ph, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(pid))
 	if err != nil {
-		windows.CloseHandle(jobHandle)
 		return fmt.Errorf("OpenProcess: %w", err)
 	}
-	defer windows.CloseHandle(procHandle)
-
-	err = windows.AssignProcessToJobObject(jobHandle, procHandle)
-	if err != nil {
-		windows.CloseHandle(jobHandle)
+	defer windows.CloseHandle(ph)
+	if err := windows.AssignProcessToJobObject(job, ph); err != nil {
 		return fmt.Errorf("AssignProcessToJobObject: %w", err)
 	}
+	return nil
+}
 
-	// Do NOT CloseHandle(jobHandle) here or the job object is destroyed
-	// We want the job object to persist as long as the processes inside it are alive.
-	// Wait, if we close the handle, does the Job Object get destroyed if processes are inside it?
-	// Actually, a job object is destroyed when its last handle is closed AND all associated processes have exited.
-	// Wait, if we close the handle, the job continues to affect the processes that are already assigned to it.
-	// So it IS safe to close the handle after assigning the process!
-	windows.CloseHandle(jobHandle)
+// resumeProcess resumes every thread of a process created with CREATE_SUSPENDED.
+// A freshly created suspended process has exactly one thread; the snapshot walk
+// is defensive in case the runtime injected additional threads.
+func resumeProcess(pid int) error {
+	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPTHREAD, 0)
+	if err != nil {
+		return fmt.Errorf("CreateToolhelp32Snapshot: %w", err)
+	}
+	defer windows.CloseHandle(snap)
 
+	var te windows.ThreadEntry32
+	te.Size = uint32(unsafe.Sizeof(te))
+	resumed := 0
+	for err = windows.Thread32First(snap, &te); err == nil; err = windows.Thread32Next(snap, &te) {
+		if te.OwnerProcessID != uint32(pid) {
+			continue
+		}
+		th, oerr := windows.OpenThread(windows.THREAD_SUSPEND_RESUME, false, te.ThreadID)
+		if oerr != nil {
+			continue
+		}
+		windows.ResumeThread(th)
+		windows.CloseHandle(th)
+		resumed++
+	}
+	if resumed == 0 {
+		return fmt.Errorf("no threads resumed for pid %d", pid)
+	}
 	return nil
 }

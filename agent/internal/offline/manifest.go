@@ -17,7 +17,28 @@ type BundleManifest struct {
 	Platform  string       `json:"platform"` // "windows", "linux", "both"
 	CaseID    string       `json:"case_id,omitempty"`
 	CaseName  string       `json:"case_name,omitempty"`
+	Operator  string       `json:"operator,omitempty"` // who generated the bundle (chain-of-custody)
 	Tools     []BundleTool `json:"tools"`
+	// Playbooks are named, ordered collections the responder can run with one
+	// click. Empty = the agent synthesises a default "Collect Everything".
+	Playbooks []Playbook `json:"playbooks,omitempty"`
+	// Reference holds operator-selected checklists + reference playbooks (raw
+	// pass-through JSON) shown in the agent's "Guide" tab during hunting.
+	Reference json.RawMessage `json:"reference,omitempty"`
+}
+
+// Playbook is a named, ordered set of tool steps for one-click hunting.
+type Playbook struct {
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description,omitempty"`
+	Steps       []PlaybookStep `json:"steps"`
+}
+
+// PlaybookStep is one tool invocation inside a playbook.
+type PlaybookStep struct {
+	ToolID string `json:"tool_id"`
+	Args   string `json:"args,omitempty"` // overrides the tool's default args when set
 }
 
 // BundleTool describes one tool entry inside the bundle.
@@ -29,6 +50,21 @@ type BundleTool struct {
 	ExecutablePath string `json:"executable_path"` // e.g. "linux/yara-scanner" or "{{OS}}/tool{{EXT}}"
 	DefaultArgs    string `json:"default_args"`
 	Category       string `json:"category"`
+	// RequiresAdmin marks tools that need elevation; the agent offers a single
+	// "Restart as Administrator" when any selected tool needs it.
+	RequiresAdmin bool `json:"requires_admin,omitempty"`
+	// Presets are one-click argument presets (label → args) surfaced in the UI,
+	// replacing the old hard-coded webshell C:\/IIS/Users buttons.
+	Presets []Preset `json:"presets,omitempty"`
+	// ReportPath, when set, is a path (relative to the tool dir) to an HTML report
+	// the tool produces, so the UI can offer a "View Report" link for ANY tool.
+	ReportPath string `json:"report_path,omitempty"`
+}
+
+// Preset is a labelled argument shortcut for a tool.
+type Preset struct {
+	Label string `json:"label"`
+	Args  string `json:"args"`
 }
 
 // LoadManifest reads bundle.json from the same directory as the running binary.
@@ -52,6 +88,35 @@ func LoadManifest() (*BundleManifest, error) {
 		return nil, fmt.Errorf("bundle.json contains no tools")
 	}
 	return &m, nil
+}
+
+// EffectivePlaybooks returns the manifest playbooks, or a synthesised
+// "Collect Everything" playbook (every tool with its default args) when none
+// were baked in — so the responder always has a one-click option.
+func (m *BundleManifest) EffectivePlaybooks() []Playbook {
+	if len(m.Playbooks) > 0 {
+		return m.Playbooks
+	}
+	steps := make([]PlaybookStep, 0, len(m.Tools))
+	for _, t := range m.Tools {
+		steps = append(steps, PlaybookStep{ToolID: t.ID})
+	}
+	return []Playbook{{
+		ID:          "collect-everything",
+		Name:        "Collect Everything",
+		Description: "Run every bundled tool in sequence.",
+		Steps:       steps,
+	}}
+}
+
+// RequiresAdmin reports whether any bundled tool needs elevation.
+func (m *BundleManifest) RequiresAdmin() bool {
+	for _, t := range m.Tools {
+		if t.RequiresAdmin {
+			return true
+		}
+	}
+	return false
 }
 
 // ToolDir returns the absolute path to the pre-extracted directory for a tool.

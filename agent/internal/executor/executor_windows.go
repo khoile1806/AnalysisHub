@@ -5,20 +5,94 @@ package executor
 import (
 	"bufio"
 	"context"
+	"debug/pe"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
+
+// peSubsystemWindowsGUI is the PE OptionalHeader.Subsystem value for a GUI app
+// (IMAGE_SUBSYSTEM_WINDOWS_GUI). Console apps are 3 (CUI).
+const peSubsystemWindowsGUI = 2
+
+// isGUIExecutable reports whether the .exe is a Windows GUI-subsystem program
+// (e.g. Process Explorer, TCPView GUI, mbar) rather than a console tool. GUI
+// tools must be launched with their own window — capturing their stdout in a
+// pipeline (as we do for CLI tools) leaves the window invisible.
+func isGUIExecutable(path string) bool {
+	if !strings.EqualFold(filepath.Ext(path), ".exe") {
+		return false
+	}
+	f, err := pe.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	switch oh := f.OptionalHeader.(type) {
+	case *pe.OptionalHeader32:
+		return oh.Subsystem == peSubsystemWindowsGUI
+	case *pe.OptionalHeader64:
+		return oh.Subsystem == peSubsystemWindowsGUI
+	}
+	return false
+}
+
+// launchGUITool opens a GUI tool in its own interactive window via Start-Process
+// (ShellExecute), so it appears on the operator's desktop and — for tools whose
+// manifest requests Administrator — triggers a single UAC instead of failing.
+// It does NOT capture stdout or wait for the window to close, so a batch run
+// isn't blocked by an interactive tool.
+func launchGUITool(execPath string, args []string, toolDir string, outputCh chan<- string) error {
+	send := func(s string) {
+		select {
+		case outputCh <- s:
+		default:
+		}
+	}
+	send("[Agent] GUI tool detected: " + filepath.Base(execPath))
+	send("[Agent] Opening its window — interact with it directly, then close it when finished.")
+
+	cmdStr := "Start-Process -FilePath " + psSingleQuote(execPath)
+	if len(args) > 0 {
+		quoted := make([]string, len(args))
+		for i, a := range args {
+			quoted[i] = psSingleQuote(a)
+		}
+		cmdStr += " -ArgumentList " + strings.Join(quoted, ",")
+	}
+	cmdStr += " -WorkingDirectory " + psSingleQuote(toolDir)
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", cmdStr)
+	cmd.Dir = toolDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		send("[Agent] Failed to launch GUI tool: " + strings.TrimSpace(string(out)))
+		return fmt.Errorf("executor: launch GUI tool: %w", err)
+	}
+	send("[Agent] GUI launched. This job is complete; the tool runs in its own window — close it when done.")
+	return nil
+}
 
 // runToolProcess launches execPath in a new console window on Windows.
 // A PowerShell wrapper uses Tee-Object to write output both to the visible
 // window and to a temp log file; this goroutine tails that log file and
 // streams lines to outputCh so the dashboard receives real-time output.
 func runToolProcess(ctx context.Context, execPath string, args []string, req JobRequest, toolDir string, outputCh chan<- string) error {
+	// GUI tools (Process Explorer, TCPView/Autoruns GUI, mbar, …) must open their
+	// own window. Detect by PE subsystem and launch detached FIRST — before any
+	// CLI-oriented arg injection (-AcceptEula / /Q), which some GUI tools (e.g.
+	// Autoruns) mistake for an input file and respond to with a usage dialog.
+	if isGUIExecutable(execPath) {
+		return launchGUITool(execPath, args, toolDir, outputCh)
+	}
+
 	// Automatically append -AcceptEula for known Sysinternals tools to prevent GUI hangs.
 	baseName := strings.ToLower(filepath.Base(execPath))
 	if isSysinternals(baseName) {
@@ -107,7 +181,7 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 		req.ToolName, req.JobID,
 		softLimitSnippet, toolLine, psSingleQuote(logFile), // Elevated
 		softLimitSnippet, toolLine, psSingleQuote(logFile), // Try
-		psSingleQuote(logFile),                             // Catch
+		psSingleQuote(logFile), // Catch
 	)
 	if err := os.WriteFile(ps1File, []byte(ps1), 0o600); err != nil {
 		return fmt.Errorf("executor: write PS1 wrapper: %w", err)
@@ -124,17 +198,60 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 		return fmt.Errorf("executor: write batch launcher: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, "cmd.exe", "/c", batFile)
+	// Launch the cmd.exe launcher SUSPENDED so we can drop it into a job object
+	// BEFORE it spawns the powershell window and the real tool. Job membership and
+	// the CPU/RAM caps are inherited by every descendant, so the whole
+	// cmd -> powershell -> tool tree is governed — fixing the previous bug where
+	// the limit (and a "stop") only reached the transient cmd.exe launcher.
+	//
+	// We deliberately do NOT use exec.CommandContext here: its ctx-cancel only
+	// kills cmd.exe and would orphan powershell/the tool. Instead we kill the
+	// entire tree via TerminateJobObject below.
+	cmd := exec.Command("cmd.exe", "/c", batFile)
 	cmd.Dir = toolDir
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_SUSPENDED}
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("executor: start tool window: %w", err)
 	}
 
-	if err := applyHardLimitsWindows(cmd.Process.Pid, req.CPULimit, req.RAMLimit); err != nil {
-		// Log the error but don't fail the execution if limit application fails
-		fmt.Printf("[job:%s] warning: failed to apply hard limits: %v\n", req.JobID, err)
+	// A job is created even when no explicit limits are set, so we can always
+	// terminate the whole tree atomically. job==0 means the (best-effort) setup
+	// failed and we degrade to limiting/killing only the launcher.
+	var job windows.Handle
+	if j, err := createLimitedJob(req.CPULimit, req.RAMLimit); err != nil {
+		fmt.Printf("[job:%s] warning: job object setup failed (limits/tree-kill disabled): %v\n", req.JobID, err)
+	} else if err := assignProcessToJob(j, cmd.Process.Pid); err != nil {
+		fmt.Printf("[job:%s] warning: assign to job failed (limits/tree-kill disabled): %v\n", req.JobID, err)
+		windows.CloseHandle(j)
+	} else {
+		job = j
 	}
+
+	// Resume regardless of job outcome — a suspended process left unresumed hangs
+	// forever. On resume failure we tear everything down and fail the job.
+	if err := resumeProcess(cmd.Process.Pid); err != nil {
+		if job != 0 {
+			windows.TerminateJobObject(job, 1)
+			windows.CloseHandle(job)
+		}
+		_ = cmd.Process.Kill()
+		return fmt.Errorf("executor: resume tool process: %w", err)
+	}
+
+	// Operator "stop" (ctx cancel) → kill the whole tree, not just the launcher.
+	doneWatch := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			if job != 0 {
+				windows.TerminateJobObject(job, 1)
+			} else {
+				_ = cmd.Process.Kill()
+			}
+		case <-doneWatch:
+		}
+	}()
 
 	tailDone := make(chan struct{})
 	var wg sync.WaitGroup
@@ -145,8 +262,12 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 	}()
 
 	waitErr := cmd.Wait()
+	close(doneWatch)
 	close(tailDone)
 	wg.Wait()
+	if job != 0 {
+		windows.CloseHandle(job)
+	}
 
 	if waitErr != nil {
 		if ctx.Err() != nil {

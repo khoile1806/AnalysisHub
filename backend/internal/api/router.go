@@ -10,6 +10,7 @@ import (
 	"github.com/forensichub/backend/internal/config"
 	"github.com/forensichub/backend/internal/oob"
 	"github.com/forensichub/backend/internal/osint"
+	"github.com/forensichub/backend/internal/vulnscan"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
 	"github.com/forensichub/backend/internal/ws"
@@ -28,6 +29,7 @@ func NewRouter(
 	osintEngine *osint.Engine,
 	oobServer *oob.Server,
 	oobHub *oob.Hub,
+	vulnEngine *vulnscan.Engine,
 ) *gin.Engine {
 	router := gin.New()
 	// Allow large multipart uploads (memory dumps, disk images) to be streamed
@@ -63,6 +65,7 @@ func NewRouter(
 		c.Set("osintEngine", osintEngine)
 		c.Set("oobServer", oobServer)
 		c.Set("oobHub", oobHub)
+		c.Set("vulnEngine", vulnEngine)
 		c.Set("jwtSecret", jwtSecret)
 		c.Set("nvdAPIKey", cfg.NVDAPIKey)
 		c.Set("githubToken", cfg.GitHubToken)
@@ -280,6 +283,17 @@ func NewRouter(
 		protected.POST("/osint/watches/:id/run", handlers.RunOsintWatchNow)
 		protected.GET("/osint/watches/:id/alerts", handlers.ListOsintWatchAlerts)
 		protected.POST("/osint/watches/:id/alerts/seen", handlers.MarkOsintWatchAlertsSeen)
+
+		// Vulnerability scanner (httpx + nuclei) over OSINT-discovered assets.
+		// Active/intrusive → create/stop/delete are admin-gated in the handlers.
+		protected.GET("/vulnscan/preview-assets", handlers.PreviewVulnAssets)
+		protected.POST("/vulnscan", handlers.CreateVulnScan)
+		protected.GET("/vulnscan", handlers.ListVulnScans)
+		protected.GET("/vulnscan/:id", handlers.GetVulnScan)
+		protected.GET("/vulnscan/:id/findings", handlers.GetVulnFindings)
+		protected.GET("/vulnscan/:id/stream", handlers.StreamVulnOutput)
+		protected.POST("/vulnscan/:id/stop", handlers.StopVulnScan)
+		protected.DELETE("/vulnscan/:id", handlers.DeleteVulnScan)
 
 		// OOB interaction server ("Catch" — Interactsh / Burp-Collaborator style).
 		// Confirms blind vulns (SSRF, blind XXE/RCE/SQLi, email-header injection)

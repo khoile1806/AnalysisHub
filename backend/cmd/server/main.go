@@ -27,6 +27,7 @@ import (
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/oob"
 	"github.com/forensichub/backend/internal/osint"
+	"github.com/forensichub/backend/internal/vulnscan"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
 	"github.com/forensichub/backend/internal/ws"
@@ -240,10 +241,15 @@ func main() {
 	oobHub := oob.NewHub()
 	oobServer.SetHub(oobHub) // OAST (DNS/SMTP) captures also push live SSE events
 
+	// Vulnerability scanner engine (httpx + nuclei over OSINT-discovered assets).
+	// Marks any scan left mid-run by a crash as failed on construction.
+	vulnEngine := vulnscan.NewEngine(db, cfg, handlers.NewCVEEnricher())
+	slog.Info("vuln-scan engine initialised")
+
 	// ------------------------------------------------------------------ //
 	// 8. Build Gin router
 	// ------------------------------------------------------------------ //
-	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient, osintEngine, oobServer, oobHub)
+	router := api.NewRouter(db, hub, store, rdb, cfg, enrichClient, osintEngine, oobServer, oobHub, vulnEngine)
 
 	// ------------------------------------------------------------------ //
 	// 9. Start HTTP server with graceful shutdown

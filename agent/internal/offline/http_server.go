@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/forensichub/agent/internal/executor"
 )
 
 //go:embed ui/index.html
@@ -34,10 +36,16 @@ func (s *HTTPServer) Start() error {
 
 	mux.HandleFunc("/", s.handleIndex)
 	mux.HandleFunc("/api/sysinfo", s.handleSysinfo)
+	mux.HandleFunc("/api/manifest", s.handleManifest)
 	mux.HandleFunc("/api/tools", s.handleTools)
+	mux.HandleFunc("/api/jobs/batch", s.handleBatch) // exact match wins over /api/jobs/
 	mux.HandleFunc("/api/jobs", s.handleJobs)
 	mux.HandleFunc("/api/jobs/", s.handleJob)
+	mux.HandleFunc("/api/findings", s.handleFindings)
+	mux.HandleFunc("/api/reference", s.handleReference)
+	mux.HandleFunc("/api/elevate", s.handleElevate)
 	mux.HandleFunc("/api/report", s.handleReport)
+	mux.HandleFunc("/api/limits", s.handleLimits)
 
 	// Serve the entire bundle directory under /artifacts/ so tools' outputs (like HTML reports) can be viewed
 	if bDir, err := bundleDir(); err == nil {
@@ -83,11 +91,13 @@ func (s *HTTPServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func (s *HTTPServer) handleSysinfo(w http.ResponseWriter, r *http.Request) {
 	hostname, _ := os.Hostname()
-	writeJSON(w, map[string]string{
-		"hostname": hostname,
-		"ip":       localIP(),
-		"os":       runtime.GOOS,
-		"arch":     runtime.GOARCH,
+	writeJSON(w, map[string]interface{}{
+		"hostname":       hostname,
+		"ip":             localIP(),
+		"os":             runtime.GOOS,
+		"arch":           runtime.GOARCH,
+		"elevated":       executor.IsElevated(),
+		"requires_admin": s.manifest.RequiresAdmin(),
 	})
 }
 
@@ -96,6 +106,94 @@ func (s *HTTPServer) handleTools(w http.ResponseWriter, r *http.Request) {
 		"bundle_name": s.manifest.Name,
 		"tools":       s.manifest.Tools,
 	})
+}
+
+// handleManifest returns the full bundle context the UI needs: playbooks, the
+// admin/elevation state, and the tool list (with presets + report paths).
+func (s *HTTPServer) handleManifest(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]interface{}{
+		"name":           s.manifest.Name,
+		"operator":       s.manifest.Operator,
+		"case_name":      s.manifest.CaseName,
+		"requires_admin": s.manifest.RequiresAdmin(),
+		"elevated":       executor.IsElevated(),
+		"playbooks":      s.manifest.EffectivePlaybooks(),
+		"tools":          s.manifest.Tools,
+	})
+}
+
+// handleBatch runs a playbook (?playbook_id) / a set of tools / or everything,
+// sequentially in the background — the one-click "Collect" primitive.
+func (s *HTTPServer) handleBatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		PlaybookID string   `json:"playbook_id"`
+		ToolIDs    []string `json:"tool_ids"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+
+	var steps []PlaybookStep
+	switch {
+	case body.PlaybookID != "":
+		for _, pb := range s.manifest.EffectivePlaybooks() {
+			if pb.ID == body.PlaybookID {
+				steps = pb.Steps
+				break
+			}
+		}
+	case len(body.ToolIDs) > 0:
+		for _, id := range body.ToolIDs {
+			steps = append(steps, PlaybookStep{ToolID: id})
+		}
+	default:
+		for _, t := range s.manifest.Tools {
+			steps = append(steps, PlaybookStep{ToolID: t.ID})
+		}
+	}
+	n := s.runner.RunBatch(steps, s.manifest)
+	writeJSON(w, map[string]interface{}{"started": n})
+}
+
+// handleFindings returns all triage findings, most-severe first.
+func (s *HTTPServer) handleFindings(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]interface{}{"findings": s.runner.AllFindings()})
+}
+
+// handleReference returns the embedded checklists + playbooks (the hunting
+// guide), or an empty object when none were baked into the bundle.
+func (s *HTTPServer) handleReference(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if len(s.manifest.Reference) == 0 {
+		_, _ = w.Write([]byte(`{"checklists":[],"playbooks":[]}`))
+		return
+	}
+	_, _ = w.Write(s.manifest.Reference)
+}
+
+// handleElevate relaunches the agent elevated (one UAC) and exits, so all tools
+// run with admin and no per-tool prompts. Windows only.
+func (s *HTTPServer) handleElevate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	if executor.IsElevated() {
+		writeJSON(w, map[string]interface{}{"already_elevated": true})
+		return
+	}
+	if err := relaunchElevated(); err != nil {
+		writeErr(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]interface{}{"relaunching": true})
+	// Let the response flush, then exit so the elevated instance takes over.
+	go func() {
+		time.Sleep(600 * time.Millisecond)
+		os.Exit(0)
+	}()
 }
 
 func (s *HTTPServer) handleJobs(w http.ResponseWriter, r *http.Request) {
@@ -149,6 +247,30 @@ func (s *HTTPServer) createJob(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, jobToMap(job))
+}
+
+// handleLimits gets (GET) or sets (POST) the global resource throttle applied to
+// every job. The cap is enforced by the executor's job-object (Windows) /
+// cgroup (Linux) wrapping, so it actually governs the real tool tree.
+func (s *HTTPServer) handleLimits(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		var body struct {
+			CPULimit int    `json:"cpu_limit"`
+			RAMLimit int    `json:"ram_limit"`
+			Priority string `json:"priority"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeErr(w, "invalid body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		s.runner.SetLimits(body.CPULimit, body.RAMLimit, body.Priority)
+	}
+	cpu, ram, prio := s.runner.Limits()
+	writeJSON(w, map[string]interface{}{
+		"cpu_limit": cpu,
+		"ram_limit": ram,
+		"priority":  prio,
+	})
 }
 
 // handleJob routes /api/jobs/<id> and /api/jobs/<id>/stream and /api/jobs/<id>/stop.
@@ -247,9 +369,11 @@ func (s *HTTPServer) handleReport(w http.ResponseWriter, r *http.Request) {
 	ts := time.Now().Format("20060102-150405")
 	baseName := fmt.Sprintf("report-%s-%s", safeFilename(hostname), ts)
 
-	// Persist next to the .exe the operator launched (a user-visible location),
-	// not the temp extraction dir.
-	dir := outputDir()
+	// All evidence lands in ONE clean folder next to the launched .exe, and we
+	// (re)write a SHA-256 manifest of everything in it for chain-of-custody.
+	dir := collectionDir()
+	defer writeCollectionManifest(dir)
+
 	switch format {
 	case "json":
 		data, err := json.MarshalIndent(rep, "", "  ")
@@ -292,6 +416,9 @@ func jobToMap(j *Job) map[string]interface{} {
 	}
 	if j.Error != "" {
 		m["error"] = j.Error
+	}
+	if len(j.Findings) > 0 {
+		m["findings"] = j.Findings
 	}
 	return m
 }

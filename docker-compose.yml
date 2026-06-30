@@ -115,6 +115,13 @@ services:
       # Dark-web crawler dials the in-stack Tor service (overrides any .env value,
       # which uses 127.0.0.1 for local runs). General API traffic does NOT use Tor.
       - OSINT_TOR_PROXY=socks5://tor:9050
+      # Vulnerability scanner (httpx + nuclei over OSINT-discovered assets).
+      # Scanner traffic is forced through the configured proxy; with VULNSCAN_PROXY
+      # empty it falls back to OSINT_TOR_PROXY (Tor) above. Templates are baked at
+      # /app/nuclei-templates by the backend image build.
+      - VULNSCAN_ENABLED=${VULNSCAN_ENABLED:-true}
+      - VULNSCAN_PROXY=${VULNSCAN_PROXY:-}
+      - VULNSCAN_NUCLEI_TEMPLATES=${VULNSCAN_NUCLEI_TEMPLATES:-/app/nuclei-templates}
       # Internal address of the volatility/kali ttyd terminal the backend
       # reverse-proxies (admin-gated). Not published on the host.
       - SANDBOX_TERMINAL_URL=${SANDBOX_TERMINAL_URL:-http://volatility_sandbox:7681}

@@ -92,12 +92,25 @@ func (h *CasesHandler) ImportOfflineReport(c *gin.Context) {
 			status = "done"
 		}
 
+		// Prepend a findings summary so the triage hits are visible at the top of
+		// the job output in the case timeline, not buried in raw logs.
+		output := rj.Output
+		if len(rj.Findings) > 0 {
+			var b strings.Builder
+			b.WriteString(fmt.Sprintf("===== FINDINGS (%d) =====\n", len(rj.Findings)))
+			for _, f := range rj.Findings {
+				b.WriteString(fmt.Sprintf("[%s] %s\n", strings.ToUpper(f.Severity), f.Title))
+			}
+			b.WriteString("=========================\n\n")
+			output = b.String() + output
+		}
+
 		job := models.Job{
 			AgentID:   agent.ID,
 			ToolID:    toolID,
 			Args:      rj.Args,
 			Status:    models.JobStatus(status),
-			Output:    rj.Output,
+			Output:    output,
 			CreatedBy: userUUID,
 		}
 		if !rj.StartedAt.IsZero() {
@@ -123,14 +136,31 @@ func (h *CasesHandler) ImportOfflineReport(c *gin.Context) {
 			fmt.Sprintf("Imported offline report (%d tools) from %s into case %s", imported, rep.Hostname, caseObj.Name))
 	}
 
+	// Aggregate findings severity for at-a-glance triage.
+	sevCounts := map[string]int{}
+	for _, f := range rep.Findings {
+		sevCounts[strings.ToLower(f.Severity)]++
+	}
+
+	// Warn (don't block) when the report came from a bundle generated for a
+	// DIFFERENT case, so an analyst doesn't silently file it in the wrong place.
+	caseMismatch := ""
+	if rep.CaseID != "" && rep.CaseID != caseUUID.String() {
+		caseMismatch = fmt.Sprintf("This report was generated for case %q, not the one you are importing into.", rep.CaseName)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"agent_id":      agent.ID,
-			"agent_name":    agent.Name,
-			"imported_jobs": imported,
-			"bundle_name":   rep.BundleName,
-			"hostname":      rep.Hostname,
+			"agent_id":        agent.ID,
+			"agent_name":      agent.Name,
+			"imported_jobs":   imported,
+			"bundle_name":     rep.BundleName,
+			"hostname":        rep.Hostname,
+			"operator":        rep.Operator,
+			"findings_total":  len(rep.Findings),
+			"findings_by_sev": sevCounts,
+			"case_mismatch":   caseMismatch,
 		},
 	})
 }

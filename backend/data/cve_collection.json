@@ -1,5 +1,678 @@
 [
   {
+    "id": "GHSA-h443-hx93-m7qc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:10Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j4fq-jj5r-8w3h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T00:33:21Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j4jv-fp59-574f",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:31:20Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:08Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jpvf-6235-4rh8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:31:20Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:07Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m86q-cgj9-94c8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:43Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:06Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-mjfm-6cr9-5cqx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:05Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-phj2-v9xx-8m7r",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:46Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:04Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-vj88-ppr4-hj46",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-24T18:32:45Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:03Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wwc5-7r8x-52gg",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:31:20Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:21:02Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-x237-c35r-5vq5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:31:19Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-x5g3-hx3c-gfxx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T09:31:19Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:30Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-262p-fj3f-xh7v",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T15:32:13Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:29Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-53ch-pxc8-6g72",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T15:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:28Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7g64-f2hm-vjxp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:27Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7vqr-7r5j-c84j",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T15:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cg4c-j43f-qcg7",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T18:31:54Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:25Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-f4vh-qr53-q5gv",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T12:31:44Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:24Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-gqj5-2xp5-3qmp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T00:32:05Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-hh95-r7mj-c9j5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T15:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-mjxr-6gqf-w78h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-28T03:33:40Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-p9cf-q2gf-35mq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:32:16Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:21Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pvpp-9x2p-fxg3",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T03:31:29Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q5h6-fcf5-49g9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T03:37:14Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qpmf-9p9c-455w",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T09:30:29Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rj34-crxv-j5mg",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-26T21:32:17Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:18Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rmcj-82cr-27rx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-25T18:30:41Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:17Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-h3vh-9phr-5gjm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T03:37:15Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:17Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jpx9-q676-jrjx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T03:37:15Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:17Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xwjg-85ph-66cc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T03:37:15Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T04:14:16Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-14160",
+    "description": "Time-of-check time-of-use (TOCTOU) race condition vulnerability in Samsung Open Source Escargot allows Leveraging Race Conditions.\n\nThis issue affects Escargot: bab3a5797557014ce3c2e28419a6310cfba90d0d.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T03:17:15.177",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T03:42:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12114",
+    "description": "The Team Members – Multi Language Supported Team Plugin plugin for WordPress is vulnerable to Stored Cross-Site Scripting via admin settings in all versions up to, and including, 8.7 due to insufficient input sanitization and output escaping. This makes it possible for authenticated attackers, with administrator-level permissions and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page. This only affects multi-site installations and installations where unfiltered_html has been disabled.",
+    "severity": "medium",
+    "cvss_score": 4.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T03:17:09.940",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T03:42:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58302",
+    "description": "rtapi_app in linuxcnc-uspace in LinuxCNC before 2.9.9 allows privilege escalation. It is installed SUID root and loads shared library modules via dlopen() by using a user-supplied module name. Insufficient validation of the module name allows path traversal, enabling an unprivileged local user to load an arbitrary shared library. Because the process retains elevated privileges during module loading, this results in local privilege escalation to root.",
+    "severity": "high",
+    "cvss_score": 8.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T02:16:26.820",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T02:19:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12243",
+    "description": "NLTK version 3.9.4 is vulnerable to a path traversal attack due to an incomplete fix for GitHub Issue #3504. The `_UNSAFE_NO_PROTOCOL_RE` regex in `nltk/data.py` checks for literal `../` sequences but fails to account for percent-encoded traversal sequences such as `..%2f`. The `url2pathname()` function decodes these sequences after the validation step, allowing an attacker to bypass the protection. This vulnerability enables an attacker to read arbitrary files accessible to the Python process by controlling the resource name parameter passed to `nltk.data.load()` or `nltk.data.find()`. The issue affects applications that rely on NLTK for resource loading, including NLP web applications, Jupyter notebooks, and CLI tools. The default `pathsec.ENFORCE=False` setting exacerbates the impact by not blocking the file read at the `open()` stage.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T01:16:29.063",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T01:23:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-37j2-3vv8-cf24",
+    "description": "Mattermost doesn't validate the TIFF IFD offset in the image header before allocating memory",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T13:30:15Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-29T23:22:56Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jmvr-r5hm-fxfr",
+    "description": "Mattermost doesn't enforce request body size limits on plugin HTTP endpoints",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-05-26T13:30:15Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-29T23:22:55Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-8023",
+    "description": "Zephyr's HTTP server (subsys/net/lib/http) provides a static-filesystem resource type (HTTP_RESOURCE_TYPE_STATIC_FS, available when CONFIG_FILE_SYSTEM is enabled) that serves files from a configured root directory. Before this fix, both the HTTP/1 and HTTP/2 front-ends placed the raw, attacker-controlled request path into client-url_buffer (assembled in on_url() for HTTP/1 and copied verbatim from the :path pseudo-header for HTTP/2) without resolving ./.. segments. The static-FS handler then built the on-disk filename by directly concatenating the configured root with that raw URL (snprintk(fname, ..., \"%s%s\", static_fs_detail-fs_path, client-url_buffer) at http_server_http1.c:603 and http_server_http2.c:490) and opened it with fs_open(fname, FS_O_READ). Because the handler is reached via wildcard/leading-dir (fnmatch FNM_LEADING_DIR) or fallback resource matching, a request such as GET /\u003cprefix/../../\u003cfile is dispatched to the handler and, after the underlying filesystem (e.g. LittleFS/FAT) resolves the .. segments, escapes the configured web root, letting an unauthenticated remote client read arbitrary readable files on the mounted volume (information disclosure). The HTTP server requires no TLS or authentication to reach this path. The fix adds http_server_remove_dot_segments(), which canonicalizes the path portion of the URL before resource lookup in both protocol handlers, neutralizing the traversal. Affects releases v4.0.0 through v4.4.0 for deployments that register a static-filesystem resource.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T23:16:43.777",
+    "poc_links": [
+      "https://github.com/ret2c/CVE-2026-8023"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-29T23:22:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-7656",
+    "description": "The IPv6 Neighbor Discovery handlers in subsys/net/ip/ipv6_nbr.c (handle_ra_input, handle_ns_input, handle_na_input) used an incorrect boolean expression that combined the RFC 4861 validity checks with the ICMPv6 code check using the wrong operator precedence: the form was '((length/hop/source/target checks) \u0026\u0026 (icmp_hdr-code != 0))'. Because every legitimate ND message carries ICMPv6 code 0, an attacker setting code == 0 (the normal value) caused the entire predicate to evaluate false, so the packet was never dropped and all of the other checks were silently skipped. The bypassed checks include the mandatory Hop Limit == 255 verification (which proves an ND packet originated on-link and was not forwarded) and, for Router Advertisements, the requirement that the source be a link-local address, as well as multicast-target sanity checks. As a result, an adjacent on-link attacker — and, because the Hop-Limit-255 guard is bypassed, potentially a remote/off-link attacker whose packets would otherwise be rejected — can have forged Router Advertisement, Neighbor Solicitation, and Neighbor Advertisement messages accepted. A forged RA lets the attacker reconfigure the victim's default router, on-link prefixes (SLAAC), MTU, reachable/retransmit timers, and (with CONFIG_NET_IPV6_RA_RDNSS) DNS servers, while forged NS/NA enable neighbor-cache poisoning, enabling man-in-the-middle, traffic redirection, and denial of service. The flaw is an input-validation/authentication weakness rather than a memory-safety issue: the underlying packet-parsing primitives (net_pkt_get_data, net_pkt_read, net_pkt_skip) are independently bounds-safe and the validated 'length' is the true buffer length, so skipping the length check causes no out-of-bounds access. The defect has existed since the logic was introduced in 2018 and shipped in all releases through v4.4.0; it is fixed by splitting the condition so any failing check drops the packet.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T23:16:43.650",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-29T23:22:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-51219",
+    "description": "A heap buffer overflow in the HighPriorityASDUQueue_hasUnconfirmedIMessages function of lib60870 v2.3.3 to v2.3.6 allows attackers to cause a Denial of Service (DoS) via a crafted payload.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T23:16:42.733",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-29T23:22:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-51218",
+    "description": "A heap buffer overflow in the TS7Worker::PerformFunctionWrite() function (/core/s7_server.cpp) of snap7 v1.4.3 allows attackers to cause a Denial of Service (DoS) via a crafted packet.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T23:16:42.623",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-29T23:22:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-10648",
+    "description": "mcumgr_serial_process_frag() in subsys/mgmt/mcumgr/transport/src/serial_util.c calls net_buf_reset() on the result of smp_packet_alloc() before checking it for NULL. smp_packet_alloc() uses net_buf_alloc(K_NO_WAIT) against the shared MCUmgr packet pool (CONFIG_MCUMGR_TRANSPORT_NETBUF_COUNT, default 4), which returns NULL when the pool is exhausted. In default builds the __ASSERT_NO_MSG in net_buf_reset is a no-op, so net_buf_simple_reset writes through the NULL pointer (buf-\u003elen = 0; buf-\u003edata = buf-\u003e__buf), causing a fault/crash. The fragment data reaches this code from attacker-controlled bytes on the MCUmgr serial/UART/shell-console transports (smp_uart.c, smp_raw_uart.c, smp_shell.c), and a fresh buffer is allocated at the start of essentially every new packet. An attacker on the serial/console link can flood the transport to drive the 4-entry buffer pool to exhaustion and induce the NULL dereference, crashing the device (denial of service). The defect was introduced after the original MCUmgr rework and shipped in Zephyr v4.4.0. The fix moves the NULL check ahead of net_buf_reset.",
+    "severity": "medium",
+    "cvss_score": 6.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-29T23:16:42.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-29T23:22:32Z",
+    "source": "NVD"
+  },
+  {
     "id": "GHSA-fpv3-789h-j3j4",
     "description": "",
     "severity": "none",

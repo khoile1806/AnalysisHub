@@ -20,8 +20,10 @@ type Report struct {
 	IP          string      `json:"ip"`
 	OS          string      `json:"os"`
 	Arch        string      `json:"arch"`
+	Operator    string      `json:"operator,omitempty"`
 	GeneratedAt time.Time   `json:"generated_at"`
 	Jobs        []ReportJob `json:"jobs"`
+	Findings    []Finding   `json:"findings,omitempty"` // aggregated, most-severe first
 	Summary     Summary     `json:"summary"`
 }
 
@@ -37,6 +39,7 @@ type ReportJob struct {
 	OutputLines int       `json:"output_lines"`
 	Output      string    `json:"output"`
 	Error       string    `json:"error,omitempty"`
+	Findings    []Finding `json:"findings,omitempty"`
 }
 
 // Summary holds aggregated counters.
@@ -59,11 +62,13 @@ func BuildReport(manifest *BundleManifest, runner *Runner) Report {
 		BundleName:  manifest.Name,
 		CaseID:      manifest.CaseID,
 		CaseName:    manifest.CaseName,
+		Operator:    manifest.Operator,
 		Hostname:    hostname,
 		IP:          ip,
 		OS:          runtime.GOOS,
 		Arch:        runtime.GOARCH,
 		GeneratedAt: time.Now().UTC(),
+		Findings:    runner.AllFindings(),
 	}
 
 	sum := Summary{TotalTools: len(jobs)}
@@ -90,6 +95,7 @@ func BuildReport(manifest *BundleManifest, runner *Runner) Report {
 			OutputLines: len(j.Output),
 			Output:      strings.Join(j.Output, "\n"),
 			Error:       j.Error,
+			Findings:    j.Findings,
 		}
 		rep.Jobs = append(rep.Jobs, rj)
 
@@ -198,7 +204,10 @@ footer{text-align:center;padding:20px;color:#475569;font-size:12px;border-top:1p
 <div class="summary">`)
 
 	colors := map[string]string{"done": "#22c55e", "failed": "#ef4444", "stopped": "#f59e0b", "running": "#3b82f6", "total": "#6366f1"}
-	stats := []struct{ n int; l, c string }{
+	stats := []struct {
+		n    int
+		l, c string
+	}{
 		{rep.Summary.TotalTools, "Total", colors["total"]},
 		{rep.Summary.Done, "Done", colors["done"]},
 		{rep.Summary.Failed, "Failed", colors["failed"]},
@@ -209,7 +218,29 @@ footer{text-align:center;padding:20px;color:#475569;font-size:12px;border-top:1p
 		sb.WriteString(fmt.Sprintf(`<div class="stat"><div class="n" style="color:%s">%d</div><div class="l">%s</div></div>`, s.c, s.n, s.l))
 	}
 
-	sb.WriteString(`</div><div class="jobs">`)
+	sb.WriteString(`</div>`)
+
+	// Findings table at the top — severity-sorted triage before the raw job logs.
+	if len(rep.Findings) > 0 {
+		sevColor := map[Severity]string{SevCritical: "#ef4444", SevHigh: "#f59e0b", SevMedium: "#fbbf24", SevLow: "#60a5fa", SevInfo: "#94a3b8"}
+		sb.WriteString(`<div style="padding:0 24px 8px"><h2 style="font-size:14px;color:#f1f5f9;margin-bottom:10px">⚑ Findings (`)
+		sb.WriteString(fmt.Sprintf("%d)</h2>", len(rep.Findings)))
+		sb.WriteString(`<table style="width:100%;border-collapse:collapse;font-size:12px"><tbody>`)
+		for _, f := range rep.Findings {
+			c := sevColor[f.Severity]
+			if c == "" {
+				c = "#94a3b8"
+			}
+			sb.WriteString(`<tr style="border-bottom:1px solid #1e293b">`)
+			sb.WriteString(fmt.Sprintf(`<td style="padding:5px 8px;color:%s;font-weight:700;text-transform:uppercase;white-space:nowrap">%s</td>`, c, html.EscapeString(string(f.Severity))))
+			sb.WriteString(fmt.Sprintf(`<td style="padding:5px 8px;color:#94a3b8;white-space:nowrap">%s</td>`, html.EscapeString(f.Tool)))
+			sb.WriteString(fmt.Sprintf(`<td style="padding:5px 8px;color:#e2e8f0;font-family:monospace;word-break:break-all">%s</td>`, html.EscapeString(f.Title)))
+			sb.WriteString(`</tr>`)
+		}
+		sb.WriteString(`</tbody></table></div>`)
+	}
+
+	sb.WriteString(`<div class="jobs">`)
 
 	for i, j := range rep.Jobs {
 		col := statusColor[j.Status]

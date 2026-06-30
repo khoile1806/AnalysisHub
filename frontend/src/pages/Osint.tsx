@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
-  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio,
+  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
 import { CanaryPanel } from './CanaryTokens'
 import { OobPanel } from './Oob'
+import { VulnScanPanel } from './VulnScan'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
@@ -662,12 +663,14 @@ function TabButton({ active, onClick, icon: Icon, label }: {
   )
 }
 
-type OsintTab = 'investigations' | 'watchlist' | 'canary' | 'oob'
+type OsintTab = 'investigations' | 'watchlist' | 'canary' | 'oob' | 'vulnscan'
 
 export default function OsintPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<OsintTab>('investigations')
+  const [searchParams] = useSearchParams()
+  const initialTab = (searchParams.get('tab') as OsintTab) || 'investigations'
+  const [tab, setTab] = useState<OsintTab>(initialTab)
   const [newOpen, setNewOpen] = useState(false)
   const [imageOpen, setImageOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
@@ -720,9 +723,12 @@ export default function OsintPage() {
         <TabButton active={tab === 'watchlist'} onClick={() => setTab('watchlist')} icon={RadioTower} label="Watchlist" />
         <TabButton active={tab === 'canary'} onClick={() => setTab('canary')} icon={Link2} label="Canary Tokens" />
         <TabButton active={tab === 'oob'} onClick={() => setTab('oob')} icon={Radio} label="Catch (OOB)" />
+        <TabButton active={tab === 'vulnscan'} onClick={() => setTab('vulnscan')} icon={ShieldAlert} label="Vuln Scan" />
       </div>
 
-      {tab === 'oob' ? (
+      {tab === 'vulnscan' ? (
+        <VulnScanPanel />
+      ) : tab === 'oob' ? (
         <OobPanel />
       ) : tab === 'canary' ? (
         <CanaryPanel />

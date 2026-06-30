@@ -5,7 +5,7 @@ import {
   ChevronLeft, Loader2, StopCircle, CheckCircle, XCircle, Clock,
   Fingerprint, ArrowRight, MinusCircle, Download, FileBarChart2,
   ListTree, AlertTriangle, ShieldCheck, ShieldPlus, Sparkles, ExternalLink,
-  Network, Copy, Globe, AtSign, MapPin, Upload,
+  Network, Copy, Globe, AtSign, MapPin, Upload, ShieldAlert,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
@@ -17,6 +17,8 @@ import {
   type GeoPoint, type IdentityConfidence,
 } from '@/api/osint'
 import { analysisApi } from '@/api/analysis'
+import { AssetScanModal } from './VulnScan'
+import { useAuthStore } from '@/store/auth'
 import OsintGraphView from '@/components/OsintGraphView'
 import OsintCorrelations from '@/components/OsintCorrelations'
 import { getErrorMessage, copyToClipboard } from '@/lib/utils'
@@ -1222,6 +1224,11 @@ export default function OsintDetailPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   })
 
+  // Launch an active vulnerability scan over the related domains/subdomains/IPs
+  // this investigation discovered. Admin-only; opens a review/select modal.
+  const isAdmin = useAuthStore((s) => s.user?.role) === 'admin'
+  const [vulnScanOpen, setVulnScanOpen] = useState(false)
+
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-gray-600" /></div>
   }
@@ -1257,6 +1264,24 @@ export default function OsintDetailPage() {
             >
               <ShieldPlus className="h-4 w-4" /> Add to IOC store
             </button>
+          )}
+          {isAdmin && ['ip', 'domain'].includes(scan.target_type) && scan.status !== 'pending' && (
+            <button
+              className="btn-secondary flex items-center gap-2"
+              onClick={() => setVulnScanOpen(true)}
+              title="Review the discovered IPs/domains/subdomains, then run httpx + nuclei against the chosen ones"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              Scan for vulns
+            </button>
+          )}
+          {vulnScanOpen && (
+            <AssetScanModal
+              osintScanId={scan.id}
+              targetLabel={scan.target}
+              onClose={() => setVulnScanOpen(false)}
+              onStarted={() => { setVulnScanOpen(false); navigate('/osint?tab=vulnscan') }}
+            />
           )}
           {scan.status !== 'pending' && (
             <a
