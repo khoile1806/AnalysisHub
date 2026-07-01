@@ -123,6 +123,15 @@ export interface OsintGraphNode {
   findings: number
   root: boolean
   avatar_url?: string
+  vulns?: number
+  has_kev?: boolean
+}
+
+export interface OsintVulnHost {
+  host: string
+  count: number
+  kev: boolean
+  max_severity: string
 }
 interface OsintGraphEdge {
   from: string
@@ -370,6 +379,13 @@ export const osintApi = {
   // correlations returns shared indicators that link 2+ entities in the graph.
   correlations: async (id: string): Promise<OsintCorrelation[]> => {
     const { data } = await apiClient.get<ApiResponse<OsintCorrelation[]>>(`/osint/${id}/correlations`)
+    return data.data
+  },
+
+  // vulnFindings returns per-host vulnerability roll-ups across the investigation
+  // (powers the "vulns: N / KEV" badges on discovered hosts + graph nodes).
+  vulnFindings: async (id: string): Promise<OsintVulnHost[]> => {
+    const { data } = await apiClient.get<ApiResponse<OsintVulnHost[]>>(`/osint/${id}/vuln-findings`)
     return data.data
   },
 

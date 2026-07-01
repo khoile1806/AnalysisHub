@@ -85,7 +85,7 @@ RUN wget -qO winpmem.exe https://github.com/Velocidex/WinPmem/releases/download/
 FROM alpine:3.19 AS scanner-tools
 RUN apk add --no-cache curl unzip git ca-certificates
 RUN set -eux; mkdir -p /out; \
-    for tool in httpx nuclei subfinder naabu; do \
+    for tool in httpx nuclei subfinder naabu dnsx katana cdncheck tlsx; do \
       url=$(curl -fsSL "https://api.github.com/repos/projectdiscovery/$tool/releases/latest" \
             | grep -o "https://[^\"]*_linux_amd64\.zip" | head -1); \
       if [ -n "$url" ]; then \
@@ -94,6 +94,36 @@ RUN set -eux; mkdir -p /out; \
       else echo "[build] could not resolve $tool release URL"; fi; \
     done; \
     chmod +x /out/* 2>/dev/null || true
+# gau (lc/gau) lives outside ProjectDiscovery and ships a .tar.gz — install it
+# best-effort for the deep/aggressive parameter-discovery stage.
+RUN set -eux; \
+    url=$(curl -fsSL "https://api.github.com/repos/lc/gau/releases/latest" \
+          | grep -o "https://[^\"]*_linux_amd64\.tar\.gz" | head -1); \
+    if [ -n "$url" ]; then \
+      curl -fsSL "$url" -o /tmp/gau.tar.gz && tar -xzf /tmp/gau.tar.gz -C /out gau && chmod +x /out/gau || \
+      echo "[build] gau download failed — deep/aggressive URL discovery will be skipped"; \
+    else echo "[build] could not resolve gau release URL"; fi
+# dalfox (hahwul/dalfox) — dedicated XSS engine for the deep/aggressive profiles.
+RUN set -eux; \
+    url=$(curl -fsSL "https://api.github.com/repos/hahwul/dalfox/releases/latest" \
+          | grep -o "https://[^\"]*_linux_amd64\.tar\.gz" | head -1); \
+    if [ -n "$url" ]; then \
+      curl -fsSL "$url" -o /tmp/dalfox.tar.gz && tar -xzf /tmp/dalfox.tar.gz -C /out dalfox && chmod +x /out/dalfox || \
+      echo "[build] dalfox download failed — XSS stage will be skipped"; \
+    else echo "[build] could not resolve dalfox release URL"; fi
+# ffuf (ffuf/ffuf) — content discovery for the full/aggressive profiles.
+RUN set -eux; \
+    url=$(curl -fsSL "https://api.github.com/repos/ffuf/ffuf/releases/latest" \
+          | grep -o "https://[^\"]*_linux_amd64\.tar\.gz" | head -1); \
+    if [ -n "$url" ]; then \
+      curl -fsSL "$url" -o /tmp/ffuf.tar.gz && tar -xzf /tmp/ffuf.tar.gz -C /out ffuf && chmod +x /out/ffuf || \
+      echo "[build] ffuf download failed — content-discovery stage will be skipped"; \
+    else echo "[build] could not resolve ffuf release URL"; fi
+# Content-discovery wordlist (SecLists common.txt) for ffuf. Best-effort.
+RUN mkdir -p /wordlists && \
+    (curl -fsSL "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/common.txt" \
+       -o /wordlists/content-discovery.txt \
+     || echo "[build] wordlist download failed — ffuf content discovery will skip at runtime")
 RUN git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates /out/nuclei-templates \
     || echo "[build] nuclei-templates clone failed — nuclei will fall back to its own discovery"
 
@@ -114,6 +144,16 @@ RUN apk add --no-cache ca-certificates tzdata libpcap gcompat && \
 RUN apk add --no-cache python3 py3-pip py3-lxml py3-aiohttp py3-requests && \
     (pip install --no-cache-dir --break-system-packages maigret \
      || echo "[build] maigret install failed — OSINT maigret collector will skip at runtime")
+
+# nmap (vuln-scan "aggressive" profile: NSE vuln/vulners over discovered ports).
+# Best-effort — the nmap stage reports "not installed" if this fails.
+RUN apk add --no-cache nmap nmap-scripts || echo "[build] nmap install failed — nmap stage will skip"
+
+# wpscan (optional, "full/aggressive": WordPress core/plugin/theme vulns). Ruby +
+# gem; best-effort so a failure never breaks the image — the stage just skips.
+RUN apk add --no-cache ruby ruby-dev build-base libcurl && \
+    (gem install --no-document wpscan \
+     || echo "[build] wpscan install failed — wpscan stage will skip at runtime")
 
 WORKDIR /app
 
@@ -140,6 +180,8 @@ COPY --from=scanner-bundler /app/defaults/winpmem.exe      /app/defaults/winpmem
 # just won't be on PATH → the feature reports them as "not installed").
 COPY --from=scanner-tools /out/ /usr/local/bin/
 RUN mv /usr/local/bin/nuclei-templates /app/nuclei-templates 2>/dev/null || mkdir -p /app/nuclei-templates
+# Content-discovery wordlist for the ffuf stage (path matches VULNSCAN_FFUF_WORDLIST).
+COPY --from=scanner-tools /wordlists/ /app/wordlists/
 
 # Create required directories and fix ownership
 RUN mkdir -p /app/storage /app/agent-bins /app/defaults \

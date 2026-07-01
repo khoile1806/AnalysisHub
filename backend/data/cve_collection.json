@@ -1,5 +1,952 @@
 [
   {
+    "id": "CVE-2026-54475",
+    "description": "Missing Authorization vulnerability in Apache ActiveMQ Broker, Apache ActiveMQ All, Apache ActiveMQ.\n\nApache ActiveMQ Classic temporary destinations are expected to be isolated to the connection that created them. The isolation can be broken as this is only checked in the client, allowing a different connection to consume from another connection's temporary\ndestination.\nThis issue affects Apache ActiveMQ Broker: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ All: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:30.407",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:13:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53917",
+    "description": "Memory Allocation with Excessive Size Value vulnerability in Apache ActiveMQ, Apache ActiveMQ All, Apache ActiveMQ Client, Apache ActiveMQ Broker.\n\nAn authenticated user can cause a broker DoS by sending a crafted OpenWire Message with a large encoded size value for the map. OpenWire message property maps are unmarshaled without size validation which can trigger OOM and crash the broker.\nThis issue affects Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ All: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ Client: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ Broker: before 5.19.8, from 6.0.0 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:30.273",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53916",
+    "description": "Memory Allocation with Excessive Size Value vulnerability in Apache ActiveMQ, Apache ActiveMQ All, Apache ActiveMQ Stomp.\n\n\nAn unauthenticated client that opens a STOMP NIO connection can send header bytes that never terminate which makes the broker buffer them without limit, exhausting the JVM heap. \nThis issue affects Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ All: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ Stomp: before 5.19.8, from 6.0.0 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:30.150",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-52760",
+    "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Apache ActiveMQ, Apache ActiveMQ Web Console.\n\nThe browse page in the web console renders a message Id directly without sanitization. This allows an authenticated producer to send a message with a JMS message ID that has been crafted to contain HTML/JavaScript such that when an administrator browses the queue in the Web Console, the payload executes in their browser.\nThis issue affects Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ Web Console: before 5.19.8, from 6.0.0 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:30.037",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50750",
+    "description": "Denial of Service via Out of Memory vulnerability in Apache ActiveMQ Broker, Apache ActiveMQ, Apache ActiveMQ All.\n\nFollowing the fix for  CVE-2026-49270 an unauthenticated attacker can now cause broker OOM by sending an repeated BrokerInfo commands without sending a ConnectionInfo, until the broker will crash with OOM.\nThis issue affects Apache ActiveMQ Broker: from 5.19.7 before 5.19.8, from 6.2.6 before 6.2.7; Apache ActiveMQ: from 5.19.7 before 5.19.8, from 6.2.6 before 6.2.7; Apache ActiveMQ All: from 5.19.7 before 5.19.8, from 6.2.6 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:29.933",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-50734",
+    "description": "Memory Allocation with Excessive Size Value vulnerability in Apache ActiveMQ Client, Apache ActiveMQ, Apache ActiveMQ All.\n\nAn unauthenticated network attacker can cause a broker DoS by sending a crafted WireFormatInfo frame with a malicious large size value. The value is not validate and causes the broker to attempt allocation during pre-auth negotiation which can trigger OOM and crash the broker.\nThis issue affects Apache ActiveMQ Client: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ All: before 5.19.8, from 6.0.0 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:29.827",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49877",
+    "description": "Improper Authorization vulnerability in Apache ActiveMQ.\n\nAn authenticated low-privilege Web Console user by default can access /admin/* paths in the Web Console. The default Jetty settings incorrectly did not limit those paths to only admins.\nThis issue affects Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7.\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:29.503",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49434",
+    "description": "Improper Input Validation vulnerability in Apache ActiveMQ Broker, Apache ActiveMQ, Apache ActiveMQ All.\n\nAn attacker that has access to publish or modify entries in LDAP that match the configured searchBase and searchFilter can instantiate denied transports inside the broker JVM. This can be used to fetch an attacker URL and spawn a second BrokerService inside the same JVM.\nThis issue affects Apache ActiveMQ Broker: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ All: before 5.19.8, from 6.0.0 before 6.2.7.\n\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:29.400",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-49432",
+    "description": "Improper Input Validation vulnerability in Apache ActiveMQ, Apache ActiveMQ All, Apache ActiveMQ Stomp.\n\nA remote unauthenticated peer that can reach an exposed STOMP connector can trigger denial-of-service behavior by sending a negative content-length. For the NIO STOMP transport, an attacker can keep streaming body bytes and grow the per-connection command buffer beyond configured limits to cause OOM. For the blocking STOMP protocol, an error will instead force abnormal transport exception handling for the affected connection and closure.\nThis issue affects Apache ActiveMQ: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ All: before 5.19.8, from 6.0.0 before 6.2.7; Apache ActiveMQ Stomp: before 5.19.8, from 6.0.0 before 6.2.7.\n\n\n\n\nUsers are recommended to upgrade to version 6.2.7 or 5.19.8, which fixes the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:29.280",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-13316",
+    "description": "A flaw has been found in foreman when HTTP parameters are modified in http_proxies_controller and http_proxy files. Attackers can perform an SSRF attack and steal cloud metadata service on AWS/GCP/Azure environment through foreman component.",
+    "severity": "medium",
+    "cvss_score": 4.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T11:16:29.150",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T12:12:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-4mxr-9xw9-9cr4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:43:04Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6gcj-mc56-7jf5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:43:03Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-f7jr-jmf8-58m2",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:43:02Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-fjmg-grxw-25vg",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:43:01Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-fvjp-rchx-7wr5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:43:00Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-qrm2-gj4m-7475",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:59Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w4vj-qmqh-q69w",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:58Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wvcg-328f-hx5j",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:57Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-ww5c-p3qw-8xxf",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:56Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xpw2-pg2w-j67h",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:55Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xq96-f7x8-gfx3",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:54Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xqc8-pr7j-cj3w",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:31:35Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T10:42:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-9711",
+    "description": "The EventON - WordPress Virtual Event Calendar Plugin plugin for WordPress (full) is vulnerable to SQL Injection via the WordPress 'search' parameter in versions up to, and including, 5.0.11 due to insufficient escaping on the user supplied parameter and lack of preparation on the existing SQL query. This makes it possible for unauthenticated attackers to append additional SQL queries into already existing queries that can be used to extract sensitive information from the database, granted the \"Enable additional search queries\" setting is enabled and at least one published event exists.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:37.350",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8141",
+    "description": "The Ajax Load More - Filters plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the 'taxonomy_include_children' parameter in all versions up to, and including, 3.4.1 due to insufficient input sanitization and output escaping. This makes it possible for unauthenticated attackers to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:37.213",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6954",
+    "description": "Cross-Site Scripting (XSS) vulnerability in Intermark IT's WebControl CMS v3.5. This vulnerability allows an attacker to execute JavaScript code or inject a dynamic iframe into the victim’s browser by sending a malicious URL via the 'urlDestino' parameter in '/portal.do'. This vulnerability can be exploited to steal sensitive user data, such as session cookies, display phishing interfaces, or perform actions on the user’s behalf.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:36.523",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6953",
+    "description": "HTML injection vulnerability in Intermark IT's WebControl CMS v3.5. This vulnerability allows an attacker to send an email containing malicious HTML code to a victim via the contact form. To exploit this vulnerability, the attacker must send a request using the 'nombreApellidos', 'dirección ', and 'comentarios ' parameters to '/processContact.do'.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:34.760",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-13149",
+    "description": "brace-expansion through 5.0.6 is vulnerable to denial of service. The expand() function exhibits exponential-time complexity in the number of consecutive non-expanding '{}' brace groups. An attacker who passes a crafted string to expand(), directly or transitively, can cause significant CPU consumption and event-loop blocking. The max option does not mitigate this, as it bounds the output size rather than the recursion work.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:34.560",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12610",
+    "description": "A flaw was found in sssd. When authenticating with a YubiKey, the SSSD PAM responder can crash due to a use-after-free vulnerability, where a memory pointer is incorrectly handled. A local attacker could exploit this flaw by manipulating smartcard or YubiKey contents, leading to a denial of service that disrupts authentication. This vulnerability also presents a potential for privilege escalation, although it is difficult to exploit.",
+    "severity": "medium",
+    "cvss_score": 6.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:34.397",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12076",
+    "description": "Raytha CMS is vulnerable to SQL Injection within the OData filter parsing pipeline.  The vulnerability allows a remote, unauthenticated attacker to execute \narbitrary SQL statements against the underlying PostgreSQL database, \nleading to full database compromise, including credential extraction.\n\nBecause vendor contact attempts were unsuccessful, the vulnerability has only been confirmed in version 1.5.2 but may also affect other versions.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:34.260",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-10763",
+    "description": "PROMOD V is using insecure HTTP communication instead of HTTPS. The vulnerability is due to the lack of HTTPS support from 3rd party Digipede server.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:34.067",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-7406",
+    "description": "Nokia MantaRay NM is vulnerable to a sudo privilege escalation vulnerability where a local attacker possessing administrative (local admin) privileges can escalate to full root privileges on the host. Successful exploitation results in root-level access to the filesystem and the ability to execute actions as root. The risk can be temporarily mitigated by restricting the set of commands permitted via sudo for the affected accounts.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:33.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-24816",
+    "description": "Nokia MantaRay is subject to an Improper Access Control vulnerability due to insufficient authorization within the API. Successful exploitation could allow an authenticated attacker to retrieve confidential information beyond their assigned privileges.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:33.617",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:10Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-24815",
+    "description": "Nokia MantaRay NM is subject to an unrestricted file upload vulnerability due to insufficient file type validation. Successful exploitation could allow an authenticated attacker to upload malicious files onto the system.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T10:16:32.473",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45822",
+    "description": "decode-uri-component through 0.4.1 is vulnerable to denial of service. The decode() function splits input on '%' producing N tokens and calls decodeComponents(), exhibiting super-linear parsing time: 200 '%ab' tokens takes approximately 0.7s, 700 tokens approximately 6s, and 1400 tokens approximately 33s. An attacker can cause significant CPU consumption and event-loop blocking via crafted input.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:16:25.177",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:42:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12578",
+    "description": "The affected product is vulnerable to a deserialization of untrusted data, which may allow an attacker to execute arbitrary code.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T09:16:24.267",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T10:41:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-5949-6pq3-mp7g",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:31:20Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:29Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-3mg7-pfmq-9qfv",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-01T18:31:53Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:28Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-7m2v-4f6c-h555",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:31:21Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:27Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-c3mc-8j5j-vh28",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:31:21Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cr2w-747q-47qc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-16T09:32:42Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:25Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pmh9-5c73-wc86",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:31:20Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:24Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-vgcx-fg83-9q2r",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:31:21Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-06-30T07:24:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-9576",
+    "description": "The Fluent Booking  WordPress plugin before 2.1.2 does not verify ownership of the requested group_id before exporting attendee data via the export endpoint, allowing users with at least the Calendar Manager role to retrieve attendees' PII (name, email, phone, address, payment information) from calendar groups they do not own.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:32.867",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:24:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56809",
+    "description": "Multiple laser printers and MFPs (multifunction printers) which implement Ricoh Web Image Monitor contain a reflected cross-site scripting vulnerability. An arbitrary script may be executed on the web browser of the user who accesses Web Image Monitor.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:32.747",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:24:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56808",
+    "description": "DGM3103SCT provided by AVTECH Security Corporation contains an OS command injection vulnerability, which may lead to arbitrary command execution with the root privilege by a user who can log in to the web management console of the affected product.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:32.620",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:24:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56137",
+    "description": "RPG MAKER MV and MZ provided by Gotcha Gotcha Games Inc. contain an OS command injection vulnerability. If a user loads a specially crafted save-file, arbitrary OS command may be executed.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:32.400",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:24:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14164",
+    "description": "A double free issue has been identified in libarchive's RAR5 reader. During parsing of a specially crafted RAR5 archive, the filtered_buf pointer may remain stale after being freed during unpacking state reinitialization. Subsequent processing of another archive entry can trigger a second free of the same memory region, resulting in a double-free condition. Successful exploitation may cause applications using the vulnerable libarchive API to terminate unexpectedly, leading to a denial of service.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:32.170",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12819",
+    "description": "Delta Electronics DVP12SE PLC exposes a Modbus TCP service over a specified port without authentication or access control, permitting unauthenticated interaction with security-sensitive PLC functions.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:32.060",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12818",
+    "description": "Delta Electronics DVP12SE PLCs are susceptible to a resource allocation vulnerability without limits or throttling (CWE-770) within their Modbus TCP service.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:31.933",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12240",
+    "description": "The Export User Data plugin for WordPress is vulnerable to arbitrary file deletion due to insufficient file path validation in the unserialize function in all versions up to, and including, 2.2.6. This makes it possible for authenticated attackers, with subscriber-level access and above, to delete arbitrary files on the server, which can easily lead to remote code execution when the right file is deleted (such as wp-config.php). Successful exploitation requires an administrator to trigger a user data export while a subscriber-level (or higher) user has stored a crafted serialized XLSXWriter object payload as their display name.",
+    "severity": "high",
+    "cvss_score": 8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:31.810",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11590",
+    "description": "The WP Support Plus Responsive Ticket System WordPress plugin through 9.1.2 does not sanitize user-supplied array keys before using them in a SQL statement, allowing unauthenticated users to perform SQL injection attacks.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:31.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11589",
+    "description": "The WP Support Plus Responsive Ticket System WordPress plugin through 9.1.2 does not properly validate uploaded files, allowing unauthenticated users to upload files containing malicious JavaScript (such as HTML or SVG) to a publicly accessible location, leading to Stored Cross-Site Scripting attacks against site users and administrators.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:31.627",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11581",
+    "description": "The Kali Forms — Contact Form \u0026 Drag-and-Drop Builder WordPress plugin before 2.4.13 does not sanitise a form field's caption before outputting it as a column header on the administrator form-entries screen, allowing users with Contributor-level access or above to store JavaScript that executes in an administrator's session. A missing capability check in the Kali Forms — Contact Form \u0026 Drag-and-Drop Builder WordPress plugin before 2.4.13's post-duplication action additionally lets the Contributor publish the malicious form so an administrator renders it.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T07:16:31.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T07:23:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8944",
+    "description": "The Plugin for Google Analytics by IO technologies plugin for WordPress is vulnerable to Cross-Site Request Forgery in versions up to, and including, 1.1. This is due to missing or incorrect nonce validation on the Google Analytics settings page (ga.php). This makes it possible for unauthenticated attackers to update the plugin's stored Google Analytics tracking ID option (io-ga-id) via a forged request granted they can trick a site administrator into performing an action such as clicking on a link.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:16:30.227",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T06:46:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12560",
+    "description": "The Editorial Rating – Product Review \u0026 Rating System plugin for WordPress is vulnerable to Stored Cross-Site Scripting via 'Link URL' Field in all versions up to, and including, 4.0.5 due to insufficient input sanitization and output escaping. This makes it possible for authenticated attackers, with administrator-level access and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page. The WordPress unfiltered_html capability exemption does not apply here because the payload is stored in post meta (_wpas_er_options via update_post_meta) rather than in post_content or post_excerpt, meaning the restriction affects all administrators regardless of their unfiltered_html status.",
+    "severity": "medium",
+    "cvss_score": 4.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:16:27.207",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T06:45:57Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12349",
+    "description": "The Premium Addons for KingComposer plugin for WordPress is vulnerable to unauthorized modification and loss of data in versions up to, and including, 1.1.1. This is due to missing authorization and capability checks on the add_custom_sidebar() and remove_custom_sidebar() AJAX handlers, both of which are exposed through wp_ajax_nopriv_* hooks and write directly to the octagon_custom_sidebar option via update_option(). This makes it possible for unauthenticated attackers to create arbitrary custom widget areas or delete existing custom sidebars, which can cause widgets assigned to those areas to silently lose their registration and stop rendering.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:16:26.950",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T06:45:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12073",
+    "description": "The ProfileGrid – User Profiles, Groups and Communities plugin for WordPress is vulnerable to privilege escalation via account takeover in all versions up to, and including, 5.9.9.5. This is due to the plugin not validating a `user_login` on registration forms that don't contain this parameter, and not properly handling the error messages. This makes it possible for unauthenticated attackers to change email address of user account with ID=1 (usually an administrator), and leverage that to reset the user's password and gain access to their account.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:16:26.560",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T06:45:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11367",
+    "description": "The PixMagix – WordPress Image Editor plugin for WordPress is vulnerable to Directory Traversal in all versions up to, and including, 1.7.2 via the move_image_on_server function. This makes it possible for authenticated attackers, with author-level access and above, to write files with attacker-controlled content to arbitrary locations on the server. The unsanitized 'layers[].id' parameter is concatenated into a filesystem path and passed to PHP's copy() function, allowing traversal sequences (e.g. '../../') to escape the intended upload directory and write attacker-supplied file contents to arbitrary paths accessible by the web server process. The save_template REST endpoint is gated by the create_projects permission (edit_pixmagix + upload_files), which Author-level users hold by default after plugin activation, making this exploitable by any Author on sites running PixMagix.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-06-30T06:16:23.083",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-06-30T06:45:47Z",
+    "source": "NVD"
+  },
+  {
     "id": "GHSA-h443-hx93-m7qc",
     "description": "",
     "severity": "none",

@@ -265,6 +265,10 @@ func NewRouter(
 		protected.GET("/osint/:id/graph", handlers.GetOsintGraph)
 		protected.GET("/osint/:id/graph/export", handlers.ExportOsintGraph)
 		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
+		// Investigation ↔ vuln-scan integration: vuln scans + per-host vuln
+		// aggregates scoped to this OSINT investigation's whole pivot tree.
+		protected.GET("/osint/:id/vulnscans", handlers.ListOsintVulnScans)
+		protected.GET("/osint/:id/vuln-findings", handlers.GetOsintVulnFindings)
 		protected.GET("/osint/:id/location", handlers.GetOsintLocation)
 		protected.GET("/osint/:id/identity", handlers.GetOsintIdentity)
 		protected.POST("/osint/extract-image-geo", handlers.ExtractImageGeo)
@@ -291,9 +295,11 @@ func NewRouter(
 		protected.GET("/vulnscan", handlers.ListVulnScans)
 		protected.GET("/vulnscan/:id", handlers.GetVulnScan)
 		protected.GET("/vulnscan/:id/findings", handlers.GetVulnFindings)
+		protected.GET("/vulnscan/:id/findings/export", handlers.ExportVulnFindings)
 		protected.GET("/vulnscan/:id/stream", handlers.StreamVulnOutput)
 		protected.POST("/vulnscan/:id/stop", handlers.StopVulnScan)
 		protected.DELETE("/vulnscan/:id", handlers.DeleteVulnScan)
+		protected.PATCH("/vuln-findings/:id", handlers.UpdateVulnFinding)
 
 		// OOB interaction server ("Catch" — Interactsh / Burp-Collaborator style).
 		// Confirms blind vulns (SSRF, blind XXE/RCE/SQLi, email-header injection)

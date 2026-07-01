@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"net/http"
 	"sort"
@@ -97,6 +98,15 @@ type caseReportTLItem struct {
 	Source   string
 	Detail   string
 }
+type caseReportVuln struct {
+	Severity  string
+	Name      string
+	Host      string
+	CVE       string
+	EPSS      string
+	KEV       bool
+	Confirmed bool
+}
 type caseReportData struct {
 	Case        models.Case
 	Description string
@@ -118,7 +128,16 @@ type caseReportData struct {
 	EvidenceList []models.CaseEvidence
 	AgentList    []models.Agent
 	OsintList    []models.OsintScan
+	// vulnerability scans linked to this case
+	VulnScans    int
+	VulnFindings int
+	VulnKEV      int
+	VulnList     []caseReportVuln
+	VulnMore     int
 }
+
+// caseReportVulnCap bounds how many vulnerability findings are rendered inline.
+const caseReportVulnCap = 100
 
 // caseReportTimelineCap bounds how many timeline rows are rendered inline so a
 // huge case doesn't produce a 50k-row HTML document.
@@ -186,7 +205,53 @@ func buildCaseReportData(db *gorm.DB, caseObj models.Case) caseReportData {
 		Order("created_at desc").Find(&d.OsintList)
 	d.OsintScans = len(d.OsintList)
 
+	buildCaseReportVulns(db, caseObj, &d)
+
 	return d
+}
+
+// buildCaseReportVulns attaches the vulnerability-scan findings linked to the
+// case: total counts plus the top critical/high/medium rows (KEV + higher EPSS
+// first), so the incident report reflects the active-scan surface, not just the
+// passive timeline.
+func buildCaseReportVulns(db *gorm.DB, caseObj models.Case, d *caseReportData) {
+	var scanIDs []uuid.UUID
+	db.Model(&models.VulnScan{}).Where("case_id = ?", caseObj.ID).Pluck("id", &scanIDs)
+	d.VulnScans = len(scanIDs)
+	if len(scanIDs) == 0 {
+		return
+	}
+
+	var total int64
+	db.Model(&models.VulnFinding{}).Where("scan_id IN ? AND tool = ?", scanIDs, "nuclei").Count(&total)
+	d.VulnFindings = int(total)
+
+	var findings []models.VulnFinding
+	db.Where("scan_id IN ? AND tool = ? AND severity IN ?", scanIDs, "nuclei", []string{"critical", "high", "medium"}).
+		Order("CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, is_kev DESC, epss_score DESC, created_at DESC").
+		Limit(caseReportVulnCap).Find(&findings)
+	for i := range findings {
+		f := &findings[i]
+		if f.IsKEV {
+			d.VulnKEV++
+		}
+		epss := ""
+		if f.EPSSScore > 0 {
+			epss = fmt.Sprintf("%.0f%%", f.EPSSScore*100)
+		}
+		d.VulnList = append(d.VulnList, caseReportVuln{
+			Severity:  strings.ToLower(strings.TrimSpace(f.Severity)),
+			Name:      f.Name,
+			Host:      f.Host,
+			CVE:       f.CVEID,
+			EPSS:      epss,
+			KEV:       f.IsKEV,
+			Confirmed: f.Confirmed,
+		})
+	}
+	if d.VulnFindings > len(findings) {
+		d.VulnMore = d.VulnFindings - len(findings)
+	}
 }
 
 func statusBadgeClass(status string) string {
@@ -208,6 +273,7 @@ var caseReportBodyTmpl = template.Must(template.New("casebody").Funcs(template.F
     <div class="stat"><div class="stat-n c-cyan">{{.Agents}}</div><div class="stat-l">Endpoints</div></div>
     <div class="stat"><div class="stat-n c-blue">{{.Evidence}}</div><div class="stat-l">Evidence Files</div></div>
     <div class="stat"><div class="stat-n c-purple">{{.OsintScans}}</div><div class="stat-l">OSINT Scans</div></div>
+    {{if .VulnScans}}<div class="stat"><div class="stat-n c-red">{{.VulnFindings}}</div><div class="stat-l">Vulnerabilities{{if .VulnKEV}} · {{.VulnKEV}} KEV{{end}}</div></div>{{end}}
   </div>
   {{if .FirstEvent}}<p class="t-muted" style="margin-top:10px">Activity window: <b>{{.FirstEvent}}</b> → <b>{{.LastEvent}}</b></p>{{end}}
   {{if .Description}}<p style="margin-top:8px">{{.Description}}</p>{{end}}
@@ -269,6 +335,22 @@ var caseReportBodyTmpl = template.Must(template.New("casebody").Funcs(template.F
   <div class="tbl-wrap"><table><thead><tr><th>Target</th><th>Type</th><th>Status</th></tr></thead><tbody>
   {{range .OsintList}}<tr><td class="mono">{{.Target}}</td><td>{{.TargetType}}</td><td>{{.Status}}</td></tr>{{end}}
   </tbody></table></div>
+</section>
+{{end}}
+
+{{if .VulnList}}
+<section>
+  <h2>Vulnerability Findings <span class="cnt">{{.VulnFindings}} across {{.VulnScans}} scan(s)</span></h2>
+  <div class="tbl-wrap"><table><thead><tr><th>Severity</th><th>Finding</th><th>Host</th><th>CVE</th><th>EPSS</th></tr></thead><tbody>
+  {{range .VulnList}}<tr>
+    <td><span class="s-{{.Severity}}">{{upper .Severity}}</span>{{if .KEV}} <b class="c-red">KEV</b>{{end}}{{if .Confirmed}} <span class="c-green" title="independently re-verified">✓</span>{{end}}</td>
+    <td>{{.Name}}</td>
+    <td class="mono">{{.Host}}</td>
+    <td class="mono">{{.CVE}}</td>
+    <td class="mono">{{.EPSS}}</td>
+  </tr>{{end}}
+  </tbody></table></div>
+  {{if .VulnMore}}<p class="t-muted">…and {{.VulnMore}} more finding(s) not shown (open the investigation's Vulnerabilities tab for the full list).</p>{{end}}
 </section>
 {{end}}
 `))

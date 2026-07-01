@@ -53,12 +53,41 @@ export interface VulnFinding {
   cve_id?: string
   epss_score?: number
   is_kev?: boolean
+  confirmed?: boolean
+  status?: 'open' | 'confirmed' | 'false_positive' | 'fixed'
+  note?: string
+  data?: string // raw tool JSON line
   created_at: string
 }
+
+// priorityScore ranks a finding for triage by folding severity, known-exploited
+// (KEV), exploit probability (EPSS) and independent verification into one number.
+export function priorityScore(f: VulnFinding): number {
+  const sevBase: Record<string, number> = { critical: 90, high: 70, medium: 45, low: 20, info: 5, unknown: 5 }
+  let s = sevBase[f.severity] ?? 5
+  if (f.is_kev) s += 40
+  if (typeof f.epss_score === 'number') s += Math.round(f.epss_score * 30)
+  if (f.confirmed) s += 10
+  return s
+}
+
+export function priorityLabel(score: number): { label: string; cls: string } {
+  if (score >= 110) return { label: 'critical', cls: 'bg-red-500/15 text-red-400 border-red-500/40' }
+  if (score >= 75) return { label: 'high', cls: 'bg-orange-500/15 text-orange-400 border-orange-500/30' }
+  if (score >= 40) return { label: 'medium', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' }
+  return { label: 'low', cls: 'bg-sky-500/15 text-sky-400 border-sky-500/30' }
+}
+
+export type AssetScope = 'in' | 'private' | 'mixed' | 'unresolved' | 'deferred'
 
 export interface VulnAsset {
   value: string
   type: 'ip' | 'domain'
+  // Scope classification from the backend (same strict policy the engine enforces
+  // at scan time). `keep` is false for assets that will be excluded.
+  scope?: AssetScope
+  keep?: boolean
+  reason?: string
 }
 
 export interface CreateVulnScanRequest {
@@ -67,7 +96,7 @@ export interface CreateVulnScanRequest {
   targets?: string[]
   case_id?: string
   severities?: string
-  profile?: 'quick' | 'full' | 'cve-only'
+  profile?: 'quick' | 'full' | 'cve-only' | 'deep' | 'aggressive'
   tags?: string
   proxy_choice?: 'tor' | 'direct'
 }
@@ -77,11 +106,17 @@ export const vulnscanApi = {
     apiClient
       .get('/vulnscan', { params: caseId ? { case_id: caseId } : undefined })
       .then((r) => r.data.data as VulnScan[]),
+  // listForOsint returns vuln scans launched from anywhere in an OSINT
+  // investigation (its whole pivot tree) — powers the investigation's Vuln tab.
+  listForOsint: (osintScanId: string) =>
+    apiClient.get(`/osint/${osintScanId}/vulnscans`).then((r) => r.data.data as VulnScan[]),
   get: (id: string) => apiClient.get(`/vulnscan/${id}`).then((r) => r.data.data as VulnScan),
   findings: (id: string, params?: { severity?: string; tool?: string }) =>
     apiClient.get(`/vulnscan/${id}/findings`, { params }).then((r) => r.data.data as VulnFinding[]),
   create: (body: CreateVulnScanRequest) =>
     apiClient.post('/vulnscan', body).then((r) => r.data.data as VulnScan),
+  updateFinding: (id: string, body: { status?: string; note?: string }) =>
+    apiClient.patch(`/vuln-findings/${id}`, body).then((r) => r.data.data as VulnFinding),
   stop: (id: string) => apiClient.post(`/vulnscan/${id}/stop`).then((r) => r.data),
   remove: (id: string) => apiClient.delete(`/vulnscan/${id}`).then((r) => r.data),
   previewAssets: (osintScanId: string) =>
@@ -92,6 +127,15 @@ export const vulnscanApi = {
     const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
     const token = useAuthStore.getState().token
     return `${base}/api/v1/vulnscan/${id}/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`
+  },
+  exportUrl: (id: string, params?: { severity?: string; tool?: string }) => {
+    const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+    const token = useAuthStore.getState().token
+    const qs = new URLSearchParams()
+    if (token) qs.set('token', token)
+    if (params?.severity) qs.set('severity', params.severity)
+    if (params?.tool) qs.set('tool', params.tool)
+    return `${base}/api/v1/vulnscan/${id}/findings/export?${qs.toString()}`
   },
 }
 

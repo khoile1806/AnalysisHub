@@ -136,6 +136,8 @@ func GetOsintGraph(c *gin.Context) {
 		Findings  int    `json:"findings"`
 		Root      bool   `json:"root"`
 		AvatarURL string `json:"avatar_url,omitempty"`
+		Vulns     int    `json:"vulns,omitempty"`   // active vuln-scan findings on this host
+		HasKEV    bool   `json:"has_kev,omitempty"` // any known-exploited (CISA-KEV)
 	}
 	type edge struct {
 		From  string `json:"from"`
@@ -161,16 +163,74 @@ func GetOsintGraph(c *gin.Context) {
 		}
 	}
 
+	// One query for vuln-scan findings across the investigation tree → host roll-up,
+	// so host nodes can show a "N vulns / KEV" badge (recon ↔ vuln integration).
+	type vulnHost struct {
+		count int
+		kev   bool
+	}
+	vulnByHost := map[string]vulnHost{}
+	{
+		ids := make([]uuid.UUID, 0, len(scans))
+		for i := range scans {
+			ids = append(ids, scans[i].ID)
+		}
+		if len(ids) > 0 {
+			var rows []struct {
+				Host  string
+				Count int
+				Kev   bool
+			}
+			db.Model(&models.VulnFinding{}).
+				Select("host, count(*) as count, bool_or(is_kev) as kev").
+				Joins("JOIN vuln_scans s ON s.id = vuln_findings.scan_id").
+				Where("s.source_scan_id IN ? AND vuln_findings.tool = ?", ids, "nuclei").
+				Group("host").Scan(&rows)
+			for _, r := range rows {
+				h := normalizeVulnHost(r.Host)
+				if h == "" {
+					continue
+				}
+				v := vulnByHost[h]
+				v.count += r.Count
+				v.kev = v.kev || r.Kev
+				vulnByHost[h] = v
+			}
+		}
+	}
+
+	// Findings count per scan in ONE grouped query (no per-node N+1).
+	findingCount := map[uuid.UUID]int{}
+	{
+		ids := make([]uuid.UUID, 0, len(scans))
+		for i := range scans {
+			ids = append(ids, scans[i].ID)
+		}
+		if len(ids) > 0 {
+			var fcRows []struct {
+				ScanID uuid.UUID
+				N      int
+			}
+			db.Model(&models.OsintFinding{}).
+				Select("scan_id, count(*) as n").
+				Where("scan_id IN ?", ids).
+				Group("scan_id").Scan(&fcRows)
+			for _, r := range fcRows {
+				findingCount[r.ScanID] = r.N
+			}
+		}
+	}
+
 	nodes := make([]node, 0, len(scans))
 	edges := make([]edge, 0)
 	for i := range scans {
 		s := &scans[i]
-		var fc int64
-		db.Model(&models.OsintFinding{}).Where("scan_id = ?", s.ID).Count(&fc)
+		vh := vulnByHost[strings.ToLower(strings.TrimSpace(s.Target))]
 		nodes = append(nodes, node{
 			ID: s.ID.String(), Target: s.Target, Type: s.TargetType,
-			Status: string(s.Status), Depth: s.Depth, Findings: int(fc),
+			Status: string(s.Status), Depth: s.Depth, Findings: findingCount[s.ID],
 			Root: s.ID == root, AvatarURL: avatarByScan[s.ID.String()],
+			Vulns: vh.count, HasKEV: vh.kev,
 		})
 		if s.ParentScanID != nil {
 			edges = append(edges, edge{From: s.ParentScanID.String(), To: s.ID.String(), Label: s.PivotFrom})

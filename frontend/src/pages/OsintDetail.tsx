@@ -14,10 +14,10 @@ import remarkGfm from 'remark-gfm'
 import {
   osintApi, CATEGORY_LABELS, COLLECTOR_LABELS, parseRelated,
   type OsintScan, type OsintCollector, type OsintFinding, type RelatedEntity, type OsintTargetType,
-  type GeoPoint, type IdentityConfidence,
+  type GeoPoint, type IdentityConfidence, type OsintVulnHost,
 } from '@/api/osint'
 import { analysisApi } from '@/api/analysis'
-import { AssetScanModal } from './VulnScan'
+import { AssetScanModal, VulnScanPanel } from './VulnScan'
 import { useAuthStore } from '@/store/auth'
 import OsintGraphView from '@/components/OsintGraphView'
 import OsintCorrelations from '@/components/OsintCorrelations'
@@ -687,6 +687,17 @@ function RelatedEntitiesPanel({ scanId, target, isRunning }: { scanId: string; t
     refetchInterval: isRunning ? 4000 : false,
   })
   const agg = useMemo(() => aggregateRelatedEntities(findings, target), [findings, target])
+  // Vuln-scan roll-up per host → badge on related IPs/domains (recon ↔ vuln).
+  const { data: vulnHosts = [] } = useQuery({
+    queryKey: ['osint-vuln-hosts', scanId],
+    queryFn: () => osintApi.vulnFindings(scanId),
+    refetchInterval: isRunning ? 8000 : false,
+  })
+  const vulnMap = useMemo(() => {
+    const m = new Map<string, OsintVulnHost>()
+    for (const v of vulnHosts) m.set(v.host.toLowerCase(), v)
+    return m
+  }, [vulnHosts])
   const total = agg.ip.length + agg.domain.length + agg.account.length
   if (total === 0) return null
 
@@ -799,6 +810,11 @@ function RelatedEntitiesPanel({ scanId, target, isRunning }: { scanId: string; t
                     {r.kind === 'account' && <span className="text-[9px] font-mono uppercase text-gray-600">{r.etype}</span>}
                     {r.isPrivate && <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 border border-slate-700">private</span>}
                     {(SEV_RANK[r.severity] ?? 0) >= 2 && <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase border ${SEVERITY_COLOR[r.severity] ?? SEVERITY_COLOR.info}`}>{r.severity}</span>}
+                    {(() => { const v = vulnMap.get(String(r.value).toLowerCase()); return v ? (
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono border ${v.kev ? 'border-red-500/40 bg-red-500/15 text-red-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'}`} title="Active vuln-scan findings on this host">
+                        {v.kev ? '⚠ KEV · ' : ''}{v.count} vuln{v.count === 1 ? '' : 's'}
+                      </span>
+                    ) : null })()}
                   </div>
                   <div className="text-[10px] text-gray-600 truncate max-w-md mt-0.5">{r.sampleTitle}</div>
                 </td>
@@ -1193,7 +1209,7 @@ export default function OsintDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [tab, setTab] = useState<'findings' | 'report'>('findings')
+  const [tab, setTab] = useState<'findings' | 'report' | 'vulns'>('findings')
 
   const { data: scan, isLoading } = useQuery({
     queryKey: ['osint-scan', id],
@@ -1241,6 +1257,7 @@ export default function OsintDetailPage() {
 
   const TABS = [
     { key: 'findings' as const, label: 'Findings', icon: ListTree },
+    { key: 'vulns' as const,    label: 'Vulnerabilities', icon: ShieldAlert },
     { key: 'report' as const,   label: 'Report',   icon: FileBarChart2 },
   ]
 
@@ -1393,6 +1410,8 @@ export default function OsintDetailPage() {
       {/* Tab content */}
       {tab === 'findings'
         ? <FindingsPanel scanId={scan.id} isRunning={isRunning} />
+        : tab === 'vulns'
+        ? <VulnScanPanel osintScanId={scan.id} osintTarget={scan.target} />
         : <ReportTab scan={scan} isRunning={isRunning} />}
     </div>
   )

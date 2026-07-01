@@ -113,6 +113,15 @@ type VulnFinding struct {
 	EPSSScore float64 `             json:"epss_score,omitempty"` // 0..1 exploit probability
 	IsKEV     bool    `gorm:"index" json:"is_kev"`               // in CISA Known-Exploited catalog
 
+	// Confirmed is set by the automated verification pass (the template re-matched
+	// on a second independent run) — distinguishes a corroborated finding from a
+	// single-shot match, cutting false positives on the high-impact rows.
+	Confirmed bool `json:"confirmed"`
+	// Status is the operator triage state: open (default) | confirmed |
+	// false_positive | fixed. Note is a free-text triage note.
+	Status string `gorm:"index;default:'open'" json:"status"`
+	Note   string `gorm:"type:text"            json:"note,omitempty"`
+
 	Data string `gorm:"type:text" json:"data,omitempty"` // raw tool JSON line
 
 	// DedupeKey is sha256 hex of (tool|template_id|matched_at|host). The composite

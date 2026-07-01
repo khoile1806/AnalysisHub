@@ -186,14 +186,29 @@ type Config struct {
 
 	// ── Vulnerability scanner (httpx + nuclei against OSINT-discovered assets) ──
 	// Active/intrusive: admin-gated, scope-checked, routed through a proxy.
-	VulnScanEnabled         bool   // master switch for the feature
-	VulnScanMaxConcurrent   int    // engine-wide concurrent scans (default 2)
-	VulnScanProxy           string // egress proxy for scanner traffic; empty falls back to TorProxy → OutboundProxy
-	VulnScanRateLimit       int    // nuclei -rate-limit (default 150)
-	VulnScanConcurrency     int    // nuclei -concurrency (default 25)
-	VulnScanToolTimeout     int    // httpx stage budget, seconds (default 300)
-	VulnScanNucleiTimeout   int    // nuclei stage budget, seconds (default 1200)
-	VulnScanNucleiTemplates string // optional nuclei -templates dir (empty = nuclei default)
+	VulnScanEnabled          bool   // master switch for the feature
+	VulnScanMaxConcurrent    int    // engine-wide concurrent scans (default 2)
+	VulnScanProxy            string // egress proxy for scanner traffic; empty falls back to TorProxy → OutboundProxy
+	VulnScanRateLimit        int    // nuclei -rate-limit (default 150)
+	VulnScanConcurrency      int    // nuclei -concurrency (default 25)
+	VulnScanToolTimeout      int    // httpx stage budget, seconds (default 300)
+	VulnScanNucleiTimeout    int    // nuclei stage budget, seconds (default 1200)
+	VulnScanNucleiTemplates  string // optional nuclei -templates dir (empty = nuclei default)
+	VulnScanMaxTargets       int    // hard cap on assets scanned per run (default 2000; 0 = unlimited)
+	VulnScanMaxNucleiTargets int    // cap on URLs handed to nuclei per run, live roots first (default 1500)
+	VulnScanNmapTimeout      int    // nmap NSE-vuln stage budget, seconds (default 900)
+	VulnScanFfufWordlist     string // wordlist for the ffuf content-discovery stage (default bundled)
+	VulnScanAutoUpdate       bool   // periodically run `nuclei -update-templates` (default true)
+	// WPScanAPIToken (from WPSCAN_API_TOKEN) authorises the wpscan WordPress
+	// vulnerability stage against the WPScan VulnDB. Empty = wpscan runs without a
+	// token (rate-limited, no version-vuln data) or is skipped.
+	WPScanAPIToken string
+	// Out-of-band (OAST/interactsh) correlation for nuclei. When a server is set,
+	// nuclei uses it to catch blind/OOB vulns (SSRF, blind RCE, Log4Shell). When
+	// empty, OOB is DISABLED (-no-interactsh) so the scanner never silently leaks
+	// to the public oast.* servers — important when egress is meant to stay on Tor.
+	VulnScanInteractshServer string // -interactsh-server URL (self-hosted)
+	VulnScanInteractshToken  string // -interactsh-token (auth for the above)
 
 	// TrustedProxies, when set (comma-separated IPs/CIDRs), is passed to gin's
 	// SetTrustedProxies so X-Forwarded-For / X-Forwarded-Proto are only honoured
@@ -278,14 +293,22 @@ func Load() *Config {
 		OOBMaxPerClient:    getEnvInt("OOB_MAX_PER_CLIENT", 10000),
 		OOBRetentionDays:   getEnvInt("OOB_RETENTION_DAYS", 30),
 
-		VulnScanEnabled:         getEnv("VULNSCAN_ENABLED", "true") == "true",
-		VulnScanMaxConcurrent:   getEnvInt("VULNSCAN_MAX_CONCURRENT", 2),
-		VulnScanProxy:           getEnv("VULNSCAN_PROXY", ""),
-		VulnScanRateLimit:       getEnvInt("VULNSCAN_RATE_LIMIT", 150),
-		VulnScanConcurrency:     getEnvInt("VULNSCAN_CONCURRENCY", 25),
-		VulnScanToolTimeout:     getEnvInt("VULNSCAN_TOOL_TIMEOUT", 300),
-		VulnScanNucleiTimeout:   getEnvInt("VULNSCAN_NUCLEI_TIMEOUT", 1200),
-		VulnScanNucleiTemplates: getEnv("VULNSCAN_NUCLEI_TEMPLATES", ""),
+		VulnScanEnabled:          getEnv("VULNSCAN_ENABLED", "true") == "true",
+		VulnScanMaxConcurrent:    getEnvInt("VULNSCAN_MAX_CONCURRENT", 2),
+		VulnScanProxy:            getEnv("VULNSCAN_PROXY", ""),
+		VulnScanRateLimit:        getEnvInt("VULNSCAN_RATE_LIMIT", 150),
+		VulnScanConcurrency:      getEnvInt("VULNSCAN_CONCURRENCY", 25),
+		VulnScanToolTimeout:      getEnvInt("VULNSCAN_TOOL_TIMEOUT", 300),
+		VulnScanNucleiTimeout:    getEnvInt("VULNSCAN_NUCLEI_TIMEOUT", 1200),
+		VulnScanNucleiTemplates:  getEnv("VULNSCAN_NUCLEI_TEMPLATES", ""),
+		VulnScanMaxTargets:       getEnvInt("VULNSCAN_MAX_TARGETS", 2000),
+		VulnScanMaxNucleiTargets: getEnvInt("VULNSCAN_MAX_NUCLEI_TARGETS", 1500),
+		VulnScanInteractshServer: getEnv("VULNSCAN_INTERACTSH_SERVER", ""),
+		VulnScanInteractshToken:  getEnv("VULNSCAN_INTERACTSH_TOKEN", ""),
+		VulnScanNmapTimeout:      getEnvInt("VULNSCAN_NMAP_TIMEOUT", 900),
+		VulnScanFfufWordlist:     getEnv("VULNSCAN_FFUF_WORDLIST", "/app/wordlists/content-discovery.txt"),
+		VulnScanAutoUpdate:       getEnv("VULNSCAN_AUTO_UPDATE", "true") == "true",
+		WPScanAPIToken:           getEnv("WPSCAN_API_TOKEN", ""),
 
 		TrustedProxies:        parseCSV(getEnv("TRUSTED_PROXIES", "")),
 		OutboundProxy:         getEnv("OUTBOUND_PROXY", ""),

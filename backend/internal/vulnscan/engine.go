@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/forensichub/backend/internal/config"
@@ -219,6 +220,19 @@ func (e *Engine) StartScan(scan *models.VulnScan, targets []string) error {
 			delete(e.running, scan.ID.String())
 			e.mu.Unlock()
 		}()
+		// Last line of defence: a panic anywhere in the pipeline (a tool stage, a
+		// bad tool line, a DB hiccup) must never leave the scan stuck "running"
+		// with subscribers hanging. Finalize it as failed and close the stream.
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[vulnscan] PANIC in scan %s: %v", scan.ID.String(), r)
+				e.finalize(scan, models.VulnFailed)
+				e.failOpenTools(scan.ID, fmt.Sprintf("scan crashed: %v", r))
+				e.emit(scan.ID.String(), fmt.Sprintf("[!] Scan crashed (%v) — finalized as failed", r))
+				e.emit(scan.ID.String(), "__DONE__")
+				e.scheduleHistoryCleanup(scan.ID.String())
+			}
+		}()
 		select {
 		case e.scanSem <- struct{}{}:
 			defer func() { <-e.scanSem }()
@@ -238,6 +252,25 @@ func (e *Engine) StartScan(scan *models.VulnScan, targets []string) error {
 		e.runPipeline(ctx, scan, targets)
 	}()
 	return nil
+}
+
+// failOpenTools marks any still-pending/running tool rows of a scan as failed —
+// used by the panic handler so a crashed scan doesn't leave dangling tool runs.
+func (e *Engine) failOpenTools(scanID uuid.UUID, msg string) {
+	now := time.Now()
+	e.db.Model(&models.VulnTool{}).
+		Where("scan_id = ? AND status IN ?", scanID,
+			[]models.VulnToolStatus{models.VulnToolRunning, models.VulnToolPending}).
+		Updates(map[string]interface{}{"status": models.VulnToolFailed, "error": msg, "finished_at": now})
+}
+
+// ClassifyForPreview classifies assets for the pre-scan review UI using the
+// platform's DEFAULT egress posture (Tor-preferred). When a proxy is configured
+// the preview defers hostname resolution to scan time, so merely opening the
+// review modal never leaks target names to the local/ISP resolver.
+func (e *Engine) ClassifyForPreview(targets []string) []ScopeVerdict {
+	proxyURL, _ := e.resolveProxy("tor")
+	return classifyScope(targets, proxyURL != "")
 }
 
 // finalize writes the terminal status, finish time and severity summary.

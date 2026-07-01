@@ -27,9 +27,9 @@ import (
 	"github.com/forensichub/backend/internal/models"
 	"github.com/forensichub/backend/internal/oob"
 	"github.com/forensichub/backend/internal/osint"
-	"github.com/forensichub/backend/internal/vulnscan"
 	"github.com/forensichub/backend/internal/storage"
 	"github.com/forensichub/backend/internal/threatintel"
+	"github.com/forensichub/backend/internal/vulnscan"
 	"github.com/forensichub/backend/internal/ws"
 )
 
@@ -244,6 +244,9 @@ func main() {
 	// Vulnerability scanner engine (httpx + nuclei over OSINT-discovered assets).
 	// Marks any scan left mid-run by a crash as failed on construction.
 	vulnEngine := vulnscan.NewEngine(db, cfg, handlers.NewCVEEnricher())
+	// Keep nuclei templates current (daily, best-effort, through the egress proxy)
+	// so newly-published CVEs are detected without an image rebuild.
+	vulnscan.StartAutoUpdate(cfg)
 	slog.Info("vuln-scan engine initialised")
 
 	// ------------------------------------------------------------------ //

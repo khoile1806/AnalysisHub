@@ -88,6 +88,13 @@ function OsintEntityNode({ data }: { data: { node: OsintGraphNode } }) {
           {node.findings}
         </span>
       </div>
+      {(node.vulns ?? 0) > 0 && (
+        <div className="mt-1" title="Active vuln-scan findings on this host">
+          <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono border ${node.has_kev ? 'border-red-500/50 bg-red-500/20 text-red-300' : 'border-amber-500/40 bg-amber-500/15 text-amber-300'}`}>
+            {node.has_kev ? '⚠ KEV · ' : ''}{node.vulns} VULN
+          </span>
+        </div>
+      )}
 
       <Handle type="source" position={Position.Right} className="!w-2 !h-4 !rounded-sm !bg-gray-500 !border-gray-800" />
     </div>
