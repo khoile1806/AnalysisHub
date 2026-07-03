@@ -1,5 +1,8 @@
 # Stage 0: Build agent binaries (online + offline, Windows + Linux)
-FROM golang:alpine AS agent-builder
+# Pinned Go: go.mod requires go >= 1.25.0. The floating golang:alpine tag can
+# resolve to a cached older toolchain, which makes `go build` fail silently and
+# leaves the previous image running — pin it so builds are reproducible.
+FROM golang:1.25-alpine AS agent-builder
 
 RUN apk add --no-cache git ca-certificates
 
@@ -29,7 +32,7 @@ RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 # ─────────────────────────────────────────────────────────────────────────── #
 
 # Stage 1: Build backend binary
-FROM golang:alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata
 
