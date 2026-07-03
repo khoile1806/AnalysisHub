@@ -3,7 +3,7 @@ package osint
 import (
 	"testing"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // TestNormValue checks the dedupe value canonicalisation: lower-cased, trimmed,

@@ -10,9 +10,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/storage"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // mustGetDB retrieves the *gorm.DB from the Gin context.

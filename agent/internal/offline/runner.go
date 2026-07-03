@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/forensichub/agent/internal/executor"
+	"github.com/analysishub/agent/internal/executor"
 )
 
 // JobStatus mirrors the online-agent job lifecycle but lives entirely in

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // cloudMaxCandidatesDefault bounds how many bucket-name candidates are probed

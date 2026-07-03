@@ -3,13 +3,13 @@
   Detects remote-execution tooling and techniques: PsExec, WMI remote process
   creation, WinRM/PSRemoting, Impacket suite, and pass-the-hash utilities.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule LATERAL_PsExec
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Sysinternals PsExec / clones (service-based remote exec)"
         severity    = "high"
         category    = "lateral-movement"
@@ -28,7 +28,7 @@ rule LATERAL_PsExec
 rule LATERAL_WMIC_Remote_Exec
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Remote process creation via WMIC / WMI"
         severity    = "high"
         category    = "lateral-movement"
@@ -49,7 +49,7 @@ rule LATERAL_WMIC_Remote_Exec
 rule LATERAL_WinRM_PSRemoting
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "PowerShell remoting / WinRM used for remote execution"
         severity    = "medium"
         category    = "lateral-movement"
@@ -67,7 +67,7 @@ rule LATERAL_WinRM_PSRemoting
 rule LATERAL_Impacket_Suite
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Impacket remote-exec / secrets tools (wmiexec/smbexec/atexec/psexec/secretsdump)"
         severity    = "critical"
         category    = "lateral-movement"
@@ -88,7 +88,7 @@ rule LATERAL_Impacket_Suite
 rule LATERAL_Remote_Service_Create
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Remote service created on another host (sc \\\\host create)"
         severity    = "high"
         category    = "lateral-movement"

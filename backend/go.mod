@@ -1,4 +1,4 @@
-module github.com/forensichub/backend
+module github.com/analysishub/backend
 
 go 1.25.0
 

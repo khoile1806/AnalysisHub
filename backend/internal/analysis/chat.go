@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	ai "github.com/forensichub/backend/internal/ai"
+	ai "github.com/analysishub/backend/internal/ai"
 )
 
 // Chat runs a single non-streamed completion and returns the full text plus

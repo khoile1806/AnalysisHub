@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collectFavicon computes the target's favicon hash the way Shodan does

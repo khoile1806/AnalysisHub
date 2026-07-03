@@ -3,13 +3,13 @@
   Detects post-exploitation implants and beacons: Cobalt Strike, Meterpreter,
   Sliver, PowerShell Empire, and Covenant Grunt. Binary rules gate on PE magic.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule C2_CobaltStrike_Beacon
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Cobalt Strike beacon — reflective loader + beacon artifacts / default pipes"
         severity    = "critical"
         category    = "c2"
@@ -35,7 +35,7 @@ rule C2_CobaltStrike_Beacon
 rule C2_Meterpreter
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Metasploit Meterpreter stager / stdapi extension markers"
         severity    = "critical"
         category    = "c2"
@@ -54,7 +54,7 @@ rule C2_Meterpreter
 rule C2_Sliver_Implant
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Sliver C2 implant markers"
         severity    = "critical"
         category    = "c2"
@@ -72,7 +72,7 @@ rule C2_Sliver_Implant
 rule C2_PowerShell_Empire
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "PowerShell Empire / Starkiller agent + staging markers"
         severity    = "high"
         category    = "c2"
@@ -92,7 +92,7 @@ rule C2_PowerShell_Empire
 rule C2_Covenant_Grunt
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Covenant Grunt implant markers"
         severity    = "high"
         category    = "c2"
@@ -109,7 +109,7 @@ rule C2_Covenant_Grunt
 rule C2_Generic_Beacon_Behavior
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Generic implant heuristic — HTTP C2 + sleep jitter + command dispatch in one binary"
         severity    = "medium"
         category    = "c2"

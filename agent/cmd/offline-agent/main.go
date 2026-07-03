@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/agent/internal/offline"
+	"github.com/analysishub/agent/internal/offline"
 	"github.com/zserge/lorca"
 )
 
@@ -90,7 +90,7 @@ func runGUIMode(manifest *offline.BundleManifest, runner *offline.Runner) {
 	url := fmt.Sprintf("http://localhost:%d", port)
 
 	fmt.Printf("\n")
-	fmt.Printf("  ForensicHub Offline Agent\n")
+	fmt.Printf("  AnalysisHub Offline Agent\n")
 	fmt.Printf("  Bundle : %s\n", manifest.Name)
 	fmt.Printf("  UI     : %s\n", url)
 	fmt.Printf("\n")
@@ -104,7 +104,7 @@ func runGUIMode(manifest *offline.BundleManifest, runner *offline.Runner) {
 	}()
 	waitForServer(url)
 
-	title := "ForensicHub Offline Agent — " + manifest.Name
+	title := "AnalysisHub Offline Agent — " + manifest.Name
 
 	// 1. Preferred: a REAL native application window (Edge WebView2 on Windows).
 	//    Not a browser tab - its own window, title bar, icon and taskbar entry.
@@ -195,7 +195,7 @@ func openBrowser(url string) {
 }
 
 func printUsage() {
-	fmt.Println(`ForensicHub Offline Agent
+	fmt.Println(`AnalysisHub Offline Agent
 
 Usage:
   agent-offline [--gui] [--cli] [--info]

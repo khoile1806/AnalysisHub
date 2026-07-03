@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // slugify converts a free-form scenario name into a stable URL-safe slug.

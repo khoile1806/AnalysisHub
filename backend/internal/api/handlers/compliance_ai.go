@@ -12,9 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	ai "github.com/forensichub/backend/internal/ai"
-	"github.com/forensichub/backend/internal/analysis"
-	"github.com/forensichub/backend/internal/models"
+	ai "github.com/analysishub/backend/internal/ai"
+	"github.com/analysishub/backend/internal/analysis"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // dueOffsetBySeverity returns the standard remediation deadline offset.

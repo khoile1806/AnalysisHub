@@ -11,8 +11,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // dummyBcryptHash is compared against the supplied password when the account

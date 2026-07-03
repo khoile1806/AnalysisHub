@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collect_paste.go — paste-site monitoring. Leaked data (combolists, config

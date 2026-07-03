@@ -3,7 +3,7 @@ package osint
 import (
 	"strings"
 
-	"github.com/forensichub/backend/internal/config"
+	"github.com/analysishub/backend/internal/config"
 )
 
 // placeholderDomains are reserved/test domains (RFC 2606 + common throwaways)

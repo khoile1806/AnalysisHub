@@ -4,13 +4,13 @@
   Run keys, scheduled tasks, services, WMI event subscriptions, IFEO /
   accessibility backdoors, and Winlogon tampering.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule PERSIST_Registry_RunKey
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Autostart Run/RunOnce key written via reg.exe or PowerShell"
         severity    = "high"
         category    = "persistence"
@@ -28,7 +28,7 @@ rule PERSIST_Registry_RunKey
 rule PERSIST_Scheduled_Task
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Suspicious scheduled-task creation (schtasks / Register-ScheduledTask)"
         severity    = "high"
         category    = "persistence"
@@ -46,7 +46,7 @@ rule PERSIST_Scheduled_Task
 rule PERSIST_Service_Install
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Service created with an interpreter/script binPath — service persistence"
         severity    = "high"
         category    = "persistence"
@@ -63,7 +63,7 @@ rule PERSIST_Service_Install
 rule PERSIST_WMI_Event_Subscription
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "WMI permanent event subscription persistence"
         severity    = "high"
         category    = "persistence"
@@ -81,7 +81,7 @@ rule PERSIST_WMI_Event_Subscription
 rule PERSIST_IFEO_Accessibility_Backdoor
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Image File Execution Options debugger hijack / accessibility (sticky keys) backdoor"
         severity    = "critical"
         category    = "persistence"
@@ -104,7 +104,7 @@ rule PERSIST_IFEO_Accessibility_Backdoor
 rule PERSIST_Winlogon_Tamper
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Winlogon Userinit/Shell value tampering for persistence"
         severity    = "high"
         category    = "persistence"
@@ -122,7 +122,7 @@ rule PERSIST_Winlogon_Tamper
 rule PERSIST_Startup_Folder_Drop
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Payload dropped into a Startup folder via script"
         severity    = "medium"
         category    = "persistence"

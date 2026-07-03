@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collectMaigret runs the Maigret CLI (https://github.com/soxoj/maigret) to

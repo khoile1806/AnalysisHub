@@ -14,8 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/crypto"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/crypto"
+	"github.com/analysishub/backend/internal/models"
 )
 
 type OpenCTIConfigPayload struct {

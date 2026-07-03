@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // histCap bounds the in-memory SSE replay buffer per scan.

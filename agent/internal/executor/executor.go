@@ -46,7 +46,7 @@ type JobRequest struct {
 	// AgentToken is sent as X-Agent-Token header when downloading the tool.
 	AgentToken string
 
-	// ServerURL is the base URL of the ForensicHub server.
+	// ServerURL is the base URL of the AnalysisHub server.
 	ServerURL string
 
 	// Resource limits for Throttling on Production.

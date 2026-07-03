@@ -11,9 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/models"
-	appws "github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/models"
+	appws "github.com/analysishub/backend/internal/ws"
 )
 
 // allowedShells is the fixed list of shells admins may request. Restricting

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collectEmailSocialMedia discovers accounts tied to an e-mail address. Two

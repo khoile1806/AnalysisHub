@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/agent/internal/executor"
+	"github.com/analysishub/agent/internal/executor"
 )
 
 //go:embed ui/index.html

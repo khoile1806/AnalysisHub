@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // fleetSchedulerTick is how often due schedules are checked.

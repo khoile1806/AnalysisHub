@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collect_codeleak.go — public source-code exposure. One of the highest-impact

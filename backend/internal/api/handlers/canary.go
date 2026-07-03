@@ -17,11 +17,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/notify"
-	"github.com/forensichub/backend/internal/osint"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/notify"
+	"github.com/analysishub/backend/internal/osint"
 )
 
 // CanaryHandler manages canary tokens (tracking / honeytoken links) and serves
@@ -59,7 +59,7 @@ func (h *CanaryHandler) view(c *gin.Context, t models.CanaryToken) canaryTokenVi
 //  2. the global CANARY_BASE_URL config (a shared front/disposable domain),
 //  3. the request-derived server host (last resort — exposes the real host).
 //
-// This lets operators keep the real ForensicHub address off the generated link.
+// This lets operators keep the real AnalysisHub address off the generated link.
 func (h *CanaryHandler) canaryBase(c *gin.Context, t models.CanaryToken) string {
 	if b := strings.TrimRight(strings.TrimSpace(t.BaseURL), "/"); b != "" {
 		return b
@@ -1205,7 +1205,7 @@ func (h *CanaryHandler) scoreHit(hit models.CanaryHit) (severity string, flags [
 	return severity, flags
 }
 
-// knownLocalIOC reports whether ip is already present in ForensicHub's local IOC
+// knownLocalIOC reports whether ip is already present in AnalysisHub's local IOC
 // store (OpenCTI sync + manual entries) — a strong "we already know this is bad"
 // signal for a canary visitor.
 func knownLocalIOC(db *gorm.DB, ip string) bool {

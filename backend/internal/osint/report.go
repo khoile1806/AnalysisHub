@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // reportCategoryOrder fixes the section order of the HTML report and maps each
@@ -424,7 +424,7 @@ footer{border-top:1px solid #1e2937;padding-top:14px;text-align:center;font-size
 <div class="empty">No findings were recorded for this investigation.</div>
 {{end}}
 
-<footer>ForensicHub - OSINT Footprinting - Generated {{.GeneratedAt}}</footer>
+<footer>AnalysisHub - OSINT Footprinting - Generated {{.GeneratedAt}}</footer>
 </div>
 </body>
 </html>`

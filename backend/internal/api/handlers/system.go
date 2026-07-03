@@ -15,13 +15,13 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/egress"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/storage"
-	"github.com/forensichub/backend/internal/sysinfo"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/sysinfo"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // AppVersion is the build version surfaced on the health endpoint. Override at

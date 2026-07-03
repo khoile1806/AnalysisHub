@@ -619,7 +619,7 @@ export const PLAYBOOKS: Playbook[] = [
     steps: [
       {
         title: 'Bước 1: Triage Trực tiếp (Live Response)',
-        content: '**Thu thập nhanh trước khi mất dấu:**\n- Process: `ps auxf`, `pstree -ap` — chú ý tiến trình chạy từ `/tmp`, `/dev/shm`, `/var/tmp`, tên ngẫu nhiên, hoặc `[kworker]` giả.\n- Network: `ss -antup`, `lsof -i -n -P` — kết nối ra ngoài lạ, cổng lắng nghe không rõ.\n- Account: `cat /etc/passwd` (UID 0 ngoài root!), `last`/`lastb` (brute-force), `cat ~/.bash_history`.\n- **Trên ForensicHub:** chạy **Triage Collection** (processes/netconn/autoruns) hoặc **IOC Sweep** trực tiếp trên agent Linux.',
+        content: '**Thu thập nhanh trước khi mất dấu:**\n- Process: `ps auxf`, `pstree -ap` — chú ý tiến trình chạy từ `/tmp`, `/dev/shm`, `/var/tmp`, tên ngẫu nhiên, hoặc `[kworker]` giả.\n- Network: `ss -antup`, `lsof -i -n -P` — kết nối ra ngoài lạ, cổng lắng nghe không rõ.\n- Account: `cat /etc/passwd` (UID 0 ngoài root!), `last`/`lastb` (brute-force), `cat ~/.bash_history`.\n- **Trên AnalysisHub:** chạy **Triage Collection** (processes/netconn/autoruns) hoặc **IOC Sweep** trực tiếp trên agent Linux.',
         icon: 'Activity'
       },
       {

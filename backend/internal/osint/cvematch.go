@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // rlNVD paces NVD queries. The public API allows ~5 requests / 30s without a key

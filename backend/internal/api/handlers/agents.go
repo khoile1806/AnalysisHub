@@ -20,9 +20,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // agentNameRe limits agent names to a safe character set so values that flow
@@ -319,9 +319,9 @@ func DownloadAgentBinary(c *gin.Context) {
 	var filename string
 	switch platform {
 	case "windows":
-		filename = "forensichub-agent.exe"
+		filename = "analysishub-agent.exe"
 	case "linux":
-		filename = "forensichub-agent-linux"
+		filename = "analysishub-agent-linux"
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "platform must be 'windows' or 'linux'"})
 		return
@@ -557,18 +557,18 @@ func buildWSURL(serverURL string) string {
 
 // ── Install script templates ──────────────────────────────────────────────── //
 
-const powershellInstallScript = `# ForensicHub Agent - Windows Installer
+const powershellInstallScript = `# AnalysisHub Agent - Windows Installer
 # Agent : {{.AgentName}}
 # Server: {{.ServerURL}}
 
 $ErrorActionPreference = "Stop"
-$InstallDir  = Join-Path $env:LOCALAPPDATA "ForensicHub"
-$AgentBinary = Join-Path $InstallDir "forensichub-agent.exe"
-$ConfigFile  = Join-Path $InstallDir "forensichub-agent.conf"
+$InstallDir  = Join-Path $env:LOCALAPPDATA "AnalysisHub"
+$AgentBinary = Join-Path $InstallDir "analysishub-agent.exe"
+$ConfigFile  = Join-Path $InstallDir "analysishub-agent.conf"
 $BinaryUrl   = "{{.ServerURL}}/api/v1/agent/binary/windows"
 $AgentToken  = "{{.Token}}"
 
-Write-Host "[*] ForensicHub Agent Installer" -ForegroundColor Cyan
+Write-Host "[*] AnalysisHub Agent Installer" -ForegroundColor Cyan
 Write-Host "    Agent : {{.AgentName}}"
 Write-Host "    Server: {{.ServerURL}}"
 Write-Host ""
@@ -605,17 +605,17 @@ Write-Host "[+] Done! Agent '{{.AgentName}}' should appear online in the dashboa
 `
 
 const bashInstallScript = `#!/usr/bin/env bash
-# ForensicHub Agent - Linux Installer
+# AnalysisHub Agent - Linux Installer
 # Agent : {{.AgentName}}
 # Server: {{.ServerURL}}
 
 set -euo pipefail
 
-INSTALL_DIR="$HOME/.forensichub"
+INSTALL_DIR="$HOME/.analysishub"
 BINARY_URL="{{.ServerURL}}/api/v1/agent/binary/linux"
 AGENT_TOKEN="{{.Token}}"
 
-echo "[*] ForensicHub Agent Installer"
+echo "[*] AnalysisHub Agent Installer"
 echo "    Agent : {{.AgentName}}"
 echo "    Server: {{.ServerURL}}"
 echo ""
@@ -625,28 +625,28 @@ mkdir -p "$INSTALL_DIR"
 
 # 2. Download agent binary
 echo "[*] Downloading agent binary..."
-curl -fsSL "${BINARY_URL}?token=${AGENT_TOKEN}" -o "$INSTALL_DIR/forensichub-agent"
-chmod +x "$INSTALL_DIR/forensichub-agent"
-echo "[+] Binary saved to $INSTALL_DIR/forensichub-agent"
+curl -fsSL "${BINARY_URL}?token=${AGENT_TOKEN}" -o "$INSTALL_DIR/analysishub-agent"
+chmod +x "$INSTALL_DIR/analysishub-agent"
+echo "[+] Binary saved to $INSTALL_DIR/analysishub-agent"
 
 # 3. Write configuration
-cat > "$INSTALL_DIR/forensichub-agent.conf" << CONF
+cat > "$INSTALL_DIR/analysishub-agent.conf" << CONF
 SERVER_URL={{.ServerURL}}
 AGENT_TOKEN={{.Token}}
 AGENT_NAME={{.AgentName}}
 CONF
-echo "[+] Configuration written to $INSTALL_DIR/forensichub-agent.conf"
+echo "[+] Configuration written to $INSTALL_DIR/analysishub-agent.conf"
 
 # 4. Start agent — prefer systemd (auto-restart on crash/reboot), fall back to nohup
 echo "[*] Starting agent..."
 if command -v systemctl &>/dev/null && [ "$(id -u)" -eq 0 ]; then
-    cat > /etc/systemd/system/forensichub-agent.service << SERVICE
+    cat > /etc/systemd/system/analysishub-agent.service << SERVICE
 [Unit]
-Description=ForensicHub Agent
+Description=AnalysisHub Agent
 After=network.target
 
 [Service]
-ExecStart=$INSTALL_DIR/forensichub-agent
+ExecStart=$INSTALL_DIR/analysishub-agent
 WorkingDirectory=$INSTALL_DIR
 Restart=on-failure
 RestartSec=5
@@ -655,10 +655,10 @@ RestartSec=5
 WantedBy=multi-user.target
 SERVICE
     systemctl daemon-reload
-    systemctl enable --now forensichub-agent.service
+    systemctl enable --now analysishub-agent.service
     echo "[+] Agent installed as systemd service (auto-restart enabled)"
 else
-    nohup "$INSTALL_DIR/forensichub-agent" > "$INSTALL_DIR/agent.log" 2>&1 &
+    nohup "$INSTALL_DIR/analysishub-agent" > "$INSTALL_DIR/agent.log" 2>&1 &
     echo "[+] Agent started via nohup (PID $!)"
     echo "    Note: run as root for systemd auto-restart support"
 fi

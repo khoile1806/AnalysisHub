@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // B2 - identity-leak collectors. These close the de-anonymisation gap: they turn

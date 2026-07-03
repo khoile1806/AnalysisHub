@@ -58,7 +58,7 @@ func ExtractEmbeddedBundle() (dir string, ok bool, err error) {
 	if eerr != nil {
 		return "", false, eerr
 	}
-	return extractEmbeddedFrom(exe, filepath.Join(os.TempDir(), "forensichub-offline-"+exeFingerprint(exe)))
+	return extractEmbeddedFrom(exe, filepath.Join(os.TempDir(), "analysishub-offline-"+exeFingerprint(exe)))
 }
 
 // extractEmbeddedFrom opens file `path` as a ZIP (Go's reader transparently

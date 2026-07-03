@@ -11,7 +11,7 @@ import (
 
 // Config holds all agent configuration values.
 type Config struct {
-	// ServerURL is the base HTTP(S) URL of the ForensicHub server (no trailing slash).
+	// ServerURL is the base HTTP(S) URL of the AnalysisHub server (no trailing slash).
 	// Example: http://localhost:8080
 	ServerURL string
 
@@ -23,12 +23,12 @@ type Config struct {
 	AgentName string
 
 	// WorkDir is the local directory used to store downloaded tools and job outputs.
-	// Defaults to <OS temp dir>/forensichub.
+	// Defaults to <OS temp dir>/analysishub.
 	WorkDir string
 }
 
 // Load reads configuration from environment variables, falling back to a
-// forensichub-agent.conf file located in the same directory as the running binary.
+// analysishub-agent.conf file located in the same directory as the running binary.
 //
 // Environment variables always take precedence over values in the conf file.
 //
@@ -56,10 +56,10 @@ func Load() (*Config, error) {
 
 	// Validate required fields.
 	if cfg.ServerURL == "" {
-		return nil, fmt.Errorf("config: SERVER_URL is required (set via env or forensichub-agent.conf)")
+		return nil, fmt.Errorf("config: SERVER_URL is required (set via env or analysishub-agent.conf)")
 	}
 	if cfg.AgentToken == "" {
-		return nil, fmt.Errorf("config: AGENT_TOKEN is required (set via env or forensichub-agent.conf)")
+		return nil, fmt.Errorf("config: AGENT_TOKEN is required (set via env or analysishub-agent.conf)")
 	}
 
 	// Apply defaults for optional fields.
@@ -73,9 +73,9 @@ func Load() (*Config, error) {
 
 	if cfg.WorkDir == "" {
 		if home, err := os.UserHomeDir(); err == nil {
-			cfg.WorkDir = filepath.Join(home, "Desktop", "ForensicHub_Tools")
+			cfg.WorkDir = filepath.Join(home, "Desktop", "AnalysisHub_Tools")
 		} else {
-			cfg.WorkDir = filepath.Join(os.TempDir(), "forensichub")
+			cfg.WorkDir = filepath.Join(os.TempDir(), "analysishub")
 		}
 	}
 
@@ -89,7 +89,7 @@ func confFilePath() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(filepath.Dir(exe), "forensichub-agent.conf")
+	return filepath.Join(filepath.Dir(exe), "analysishub-agent.conf")
 }
 
 // loadConfFilePreserveEnv uses godotenv to parse the KEY=VALUE conf file and

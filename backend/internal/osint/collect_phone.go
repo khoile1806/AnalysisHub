@@ -8,7 +8,7 @@ import (
 
 	"github.com/nyaruka/phonenumbers"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // phoneCountry maps an E.164 country calling code to a human-readable country

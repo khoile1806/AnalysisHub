@@ -1,5 +1,5 @@
 // Package terminal manages interactive PTY sessions spawned by the agent on
-// behalf of admins connected through the ForensicHub web terminal.
+// behalf of admins connected through the AnalysisHub web terminal.
 package terminal
 
 import (

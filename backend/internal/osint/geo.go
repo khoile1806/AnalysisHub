@@ -6,7 +6,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // geo.go — location intelligence. Every collector that learns *where* a target

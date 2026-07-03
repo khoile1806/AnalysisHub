@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // portServiceNames labels well-known TCP ports so an open port reads as a named
@@ -416,7 +416,7 @@ func grabBanner(conn net.Conn, ip string, port int) (banner, product, version st
 // httpBanner sends a HEAD request and returns the Server header (and parsed
 // product/version).
 func httpBanner(conn net.Conn, host string) (banner, product, version string) {
-	if _, err := fmt.Fprintf(conn, "HEAD / HTTP/1.0\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n", host, "ForensicHub-OSINT"); err != nil {
+	if _, err := fmt.Fprintf(conn, "HEAD / HTTP/1.0\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n", host, "AnalysisHub-OSINT"); err != nil {
 		return "", "", ""
 	}
 	r := bufio.NewReader(conn)

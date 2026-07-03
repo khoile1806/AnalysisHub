@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/ws"
 	"github.com/gin-gonic/gin"
 )
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/forensichub/backend/internal/config"
+	"github.com/analysishub/backend/internal/config"
 )
 
 // snapshotProxyEnv saves and restores the proxy-related env vars around a test.

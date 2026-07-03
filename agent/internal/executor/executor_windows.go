@@ -160,7 +160,7 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 
 	ps1 := fmt.Sprintf(
 		"param([switch]$Elevated)\r\n"+
-			"# ForensicHub: %s [%s]\r\n"+
+			"# AnalysisHub: %s [%s]\r\n"+
 			"$ErrorActionPreference = 'Continue'\r\n"+
 			"if ($Elevated) {\r\n"+
 			"    %s%s 2>&1 | Tee-Object -FilePath %s -Append\r\n"+

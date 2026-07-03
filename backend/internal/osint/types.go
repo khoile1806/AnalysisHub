@@ -22,9 +22,9 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/threatintel"
 )
 
 // Target type identifiers. Stored verbatim in OsintScan.TargetType.

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // crtShCap limits how many individual subdomain findings crt.sh contributes,

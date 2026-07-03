@@ -16,10 +16,10 @@ import (
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/forensichub/agent/internal/config"
-	"github.com/forensichub/agent/internal/executor"
-	"github.com/forensichub/agent/internal/parser"
-	"github.com/forensichub/agent/internal/ws"
+	"github.com/analysishub/agent/internal/config"
+	"github.com/analysishub/agent/internal/executor"
+	"github.com/analysishub/agent/internal/parser"
+	"github.com/analysishub/agent/internal/ws"
 )
 
 func main() {

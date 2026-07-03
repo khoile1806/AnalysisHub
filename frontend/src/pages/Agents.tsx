@@ -180,7 +180,7 @@ function NewAgentModal({ open, onClose }: NewAgentModalProps) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Register New Agent</DialogTitle>
-          <DialogDescription>Add a new endpoint to ForensicHub</DialogDescription>
+          <DialogDescription>Add a new endpoint to AnalysisHub</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
@@ -344,7 +344,7 @@ function InstallerModal({ agentId, onClose }: InstallerModalProps) {
               {/* Manual config — secondary section */}
               <div>
                 <p className="text-xs text-gray-400 mb-2 font-medium">
-                  Or configure manually — copy to <code className="text-gray-300">forensichub-agent.conf</code> next to the binary:
+                  Or configure manually — copy to <code className="text-gray-300">analysishub-agent.conf</code> next to the binary:
                 </p>
                 <div className="relative">
                   <pre className="bg-gray-950 border border-gray-700/50 rounded-lg p-4 text-xs font-mono text-emerald-400 overflow-x-auto">

@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/report"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/report"
 )
 
 // CaseReport renders a single, self-contained incident report for a case,

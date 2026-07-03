@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/egress"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // ── Dark-web monitoring (Phase 3) ───────────────────────────────────────────
@@ -108,7 +108,7 @@ func (p *hibpProvider) Search(ctx context.Context, selectors []string) ([]DarkWe
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", "ForensicHub-OSINT")
+		req.Header.Set("User-Agent", "AnalysisHub-OSINT")
 		req.Header.Set("hibp-api-key", p.key)
 
 		// Respect the 1.5s rate limit of HIBP

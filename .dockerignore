@@ -21,8 +21,8 @@ backend/bin
 backend/server
 *.exe
 agent/bin
-agent/forensichub-agent
-agent/forensichub-agent-*
+agent/analysishub-agent
+agent/analysishub-agent-*
 
 # Runtime data that shouldn't be baked in
 backend/data/logs

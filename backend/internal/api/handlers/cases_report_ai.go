@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/forensichub/backend/internal/ai"
-	"github.com/forensichub/backend/internal/analysis"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/ai"
+	"github.com/analysishub/backend/internal/analysis"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // GenerateCaseSummary asks an AI provider to draft an executive incident

@@ -83,7 +83,7 @@ export function AgentTerminal({ agent }: { agent: Agent }) {
     ro.observe(containerRef.current)
     resizeObserverRef.current = ro
 
-    term.writeln('\x1b[90mForensicHub interactive terminal\x1b[0m')
+    term.writeln('\x1b[90mAnalysisHub interactive terminal\x1b[0m')
     term.writeln('\x1b[90mClick "Connect" to open a shell on the target agent.\x1b[0m')
 
     return () => {

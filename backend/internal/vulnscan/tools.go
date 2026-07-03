@@ -18,8 +18,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/netsafe"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/netsafe"
 )
 
 // runPipeline is the scan body: scope-filter the assets, probe live HTTP

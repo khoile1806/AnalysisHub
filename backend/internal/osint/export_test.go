@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 func TestGenerateSTIXBundle(t *testing.T) {

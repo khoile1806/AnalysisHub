@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )

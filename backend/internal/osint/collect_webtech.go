@@ -14,8 +14,8 @@ import (
 
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 
-	"github.com/forensichub/backend/internal/egress"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // wappaClient is the shared Wappalyzer fingerprint engine (3000+ technologies).

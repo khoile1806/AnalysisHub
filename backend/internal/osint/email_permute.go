@@ -141,10 +141,10 @@ func smtpAccepts(ctx context.Context, mx, email string) bool {
 		return false
 	}
 	defer client.Close()
-	if err := client.Hello("forensichub.local"); err != nil {
+	if err := client.Hello("analysishub.local"); err != nil {
 		return false
 	}
-	if err := client.Mail("ping@forensichub.local"); err != nil {
+	if err := client.Mail("ping@analysishub.local"); err != nil {
 		return false
 	}
 	return client.Rcpt(email) == nil

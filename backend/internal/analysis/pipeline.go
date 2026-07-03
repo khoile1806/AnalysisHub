@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
 )
 
 // Source describes where an analysis pulls its evidence from.
@@ -178,7 +178,7 @@ func (p *Pipeline) collectOfflineReport(uploadPath string) (string, error) {
 	}
 
 	var sb strings.Builder
-	sb.WriteString("=== FORENSICHUB OFFLINE HUNTING REPORT ===\n")
+	sb.WriteString("=== ANALYSISHUB OFFLINE HUNTING REPORT ===\n")
 	fmt.Fprintf(&sb, "Bundle   : %s\n", rep.BundleName)
 	if rep.CaseName != "" {
 		fmt.Fprintf(&sb, "Case     : %s\n", rep.CaseName)

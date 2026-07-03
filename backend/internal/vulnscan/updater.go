@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/forensichub/backend/internal/config"
+	"github.com/analysishub/backend/internal/config"
 )
 
 // templatesUpdateInterval is how often the bundled nuclei templates are refreshed

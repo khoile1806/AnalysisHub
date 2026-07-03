@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // abuse.ch (ThreatFox / URLhaus / MalwareBazaar) collectors. These are free

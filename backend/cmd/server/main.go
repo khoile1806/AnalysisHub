@@ -17,20 +17,20 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api"
-	"github.com/forensichub/backend/internal/api/handlers"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/database"
-	"github.com/forensichub/backend/internal/egress"
-	"github.com/forensichub/backend/internal/hunting/sigma"
-	"github.com/forensichub/backend/internal/logger"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/oob"
-	"github.com/forensichub/backend/internal/osint"
-	"github.com/forensichub/backend/internal/storage"
-	"github.com/forensichub/backend/internal/threatintel"
-	"github.com/forensichub/backend/internal/vulnscan"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api"
+	"github.com/analysishub/backend/internal/api/handlers"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/database"
+	"github.com/analysishub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/hunting/sigma"
+	"github.com/analysishub/backend/internal/logger"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/oob"
+	"github.com/analysishub/backend/internal/osint"
+	"github.com/analysishub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/vulnscan"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 func main() {
@@ -71,7 +71,7 @@ func main() {
 	cleanupLogs := logger.Setup(cfg.LogPath)
 	defer cleanupLogs()
 
-	slog.Info("starting ForensicHub", "env", cfg.AppEnv, "port", cfg.ServerPort)
+	slog.Info("starting AnalysisHub", "env", cfg.AppEnv, "port", cfg.ServerPort)
 
 	// ------------------------------------------------------------------ //
 	// 3. Connect to PostgreSQL and run migrations

@@ -3,13 +3,13 @@
   Detects offensive PowerShell: encoded commands, download cradles, AMSI / logging
   bypass, in-memory (reflective) loading, and obfuscation.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule PS_Encoded_Command
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "PowerShell -EncodedCommand with hidden/bypass flags"
         severity    = "high"
         category    = "powershell"
@@ -28,7 +28,7 @@ rule PS_Encoded_Command
 rule PS_Download_Cradle
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "In-memory download-and-execute cradle"
         severity    = "high"
         category    = "powershell"
@@ -47,7 +47,7 @@ rule PS_Download_Cradle
 rule PS_AMSI_Logging_Bypass
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "AMSI / script-block logging bypass patterns"
         severity    = "critical"
         category    = "powershell"
@@ -70,7 +70,7 @@ rule PS_AMSI_Logging_Bypass
 rule PS_Reflective_InMemory
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Reflective / in-memory assembly loading and shellcode execution"
         severity    = "high"
         category    = "powershell"
@@ -95,7 +95,7 @@ rule PS_Reflective_InMemory
 rule PS_Obfuscation_Heavy
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Heavy PowerShell obfuscation (format/reorder, char arrays, -join, backticks)"
         severity    = "medium"
         category    = "powershell"

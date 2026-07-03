@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/forensichub/backend/internal/decode"
+	"github.com/analysishub/backend/internal/decode"
 )
 
 type smartDecodeRequest struct {

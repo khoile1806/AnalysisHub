@@ -62,7 +62,7 @@ func Page(meta Meta, body template.HTML) string {
 
 	b.WriteString(string(body))
 
-	b.WriteString(`<footer class="rpt-foot">ForensicHub-v2 — confidential. Generated automatically; verify findings before acting.</footer>`)
+	b.WriteString(`<footer class="rpt-foot">AnalysisHub-v2 — confidential. Generated automatically; verify findings before acting.</footer>`)
 	b.WriteString(`</div></body></html>`)
 	return b.String()
 }

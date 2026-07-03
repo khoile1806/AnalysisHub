@@ -59,7 +59,7 @@ type CanaryToken struct {
 
 	// BaseURL optionally overrides the public base used to build this token's
 	// link (e.g. "https://promo-event.io"). Lets the operator front the link
-	// with a disposable domain so the real ForensicHub host is never exposed.
+	// with a disposable domain so the real AnalysisHub host is never exposed.
 	// When empty, the global CANARY_BASE_URL config (or the request host) is used.
 	BaseURL string `json:"base_url,omitempty"`
 

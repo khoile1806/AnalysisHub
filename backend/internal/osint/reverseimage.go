@@ -3,7 +3,7 @@ package osint
 import (
 	"net/url"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // reverseimage.go — reverse image search. Finding the same photo/avatar

@@ -151,7 +151,7 @@ export const useChecklistStore = create<ChecklistState>()(
       }),
     }),
     {
-      name: 'forensichub-checklist',
+      name: 'analysishub-checklist',
       storage: setAwareStorage,
       partialize: (state): PersistedSlice => ({
         platform: state.platform,

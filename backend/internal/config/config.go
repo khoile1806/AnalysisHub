@@ -25,7 +25,7 @@ type Config struct {
 	// CanaryBaseURL is the public base URL used to build canary-token links
 	// (e.g. "https://promo-event.io"). It is deliberately decoupled from
 	// PublicURL so operators can front canary links with a separate / disposable
-	// domain (or reverse proxy / tunnel) and avoid leaking the real ForensicHub
+	// domain (or reverse proxy / tunnel) and avoid leaking the real AnalysisHub
 	// host to whoever clicks the link. When empty the per-token override (if any)
 	// or the request-derived host is used.
 	CanaryBaseURL string
@@ -227,12 +227,12 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
-		PostgresDSN:         getEnv("POSTGRES_DSN", "host=localhost user=forensichub password=forensichub dbname=forensichub port=5432 sslmode=disable TimeZone=UTC"),
+		PostgresDSN:         getEnv("POSTGRES_DSN", "host=localhost user=analysishub password=analysishub dbname=analysishub port=5432 sslmode=disable TimeZone=UTC"),
 		RedisAddr:           getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword:       getEnv("REDIS_PASSWORD", ""),
 		JWTSecret:           getEnv("JWT_SECRET", "change-me-in-production-use-a-long-random-string"),
 		StoragePath:         getEnv("STORAGE_PATH", "/app/storage"),
-		AdminEmail:          getEnv("ADMIN_EMAIL", "admin@forensichub.local"),
+		AdminEmail:          getEnv("ADMIN_EMAIL", "admin@analysishub.local"),
 		AdminPassword:       getEnv("ADMIN_PASSWORD", "ChangeMe!2024"),
 		AppEnv:              getEnv("APP_ENV", "development"),
 		PublicURL:           getEnv("PUBLIC_URL", ""),

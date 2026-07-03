@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collect_social_profile.go — investigate a pasted profile LINK. It identifies

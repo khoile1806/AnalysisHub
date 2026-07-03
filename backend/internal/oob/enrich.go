@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/netsafe"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/netsafe"
 )
 
 // Source-IP enrichment: look up geo / ASN / PTR / network-type for a captured

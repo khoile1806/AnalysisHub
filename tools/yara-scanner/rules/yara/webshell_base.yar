@@ -7,7 +7,7 @@
 rule WS_PHP_GenericEvalBase64
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP eval(base64_decode(...)) loader pattern"
         severity = "high"
     strings:
@@ -21,7 +21,7 @@ rule WS_PHP_GenericEvalBase64
 rule WS_PHP_AssertSuperglobal
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP assert($_POST/GET/REQUEST/...) — classic backdoor stub"
         severity = "high"
     strings:
@@ -34,7 +34,7 @@ rule WS_PHP_AssertSuperglobal
 rule WS_PHP_PregReplaceEval
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP preg_replace with /e modifier (deprecated, abused for code exec)"
         severity = "high"
     strings:
@@ -47,7 +47,7 @@ rule WS_PHP_PregReplaceEval
 rule WS_PHP_KnownShellBanner
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "Banner strings of well-known PHP shells"
         severity = "critical"
     strings:
@@ -66,7 +66,7 @@ rule WS_PHP_KnownShellBanner
 rule WS_PHP_DirectExecSuperglobal
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "Direct command exec from superglobal — high-confidence webshell"
         severity = "critical"
     strings:
@@ -80,7 +80,7 @@ rule WS_PHP_DirectExecSuperglobal
 rule WS_ASP_EvalRequest
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "ASP Eval/Execute on Request.Form/QueryString"
         severity = "high"
     strings:
@@ -94,7 +94,7 @@ rule WS_ASP_EvalRequest
 rule WS_JSP_RuntimeExecParam
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "JSP Runtime.exec / ProcessBuilder driven by request.getParameter"
         severity = "high"
     strings:
@@ -108,7 +108,7 @@ rule WS_JSP_RuntimeExecParam
 rule WS_Python_EvalExecRequest
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "Python eval/exec wired to incoming request data"
         severity = "high"
     strings:
@@ -122,7 +122,7 @@ rule WS_Python_EvalExecRequest
 rule WS_PHP_ReverseShellSocket
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP reverse shell — outbound TCP socket + shell spawn (proc_open / shell_exec / /bin/sh)"
         severity = "critical"
     strings:
@@ -138,7 +138,7 @@ rule WS_PHP_ReverseShellSocket
 rule WS_PHP_KnownReverseShellBanner
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "Known reverse shell tool identifiers — pentestmonkey php-reverse-shell banner"
         severity = "critical"
     strings:
@@ -153,7 +153,7 @@ rule WS_PHP_KnownReverseShellBanner
 rule WS_PHP_HardcodedShellSpawn
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP file hardcodes /bin/sh or /bin/bash path for shell spawn"
         severity = "high"
     strings:
@@ -167,7 +167,7 @@ rule WS_PHP_HardcodedShellSpawn
 rule WS_PHP_FileDropper
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP writes user-supplied content to disk — file dropper / uploader webshell"
         severity = "high"
     strings:
@@ -181,7 +181,7 @@ rule WS_PHP_FileDropper
 rule WS_PHP_DynamicFuncCallSuperglobal
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP dynamic function call where function name comes from superglobal: $_GET['f']($_GET['c'])"
         severity = "critical"
     strings:
@@ -194,7 +194,7 @@ rule WS_PHP_DynamicFuncCallSuperglobal
 rule WS_PHP_CallUserFuncSuperglobal
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "call_user_func / call_user_func_array with superglobal as function name or argument"
         severity = "critical"
     strings:
@@ -208,7 +208,7 @@ rule WS_PHP_CallUserFuncSuperglobal
 rule WS_PHP_ArrayHigherOrderSuperglobal
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "array_map / array_filter / usort abused to invoke arbitrary function from superglobal"
         severity = "critical"
     strings:
@@ -223,7 +223,7 @@ rule WS_PHP_ArrayHigherOrderSuperglobal
 rule WS_PHP_IncludeUserInput
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP include/require from user-controlled superglobal — LFI/RFI to RCE"
         severity = "high"
     strings:
@@ -237,7 +237,7 @@ rule WS_PHP_IncludeUserInput
 rule WS_PHP_HexObfuscatedFuncCall
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP function name hidden via hex escape: \"\\x73\\x79\\x73\\x74\\x65\\x6d\" = system"
         severity = "high"
     strings:
@@ -254,7 +254,7 @@ rule WS_PHP_HexObfuscatedFuncCall
 rule WS_PHP_PutenvLdPreload
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "PHP putenv LD_PRELOAD bypass — injects shared library then triggers via mail() to gain RCE"
         severity = "critical"
     strings:
@@ -268,7 +268,7 @@ rule WS_PHP_PutenvLdPreload
 rule WS_ASPX_ProcessStart
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "ASPX/C# executes OS commands via System.Diagnostics.Process — classic ASPX webshell"
         severity = "critical"
     strings:
@@ -284,7 +284,7 @@ rule WS_ASPX_ProcessStart
 rule WS_ASPX_FileWrite
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "ASP ADODB.Stream or FileSystemObject used to write files — dropper payload"
         severity = "high"
     strings:
@@ -300,7 +300,7 @@ rule WS_ASPX_FileWrite
 rule WS_JSP_ScriptEngineEval
 {
     meta:
-        author = "ForensicHub"
+        author = "AnalysisHub"
         description = "JSP ScriptEngine / GroovyShell evaluating user-supplied code — dynamic RCE"
         severity = "critical"
     strings:

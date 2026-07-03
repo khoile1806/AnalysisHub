@@ -67,8 +67,8 @@ func (c *openAIClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + c.apiKey,
 		// OpenRouter requires these for free-tier routing; harmless elsewhere.
-		"HTTP-Referer": "https://forensichub.local",
-		"X-Title":      "ForensicHub",
+		"HTTP-Referer": "https://analysishub.local",
+		"X-Title":      "AnalysisHub",
 	}, bodyBytes)
 	if err != nil {
 		return usage, err

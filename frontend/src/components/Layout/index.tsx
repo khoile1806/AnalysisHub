@@ -117,7 +117,7 @@ function Breadcrumbs() {
 
   return (
     <nav className="flex items-center gap-1 text-xs sm:text-sm text-gray-400 truncate">
-      <span className="text-gray-500 hidden sm:inline">ForensicHub</span>
+      <span className="text-gray-500 hidden sm:inline">AnalysisHub</span>
       {segments.map((seg, i) => {
         const label = BREADCRUMB_MAP[seg] ?? (seg.length > 16 ? `${seg.slice(0, 8)}…` : seg)
         const isLast = i === segments.length - 1
@@ -204,7 +204,7 @@ export default function Layout() {
             </div>
             <div className={collapsed ? 'md:hidden' : ''}>
               <span className="font-mono font-bold text-sm text-forensic-500 tracking-wider" style={{ color: '#00ff41' }}>
-                ForensicHub
+                AnalysisHub
               </span>
               <div className="text-[10px] text-gray-500 font-mono tracking-widest">DFIR PLATFORM</div>
             </div>

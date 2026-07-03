@@ -13,9 +13,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/threatintel"
 )
 
 // histCap is the number of output lines kept in memory per scan for SSE

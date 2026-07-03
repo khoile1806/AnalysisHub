@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // identity.go — a single OSINT scan produces dozens of scattered findings; what

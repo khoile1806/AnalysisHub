@@ -204,7 +204,7 @@ func printBanner(manifest *BundleManifest) {
 	ip := localIP()
 	fmt.Printf(`
 %s%s╔══════════════════════════════════════════════════════════════╗%s
-%s║  ForensicHub Offline Agent                                   ║%s
+%s║  AnalysisHub Offline Agent                                   ║%s
 %s║  Bundle : %-51s║%s`,
 		colorBold, colorCyan, colorReset,
 		colorCyan, colorReset,

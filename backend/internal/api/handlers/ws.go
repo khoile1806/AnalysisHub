@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/models"
-	appws "github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/models"
+	appws "github.com/analysishub/backend/internal/ws"
 )
 
 // allowedWSOrigins is the set of browser origins permitted to initiate a

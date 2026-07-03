@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collect_pdns.go — passive DNS. Live DNS shows where a domain points NOW;

@@ -15,7 +15,7 @@ import (
 	"github.com/miekg/dns"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 const (
@@ -267,7 +267,7 @@ func (s *Server) handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 				m.Answer = append(m.Answer, rr)
 			}
 		case dns.TypeTXT:
-			if rr, err := dns.NewRR(fmt.Sprintf("%s 60 IN TXT \"forensichub-oob\"", name)); err == nil {
+			if rr, err := dns.NewRR(fmt.Sprintf("%s 60 IN TXT \"analysishub-oob\"", name)); err == nil {
 				m.Answer = append(m.Answer, rr)
 			}
 		default:
@@ -393,7 +393,7 @@ func (s *Server) handleHTTP(w http.ResponseWriter, r *http.Request, proto string
 		RawRequest: dumpHTTP(r, body),
 	})
 
-	w.Header().Set("Server", "forensichub-oob")
+	w.Header().Set("Server", "analysishub-oob")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	_, _ = io.WriteString(w, "ok\n")
@@ -453,7 +453,7 @@ func (s *Server) handleSMTP(conn net.Conn) {
 		_ = wr.Flush()
 	}
 
-	reply("220 " + s.opt.Domain + " ESMTP forensichub-oob")
+	reply("220 " + s.opt.Domain + " ESMTP analysishub-oob")
 
 	var from, to string
 	var transcript strings.Builder

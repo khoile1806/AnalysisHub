@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/forensichub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/threatintel"
 )
 
 // IntelHandler serves on-demand threat-intelligence lookups (VirusTotal +

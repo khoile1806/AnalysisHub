@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collect_wallet_label.go — reputation/attribution context for a crypto address.

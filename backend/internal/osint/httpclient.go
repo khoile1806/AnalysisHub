@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/forensichub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/egress"
 )
 
 const (
-	userAgent    = "ForensicHub-OSINT/1.0 (+https://github.com/forensichub)"
+	userAgent    = "AnalysisHub-OSINT/1.0 (+https://github.com/analysishub)"
 	maxBodyBytes = 8 * 1024 * 1024 // cap response bodies so one runaway reply can't exhaust memory
 )
 

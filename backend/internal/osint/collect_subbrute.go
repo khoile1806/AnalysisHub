@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // subBruteCap limits how many live brute-forced subdomains are recorded.

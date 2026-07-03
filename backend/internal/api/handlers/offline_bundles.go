@@ -15,8 +15,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
 )
 
 // offlineBundleTool mirrors the JSON shape written to bundle.json inside
@@ -223,7 +223,7 @@ func GenerateOfflineBundle(c *gin.Context) {
 			"    exit /b\r\n" +
 			")\r\n" +
 			"cd /d \"%~dp0\"\r\n" +
-			"echo ForensicHub Offline Agent\r\n" +
+			"echo AnalysisHub Offline Agent\r\n" +
 			"echo Bundle : " + req.Name + "\r\n"
 		if req.CaseName != "" {
 			bat += "echo Case   : " + req.CaseName + "\r\n"
@@ -240,7 +240,7 @@ func GenerateOfflineBundle(c *gin.Context) {
 	}
 	if req.Platform == "linux" || req.Platform == "both" {
 		sh := "#!/bin/sh\n" +
-			"echo 'ForensicHub Offline Agent'\n" +
+			"echo 'AnalysisHub Offline Agent'\n" +
 			"echo 'Bundle : " + req.Name + "'\n"
 		if req.CaseName != "" {
 			sh += "echo 'Case   : " + req.CaseName + "'\n"
@@ -435,7 +435,7 @@ func writeLauncher(zw *zip.Writer, name, content string) {
 
 func buildReadme(bundleName, platform, caseName string, tools []models.Tool) string {
 	var sb strings.Builder
-	sb.WriteString("ForensicHub Offline Agent Bundle\n")
+	sb.WriteString("AnalysisHub Offline Agent Bundle\n")
 	sb.WriteString("Bundle: " + bundleName + "\n")
 	if caseName != "" {
 		sb.WriteString("Case:   " + caseName + "\n")

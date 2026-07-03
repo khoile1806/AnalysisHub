@@ -20,11 +20,11 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/netsafe"
-	"github.com/forensichub/backend/internal/oob"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/netsafe"
+	"github.com/analysishub/backend/internal/oob"
 )
 
 // oobWebhookBodyLimit caps how much request body the webhook receiver stores.
@@ -1157,7 +1157,7 @@ func oobNotifyWorker() {
 // metadata. Supports Slack/Discord incoming webhooks and generic HTTP endpoints.
 // Uses an SSRF-safe client; errors are logged but never propagated.
 func sendOobNotify(notifyURL, sessionName string, in models.OobInteraction) {
-	summary := fmt.Sprintf("[ForensicHub OOB] %s — new %s interaction from %s",
+	summary := fmt.Sprintf("[AnalysisHub OOB] %s — new %s interaction from %s",
 		sessionName, strings.ToUpper(in.Protocol), in.RemoteIP)
 	if in.Method != "" {
 		summary += fmt.Sprintf(" · %s %s", in.Method, in.Path)

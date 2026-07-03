@@ -3,7 +3,7 @@ package osint
 import (
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // computeExposure rolls a scan's findings up into a single 0-100 exposure score

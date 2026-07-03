@@ -4,13 +4,13 @@
   behaviour that precedes encryption. Rules favour multi-string combinations
   and filesize/magic gating to keep false positives low.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule RANSOM_Note_Generic
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Generic ransom note — extortion wording plus a payment/contact channel"
         severity    = "high"
         category    = "ransomware"
@@ -37,7 +37,7 @@ rule RANSOM_Note_Generic
 rule RANSOM_Recovery_Destruction
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Shadow-copy / backup / recovery destruction — pre-encryption sabotage"
         severity    = "critical"
         category    = "ransomware"
@@ -58,7 +58,7 @@ rule RANSOM_Recovery_Destruction
 rule RANSOM_Mass_Encryption_API
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "PE combining crypto APIs, enumeration and recovery sabotage — encryptor profile"
         severity    = "critical"
         category    = "ransomware"
@@ -81,7 +81,7 @@ rule RANSOM_Mass_Encryption_API
 rule RANSOM_Family_Markers
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Distinctive strings of well-known ransomware families"
         severity    = "critical"
         category    = "ransomware"
@@ -120,7 +120,7 @@ rule RANSOM_Family_Markers
 rule RANSOM_Encrypted_Extension_Marker
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Script/binary appends a known ransomware extension to victim files"
         severity    = "high"
         category    = "ransomware"

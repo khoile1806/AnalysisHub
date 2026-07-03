@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 var rlBlockchain = newRateLimiter(1 * time.Second)

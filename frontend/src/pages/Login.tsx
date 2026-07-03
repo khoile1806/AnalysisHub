@@ -56,7 +56,7 @@ export default function LoginPage() {
               className="font-mono font-bold text-2xl tracking-wider"
               style={{ color: '#00ff41' }}
             >
-              ForensicHub
+              AnalysisHub
             </h1>
             <p className="text-gray-500 text-xs font-mono tracking-widest mt-1">
               DFIR PLATFORM

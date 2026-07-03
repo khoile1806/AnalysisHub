@@ -3,13 +3,13 @@
   Detects credential-dumping tooling and techniques: Mimikatz, LSASS dumping,
   registry-hive theft, NTDS extraction, Kerberos abuse, and credential stealers.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule CRED_Mimikatz_Commands
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Mimikatz module/command strings — sekurlsa / lsadump / kerberos"
         severity    = "critical"
         category    = "credential-theft"
@@ -34,7 +34,7 @@ rule CRED_Mimikatz_Commands
 rule CRED_LSASS_Dumping
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "LSASS memory dump via comsvcs MiniDump, procdump, or direct API"
         severity    = "critical"
         category    = "credential-theft"
@@ -58,7 +58,7 @@ rule CRED_LSASS_Dumping
 rule CRED_Registry_Hive_Theft
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Theft of SAM/SYSTEM/SECURITY registry hives for offline cracking"
         severity    = "critical"
         category    = "credential-theft"
@@ -76,7 +76,7 @@ rule CRED_Registry_Hive_Theft
 rule CRED_NTDS_Extraction
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Active Directory NTDS.dit extraction (DCSync / ntdsutil / vss)"
         severity    = "critical"
         category    = "credential-theft"
@@ -95,7 +95,7 @@ rule CRED_NTDS_Extraction
 rule CRED_Kerberoast_Rubeus
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Rubeus / Kerberoasting / AS-REP roasting tooling"
         severity    = "high"
         category    = "credential-theft"
@@ -114,7 +114,7 @@ rule CRED_Kerberoast_Rubeus
 rule CRED_Stealer_Tooling
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Known credential-stealer utilities (LaZagne / WCE / pwdump / SharpWeb)"
         severity    = "high"
         category    = "credential-theft"

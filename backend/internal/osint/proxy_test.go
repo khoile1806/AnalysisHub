@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/forensichub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/egress"
 )
 
 // proxyURLFor calls a transport's Proxy func for a sample request and returns

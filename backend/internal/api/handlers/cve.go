@@ -22,9 +22,9 @@ import (
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // cveHTTPClient is the shared client used for NVD + GitHub outbound calls.

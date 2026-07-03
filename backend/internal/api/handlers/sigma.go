@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/forensichub/backend/internal/hunting/sigma"
+	"github.com/analysishub/backend/internal/hunting/sigma"
 	"github.com/gin-gonic/gin"
 )
 

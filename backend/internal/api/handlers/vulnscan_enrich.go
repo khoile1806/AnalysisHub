@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	"github.com/forensichub/backend/internal/vulnscan"
+	"github.com/analysishub/backend/internal/vulnscan"
 )
 
 // cveEnricher implements vulnscan.Enricher using the platform's EPSS + CISA-KEV

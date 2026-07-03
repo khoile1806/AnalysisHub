@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // handle_variants.go — people reuse the same name across platforms but with

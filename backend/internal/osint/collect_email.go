@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // emailParts splits an address into local part and domain (lowercased).
@@ -86,8 +86,8 @@ func collectEmailValidate(ctx context.Context, env *collectorEnv) ([]models.Osin
 			continue
 		}
 
-		client.Hello("forensichub.local")
-		client.Mail("ping@forensichub.local")
+		client.Hello("analysishub.local")
+		client.Mail("ping@analysishub.local")
 		realOK := client.Rcpt(env.target) == nil
 		catchAll := client.Rcpt(probeLocal+"@"+domain) == nil
 

@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/ws"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"

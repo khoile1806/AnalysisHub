@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // rlXposed paces XposedOrNot — a free, key-less breach-search API. Be polite.

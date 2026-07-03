@@ -11,13 +11,13 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/osint"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/osint"
 )
 
 // osintTypeToIOC maps an OSINT target type to the IOC-store Type name used by
-// ForensicHub's OpenCTI sync + ELK auto-hunt. Returns "" for types that aren't
+// AnalysisHub's OpenCTI sync + ELK auto-hunt. Returns "" for types that aren't
 // meaningful IOCs (phone/username).
 func osintTypeToIOC(osintType, value string) string {
 	switch osintType {

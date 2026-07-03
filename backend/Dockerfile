@@ -11,11 +11,11 @@ RUN go mod tidy && go mod download
 # ── Online agent ──────────────────────────────────────────────
 # Cross-compile for Windows (amd64)
 RUN GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
-    go build -ldflags="-s -w" -o forensichub-agent.exe ./cmd/agent
+    go build -ldflags="-s -w" -o analysishub-agent.exe ./cmd/agent
 
 # Cross-compile for Linux (amd64)
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
-    go build -ldflags="-s -w" -o forensichub-agent-linux ./cmd/agent
+    go build -ldflags="-s -w" -o analysishub-agent-linux ./cmd/agent
 
 # ── Offline agent ─────────────────────────────────────────────
 # Cross-compile for Windows (amd64) — includes embedded HTML UI
@@ -161,8 +161,8 @@ WORKDIR /app
 COPY --from=builder /build/server /app/server
 
 # Pre-compiled online agent binaries served for one-click install
-COPY --from=agent-builder /agent/forensichub-agent.exe   /app/agent-bins/forensichub-agent.exe
-COPY --from=agent-builder /agent/forensichub-agent-linux /app/agent-bins/forensichub-agent-linux
+COPY --from=agent-builder /agent/analysishub-agent.exe   /app/agent-bins/analysishub-agent.exe
+COPY --from=agent-builder /agent/analysishub-agent-linux /app/agent-bins/analysishub-agent-linux
 
 # Pre-compiled offline agent binaries — used by GenerateOfflineBundle to embed in ZIP
 COPY --from=agent-builder /agent/agent-offline.exe      /app/defaults/agent-offline.exe

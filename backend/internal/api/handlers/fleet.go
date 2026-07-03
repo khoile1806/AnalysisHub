@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // FleetHandler manages agent groups/tags, bulk collections, and schedules.

@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/forensichub/backend/internal/egress"
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/egress"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // browserUA is sent on social-media checks - many platforms 403 a non-browser

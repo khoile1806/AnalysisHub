@@ -10,8 +10,8 @@ import (
 
 	"gorm.io/gorm/clause"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/notify"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/notify"
 )
 
 // enrichAndReport runs after nuclei finishes: it cross-references CVE findings

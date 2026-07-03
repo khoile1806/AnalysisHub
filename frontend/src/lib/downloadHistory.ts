@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 
-const STORAGE_KEY = 'forensichub_download_history'
+const STORAGE_KEY = 'analysishub_download_history'
 const MAX_ENTRIES = 200
-const CHANGE_EVENT = 'forensichub-download-history-changed'
+const CHANGE_EVENT = 'analysishub-download-history-changed'
 
 export interface DownloadHistoryEntry {
   id: string

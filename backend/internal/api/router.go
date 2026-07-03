@@ -5,18 +5,18 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/api/handlers"
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/oob"
-	"github.com/forensichub/backend/internal/osint"
-	"github.com/forensichub/backend/internal/vulnscan"
-	"github.com/forensichub/backend/internal/storage"
-	"github.com/forensichub/backend/internal/threatintel"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/api/handlers"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/oob"
+	"github.com/analysishub/backend/internal/osint"
+	"github.com/analysishub/backend/internal/vulnscan"
+	"github.com/analysishub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/ws"
 )
 
-// NewRouter builds the ForensicHub (slim) Gin engine. Forensic & Hunting +
+// NewRouter builds the AnalysisHub (slim) Gin engine. Forensic & Hunting +
 // Threat Intel only — offensive surface (Recon / OSINT / Catch / Videos)
 // lives in the sibling OffSecHub repo.
 func NewRouter(
@@ -346,7 +346,7 @@ func NewRouter(
 		// outside this group with its own cookie-aware auth.
 		protected.POST("/sandbox/grant", handlers.SandboxGrant)
 
-		// News (used by CVE → News tab inside ForensicHub).
+		// News (used by CVE → News tab inside AnalysisHub).
 		protected.GET("/news", handlers.GetNews)
 		protected.GET("/news/categories", handlers.GetNewsCategories)
 		protected.GET("/news/stream", handlers.StreamNews)

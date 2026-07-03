@@ -632,7 +632,7 @@ export default function CaseDetailPage() {
                 <div>
                   <h3 className="font-semibold text-gray-200 text-base">Offline Hunting Bundle</h3>
                   <p className="text-sm text-gray-400 mt-1 max-w-sm">
-                    Generate a self-contained bundle for endpoints that cannot reach the ForensicHub
+                    Generate a self-contained bundle for endpoints that cannot reach the AnalysisHub
                     server. The bundle includes selected tools, a local UI, and auto-generates a
                     report tagged to this case.
                   </p>

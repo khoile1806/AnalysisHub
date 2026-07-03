@@ -18,8 +18,8 @@ Nền tảng điều phối DFIR (Digital Forensics & Incident Response) tập t
 ## 2. Lấy mã nguồn & tạo file cấu hình
 
 ```bash
-git clone <repo-url> ForensicHub-v2
-cd ForensicHub-v2
+git clone <repo-url> AnalysisHub-v2
+cd AnalysisHub-v2
 cp .env.example .env
 ```
 
@@ -100,7 +100,7 @@ Agent được tạo và lấy script cài đặt **từ trong giao diện** (kh
 3. Sao chép lệnh cài đặt (`install.ps1` cho Windows / `install.sh` cho Linux) và chạy trên máy đích.
 4. Agent tự kết nối về server và hiện trạng thái **online**.
 
-> Nếu cần build agent thủ công: `cd agent && GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o forensichub-agent.exe ./cmd/agent` (đổi `GOOS=linux` cho Linux).
+> Nếu cần build agent thủ công: `cd agent && GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o analysishub-agent.exe ./cmd/agent` (đổi `GOOS=linux` cho Linux).
 
 ---
 

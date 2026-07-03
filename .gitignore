@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-#  ForensicHub v2 — .gitignore
+#  AnalysisHub v2 — .gitignore
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ── Environment & Secrets ───────────────────────────────────────────────────
@@ -36,10 +36,10 @@ desktop.ini
 
 # ── Agent compiled outputs ──────────────────────────────────────────────────
 agent/bin/
-agent/forensichub-agent
-agent/forensichub-agent-linux
-agent/forensichub-agent-darwin-amd64
-agent/forensichub-agent-darwin-arm64
+agent/analysishub-agent
+agent/analysishub-agent-linux
+agent/analysishub-agent-darwin-amd64
+agent/analysishub-agent-darwin-arm64
 
 # ── Backend compiled outputs ────────────────────────────────────────────────
 backend/bin/

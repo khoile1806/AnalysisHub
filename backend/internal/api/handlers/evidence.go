@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
 )
 
 // EvidenceHandler manages result/evidence files uploaded into a case.

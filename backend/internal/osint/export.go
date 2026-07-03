@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // -- CSV export ----------------------------------------------------------------
@@ -81,7 +81,7 @@ func GenerateSTIXBundle(scan *models.OsintScan, findings []models.OsintFinding) 
 	identityID := "identity--" + uuid.NewString()
 	identity := stixObject{
 		Type: "identity", SpecVersion: "2.1", ID: identityID,
-		Created: now, Modified: now, Name: "ForensicHub OSINT", Description: "ForensicHub passive OSINT engine",
+		Created: now, Modified: now, Name: "AnalysisHub OSINT", Description: "AnalysisHub passive OSINT engine",
 	}
 
 	obs := collectObservables(scan, findings)

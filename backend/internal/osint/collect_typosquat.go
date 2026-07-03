@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // maxTypoVariants bounds how many look-alike candidates are generated and

@@ -3,7 +3,7 @@ package osint
 import (
 	"testing"
 
-	"github.com/forensichub/backend/internal/config"
+	"github.com/analysishub/backend/internal/config"
 )
 
 func TestMaxConcurrentScans(t *testing.T) {

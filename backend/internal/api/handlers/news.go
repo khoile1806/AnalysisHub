@@ -20,8 +20,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mmcdole/gofeed"
 
-	"github.com/forensichub/backend/internal/news"
-	"github.com/forensichub/backend/internal/ws"
+	"github.com/analysishub/backend/internal/news"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // NewsArticle is the trimmed shape stored on disk and returned to the UI.
@@ -52,7 +52,7 @@ var (
 	// cannot starve CVE NVD lookups (and vice-versa). Custom UA reduces the
 	// chance of CDN-level bot blocking on a few of the feeds.
 	newsHTTPClient = &http.Client{Timeout: 20 * time.Second}
-	newsUserAgent  = "ForensicHub-NewsBot/1.0 (+https://github.com/forensichub)"
+	newsUserAgent  = "AnalysisHub-NewsBot/1.0 (+https://github.com/analysishub)"
 
 	// Concurrency caps applied inside syncAllFeeds.
 	newsGlobalConcurrency = 5

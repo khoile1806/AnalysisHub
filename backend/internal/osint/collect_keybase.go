@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // collect_keybase.go — Keybase is a high-value de-anonymisation source: a user

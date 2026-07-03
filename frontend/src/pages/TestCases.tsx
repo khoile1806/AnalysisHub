@@ -130,7 +130,7 @@ const CATEGORIES: CategoryDef[] = [
         expected: 'HTTP 200, response contains a token (JWT) and user info',
         async run() {
           const { data } = await rawAxios.post('/auth/login', {
-            email: 'admin@forensichub.local',
+            email: 'admin@analysishub.local',
             password: 'Admin@123456',
           })
           if (!data.token) throw new Error('Missing token in response')
@@ -1691,7 +1691,7 @@ export default function TestCasesPage() {
             </span>
           </div>
           <p className="text-sm text-gray-500">
-            Test the entire ForensicHub-v2 backend API — run tests individually or all at once to confirm the system works correctly.
+            Test the entire AnalysisHub-v2 backend API — run tests individually or all at once to confirm the system works correctly.
           </p>
         </div>
         <button

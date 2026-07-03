@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // rlLeakCheck paces LeakCheck's free public API, which is tightly rate-limited

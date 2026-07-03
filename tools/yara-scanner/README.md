@@ -5,7 +5,7 @@ Multi-engine webshell scanner — Phase 1 MVP của
 
 Engine: **YARA** + **Pattern (regex)**. Output: `report.json` + `report.html`
 (self-contained, mở offline). Đóng gói thành single binary qua PyInstaller để
-deploy lên ForensicHub agents (xem ROADMAP.md mục #2 — Multi-Agent Scanning).
+deploy lên AnalysisHub agents (xem ROADMAP.md mục #2 — Multi-Agent Scanning).
 
 ## Cài đặt (dev)
 
@@ -69,7 +69,7 @@ scanner/
 └── models.py           pydantic Finding / ScanReport
 ```
 
-## Progress stream (cho integration ForensicHub)
+## Progress stream (cho integration AnalysisHub)
 
 `--progress json` phát JSONL lên stdout, dùng cho agent stream về backend qua WS:
 
@@ -113,7 +113,7 @@ Phase này (MVP) chỉ làm YARA + pattern. Các phase tiếp theo theo
 `yara-scanner-plan.md`: entropy, AST PHP (`phply`), recursive deobfuscator,
 taint analysis, differential scanning, ML layer, platform integration.
 
-Tích hợp ForensicHub: scanner sẽ được upload như **ZIP tool** với
+Tích hợp AnalysisHub: scanner sẽ được upload như **ZIP tool** với
 `executable_path = yara-scanner.exe`. Tab YARA Scanner mới sẽ chọn nhiều
 agent, dispatch job, agent upload `report.json` + `report.html` qua artifact
 endpoint hiện có. Chi tiết blueprint: plan riêng.

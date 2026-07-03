@@ -23,12 +23,12 @@ import (
 
 	"encoding/base64"
 
-	"github.com/forensichub/agent/internal/config"
-	"github.com/forensichub/agent/internal/executor"
-	"github.com/forensichub/agent/internal/fs"
-	"github.com/forensichub/agent/internal/monitor"
-	"github.com/forensichub/agent/internal/parser"
-	"github.com/forensichub/agent/internal/terminal"
+	"github.com/analysishub/agent/internal/config"
+	"github.com/analysishub/agent/internal/executor"
+	"github.com/analysishub/agent/internal/fs"
+	"github.com/analysishub/agent/internal/monitor"
+	"github.com/analysishub/agent/internal/parser"
+	"github.com/analysishub/agent/internal/terminal"
 	"github.com/gorilla/websocket"
 
 	osExec "os/exec"
@@ -38,7 +38,7 @@ import (
 // Wire-protocol message types
 // ----------------------------------------------------------------------------
 
-// inboundMsg represents any message received from the ForensicHub server.
+// inboundMsg represents any message received from the AnalysisHub server.
 type inboundMsg struct {
 	Type           string `json:"type"`
 	JobID          string `json:"job_id,omitempty"`
@@ -68,7 +68,7 @@ type inboundMsg struct {
 	Pid int `json:"pid,omitempty"` // for kill_process
 }
 
-// outboundMsg represents any message sent to the ForensicHub server.
+// outboundMsg represents any message sent to the AnalysisHub server.
 type outboundMsg struct {
 	Type     string `json:"type"`
 	Hostname string `json:"hostname,omitempty"`
@@ -117,7 +117,7 @@ const (
 // Client
 // ----------------------------------------------------------------------------
 
-// Client manages a persistent WebSocket connection to the ForensicHub server.
+// Client manages a persistent WebSocket connection to the AnalysisHub server.
 // It reconnects automatically with exponential back-off on any disconnect.
 type Client struct {
 	cfg *config.Config
@@ -1210,14 +1210,14 @@ func (c *Client) handleCleanup() {
 	// 1. Remove config file (next to binary). Small file, not held open by us,
 	//    safe to remove immediately on every OS.
 	if exePath != "" {
-		confFile := filepath.Join(filepath.Dir(exePath), "forensichub-agent.conf")
+		confFile := filepath.Join(filepath.Dir(exePath), "analysishub-agent.conf")
 		log.Printf("[cleanup] removing config: %s", confFile)
 		os.Remove(confFile)
 	}
 
 	// 2. Schedule full removal of workdir + install dir.
 	//    On Windows the agent holds open handles — agent.log under WorkDir
-	//    (default ~/Desktop/ForensicHub_Tools) and the binary itself under
+	//    (default ~/Desktop/AnalysisHub_Tools) and the binary itself under
 	//    installDir — so deletion MUST happen from a detached process that
 	//    waits for this agent to exit and Windows to release the locks.
 	//    Linux can unlink open files directly, so we do it in-process there.
@@ -1243,8 +1243,8 @@ if ($agentPid) {
 } else {
     Start-Sleep -Seconds 5
 }
-# Kill ForensicHub tool windows before deletion so their files are not locked.
-Get-Process | Where-Object { $_.MainWindowTitle -like 'ForensicHub - *' } |
+# Kill AnalysisHub tool windows before deletion so their files are not locked.
+Get-Process | Where-Object { $_.MainWindowTitle -like 'AnalysisHub - *' } |
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
 # Retry removal up to 5 times; AV or Explorer may briefly hold transient locks.
@@ -1286,10 +1286,10 @@ Remove-Item -Force -Path $MyInvocation.MyCommand.Path -ErrorAction SilentlyConti
 		// On Linux: disable and remove systemd service if present, then remove files.
 		// The service must be stopped/disabled before removing the binary so systemd
 		// doesn't attempt a restart while we're deleting files.
-		const serviceFile = "/etc/systemd/system/forensichub-agent.service"
+		const serviceFile = "/etc/systemd/system/analysishub-agent.service"
 		if _, err := os.Stat(serviceFile); err == nil {
 			log.Println("[cleanup] disabling systemd service")
-			_ = osExec.Command("systemctl", "disable", "--now", "forensichub-agent.service").Run()
+			_ = osExec.Command("systemctl", "disable", "--now", "analysishub-agent.service").Run()
 			_ = os.Remove(serviceFile)
 			_ = osExec.Command("systemctl", "daemon-reload").Run()
 		}
@@ -1505,7 +1505,7 @@ func localIP() string {
 }
 
 // uploadArtifact performs a multipart/form-data upload of a file to the server.
-// It is used to send job results (reports, triage bundles) back to ForensicHub.
+// It is used to send job results (reports, triage bundles) back to AnalysisHub.
 func (c *Client) uploadArtifact(ctx context.Context, jobID, filePath string) error {
 	f, err := os.Open(filePath)
 	if err != nil {

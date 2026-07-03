@@ -3,13 +3,13 @@
   Detects Linux reverse shells, crypto-miners, persistence, rootkits and
   common ELF backdoors. Binary rules are gated on the ELF magic to cut FPs.
 
-  Author: ForensicHub   Updated: 2026-06-26
+  Author: AnalysisHub   Updated: 2026-06-26
 */
 
 rule LIN_Reverse_Shell
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Interactive reverse shell one-liners (bash/python/perl/nc)"
         severity    = "critical"
         category    = "linux"
@@ -29,7 +29,7 @@ rule LIN_Reverse_Shell
 rule LIN_CryptoMiner
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Cryptocurrency miner (XMRig / stratum config) — coin-mining payload"
         severity    = "high"
         category    = "linux"
@@ -51,7 +51,7 @@ rule LIN_CryptoMiner
 rule LIN_Persistence
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Linux persistence via cron, ld.so.preload, rc.local, or SSH authorized_keys"
         severity    = "high"
         category    = "linux"
@@ -77,7 +77,7 @@ rule LIN_Persistence
 rule LIN_ELF_Backdoor_Strings
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Known Linux DDoS/IoT botnet & backdoor family strings (Mirai/Tsunami/Gafgyt/BillGates)"
         severity    = "critical"
         category    = "linux"
@@ -102,7 +102,7 @@ rule LIN_ELF_Backdoor_Strings
 rule LIN_Rootkit_LD_PRELOAD
 {
     meta:
-        author      = "ForensicHub"
+        author      = "AnalysisHub"
         description = "Userland LD_PRELOAD rootkit (process/file hiding) — libprocesshider / Diamorphine markers"
         severity    = "critical"
         category    = "linux"

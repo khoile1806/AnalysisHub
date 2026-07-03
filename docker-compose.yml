@@ -1,9 +1,9 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: forensichub_postgres
+    container_name: analysishub_postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-forensichub}
+      POSTGRES_DB: ${POSTGRES_DB:-analysishub}
       POSTGRES_USER: ${POSTGRES_USER:-forensic}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forensic_secret}
     volumes:
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: forensichub_redis
+    container_name: analysishub_redis
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis_secret}
     volumes:
       - redis_data:/data
@@ -32,7 +32,7 @@ services:
   # can use it too. NOT exposed externally.
   tor:
     image: dperson/torproxy
-    container_name: forensichub_tor
+    container_name: analysishub_tor
     ports:
       - "127.0.0.1:9050:9050"
     restart: unless-stopped
@@ -55,7 +55,7 @@ services:
   #   docker compose --profile tunnel up -d
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: forensichub_cloudflared
+    container_name: analysishub_cloudflared
     profiles: [ "tunnel" ]
     command: tunnel --no-autoupdate run
     environment:
@@ -68,7 +68,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: forensichub_backend
+    container_name: analysishub_backend
     user: root
     # Publish the backend on a host port so canary links (/c/<slug>) are reachable
     # directly at CANARY_BASE_URL (http://<host>:43888). Container listens on 8080.
@@ -98,12 +98,12 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-development}
       - SERVER_PORT=${SERVER_PORT:-8080}
-      - POSTGRES_DSN=postgres://${POSTGRES_USER:-forensic}:${POSTGRES_PASSWORD:-forensic_secret}@postgres:5432/${POSTGRES_DB:-forensichub}?sslmode=disable
+      - POSTGRES_DSN=postgres://${POSTGRES_USER:-forensic}:${POSTGRES_PASSWORD:-forensic_secret}@postgres:5432/${POSTGRES_DB:-analysishub}?sslmode=disable
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
       - JWT_SECRET=${JWT_SECRET:-change_this_jwt_secret_in_production}
       - STORAGE_PATH=/app/storage
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@forensichub.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@analysishub.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
       - PUBLIC_URL=${PUBLIC_URL:-}
       # Public base URL for canary links — set to your Cloudflare Tunnel hostname
@@ -160,7 +160,7 @@ services:
     build:
       context: ./volatility
       dockerfile: Dockerfile
-    container_name: forensichub_volatility
+    container_name: analysishub_volatility
     # No host port mapping — reachable only via the backend sandbox proxy.
     expose:
       - "7681"
@@ -181,7 +181,7 @@ services:
       args:
         - VITE_API_URL=${VITE_API_URL}
         - VITE_WS_URL=${VITE_WS_URL}
-    container_name: forensichub_frontend
+    container_name: analysishub_frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:

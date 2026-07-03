@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/forensichub/backend/internal/models"
+	"github.com/analysishub/backend/internal/models"
 )
 
 // localIOCTypes maps an OSINT target type to the matching IOC-store Type values
-// (the STIX-ish type names ForensicHub's OpenCTI sync and manual-IOC entry use).
+// (the STIX-ish type names AnalysisHub's OpenCTI sync and manual-IOC entry use).
 func localIOCTypes(ttype string) []string {
 	switch ttype {
 	case TargetIP:
@@ -27,7 +27,7 @@ func localIOCTypes(ttype string) []string {
 	return nil
 }
 
-// collectLocalThreatIntel cross-checks the target against ForensicHub's own IOC
+// collectLocalThreatIntel cross-checks the target against AnalysisHub's own IOC
 // store (OpenCTI sync + manually added IOCs). This is the defensive value-add the
 // offensive OSINT lacked: "do we already know this indicator?". A match is a
 // strong signal during incident response - the indicator is already on a
@@ -55,7 +55,7 @@ func collectLocalThreatIntel(ctx context.Context, env *collectorEnv) ([]models.O
 	if len(iocs) == 0 {
 		f := newFinding("local_intel", "reputation",
 			"Not in local threat-intel store",
-			"No matching IOC in ForensicHub's OpenCTI / IOC store")
+			"No matching IOC in AnalysisHub's OpenCTI / IOC store")
 		f.Severity = "info"
 		return []models.OsintFinding{f}, nil
 	}

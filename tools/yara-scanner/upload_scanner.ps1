@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    YARA Scanner Uploader for ForensicHub
+    YARA Scanner Uploader for AnalysisHub
 #>
 
 param (
     [string]$BaseUrl = "http://192.168.100.94:3000/api/v1",
-    [string]$Email = "admin@forensichub.local",
+    [string]$Email = "admin@analysishub.local",
     [string]$Password = "Admin@123456"
 )
 

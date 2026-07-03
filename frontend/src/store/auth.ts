@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'forensichub-auth',
+      name: 'analysishub-auth',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         token: state.token,

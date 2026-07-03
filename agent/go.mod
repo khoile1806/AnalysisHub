@@ -1,4 +1,4 @@
-module github.com/forensichub/agent
+module github.com/analysishub/agent
 
 go 1.25.0
 

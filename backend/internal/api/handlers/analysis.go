@@ -16,14 +16,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	ai "github.com/forensichub/backend/internal/ai"
-	"github.com/forensichub/backend/internal/analysis"
-	"github.com/forensichub/backend/internal/api/middleware"
-	"github.com/forensichub/backend/internal/config"
-	"github.com/forensichub/backend/internal/crypto"
-	"github.com/forensichub/backend/internal/models"
-	"github.com/forensichub/backend/internal/storage"
-	"github.com/forensichub/backend/internal/threatintel"
+	ai "github.com/analysishub/backend/internal/ai"
+	"github.com/analysishub/backend/internal/analysis"
+	"github.com/analysishub/backend/internal/api/middleware"
+	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/crypto"
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/threatintel"
 )
 
 // AIHandler groups all AI analysis endpoints.
