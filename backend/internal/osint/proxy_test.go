@@ -45,9 +45,10 @@ func samePtr(a, b interface{}) bool {
 	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
 }
 
-// The shared external clients must route through the project-wide egress proxy,
-// i.e. their transport's Proxy is wired to http.ProxyFromEnvironment.
-func TestExternalClientsHonorEnvProxy(t *testing.T) {
+// The shared OSINT clients must route through osintProxy — the resolver that
+// prefers an explicit egress proxy (OUTBOUND_PROXY / Proxy Manager) and otherwise
+// defaults OSINT to Tor for anonymous recon.
+func TestOSINTClientsUseOsintProxy(t *testing.T) {
 	for name, c := range map[string]*http.Client{
 		"osintHTTPClient":  osintHTTPClient,
 		"socialHTTPClient": socialHTTPClient,
@@ -57,12 +58,41 @@ func TestExternalClientsHonorEnvProxy(t *testing.T) {
 			t.Fatalf("%s: expected a *http.Transport", name)
 		}
 		if tr.Proxy == nil {
-			t.Errorf("%s: Proxy is nil — will NOT honour OUTBOUND_PROXY", name)
+			t.Errorf("%s: Proxy is nil — OSINT will not be anonymized", name)
 			continue
 		}
-		if !samePtr(tr.Proxy, egress.Proxy) {
-			t.Errorf("%s: Proxy is not egress.Proxy", name)
+		if !samePtr(tr.Proxy, osintProxy) {
+			t.Errorf("%s: Proxy is not osintProxy", name)
 		}
+	}
+}
+
+// With no explicit egress proxy but OSINT_TOR_PROXY set, OSINT egress must default
+// to Tor (max-anonymity), and osintDirect must report false.
+func TestOSINTProxyDefaultsToTor(t *testing.T) {
+	t.Setenv("OSINT_TOR_PROXY", "socks5://tor:9050")
+	req, _ := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	u, err := osintProxy(req)
+	if err != nil || u == nil || u.String() != "socks5://tor:9050" {
+		t.Fatalf("osintProxy = %v, %v; want socks5://tor:9050", u, err)
+	}
+	if osintDirect() {
+		t.Error("osintDirect() = true; want false when Tor is configured")
+	}
+	if !osintAnonymized() {
+		t.Error("osintAnonymized() = false; want true when Tor is configured")
+	}
+}
+
+// With nothing configured, OSINT egress is direct.
+func TestOSINTProxyDirectWhenUnset(t *testing.T) {
+	t.Setenv("OSINT_TOR_PROXY", "")
+	req, _ := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	if u, _ := osintProxy(req); u != nil {
+		t.Fatalf("osintProxy = %v; want nil (direct) when nothing is configured", u)
+	}
+	if !osintDirect() {
+		t.Error("osintDirect() = false; want true when nothing is configured")
 	}
 }
 

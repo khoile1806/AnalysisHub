@@ -9,11 +9,67 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/analysishub/backend/internal/egress"
 )
+
+// osintTorProxy returns the parsed OSINT_TOR_PROXY (e.g. socks5://tor:9050), or
+// nil when it is unset/invalid. Read from the environment each call so it tracks
+// the deployment config without capturing it at package-init time.
+func osintTorProxy() *url.URL {
+	raw := strings.TrimSpace(os.Getenv("OSINT_TOR_PROXY"))
+	if raw == "" {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil
+	}
+	return u
+}
+
+// osintProxy resolves the egress proxy for OSINT recon. An explicitly-configured
+// egress proxy (OUTBOUND_PROXY, or a profile activated in the Proxy Manager) wins
+// so the operator can steer OSINT onto a chosen exit; otherwise OSINT defaults to
+// Tor (OSINT_TOR_PROXY) so recon is anonymous out of the box (max-anonymity).
+func osintProxy(req *http.Request) (*url.URL, error) {
+	if u, err := egress.Proxy(req); err == nil && u != nil {
+		return u, nil
+	}
+	if tor := osintTorProxy(); tor != nil {
+		return tor, nil
+	}
+	return nil, nil
+}
+
+// osintDirect reports whether OSINT egress has NO proxy at all (neither an egress
+// proxy nor Tor) — i.e. requests go straight to the target. The SSRF dialer uses
+// it to decide whether to enforce the non-public-IP guard on the target.
+func osintDirect() bool {
+	return egress.Direct() && osintTorProxy() == nil
+}
+
+// osintAnonymized is the inverse of osintDirect: OSINT egress is routed through a
+// proxy/Tor, so the operator's real IP is hidden from targets.
+func osintAnonymized() bool { return !osintDirect() }
+
+// osintProxyURLString returns the effective OSINT egress proxy URL for subprocess
+// tools (e.g. maigret's --proxy), or "" when OSINT egress is direct. Prefers an
+// explicit egress proxy, then the OSINT Tor proxy.
+func osintProxyURLString() string {
+	if p, _, _, _ := egress.Status(); strings.TrimSpace(p) != "" {
+		return strings.TrimSpace(p)
+	}
+	if tor := osintTorProxy(); tor != nil {
+		return tor.String()
+	}
+	return ""
+}
 
 // ssrfSafeDialContext is the shared dialer for collector HTTP clients. It blocks
 // connections to non-public addresses (loopback / RFC1918 / link-local / cloud
@@ -29,7 +85,11 @@ import (
 // are unreachable through an external proxy anyway.
 func ssrfSafeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	d := &net.Dialer{Timeout: 10 * time.Second}
-	if !egress.Direct() {
+	// When OSINT egress goes through ANY proxy (OUTBOUND_PROXY or the OSINT Tor
+	// proxy), the address dialed here is the PROXY — often a private/loopback host
+	// like tor:9050 — so the non-public guard must NOT run or it would block our
+	// own Tor hop and force a deanonymizing local DNS lookup.
+	if !osintDirect() {
 		return d.DialContext(ctx, network, addr)
 	}
 	host, port, err := net.SplitHostPort(addr)
@@ -60,7 +120,7 @@ var osintHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
 	// Wrapped so OSINT traffic shows up in the Proxy Manager flow log.
 	Transport: egress.NewLoggingTransport(&http.Transport{
-		Proxy:           egress.Proxy, // project-wide egress proxy (live, health-checked)
+		Proxy:           osintProxy, // Tor by default; OUTBOUND_PROXY / Proxy Manager overrides
 		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    32,

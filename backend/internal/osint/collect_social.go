@@ -28,7 +28,7 @@ var socialHTTPClient = &http.Client{
 		return http.ErrUseLastResponse
 	},
 	Transport: egress.NewLoggingTransport(&http.Transport{
-		Proxy:             egress.Proxy,
+		Proxy:             osintProxy,
 		TLSClientConfig:   &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:      32,
 		IdleConnTimeout:   30 * time.Second,

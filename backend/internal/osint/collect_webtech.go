@@ -62,7 +62,7 @@ var webtechClient = &http.Client{
 		return nil
 	},
 	Transport: egress.NewLoggingTransport(&http.Transport{
-		Proxy:           egress.Proxy,
+		Proxy:           osintProxy,
 		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}, //nolint:gosec // fingerprint-only, content is not trusted
 		MaxIdleConns:    8,

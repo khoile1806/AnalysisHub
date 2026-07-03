@@ -93,6 +93,15 @@ func collectPortScan(ctx context.Context, env *collectorEnv) ([]models.OsintFind
 	if env.ttype != TargetIP {
 		return nil, nil
 	}
+	// Max-anonymity guard: a raw-TCP port sweep cannot ride the OSINT HTTP proxy,
+	// so it would connect to the target directly and leak the operator's real IP.
+	// When OSINT egress is anonymized we skip it rather than deanonymize (a Tor
+	// SOCKS sweep is also slow and blocked by most exit policies). Switch egress to
+	// direct if a port scan is explicitly wanted.
+	if osintAnonymized() {
+		env.emit("[*] portscan: skipped — OSINT egress is anonymized; a direct TCP sweep would leak the real IP")
+		return nil, nil
+	}
 	ip := strings.TrimSpace(env.target)
 
 	// Engine-wide cap: wait for a host-scan slot so concurrent IP scans across an

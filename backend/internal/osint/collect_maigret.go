@@ -41,6 +41,12 @@ func collectMaigret(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 		"--timeout", "20",
 		"--top-sites", "500",
 	}
+	// Max-anonymity: route the 500 site checks through the OSINT egress proxy so
+	// this subprocess doesn't leak the operator's real IP to every platform.
+	if px := osintProxyURLString(); px != "" {
+		args = append(args, "--proxy", px)
+		env.emit("[*] maigret: routing site checks through anonymized egress proxy")
+	}
 	cmd := exec.CommandContext(ctx, bin, args...)
 	// Maigret exits non-zero when nothing is found - ignore the exit code and
 	// rely on the report file instead.

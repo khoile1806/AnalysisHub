@@ -351,8 +351,19 @@ func (e *Engine) StartScan(scan *models.OsintScan, collectors []models.OsintColl
 
 // -- Pipeline ------------------------------------------------------------------
 
-// collectorTimeout is the per-collector wall-time budget.
+// collectorTimeout is the per-collector wall-time budget. When OSINT egress is
+// anonymized (Tor/proxy), each request costs extra latency, so collectors get
+// 1.5× headroom to avoid being cut off with only partial results.
 func collectorTimeout(name string) time.Duration {
+	base := baseCollectorTimeout(name)
+	if osintAnonymized() {
+		base = base * 3 / 2
+	}
+	return base
+}
+
+// baseCollectorTimeout is the direct-egress per-collector budget.
+func baseCollectorTimeout(name string) time.Duration {
 	switch name {
 	case "maigret":
 		// Maigret scans hundreds of sites; give it a generous budget.
