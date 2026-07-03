@@ -58,13 +58,14 @@ const (
 // under a per-collector context deadline set by the engine.
 var osintHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
-	Transport: &http.Transport{
+	// Wrapped so OSINT traffic shows up in the Proxy Manager flow log.
+	Transport: egress.NewLoggingTransport(&http.Transport{
 		Proxy:           egress.Proxy, // project-wide egress proxy (live, health-checked)
 		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    32,
 		IdleConnTimeout: 60 * time.Second,
-	},
+	}),
 }
 
 // rateLimiter enforces a minimum interval between calls to one external API.

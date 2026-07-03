@@ -61,13 +61,13 @@ var webtechClient = &http.Client{
 		}
 		return nil
 	},
-	Transport: &http.Transport{
+	Transport: egress.NewLoggingTransport(&http.Transport{
 		Proxy:           egress.Proxy,
 		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}, //nolint:gosec // fingerprint-only, content is not trusted
 		MaxIdleConns:    8,
 		IdleConnTimeout: 30 * time.Second,
-	},
+	}),
 }
 
 // detectedTech is one identified technology. cpeKey, when non-empty, keys into

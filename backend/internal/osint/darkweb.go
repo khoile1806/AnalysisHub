@@ -256,7 +256,7 @@ func newCrawlerProvider(sources []string, proxy string) *crawlerProvider {
 	}
 	return &crawlerProvider{
 		sources: sources,
-		client:  &http.Client{Timeout: 45 * time.Second, Transport: tr},
+		client:  &http.Client{Timeout: 45 * time.Second, Transport: egress.NewLoggingTransport(tr)},
 		viaTor:  viaTor,
 	}
 }

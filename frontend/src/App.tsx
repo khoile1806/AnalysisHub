@@ -28,6 +28,7 @@ const AIAnalysisPage = lazy(() => import('@/pages/AIAnalysis'))
 const AIProviderSettingsPage = lazy(() => import('@/pages/AIProviderSettings'))
 const TestCasesPage = lazy(() => import('@/pages/TestCases'))
 const SystemHealthPage = lazy(() => import('@/pages/SystemHealth'))
+const ProxyManagerPage = lazy(() => import('@/pages/ProxyManager'))
 const OfflineBundlesPage = lazy(() => import('@/pages/OfflineBundles'))
 const PlaybooksPage = lazy(() => import('@/pages/Playbooks'))
 const SandboxAnalysisPage = lazy(() => import('@/pages/SandboxAnalysis'))
@@ -353,6 +354,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <SystemHealthPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/proxy-manager"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <ProxyManagerPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

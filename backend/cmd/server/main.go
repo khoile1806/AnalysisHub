@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +33,25 @@ import (
 	"github.com/analysishub/backend/internal/vulnscan"
 	"github.com/analysishub/backend/internal/ws"
 )
+
+// applyOutboundProxy exports the configured outbound proxy into the process
+// environment (HTTP_PROXY/HTTPS_PROXY/NO_PROXY, upper+lower case) so libraries
+// and child processes that honour the standard proxy env vars route through it
+// too. The controlled egress layer (internal/egress) remains the primary path;
+// this is belt-and-suspenders for third-party clients. An empty proxy is a no-op
+// so the environment is left untouched.
+func applyOutboundProxy(cfg *config.Config) {
+	if strings.TrimSpace(cfg.OutboundProxy) == "" {
+		return
+	}
+	noProxy := config.EffectiveNoProxy(cfg.OutboundNoProxy)
+	for _, k := range []string{"HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"} {
+		os.Setenv(k, cfg.OutboundProxy)
+	}
+	for _, k := range []string{"NO_PROXY", "no_proxy"} {
+		os.Setenv(k, noProxy)
+	}
+}
 
 func main() {
 	// ------------------------------------------------------------------ //
@@ -57,8 +77,17 @@ func main() {
 	// at egress.Proxy; OSINT collectors reference it directly. Internal SIEM
 	// connectors keep their own proxy-less transports and bypass it by design.
 	egress.Init(cfg.OutboundProxy, config.EffectiveNoProxy(cfg.OutboundNoProxy), cfg.OutboundProxyFallback, cfg.OutboundProxyProbe)
+	// Also export the proxy into the process environment so third-party libraries
+	// and child processes (scanner subprocesses) that honour HTTP_PROXY/NO_PROXY
+	// route through it too — belt-and-suspenders alongside the egress layer.
+	applyOutboundProxy(cfg)
 	if tr, ok := http.DefaultTransport.(*http.Transport); ok {
 		tr.Proxy = egress.Proxy
+		// Wrap the default transport so every default-client request (threat-intel,
+		// CVE, AI, news, notify, OOB enrich) is recorded by the Proxy Manager flow
+		// log. The flow sink stays nil until the recorder is registered below, so
+		// this is a no-op until then.
+		http.DefaultTransport = egress.NewLoggingTransport(tr)
 	}
 	egress.StartHealthCheck(60 * time.Second)
 	if cfg.OutboundProxy != "" {
@@ -80,6 +109,20 @@ func main() {
 	if err != nil {
 		slog.Error("database init failed", "error", err)
 		os.Exit(1)
+	}
+
+	// Proxy Manager: start the egress flow recorder (ring + rolling DB history)
+	// and restore the active proxy profile so a switch survives a restart. A saved
+	// active profile takes precedence over the OUTBOUND_PROXY env default.
+	egress.SetFlowSink(handlers.NewProxyFlowRecorder(db).Sink)
+	if cfg.OutboundProxy != "" {
+		egress.SetActiveLabel("env")
+	}
+	var activeProxy models.ProxyProfile
+	if err := db.Where("is_active = ?", true).First(&activeProxy).Error; err == nil {
+		handlers.ApplyActiveProxyProfile(activeProxy)
+		egress.CheckNow()
+		slog.Info("restored active proxy profile", "name", activeProxy.Name)
 	}
 
 	// ------------------------------------------------------------------ //

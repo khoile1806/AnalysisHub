@@ -446,6 +446,18 @@ func NewRouter(
 		protected.PATCH("/system/proxy", sysHandler.SetProxy)
 		protected.POST("/system/proxy/check", sysHandler.CheckProxy)
 		protected.POST("/system/proxy/validate", sysHandler.ValidateProxy)
+
+		// Proxy Manager — the egress proxy pool + switch + flow log.
+		protected.GET("/system/proxies", handlers.ListProxyProfiles)
+		protected.POST("/system/proxies", handlers.CreateProxyProfile)
+		protected.PATCH("/system/proxies/:id", handlers.UpdateProxyProfile)
+		protected.DELETE("/system/proxies/:id", handlers.DeleteProxyProfile)
+		protected.POST("/system/proxies/:id/activate", handlers.ActivateProxyProfile)
+		protected.POST("/system/proxies/:id/check", handlers.CheckProxyProfile)
+		protected.POST("/system/proxies/deactivate", handlers.DeactivateProxy)
+		protected.GET("/system/proxy/flows", handlers.GetProxyFlows)
+		protected.GET("/system/proxy/flows/stats", handlers.ProxyFlowStats)
+		protected.DELETE("/system/proxy/flows", handlers.ClearProxyFlows)
 	}
 
 	// Public canary endpoint — no auth so the tracking link works for any

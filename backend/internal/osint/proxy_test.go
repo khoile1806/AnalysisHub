@@ -27,8 +27,16 @@ func proxyURLFor(t *testing.T, tr *http.Transport, target string) string {
 }
 
 func transportOf(c *http.Client) *http.Transport {
-	if tr, ok := c.Transport.(*http.Transport); ok {
-		return tr
+	rt := c.Transport
+	for rt != nil {
+		if tr, ok := rt.(*http.Transport); ok {
+			return tr
+		}
+		u, ok := rt.(interface{ Unwrap() http.RoundTripper })
+		if !ok {
+			break
+		}
+		rt = u.Unwrap()
 	}
 	return nil
 }

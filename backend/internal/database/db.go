@@ -100,6 +100,8 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.VulnScan{},
 		&models.VulnTool{},
 		&models.VulnFinding{},
+		&models.ProxyProfile{},
+		&models.ProxyFlow{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

@@ -27,13 +27,13 @@ var socialHTTPClient = &http.Client{
 	CheckRedirect: func(*http.Request, []*http.Request) error {
 		return http.ErrUseLastResponse
 	},
-	Transport: &http.Transport{
+	Transport: egress.NewLoggingTransport(&http.Transport{
 		Proxy:             egress.Proxy,
 		TLSClientConfig:   &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:      32,
 		IdleConnTimeout:   30 * time.Second,
 		DisableKeepAlives: true,
-	},
+	}),
 }
 
 // socialSite describes one platform whose profile page is HTTP-checked.
