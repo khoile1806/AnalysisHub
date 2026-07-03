@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bufio"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -224,7 +223,7 @@ func splunkSearch(baseURL, authHeader, query, timeRange string, timeout time.Dur
 	client := &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: siemTLSConfig(),
 		},
 	}
 
@@ -359,7 +358,7 @@ func GetSplunkIndices(c *gin.Context) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: siemTLSConfig(),
 		},
 	}
 

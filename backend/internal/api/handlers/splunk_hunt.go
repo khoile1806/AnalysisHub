@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,6 +13,12 @@ import (
 
 	"github.com/analysishub/backend/internal/models"
 )
+
+// splunkIndexRe whitelists the characters valid in a Splunk index specifier
+// (index names, wildcards, comma lists). It rejects the SPL metacharacters that
+// would otherwise let the operator-supplied `indices` value break out of the
+// `index=...` clause and inject arbitrary search commands.
+var splunkIndexRe = regexp.MustCompile(`^[A-Za-z0-9_*,\-]+$`)
 
 func groupSplunkIOCs(iocs []string) [][]string {
 	var batches [][]string
@@ -117,6 +124,13 @@ func StreamSplunkFileHunt(c *gin.Context) {
 }
 
 func streamSplunkHunts(c *gin.Context, config models.SplunkConfig, authHeader string, iocs []string, indices string, timeRange string) {
+	// Reject an unsafe index specifier BEFORE switching to the SSE stream, so a
+	// bad value returns a normal 400 instead of being spliced into the SPL query.
+	if indices != "" && indices != "*" && !splunkIndexRe.MatchString(indices) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid indices: only letters, digits, _ - * and , are allowed"})
+		return
+	}
+
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")

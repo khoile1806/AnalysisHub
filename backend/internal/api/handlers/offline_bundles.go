@@ -374,9 +374,11 @@ func extractZipIntoBundle(zw *zip.Writer, zipPath, destPrefix string) error {
 		if f.FileInfo().IsDir() {
 			continue
 		}
-		// ZIP entries use forward slashes; reject traversal attempts.
+		// ZIP entries use forward slashes; reject traversal AND absolute paths.
+		// filepath.IsLocal catches "..", rooted paths and (on Windows) drive/UNC
+		// prefixes that a bare `..` substring check would miss.
 		name := strings.TrimPrefix(f.Name, "/")
-		if strings.Contains(name, "..") {
+		if name == "" || !filepath.IsLocal(filepath.FromSlash(name)) {
 			continue
 		}
 		rc, openErr := f.Open()

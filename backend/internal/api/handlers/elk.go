@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -386,7 +385,7 @@ func GetELKIndices(c *gin.Context) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: siemTLSConfig(),
 		},
 	}
 	resp, err := client.Do(req)
@@ -771,7 +770,7 @@ func elkSearch(baseURL, authHeader, indexPattern string, body []byte, timeout ti
 	client := &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: siemTLSConfig(),
 		},
 	}
 	resp, err := client.Do(req)

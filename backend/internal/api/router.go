@@ -32,13 +32,13 @@ func NewRouter(
 	vulnEngine *vulnscan.Engine,
 ) *gin.Engine {
 	router := gin.New()
-	// Allow large multipart uploads (memory dumps, disk images) to be streamed
-	// to OS temp files rather than buffered in RAM. The default 32 MB causes
-	// Go's multipart parser to try to hold the whole file in memory once the
-	// threshold is crossed — on a 4 GB .mem file that OOMs the process.
-	// Setting this to 8 GB means files up to 8 GB stay on disk (temp) during
-	// the upload; the handler only reads what it needs.
-	router.MaxMultipartMemory = 8 << 30 // 8 GB
+	// Keep large multipart uploads (memory dumps, disk images) OFF the heap. Go's
+	// multipart parser buffers up to MaxMultipartMemory bytes of file parts IN RAM
+	// and only spills the excess to OS temp files — so a *high* value forces whole
+	// multi-GB uploads into memory and OOMs the process. A small threshold is what
+	// actually streams big files to disk: parts above 16 MB land in a temp file and
+	// SaveUploadedFile/io.Copy stream from there, so uploads of any size still work.
+	router.MaxMultipartMemory = 16 << 20 // 16 MB in-RAM threshold; larger parts spill to temp disk
 
 	handlers.SetAllowedOrigins(cfg.AllowedOrigins)
 

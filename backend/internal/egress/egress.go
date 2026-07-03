@@ -81,6 +81,24 @@ func Proxy(req *http.Request) (*url.URL, error) {
 	return proxyFn(req.URL)
 }
 
+// Direct reports whether outbound traffic currently bypasses any proxy — either
+// because none is configured, or because the configured proxy is unhealthy and
+// fall-back-to-direct is enabled. Callers use it to decide when it is safe to
+// apply an SSRF dial guard: when a proxy IS in use the dialed address is the
+// proxy itself (often a loopback Tor port), so the guard must be skipped to avoid
+// breaking anonymity routing and leaking a local DNS lookup.
+func Direct() bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	if proxyURL == "" {
+		return true
+	}
+	if fallbackDirect && !health.Healthy && !health.LastCheck.IsZero() {
+		return true
+	}
+	return false
+}
+
 // Status returns the live configuration plus the latest health snapshot.
 func Status() (proxy, np string, fallback bool, h Health) {
 	mu.RLock()

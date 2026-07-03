@@ -13,11 +13,18 @@ import (
 
 const sigmaRulesDir = "tools/sigma-rules"
 
+// sigmaScanMaxBody caps the JSON event payload a single scan may submit. The body
+// is read fully, string-copied, and matched against every rule (O(events × rules)),
+// so an unbounded body could exhaust memory/CPU. 64 MB is far above any realistic
+// batch of events posted to a live hunt.
+const sigmaScanMaxBody = 64 << 20
+
 // SigmaScan receives an array of JSON events and evaluates them against all Sigma rules.
 func SigmaScan(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, sigmaScanMaxBody)
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "request body too large or unreadable"})
 		return
 	}
 	defer c.Request.Body.Close()

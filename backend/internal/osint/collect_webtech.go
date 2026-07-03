@@ -63,6 +63,7 @@ var webtechClient = &http.Client{
 	},
 	Transport: &http.Transport{
 		Proxy:           egress.Proxy,
+		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}, //nolint:gosec // fingerprint-only, content is not trusted
 		MaxIdleConns:    8,
 		IdleConnTimeout: 30 * time.Second,

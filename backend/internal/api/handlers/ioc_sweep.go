@@ -30,6 +30,10 @@ var (
 	fileExtRe = regexp.MustCompile(`\.(exe|dll|ps1|bat|cmd|hta|vbs|js|jar|scr|sys|msi|sh|elf|py|so|bin|dat|tmp|lnk)$`)
 )
 
+// maxSweepIndicators bounds how many pasted indicators one sweep will match, so
+// the O(endpoint-artifacts × indicators) scan stays bounded regardless of input.
+const maxSweepIndicators = 10000
+
 type sweepIndicator struct {
 	Value string `json:"value"`
 	Type  string `json:"type"` // hash | ip | domain | filename
@@ -91,10 +95,14 @@ func AgentIOCSweep(c *gin.Context) {
 		return
 	}
 
-	// Classify + dedupe pasted indicators.
+	// Classify + dedupe pasted indicators. Bounded so a huge paste can't blow up
+	// the O(artifacts × indicators) match below.
 	seen := map[string]bool{}
 	var inds []sweepIndicator
 	for _, raw := range body.Indicators {
+		if len(inds) >= maxSweepIndicators {
+			break
+		}
 		ind := classifyIndicator(raw)
 		if ind.Value == "" || seen[ind.Value] {
 			continue
@@ -235,7 +243,8 @@ func lookupStoreIndicators(db *gorm.DB, values []string) []sweepIndicator {
 }
 
 // storeTypeToSweep maps an OpenCTI/store type to the sweep matcher's category.
-// Only "hash" gets exact-set matching; everything else is substring.
+// "hash" gets exact-set matching, "ip"/"domain" get boundary-aware matching, and
+// "filename" falls back to substring.
 func storeTypeToSweep(t string) string {
 	switch t {
 	case "File-Hash":
@@ -278,7 +287,14 @@ func matchIOCsInBundle(bundle []byte, inds []sweepIndicator) ([]iocMatch, map[st
 				switch ind.Type {
 				case "hash":
 					hit = hashes[ind.Value]
-				default: // ip / domain / filename → substring in the row haystack
+				case "ip":
+					// boundary match so 1.2.3.4 does not hit 11.2.3.44 / 1.2.3.40
+					hit = hayHasBounded(hay, ind.Value, true)
+				case "domain":
+					// boundary match so evil.com does not hit notevil.com /
+					// evil.community, while sub.evil.com still matches
+					hit = hayHasBounded(hay, ind.Value, false)
+				default: // filename → substring (a name legitimately appears inside a path)
 					hit = strings.Contains(hay, ind.Value)
 				}
 				if !hit {
@@ -330,6 +346,40 @@ func rowFingerprint(row map[string]interface{}) (map[string]bool, string) {
 		}
 	}
 	return hashes, sb.String()
+}
+
+// hayHasBounded reports whether needle occurs in hay at a token boundary, so a
+// short IP/domain indicator can't match inside a longer neighbour. For an IP the
+// boundary rejects an adjacent digit or dot (1.2.3.4 must not hit 11.2.3.44 or
+// 1.2.3.40); for a domain it rejects an adjacent letter/digit/hyphen (evil.com
+// must not hit notevil.com or evil.community) while still allowing a leading dot
+// so a parent domain matches its sub-domains (sub.evil.com). needle is assumed
+// already lowercased, matching the haystack.
+func hayHasBounded(hay, needle string, isIP bool) bool {
+	if needle == "" {
+		return false
+	}
+	boundaryBad := func(b byte) bool {
+		if isIP {
+			return b == '.' || (b >= '0' && b <= '9')
+		}
+		return b == '-' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
+	}
+	for off := 0; off <= len(hay)-len(needle); {
+		i := strings.Index(hay[off:], needle)
+		if i < 0 {
+			return false
+		}
+		i += off
+		okBefore := i == 0 || !boundaryBad(hay[i-1])
+		end := i + len(needle)
+		okAfter := end >= len(hay) || !boundaryBad(hay[end])
+		if okBefore && okAfter {
+			return true
+		}
+		off = i + 1
+	}
+	return false
 }
 
 // rowSummary builds a short human description of a matching record.

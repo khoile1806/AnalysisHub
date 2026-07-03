@@ -15,6 +15,11 @@ import (
 
 var auditLogger *log.Logger
 
+// auditBodyLogLimit bounds how much of a request body the audit log reads. Only
+// the first ~2 KB is ever logged, so this is all we need to buffer; the rest of
+// the body streams straight through to the handler untouched.
+const auditBodyLogLimit = 4 << 10 // 4 KB
+
 func initAuditLogger() {
 	if auditLogger != nil {
 		return
@@ -43,9 +48,12 @@ func AuditMiddleware() gin.HandlerFunc {
 			// Skip body logging for file uploads or specific endpoints
 			if !(c.Request.Method == "POST" && strings.Contains(c.Request.URL.Path, "/tools")) {
 				if c.Request.Body != nil {
-					bodyBytes, _ := io.ReadAll(c.Request.Body)
-					// Restore body so next handlers can read it
-					c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+					// Only read the small prefix we actually log — never buffer the
+					// whole (possibly multi-GB) body into RAM. Replay the prefix in
+					// front of the untouched remainder so downstream handlers still
+					// receive the COMPLETE body.
+					bodyBytes, _ := io.ReadAll(io.LimitReader(c.Request.Body, auditBodyLogLimit))
+					c.Request.Body = io.NopCloser(io.MultiReader(bytes.NewReader(bodyBytes), c.Request.Body))
 
 					if len(bodyBytes) > 2000 {
 						bodyStr = string(bodyBytes[:2000]) + "...(truncated)"

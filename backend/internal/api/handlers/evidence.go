@@ -12,6 +12,11 @@ import (
 	"github.com/analysishub/backend/internal/storage"
 )
 
+// maxEvidenceBytes is a generous upper bound on a single evidence/result upload —
+// large enough for disk images and live-response bundles — that only guards
+// against an abusive unbounded upload filling the storage volume.
+const maxEvidenceBytes = 64 << 30 // 64 GB
+
 // EvidenceHandler manages result/evidence files uploaded into a case.
 type EvidenceHandler struct {
 	DB    *gorm.DB
@@ -46,6 +51,10 @@ func (h *EvidenceHandler) Upload(c *gin.Context) {
 	fh, ferr := c.FormFile("file")
 	if ferr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "file is required"})
+		return
+	}
+	if fh.Size > maxEvidenceBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"success": false, "error": "file exceeds maximum allowed size"})
 		return
 	}
 	f, openErr := fh.Open()

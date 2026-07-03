@@ -37,11 +37,20 @@ func ListMemoryDumps(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"dumps": files})
 }
 
+// maxMemoryDumpBytes is a generous upper bound on an uploaded memory dump — well
+// above any realistic physical-RAM capture — that only exists to stop an abusive
+// unbounded upload from filling the storage volume.
+const maxMemoryDumpBytes = 128 << 30 // 128 GB
+
 // UploadMemoryDump handles manual upload of memory dump files
 func UploadMemoryDump(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+	if file.Size > maxMemoryDumpBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file exceeds maximum allowed size"})
 		return
 	}
 

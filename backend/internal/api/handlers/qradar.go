@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -223,7 +222,7 @@ func qradarSearch(baseURL, authHeader, query, timeRange string, timeout time.Dur
 	client := &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: siemTLSConfig(),
 		},
 	}
 

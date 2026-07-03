@@ -7,12 +7,46 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/analysishub/backend/internal/egress"
 )
+
+// ssrfSafeDialContext is the shared dialer for collector HTTP clients. It blocks
+// connections to non-public addresses (loopback / RFC1918 / link-local / cloud
+// metadata) to stop an attacker-controlled target (or a redirect) from pointing
+// a collector at internal services — re-checked on every hop because each hop is
+// a fresh dial.
+//
+// It only enforces this in DIRECT egress mode. When a proxy (e.g. Tor) is in use
+// the address being dialed is the PROXY, not the target, so guarding here would
+// (a) reject a loopback proxy like 127.0.0.1:9050 and (b) require a local DNS
+// lookup that would defeat the anonymity the proxy exists to provide. In proxy
+// mode the target is resolved and reached by the proxy, and internal addresses
+// are unreachable through an external proxy anyway.
+func ssrfSafeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := &net.Dialer{Timeout: 10 * time.Second}
+	if !egress.Direct() {
+		return d.DialContext(ctx, network, addr)
+	}
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	if err != nil || len(ips) == 0 {
+		return nil, fmt.Errorf("osint: cannot resolve %q", host)
+	}
+	for _, ip := range ips {
+		if !isPublicIP(ip) {
+			return nil, fmt.Errorf("osint: refusing to dial non-public address %s", ip)
+		}
+	}
+	return d.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
+}
 
 const (
 	userAgent    = "AnalysisHub-OSINT/1.0 (+https://github.com/analysishub)"
@@ -26,6 +60,7 @@ var osintHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
 	Transport: &http.Transport{
 		Proxy:           egress.Proxy, // project-wide egress proxy (live, health-checked)
+		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    32,
 		IdleConnTimeout: 60 * time.Second,

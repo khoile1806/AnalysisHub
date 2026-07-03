@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -388,7 +387,7 @@ func SyncOpenCTI(c *gin.Context) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: siemTLSConfig(),
 	}
 	client := &http.Client{
 		Timeout:   30 * time.Second,
