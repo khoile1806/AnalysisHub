@@ -18,11 +18,13 @@ import (
 	"github.com/analysishub/backend/internal/egress"
 )
 
-// osintTorProxy returns the parsed OSINT_TOR_PROXY (e.g. socks5://tor:9050), or
-// nil when it is unset/invalid. Read from the environment each call so it tracks
-// the deployment config without capturing it at package-init time.
-func osintTorProxy() *url.URL {
-	raw := strings.TrimSpace(os.Getenv("OSINT_TOR_PROXY"))
+// osintDedicatedProxy returns the parsed OSINT_PROXY, or nil when unset/invalid.
+// This is a dedicated, operator-chosen proxy for OSINT recon — a CLEAN proxy
+// (residential/datacenter) that hides the real IP WITHOUT the reliability cost of
+// Tor (Tor exit nodes are widely 403-blocked by Cloudflare/WAFs). Read from the
+// environment each call so it tracks config without a restart.
+func osintDedicatedProxy() *url.URL {
+	raw := strings.TrimSpace(os.Getenv("OSINT_PROXY"))
 	if raw == "" {
 		return nil
 	}
@@ -33,40 +35,44 @@ func osintTorProxy() *url.URL {
 	return u
 }
 
-// osintProxy resolves the egress proxy for OSINT recon. An explicitly-configured
-// egress proxy (OUTBOUND_PROXY, or a profile activated in the Proxy Manager) wins
-// so the operator can steer OSINT onto a chosen exit; otherwise OSINT defaults to
-// Tor (OSINT_TOR_PROXY) so recon is anonymous out of the box (max-anonymity).
+// osintProxy resolves the egress proxy for OSINT recon. Precedence:
+//  1. OSINT_PROXY — a dedicated clean proxy for OSINT only (does not affect
+//     news/AI/CVE, which follow the default transport).
+//  2. the project-wide egress proxy (OUTBOUND_PROXY / a Proxy Manager active
+//     profile) when set.
+//  3. direct.
+//
+// OSINT is intentionally NOT forced through Tor: hiding the real IP behind a clean
+// proxy is enough, and Tor breaks too many intel sources (403 / timeouts).
 func osintProxy(req *http.Request) (*url.URL, error) {
-	if u, err := egress.Proxy(req); err == nil && u != nil {
-		return u, nil
+	if p := osintDedicatedProxy(); p != nil {
+		return p, nil
 	}
-	if tor := osintTorProxy(); tor != nil {
-		return tor, nil
-	}
-	return nil, nil
+	return egress.Proxy(req)
 }
 
-// osintDirect reports whether OSINT egress has NO proxy at all (neither an egress
-// proxy nor Tor) — i.e. requests go straight to the target. The SSRF dialer uses
-// it to decide whether to enforce the non-public-IP guard on the target.
+// osintDirect reports whether OSINT egress has NO proxy at all — i.e. requests go
+// straight to the target. The SSRF dialer uses it to decide whether to enforce the
+// non-public-IP guard on the target.
 func osintDirect() bool {
-	return egress.Direct() && osintTorProxy() == nil
+	if osintDedicatedProxy() != nil {
+		return false
+	}
+	return egress.Direct()
 }
 
 // osintAnonymized is the inverse of osintDirect: OSINT egress is routed through a
-// proxy/Tor, so the operator's real IP is hidden from targets.
+// proxy, so the operator's real IP is hidden from targets.
 func osintAnonymized() bool { return !osintDirect() }
 
 // osintProxyURLString returns the effective OSINT egress proxy URL for subprocess
-// tools (e.g. maigret's --proxy), or "" when OSINT egress is direct. Prefers an
-// explicit egress proxy, then the OSINT Tor proxy.
+// tools (e.g. maigret's --proxy), or "" when OSINT egress is direct.
 func osintProxyURLString() string {
+	if p := osintDedicatedProxy(); p != nil {
+		return p.String()
+	}
 	if p, _, _, _ := egress.Status(); strings.TrimSpace(p) != "" {
 		return strings.TrimSpace(p)
-	}
-	if tor := osintTorProxy(); tor != nil {
-		return tor.String()
 	}
 	return ""
 }
@@ -85,10 +91,10 @@ func osintProxyURLString() string {
 // are unreachable through an external proxy anyway.
 func ssrfSafeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	d := &net.Dialer{Timeout: 10 * time.Second}
-	// When OSINT egress goes through ANY proxy (OUTBOUND_PROXY or the OSINT Tor
-	// proxy), the address dialed here is the PROXY — often a private/loopback host
-	// like tor:9050 — so the non-public guard must NOT run or it would block our
-	// own Tor hop and force a deanonymizing local DNS lookup.
+	// When OSINT egress goes through ANY proxy (OSINT_PROXY / OUTBOUND_PROXY /
+	// Proxy Manager), the address dialed here is the PROXY — possibly a private or
+	// loopback host — so the non-public guard must NOT run or it would block the
+	// proxy hop and force a deanonymizing local DNS lookup.
 	if !osintDirect() {
 		return d.DialContext(ctx, network, addr)
 	}

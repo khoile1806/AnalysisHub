@@ -67,26 +67,27 @@ func TestOSINTClientsUseOsintProxy(t *testing.T) {
 	}
 }
 
-// With no explicit egress proxy but OSINT_TOR_PROXY set, OSINT egress must default
-// to Tor (max-anonymity), and osintDirect must report false.
-func TestOSINTProxyDefaultsToTor(t *testing.T) {
-	t.Setenv("OSINT_TOR_PROXY", "socks5://tor:9050")
+// A dedicated OSINT_PROXY (a clean, non-Tor proxy) takes precedence and anonymizes
+// OSINT recon; osintDirect must report false.
+func TestOSINTProxyUsesDedicatedProxy(t *testing.T) {
+	t.Setenv("OSINT_PROXY", "http://clean-proxy:8080")
 	req, _ := http.NewRequest(http.MethodGet, "https://example.com", nil)
 	u, err := osintProxy(req)
-	if err != nil || u == nil || u.String() != "socks5://tor:9050" {
-		t.Fatalf("osintProxy = %v, %v; want socks5://tor:9050", u, err)
+	if err != nil || u == nil || u.String() != "http://clean-proxy:8080" {
+		t.Fatalf("osintProxy = %v, %v; want http://clean-proxy:8080", u, err)
 	}
 	if osintDirect() {
-		t.Error("osintDirect() = true; want false when Tor is configured")
+		t.Error("osintDirect() = true; want false when OSINT_PROXY is set")
 	}
 	if !osintAnonymized() {
-		t.Error("osintAnonymized() = false; want true when Tor is configured")
+		t.Error("osintAnonymized() = false; want true when OSINT_PROXY is set")
 	}
 }
 
-// With nothing configured, OSINT egress is direct.
+// With nothing configured (no OSINT_PROXY, no egress proxy), OSINT egress is direct
+// — OSINT is NOT forced through Tor.
 func TestOSINTProxyDirectWhenUnset(t *testing.T) {
-	t.Setenv("OSINT_TOR_PROXY", "")
+	t.Setenv("OSINT_PROXY", "")
 	req, _ := http.NewRequest(http.MethodGet, "https://example.com", nil)
 	if u, _ := osintProxy(req); u != nil {
 		t.Fatalf("osintProxy = %v; want nil (direct) when nothing is configured", u)
