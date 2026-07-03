@@ -1,4 +1,4 @@
-# ForensicHub v2
+# AnalysisHub
 
 Nền tảng điều phối DFIR (Digital Forensics & Incident Response) tập trung — Backend (Go), Frontend (React), Agent (Go) và các công cụ tích hợp, triển khai bằng Docker Compose.
 
