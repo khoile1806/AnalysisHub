@@ -53,17 +53,26 @@ func NewProxyFlowRecorder(db *gorm.DB) *ProxyFlowRecorder {
 // (an outbound request), so the DB write is best-effort and dropped on overflow.
 func (r *ProxyFlowRecorder) Sink(f egress.Flow) {
 	rec := models.ProxyFlow{
-		CreatedAt:  f.Time,
-		ProxyLabel: f.ProxyLabel,
-		ViaProxy:   f.ViaProxy,
-		Method:     f.Method,
-		Host:       f.Host,
-		URL:        f.URL,
-		Status:     f.Status,
-		BytesOut:   f.BytesOut,
-		BytesIn:    f.BytesIn,
-		DurationMs: f.DurationMs,
-		Error:      f.Error,
+		CreatedAt:   f.Time,
+		ProxyLabel:  f.ProxyLabel,
+		ViaProxy:    f.ViaProxy,
+		Leaked:      f.Leaked,
+		Source:      f.Source,
+		Method:      f.Method,
+		Scheme:      f.Scheme,
+		Host:        f.Host,
+		URL:         f.URL,
+		Status:      f.Status,
+		ContentType: f.ContentType,
+		TLSVersion:  f.TLSVersion,
+		BytesOut:    f.BytesOut,
+		BytesIn:     f.BytesIn,
+		DurationMs:  f.DurationMs,
+		DNSMs:       f.DNSMs,
+		ConnectMs:   f.ConnectMs,
+		TLSMs:       f.TLSMs,
+		TTFBMs:      f.TTFBMs,
+		Error:       f.Error,
 	}
 	if rec.CreatedAt.IsZero() {
 		rec.CreatedAt = time.Now()
@@ -137,6 +146,8 @@ func GetProxyFlows(c *gin.Context) {
 		limit = 1000
 	}
 
+	leakedOnly := c.Query("leaked") == "true"
+
 	if c.Query("history") == "true" {
 		db, ok := mustGetDB(c)
 		if !ok {
@@ -145,6 +156,9 @@ func GetProxyFlows(c *gin.Context) {
 		q := db.Model(&models.ProxyFlow{})
 		if host := strings.TrimSpace(c.Query("host")); host != "" {
 			q = q.Where("host ILIKE ?", "%"+host+"%")
+		}
+		if leakedOnly {
+			q = q.Where("leaked = ?", true)
 		}
 		var flows []models.ProxyFlow
 		q.Order("id desc").Limit(limit).Find(&flows)
@@ -156,7 +170,17 @@ func GetProxyFlows(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": true, "source": "live", "data": []models.ProxyFlow{}})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "source": "live", "data": flowRecorder.recent(limit)})
+	flows := flowRecorder.recent(limit)
+	if leakedOnly {
+		filtered := flows[:0]
+		for _, f := range flows {
+			if f.Leaked {
+				filtered = append(filtered, f)
+			}
+		}
+		flows = filtered
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "source": "live", "data": flows})
 }
 
 // ClearProxyFlows DELETE /api/v1/system/proxy/flows — clears ring + history.
@@ -184,7 +208,7 @@ func ProxyFlowStats(c *gin.Context) {
 	}
 	flows := flowRecorder.recent(flowRingCap)
 	var bytesIn, bytesOut int64
-	errs := 0
+	errs, proxied, direct, leaked := 0, 0, 0, 0
 	byProxy := map[string]int{}
 	for _, f := range flows {
 		bytesIn += f.BytesIn
@@ -192,13 +216,30 @@ func ProxyFlowStats(c *gin.Context) {
 		if f.Error != "" || f.Status >= 400 {
 			errs++
 		}
+		if f.ViaProxy {
+			proxied++
+		} else {
+			direct++
+		}
+		if f.Leaked {
+			leaked++
+		}
 		byProxy[f.ProxyLabel]++
 	}
+	// Anonymity coverage: share of traffic that actually went through a proxy.
+	coverage := 100.0
+	if n := proxied + direct; n > 0 {
+		coverage = float64(proxied) * 100.0 / float64(n)
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
-		"count":     len(flows),
-		"bytes_in":  bytesIn,
-		"bytes_out": bytesOut,
-		"errors":    errs,
-		"by_proxy":  byProxy,
+		"count":        len(flows),
+		"bytes_in":     bytesIn,
+		"bytes_out":    bytesOut,
+		"errors":       errs,
+		"proxied":      proxied,
+		"direct":       direct,
+		"leaked":       leaked,
+		"coverage_pct": coverage,
+		"by_proxy":     byProxy,
 	}})
 }

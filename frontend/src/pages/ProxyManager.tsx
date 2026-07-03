@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Plus, Trash2, Power, Activity, RefreshCw, Radio, Globe,
-  CheckCircle2, XCircle, Pencil, X, Eraser, ArrowRightLeft,
+  Plus, Trash2, Power, Activity, RefreshCw, Radio, Globe, CheckCircle2, XCircle,
+  Pencil, X, Eraser, ArrowRightLeft, Fingerprint, ShieldAlert, ShieldCheck, Download, BarChart3,
 } from 'lucide-react'
 import {
-  proxyApi, type ProxyProfile, type ProxyFlow, type ProxyFlowStats, type ProxyProfilePayload,
+  proxyApi, type ProxyProfile, type ProxyFlow, type ProxyFlowStats,
+  type ProxyProfilePayload, type ProxyPoolMode, type ProxyAnalytics,
 } from '@/api/proxy'
 
 const emptyForm: ProxyProfilePayload = { name: '', url: '', no_proxy: '', fallback_direct: false }
@@ -12,8 +13,7 @@ const emptyForm: ProxyProfilePayload = { name: '', url: '', no_proxy: '', fallba
 function fmtBytes(n: number): string {
   if (!n) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = 0
-  let v = n
+  let i = 0, v = n
   while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
   return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
 }
@@ -25,10 +25,17 @@ function statusColor(s: number): string {
   return 'text-emerald-400'
 }
 
+function errText(e: unknown): string {
+  const a = e as { response?: { data?: { error?: string } }; message?: string }
+  return a?.response?.data?.error || a?.message || 'Request failed'
+}
+
 export default function ProxyManager() {
   const [profiles, setProfiles] = useState<ProxyProfile[]>([])
   const [flows, setFlows] = useState<ProxyFlow[]>([])
   const [stats, setStats] = useState<ProxyFlowStats | null>(null)
+  const [mode, setMode] = useState<ProxyPoolMode | null>(null)
+  const [analytics, setAnalytics] = useState<ProxyAnalytics | null>(null)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
   const [showForm, setShowForm] = useState(false)
@@ -37,36 +44,39 @@ export default function ProxyManager() {
 
   const [history, setHistory] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [leakedOnly, setLeakedOnly] = useState(false)
   const [hostFilter, setHostFilter] = useState('')
+  const [busyId, setBusyId] = useState<number | null>(null)
   const timer = useRef<number | null>(null)
 
   const flash = (kind: 'ok' | 'err', text: string) => {
-    setMsg({ kind, text })
-    window.setTimeout(() => setMsg(null), 4000)
+    setMsg({ kind, text }); window.setTimeout(() => setMsg(null), 4000)
   }
 
   const loadProfiles = useCallback(async () => {
     try { setProfiles(await proxyApi.list()) } catch { /* ignore */ }
   }, [])
-
+  const loadMode = useCallback(async () => {
+    try { setMode(await proxyApi.getMode()) } catch { /* ignore */ }
+  }, [])
+  const loadAnalytics = useCallback(async () => {
+    try { setAnalytics(await proxyApi.analytics(24)) } catch { /* ignore */ }
+  }, [])
   const loadFlows = useCallback(async () => {
     try {
       const [f, s] = await Promise.all([
-        proxyApi.flows({ limit: 200, history, host: hostFilter || undefined }),
+        proxyApi.flows({ limit: 200, history, host: hostFilter || undefined, leaked: leakedOnly }),
         proxyApi.flowStats(),
       ])
-      setFlows(f)
-      setStats(s)
+      setFlows(f); setStats(s)
     } catch { /* ignore */ }
-  }, [history, hostFilter])
+  }, [history, hostFilter, leakedOnly])
 
-  useEffect(() => { loadProfiles(); loadFlows() }, [loadProfiles, loadFlows])
-
+  useEffect(() => { loadProfiles(); loadMode(); loadAnalytics() }, [loadProfiles, loadMode, loadAnalytics])
+  useEffect(() => { loadFlows() }, [loadFlows])
   useEffect(() => {
     if (timer.current) { window.clearInterval(timer.current); timer.current = null }
-    if (autoRefresh && !history) {
-      timer.current = window.setInterval(loadFlows, 3000)
-    }
+    if (autoRefresh && !history) timer.current = window.setInterval(loadFlows, 3000)
     return () => { if (timer.current) window.clearInterval(timer.current) }
   }, [autoRefresh, history, loadFlows])
 
@@ -75,9 +85,8 @@ export default function ProxyManager() {
     try {
       if (editId != null) { await proxyApi.update(editId, form); flash('ok', 'Proxy updated') }
       else { await proxyApi.create(form); flash('ok', 'Proxy added') }
-      setShowForm(false); setEditId(null); setForm(emptyForm)
-      loadProfiles()
-    } catch (e: unknown) { flash('err', errText(e)) }
+      setShowForm(false); setEditId(null); setForm(emptyForm); loadProfiles()
+    } catch (e) { flash('err', errText(e)) }
   }
 
   const onEdit = (p: ProxyProfile) => {
@@ -86,47 +95,100 @@ export default function ProxyManager() {
     setShowForm(true)
   }
 
-  const act = async (fn: () => Promise<unknown>, ok: string) => {
-    try { await fn(); flash('ok', ok); loadProfiles() } catch (e: unknown) { flash('err', errText(e)) }
+  const act = async (fn: () => Promise<unknown>, ok: string, id?: number) => {
+    if (id != null) setBusyId(id)
+    try { await fn(); flash('ok', ok); loadProfiles() }
+    catch (e) { flash('err', errText(e)) }
+    finally { setBusyId(null) }
+  }
+
+  const changeMode = async (m: string, interval?: number) => {
+    try { setMode(await proxyApi.setMode({ mode: m, interval_sec: interval })); flash('ok', `Mode: ${m}`) }
+    catch (e) { flash('err', errText(e)) }
+  }
+
+  const doExport = async () => {
+    try {
+      const blob = await proxyApi.exportCsv({ host: hostFilter || undefined, leaked: leakedOnly })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'proxy-flows.csv'; a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) { flash('err', errText(e)) }
   }
 
   const activeProfile = profiles.find(p => p.is_active)
+  const coverage = stats ? Math.round(stats.coverage_pct) : 100
 
   return (
     <div className="p-6 space-y-6 text-gray-200">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <ArrowRightLeft className="w-6 h-6 text-indigo-400" /> Proxy Manager
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Manage the egress proxy pool, switch the active proxy at runtime, and watch the outbound flow log.
+            Egress proxy pool, runtime switch, exit-identity, and the outbound flow log with anonymity coverage.
           </p>
         </div>
         <div className="text-sm">
           {activeProfile
-            ? <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300">Active: {activeProfile.name}</span>
+            ? <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300">Active: {activeProfile.name}{activeProfile.is_tor ? ' · Tor' : ''}</span>
             : <span className="px-3 py-1 rounded-full bg-gray-700 text-gray-300">Direct (no proxy)</span>}
         </div>
       </div>
 
       {msg && (
-        <div className={`rounded-md px-4 py-2 text-sm ${msg.kind === 'ok' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'}`}>
-          {msg.text}
+        <div className={`rounded-md px-4 py-2 text-sm ${msg.kind === 'ok' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'}`}>{msg.text}</div>
+      )}
+
+      {/* Anonymity leak banner */}
+      {stats && stats.leaked > 0 && (
+        <div className="rounded-md px-4 py-3 bg-red-500/15 border border-red-500/40 text-red-200 flex items-center gap-2">
+          <ShieldAlert className="w-5 h-5 shrink-0" />
+          <span><strong>{stats.leaked}</strong> request(s) went <strong>DIRECT while a proxy was active</strong> — potential identity leak. Use the “Leaked only” filter below to inspect.</span>
+        </div>
+      )}
+
+      {/* Coverage bar */}
+      {stats && (
+        <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="flex items-center gap-2 font-medium">
+              {coverage >= 100 ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-amber-400" />}
+              Anonymity coverage (live)
+            </span>
+            <span className={coverage >= 100 ? 'text-emerald-400' : coverage >= 80 ? 'text-amber-400' : 'text-red-400'}>{coverage}% via proxy</span>
+          </div>
+          <div className="h-2 rounded-full bg-gray-700 overflow-hidden">
+            <div className={`h-full ${coverage >= 100 ? 'bg-emerald-500' : coverage >= 80 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${coverage}%` }} />
+          </div>
+          <div className="text-xs text-gray-400 mt-2">{stats.proxied} via proxy · {stats.direct} direct · {stats.leaked} leaked</div>
         </div>
       )}
 
       {/* Proxy pool */}
       <section className="bg-gray-800/50 rounded-lg border border-gray-700">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 flex-wrap gap-2">
           <h2 className="font-medium flex items-center gap-2"><Globe className="w-4 h-4" /> Proxy pool</h2>
-          <div className="flex gap-2">
-            <button onClick={() => act(() => proxyApi.deactivate(), 'Switched to direct')}
-              className="text-xs px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600">Use direct</button>
-            <button onClick={() => { setEditId(null); setForm(emptyForm); setShowForm(true) }}
-              className="text-xs px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1">
-              <Plus className="w-3.5 h-3.5" /> Add proxy
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {mode && (
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-gray-400">Mode:</span>
+                {(['manual', 'failover', 'rotate'] as const).map(m => (
+                  <button key={m} onClick={() => changeMode(m, mode.interval_sec)}
+                    className={`px-2 py-1 rounded ${mode.mode === m ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}>{m}</button>
+                ))}
+                {mode.mode === 'rotate' && (
+                  <input type="number" min={30} defaultValue={mode.interval_sec} title="rotate interval (sec)"
+                    onBlur={e => changeMode('rotate', Number(e.target.value))}
+                    className="w-16 bg-gray-900 border border-gray-700 rounded px-1 py-0.5" />
+                )}
+              </div>
+            )}
+            <button onClick={() => act(() => proxyApi.deactivate(), 'Switched to direct')} className="text-xs px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600">Use direct</button>
+            <button onClick={() => { setEditId(null); setForm(emptyForm); setShowForm(true) }} className="text-xs px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Add proxy</button>
           </div>
         </div>
 
@@ -137,18 +199,11 @@ export default function ProxyManager() {
               <button onClick={() => { setShowForm(false); setEditId(null) }} className="text-gray-400 hover:text-gray-200"><X className="w-4 h-4" /></button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="Name (e.g. Tor local, DC residential)"
-                className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm" />
-              <input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })}
-                placeholder="socks5://127.0.0.1:9050 or http(s)://user:pass@host:port"
-                className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm" />
-              <input value={form.no_proxy} onChange={e => setForm({ ...form, no_proxy: e.target.value })}
-                placeholder="no_proxy (comma-separated, optional)"
-                className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm" />
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. Tor local, DC residential)" className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm" />
+              <input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="socks5://127.0.0.1:9050 or http(s)://user:pass@host:port" className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm" />
+              <input value={form.no_proxy} onChange={e => setForm({ ...form, no_proxy: e.target.value })} placeholder="no_proxy (comma-separated, optional)" className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm" />
               <label className="flex items-center gap-2 text-sm text-gray-300">
-                <input type="checkbox" checked={!!form.fallback_direct}
-                  onChange={e => setForm({ ...form, fallback_direct: e.target.checked })} />
+                <input type="checkbox" checked={!!form.fallback_direct} onChange={e => setForm({ ...form, fallback_direct: e.target.checked })} />
                 Fall back to direct if this proxy is down
               </label>
             </div>
@@ -165,13 +220,14 @@ export default function ProxyManager() {
               <tr className="border-b border-gray-700">
                 <th className="text-left px-4 py-2">Name</th>
                 <th className="text-left px-4 py-2">URL</th>
+                <th className="text-left px-4 py-2">Exit identity</th>
                 <th className="text-left px-4 py-2">Health</th>
                 <th className="text-right px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {profiles.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No proxies yet. Add one to route egress traffic through it.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-500">No proxies yet. Add one to route egress traffic through it.</td></tr>
               )}
               {profiles.map(p => (
                 <tr key={p.id} className={`border-b border-gray-800 ${p.is_active ? 'bg-indigo-500/5' : ''}`}>
@@ -182,6 +238,17 @@ export default function ProxyManager() {
                     </div>
                   </td>
                   <td className="px-4 py-2 font-mono text-xs text-gray-400">{p.url}</td>
+                  <td className="px-4 py-2 text-xs">
+                    {p.exit_checked_at
+                      ? <div className="flex flex-col">
+                          <span className="font-mono text-gray-200 flex items-center gap-1">
+                            {p.exit_ip || '—'}
+                            {p.is_tor && <span className="px-1 rounded bg-purple-500/25 text-purple-300">Tor</span>}
+                          </span>
+                          <span className="text-gray-500">{[p.exit_country, p.exit_org].filter(Boolean).join(' · ')}</span>
+                        </div>
+                      : <span className="text-gray-500">unknown</span>}
+                  </td>
                   <td className="px-4 py-2">
                     {p.last_check
                       ? (p.healthy
@@ -191,15 +258,11 @@ export default function ProxyManager() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center justify-end gap-1">
-                      {!p.is_active && (
-                        <button onClick={() => act(() => proxyApi.activate(p.id), `Switched to ${p.name}`)}
-                          title="Switch to this proxy" className="p-1.5 rounded hover:bg-gray-700 text-indigo-300"><Power className="w-4 h-4" /></button>
-                      )}
-                      <button onClick={() => act(() => proxyApi.check(p.id), 'Health checked')}
-                        title="Health check" className="p-1.5 rounded hover:bg-gray-700 text-sky-300"><Activity className="w-4 h-4" /></button>
+                      {!p.is_active && <button onClick={() => act(() => proxyApi.activate(p.id), `Switched to ${p.name}`, p.id)} title="Switch to this proxy" className="p-1.5 rounded hover:bg-gray-700 text-indigo-300"><Power className="w-4 h-4" /></button>}
+                      <button onClick={() => act(() => proxyApi.check(p.id), 'Health checked', p.id)} title="Health check" className="p-1.5 rounded hover:bg-gray-700 text-sky-300"><Activity className="w-4 h-4" /></button>
+                      <button onClick={() => act(() => proxyApi.identity(p.id), 'Exit identity checked', p.id)} title="Check exit IP / Tor" className={`p-1.5 rounded hover:bg-gray-700 text-fuchsia-300 ${busyId === p.id ? 'animate-pulse' : ''}`}><Fingerprint className="w-4 h-4" /></button>
                       <button onClick={() => onEdit(p)} title="Edit" className="p-1.5 rounded hover:bg-gray-700 text-gray-300"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => act(() => proxyApi.remove(p.id), 'Proxy deleted')}
-                        title="Delete" className="p-1.5 rounded hover:bg-gray-700 text-red-300"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => act(() => proxyApi.remove(p.id), 'Proxy deleted', p.id)} title="Delete" className="p-1.5 rounded hover:bg-gray-700 text-red-300"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -209,35 +272,62 @@ export default function ProxyManager() {
         </div>
       </section>
 
+      {/* Analytics (last 24h from history) */}
+      {analytics && (analytics.total > 0) && (
+        <section className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-medium flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Analytics (last {analytics.since_hours}h)</h2>
+            <button onClick={loadAnalytics} className="text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600">Refresh</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="text-xs text-gray-400 mb-1">Top hosts</div>
+              <div className="space-y-1">
+                {analytics.top_hosts.slice(0, 10).map(h => (
+                  <div key={h.host} className="flex justify-between font-mono text-xs">
+                    <span className="text-gray-300 truncate max-w-[220px]">{h.host}</span>
+                    <span className="text-gray-500">{h.count} · {fmtBytes(h.bytes)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400 mb-1">Per proxy</div>
+              <div className="space-y-1">
+                {analytics.per_proxy.map(p => (
+                  <div key={p.proxy_label} className="flex justify-between text-xs">
+                    <span className="text-gray-300">{p.proxy_label}</span>
+                    <span className="text-gray-500">{p.count} req · {p.errors} err · {Math.round(p.avg_ms)}ms · {fmtBytes(p.bytes_in + p.bytes_out)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Flow log */}
       <section className="bg-gray-800/50 rounded-lg border border-gray-700">
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-700">
           <h2 className="font-medium flex items-center gap-2"><Radio className="w-4 h-4" /> Egress flow log</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <input value={hostFilter} onChange={e => setHostFilter(e.target.value)} placeholder="filter host…"
-              className="bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-xs" />
-            <button onClick={() => setHistory(h => !h)}
-              className={`text-xs px-3 py-1.5 rounded-md ${history ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
-              {history ? 'History (DB)' : 'Live'}
-            </button>
-            {!history && (
-              <button onClick={() => setAutoRefresh(a => !a)}
-                className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1 ${autoRefresh ? 'bg-emerald-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                <RefreshCw className={`w-3.5 h-3.5 ${autoRefresh ? 'animate-spin-slow' : ''}`} /> Auto
-              </button>
-            )}
+            <input value={hostFilter} onChange={e => setHostFilter(e.target.value)} placeholder="filter host…" className="bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-xs" />
+            <button onClick={() => setLeakedOnly(v => !v)} className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1 ${leakedOnly ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}><ShieldAlert className="w-3.5 h-3.5" /> Leaked only</button>
+            <button onClick={() => setHistory(h => !h)} className={`text-xs px-3 py-1.5 rounded-md ${history ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'}`}>{history ? 'History (DB)' : 'Live'}</button>
+            {!history && <button onClick={() => setAutoRefresh(a => !a)} className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1 ${autoRefresh ? 'bg-emerald-600' : 'bg-gray-700 hover:bg-gray-600'}`}><RefreshCw className="w-3.5 h-3.5" /> Auto</button>}
             <button onClick={loadFlows} className="text-xs px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600">Refresh</button>
-            <button onClick={() => act(() => proxyApi.clearFlows(), 'Flows cleared')}
-              className="text-xs px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 flex items-center gap-1"><Eraser className="w-3.5 h-3.5" /> Clear</button>
+            <button onClick={doExport} className="text-xs px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 flex items-center gap-1"><Download className="w-3.5 h-3.5" /> CSV</button>
+            <button onClick={() => act(() => proxyApi.clearFlows(), 'Flows cleared')} className="text-xs px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 flex items-center gap-1"><Eraser className="w-3.5 h-3.5" /> Clear</button>
           </div>
         </div>
 
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-700 text-sm">
-            <Stat label="Requests (live)" value={String(stats.count)} />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-gray-700 text-sm">
+            <Stat label="Requests" value={String(stats.count)} />
             <Stat label="Downloaded" value={fmtBytes(stats.bytes_in)} />
             <Stat label="Uploaded" value={fmtBytes(stats.bytes_out)} />
             <Stat label="Errors" value={String(stats.errors)} accent={stats.errors > 0 ? 'text-amber-400' : undefined} />
+            <Stat label="Leaked" value={String(stats.leaked)} accent={stats.leaked > 0 ? 'text-red-400' : undefined} />
           </div>
         )}
 
@@ -247,8 +337,10 @@ export default function ProxyManager() {
               <tr className="border-b border-gray-700">
                 <th className="text-left px-3 py-2">Time</th>
                 <th className="text-left px-3 py-2">Proxy</th>
+                <th className="text-left px-3 py-2">Source</th>
                 <th className="text-left px-3 py-2">Method</th>
                 <th className="text-left px-3 py-2">Host</th>
+                <th className="text-left px-3 py-2">TLS</th>
                 <th className="text-right px-3 py-2">Status</th>
                 <th className="text-right px-3 py-2">Out</th>
                 <th className="text-right px-3 py-2">In</th>
@@ -257,16 +349,21 @@ export default function ProxyManager() {
             </thead>
             <tbody>
               {flows.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-6 text-center text-gray-500">No flows recorded yet.</td></tr>
+                <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">No flows recorded yet.</td></tr>
               )}
               {flows.map(f => (
-                <tr key={f.id} className="border-b border-gray-800 hover:bg-gray-800/50" title={f.error || f.url}>
+                <tr key={f.id} className={`border-b border-gray-800 hover:bg-gray-800/50 ${f.leaked ? 'bg-red-500/10' : ''}`}
+                  title={`${f.url}${f.error ? '\n' + f.error : ''}\nDNS ${f.dns_ms}ms · connect ${f.connect_ms}ms · TLS ${f.tls_ms}ms · TTFB ${f.ttfb_ms}ms${f.content_type ? '\n' + f.content_type : ''}`}>
                   <td className="px-3 py-1.5 text-gray-400 whitespace-nowrap">{new Date(f.created_at).toLocaleTimeString()}</td>
                   <td className="px-3 py-1.5">
-                    <span className={`px-1.5 py-0.5 rounded ${f.via_proxy ? 'bg-indigo-500/20 text-indigo-300' : 'bg-gray-700 text-gray-300'}`}>{f.proxy_label}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${f.leaked ? 'bg-red-500/25 text-red-300' : f.via_proxy ? 'bg-indigo-500/20 text-indigo-300' : 'bg-gray-700 text-gray-300'}`}>
+                      {f.leaked ? 'LEAK' : f.proxy_label}
+                    </span>
                   </td>
+                  <td className="px-3 py-1.5 text-gray-400">{f.source}</td>
                   <td className="px-3 py-1.5 font-mono">{f.method}</td>
-                  <td className="px-3 py-1.5 font-mono text-gray-300 truncate max-w-[280px]">{f.host}</td>
+                  <td className="px-3 py-1.5 font-mono text-gray-300 truncate max-w-[260px]">{f.scheme === 'http' ? <span className="text-amber-400">http</span> : ''} {f.host}</td>
+                  <td className="px-3 py-1.5 text-gray-500">{f.tls_version || (f.scheme === 'http' ? 'none' : '')}</td>
                   <td className={`px-3 py-1.5 text-right font-mono ${statusColor(f.status)}`}>{f.error ? 'ERR' : (f.status || '—')}</td>
                   <td className="px-3 py-1.5 text-right text-gray-400">{fmtBytes(f.bytes_out)}</td>
                   <td className="px-3 py-1.5 text-right text-gray-400">{fmtBytes(f.bytes_in)}</td>
@@ -288,9 +385,4 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
       <div className={`text-lg font-semibold ${accent || 'text-gray-100'}`}>{value}</div>
     </div>
   )
-}
-
-function errText(e: unknown): string {
-  const anyE = e as { response?: { data?: { error?: string } }; message?: string }
-  return anyE?.response?.data?.error || anyE?.message || 'Request failed'
 }

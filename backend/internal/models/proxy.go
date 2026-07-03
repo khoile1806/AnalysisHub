@@ -24,6 +24,14 @@ type ProxyProfile struct {
 	LastError string     `json:"last_error"`
 	LastCheck *time.Time `json:"last_check"`
 
+	// Exit identity — the public face traffic presents when routed through this
+	// proxy (discovered by an explicit identity probe).
+	ExitIP        string     `json:"exit_ip"`
+	ExitCountry   string     `json:"exit_country"`
+	ExitOrg       string     `json:"exit_org"`
+	IsTor         bool       `json:"is_tor" gorm:"default:false"`
+	ExitCheckedAt *time.Time `json:"exit_checked_at"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -37,13 +45,35 @@ type ProxyFlow struct {
 
 	ProxyLabel string `json:"proxy_label"` // active profile name, or "direct"
 	ViaProxy   bool   `json:"via_proxy"`
+	Leaked     bool   `json:"leaked" gorm:"index"` // went direct while a proxy was active
+	Source     string `json:"source"`              // originating module (osint, app, …)
 
-	Method     string `json:"method"`
-	Host       string `json:"host" gorm:"index"`
-	URL        string `json:"url"`
-	Status     int    `json:"status"`
-	BytesOut   int64  `json:"bytes_out"`
-	BytesIn    int64  `json:"bytes_in"`
-	DurationMs int64  `json:"duration_ms"`
-	Error      string `json:"error"`
+	Method      string `json:"method"`
+	Scheme      string `json:"scheme"`
+	Host        string `json:"host" gorm:"index"`
+	URL         string `json:"url"`
+	Status      int    `json:"status"`
+	ContentType string `json:"content_type"`
+	TLSVersion  string `json:"tls_version"`
+	BytesOut    int64  `json:"bytes_out"`
+	BytesIn     int64  `json:"bytes_in"`
+	DurationMs  int64  `json:"duration_ms"`
+	DNSMs       int64  `json:"dns_ms"`
+	ConnectMs   int64  `json:"connect_ms"`
+	TLSMs       int64  `json:"tls_ms"`
+	TTFBMs      int64  `json:"ttfb_ms"`
+	Error       string `json:"error"`
+}
+
+// ProxyPoolSetting is a singleton row (id = 1) holding pool-automation config:
+//   - manual:   the operator switches proxies by hand (default).
+//   - failover: if the active proxy's health probe fails, auto-switch to the next
+//     healthy profile.
+//   - rotate:   round-robin the active proxy across healthy profiles every
+//     IntervalSec seconds (rotating exit identity).
+type ProxyPoolSetting struct {
+	ID          uint      `json:"id" gorm:"primaryKey"`
+	Mode        string    `json:"mode" gorm:"default:manual"`
+	IntervalSec int       `json:"interval_sec" gorm:"default:300"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }

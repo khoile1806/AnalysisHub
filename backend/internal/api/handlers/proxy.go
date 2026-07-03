@@ -254,6 +254,33 @@ func CheckProxyProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": p})
 }
 
+// CheckProxyIdentity POST /api/v1/system/proxies/:id/identity — discovers the
+// exit IP / geo / Tor status the world sees through this proxy, and persists it.
+func CheckProxyIdentity(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	var p models.ProxyProfile
+	if err := db.First(&p, "id = ?", c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "proxy not found"})
+		return
+	}
+	id := egress.ProbeIdentity(p.URL)
+	now := id.CheckedAt
+	p.ExitIP = id.IP
+	p.ExitCountry = id.Country
+	p.ExitOrg = id.Org
+	p.IsTor = id.IsTor
+	p.ExitCheckedAt = &now
+	db.Model(&p).Updates(map[string]interface{}{
+		"exit_ip": p.ExitIP, "exit_country": p.ExitCountry, "exit_org": p.ExitOrg,
+		"is_tor": p.IsTor, "exit_checked_at": p.ExitCheckedAt,
+	})
+	withMask(&p)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": p, "identity": id})
+}
+
 // updateProfileHealth persists the latest probe result onto a profile row.
 func updateProfileHealth(db *gorm.DB, p *models.ProxyProfile, h egress.Health) {
 	now := h.LastCheck

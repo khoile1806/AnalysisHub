@@ -3,10 +3,39 @@ package egress
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
 )
+
+func TestRedactURL(t *testing.T) {
+	cases := []struct {
+		in       string
+		mustHave []string
+		mustNot  []string
+	}{
+		{"https://api.shodan.io/host/search?key=SECRET123&q=evil.com",
+			[]string{"key=REDACTED", "q=evil.com"}, []string{"SECRET123"}},
+		{"https://numverify.com/api?access_key=ABCDEF&number=123",
+			[]string{"access_key=REDACTED", "number=123"}, []string{"ABCDEF"}},
+		{"https://example.com/path", []string{"https://example.com/path"}, []string{"REDACTED"}},
+	}
+	for _, c := range cases {
+		u, _ := url.Parse(c.in)
+		got := redactURL(u)
+		for _, m := range c.mustHave {
+			if !strings.Contains(got, m) {
+				t.Errorf("redactURL(%q)=%q missing %q", c.in, got, m)
+			}
+		}
+		for _, m := range c.mustNot {
+			if strings.Contains(got, m) {
+				t.Errorf("redactURL(%q)=%q leaked %q", c.in, got, m)
+			}
+		}
+	}
+}
 
 type fakeRT struct {
 	body   string

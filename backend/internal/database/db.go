@@ -102,6 +102,7 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.VulnFinding{},
 		&models.ProxyProfile{},
 		&models.ProxyFlow{},
+		&models.ProxyPoolSetting{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

@@ -124,6 +124,8 @@ func main() {
 		egress.CheckNow()
 		slog.Info("restored active proxy profile", "name", activeProxy.Name)
 	}
+	// Pool automation (failover / rotation); a no-op while mode is manual.
+	handlers.StartProxyPoolAutomation(db)
 
 	// ------------------------------------------------------------------ //
 	// 4. Connect to Redis

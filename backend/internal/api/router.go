@@ -454,10 +454,15 @@ func NewRouter(
 		protected.DELETE("/system/proxies/:id", handlers.DeleteProxyProfile)
 		protected.POST("/system/proxies/:id/activate", handlers.ActivateProxyProfile)
 		protected.POST("/system/proxies/:id/check", handlers.CheckProxyProfile)
+		protected.POST("/system/proxies/:id/identity", handlers.CheckProxyIdentity)
 		protected.POST("/system/proxies/deactivate", handlers.DeactivateProxy)
+		protected.GET("/system/proxies/mode", handlers.GetProxyMode)
+		protected.POST("/system/proxies/mode", handlers.SetProxyMode)
 		protected.GET("/system/proxy/flows", handlers.GetProxyFlows)
 		protected.GET("/system/proxy/flows/stats", handlers.ProxyFlowStats)
+		protected.GET("/system/proxy/flows/export", handlers.ExportProxyFlows)
 		protected.DELETE("/system/proxy/flows", handlers.ClearProxyFlows)
+		protected.GET("/system/proxy/analytics", handlers.ProxyAnalytics)
 	}
 
 	// Public canary endpoint — no auth so the tracking link works for any

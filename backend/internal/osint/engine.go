@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/egress"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/threatintel"
 )
@@ -308,6 +309,9 @@ func (e *Engine) StartScan(scan *models.OsintScan, collectors []models.OsintColl
 		return fmt.Errorf("scan already running")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	// Stamp the scan source so the Proxy Manager flow log attributes every
+	// collector request to this OSINT scan.
+	ctx = egress.WithSource(ctx, "osint:"+scan.ID.String())
 	e.running[scan.ID.String()] = cancel
 	e.mu.Unlock()
 

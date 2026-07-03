@@ -15,6 +15,11 @@ export interface ProxyProfile {
   latency_ms: number
   last_error: string
   last_check: string | null
+  exit_ip: string
+  exit_country: string
+  exit_org: string
+  is_tor: boolean
+  exit_checked_at: string | null
   created_at: string
   updated_at: string
 }
@@ -24,13 +29,22 @@ export interface ProxyFlow {
   created_at: string
   proxy_label: string
   via_proxy: boolean
+  leaked: boolean
+  source: string
   method: string
+  scheme: string
   host: string
   url: string
   status: number
+  content_type: string
+  tls_version: string
   bytes_out: number
   bytes_in: number
   duration_ms: number
+  dns_ms: number
+  connect_ms: number
+  tls_ms: number
+  ttfb_ms: number
   error: string
 }
 
@@ -39,7 +53,27 @@ export interface ProxyFlowStats {
   bytes_in: number
   bytes_out: number
   errors: number
+  proxied: number
+  direct: number
+  leaked: number
+  coverage_pct: number
   by_proxy: Record<string, number>
+}
+
+export interface ProxyPoolMode {
+  id: number
+  mode: 'manual' | 'failover' | 'rotate'
+  interval_sec: number
+}
+
+export interface ProxyAnalytics {
+  since_hours: number
+  total: number
+  proxied: number
+  leaked: number
+  coverage_pct: number
+  top_hosts: { host: string; count: number; bytes: number }[]
+  per_proxy: { proxy_label: string; count: number; errors: number; bytes_in: number; bytes_out: number; avg_ms: number }[]
 }
 
 export interface ProxyProfilePayload {
@@ -89,14 +123,43 @@ export const proxyApi = {
     return data.data
   },
 
-  flows: async (opts?: { limit?: number; history?: boolean; host?: string }): Promise<ProxyFlow[]> => {
+  identity: async (id: number): Promise<ProxyProfile> => {
+    const { data } = await apiClient.post<ApiResponse<ProxyProfile>>(`/system/proxies/${id}/identity`)
+    return data.data
+  },
+
+  getMode: async (): Promise<ProxyPoolMode> => {
+    const { data } = await apiClient.get<ApiResponse<ProxyPoolMode>>('/system/proxies/mode')
+    return data.data
+  },
+
+  setMode: async (body: { mode: string; interval_sec?: number }): Promise<ProxyPoolMode> => {
+    const { data } = await apiClient.post<ApiResponse<ProxyPoolMode>>('/system/proxies/mode', body)
+    return data.data
+  },
+
+  analytics: async (sinceHours = 24): Promise<ProxyAnalytics> => {
+    const { data } = await apiClient.get<ApiResponse<ProxyAnalytics>>(`/system/proxy/analytics?since_hours=${sinceHours}`)
+    return data.data
+  },
+
+  flows: async (opts?: { limit?: number; history?: boolean; host?: string; leaked?: boolean }): Promise<ProxyFlow[]> => {
     const params = new URLSearchParams()
     if (opts?.limit) params.set('limit', String(opts.limit))
     if (opts?.history) params.set('history', 'true')
     if (opts?.host) params.set('host', opts.host)
+    if (opts?.leaked) params.set('leaked', 'true')
     const qs = params.toString()
     const { data } = await apiClient.get<ApiResponse<ProxyFlow[]>>(`/system/proxy/flows${qs ? `?${qs}` : ''}`)
     return data.data
+  },
+
+  exportCsv: async (opts?: { host?: string; leaked?: boolean }): Promise<Blob> => {
+    const params = new URLSearchParams()
+    if (opts?.host) params.set('host', opts.host)
+    if (opts?.leaked) params.set('leaked', 'true')
+    const { data } = await apiClient.get(`/system/proxy/flows/export?${params.toString()}`, { responseType: 'blob' })
+    return data as Blob
   },
 
   flowStats: async (): Promise<ProxyFlowStats> => {
