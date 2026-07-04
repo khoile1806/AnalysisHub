@@ -16,7 +16,12 @@ const KIND_CLS: Record<string, string> = {
   file: 'text-purple-300 border-purple-700/50 bg-purple-900/20',
   shimcache: 'text-cyan-300 border-cyan-700/50 bg-cyan-900/20',
   log: 'text-yellow-300 border-yellow-700/50 bg-yellow-900/20',
+  download: 'text-orange-300 border-orange-700/50 bg-orange-900/20',
+  persistence: 'text-red-300 border-red-700/50 bg-red-900/20',
 }
+
+// Every trace kind the manual-event editor can assign — mirrors KIND_CLS.
+const EVENT_KINDS = ['process', 'prefetch', 'file', 'shimcache', 'log', 'download', 'persistence']
 
 type Entity = { target: string; pid: number }
 
@@ -98,6 +103,8 @@ export default function TraceOriginModal({ agent, target, pid, onClose }: {
       await collect('processes', 'processes', () => agentsApi.parseProcessScan(agent.id))
       await collect('prefetch', 'prefetch', () => agentsApi.parsePrefetch(agent.id))
       await collect('shimcache', 'shimcache', () => agentsApi.parseShimcache(agent.id))
+      await collect('autoruns', 'autoruns', () => agentsApi.parseAutoruns(agent.id))
+      await collect('browser', 'browser', () => agentsApi.parseBrowser(agent.id))
       if (withMFT) await collect('MFT (slow)', 'mft', () => agentsApi.parseMFT(agent.id))
       setSources(collected)
       setStep('Reconstructing origin…')
@@ -178,7 +185,7 @@ export default function TraceOriginModal({ agent, target, pid, onClose }: {
             <div className="space-y-3">
               <p className="text-sm text-gray-400">
                 Reconstruct the parent-process chain, owner, start time and every related trace
-                (prefetch / shimcache{withMFT ? ' / MFT' : ''}) for <span className="font-mono text-gray-200">{cur.target}</span> on <span className="text-gray-200">{agent.name}</span>.
+                (prefetch / shimcache / autoruns / browser-download{withMFT ? ' / MFT' : ''}) for <span className="font-mono text-gray-200">{cur.target}</span> on <span className="text-gray-200">{agent.name}</span>.
               </p>
               <label className="flex items-center gap-2 text-xs text-gray-400">
                 <input type="checkbox" checked={withMFT} onChange={(e) => setWithMFT(e.target.checked)} /> Include MFT file timestamps (slower)
@@ -271,7 +278,7 @@ export default function TraceOriginModal({ agent, target, pid, onClose }: {
                             <div className="flex items-center gap-1.5">
                               <select value={e.kind} onChange={(ev) => updateEvent(i, { kind: ev.target.value as TraceEvent['kind'] })}
                                 className="input text-[11px] py-0.5 px-1.5 w-28">
-                                {['process', 'prefetch', 'file', 'shimcache', 'log'].map((k) => <option key={k} value={k}>{k}</option>)}
+                                {EVENT_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
                               </select>
                               <input value={e.time} onChange={(ev) => updateEvent(i, { time: ev.target.value })}
                                 placeholder="YYYY-MM-DD HH:MM:SS"

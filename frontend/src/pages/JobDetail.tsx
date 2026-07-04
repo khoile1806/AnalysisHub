@@ -351,10 +351,14 @@ export default function JobDetailPage() {
                 />
               </div>
             ) : (
-              <iframe 
+              <iframe
                 src={job.id ? `${import.meta.env.VITE_API_URL ?? ''}/api/v1/jobs/${job.id}/artifact/content?token=${encodeURIComponent(token ?? '')}` : ''}
                 className="absolute inset-0 w-full h-full border-none bg-white"
                 title="Artifact Report"
+                // Report HTML is tool-generated and may embed attacker-controlled
+                // strings; sandbox it (no allow-scripts) so it can't run JS in our
+                // origin and read the auth token from localStorage.
+                sandbox="allow-same-origin"
               />
             )}
           </div>

@@ -45,6 +45,11 @@ func osintDedicatedProxy() *url.URL {
 // OSINT is intentionally NOT forced through Tor: hiding the real IP behind a clean
 // proxy is enough, and Tor breaks too many intel sources (403 / timeouts).
 func osintProxy(req *http.Request) (*url.URL, error) {
+	// A Proxy Manager profile assigned to the "osint" lane wins over the env var,
+	// so the exit can be switched from the UI at runtime.
+	if p := egress.LaneProxy("osint"); p != nil {
+		return p, nil
+	}
 	if p := osintDedicatedProxy(); p != nil {
 		return p, nil
 	}
@@ -55,6 +60,9 @@ func osintProxy(req *http.Request) (*url.URL, error) {
 // straight to the target. The SSRF dialer uses it to decide whether to enforce the
 // non-public-IP guard on the target.
 func osintDirect() bool {
+	if egress.LaneProxy("osint") != nil {
+		return false
+	}
 	if osintDedicatedProxy() != nil {
 		return false
 	}
@@ -68,6 +76,9 @@ func osintAnonymized() bool { return !osintDirect() }
 // osintProxyURLString returns the effective OSINT egress proxy URL for subprocess
 // tools (e.g. maigret's --proxy), or "" when OSINT egress is direct.
 func osintProxyURLString() string {
+	if p := egress.LaneProxy("osint"); p != nil {
+		return p.String()
+	}
 	if p := osintDedicatedProxy(); p != nil {
 		return p.String()
 	}
@@ -124,14 +135,16 @@ const (
 // under a per-collector context deadline set by the engine.
 var osintHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
-	// Wrapped so OSINT traffic shows up in the Proxy Manager flow log.
-	Transport: egress.NewLoggingTransport(&http.Transport{
-		Proxy:           osintProxy, // Tor by default; OUTBOUND_PROXY / Proxy Manager overrides
+	// Wrapped on the "osint" lane so traffic through OSINT_PROXY is attributed to
+	// that lane in the Proxy Manager flow log (not mislabelled "direct" by the
+	// default egress proxy) and leaks are judged against OSINT's own egress state.
+	Transport: egress.NewLoggingTransportLane(&http.Transport{
+		Proxy:           osintProxy, // OSINT_PROXY, else OUTBOUND_PROXY / Proxy Manager
 		DialContext:     ssrfSafeDialContext,
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    32,
 		IdleConnTimeout: 60 * time.Second,
-	}),
+	}, "osint", osintProxy, osintAnonymized),
 }
 
 // rateLimiter enforces a minimum interval between calls to one external API.

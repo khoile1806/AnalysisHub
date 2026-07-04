@@ -44,21 +44,30 @@ func SetProxyMode(c *gin.Context) {
 	var req struct {
 		Mode        string `json:"mode"`
 		IntervalSec int    `json:"interval_sec"`
+		KillSwitch  *bool  `json:"kill_switch"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	switch req.Mode {
-	case "manual", "failover", "rotate":
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "mode must be manual, failover, or rotate"})
-		return
+	if req.Mode != "" {
+		switch req.Mode {
+		case "manual", "failover", "rotate":
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "mode must be manual, failover, or rotate"})
+			return
+		}
 	}
 	s := loadPoolSetting(db)
-	s.Mode = req.Mode
+	if req.Mode != "" {
+		s.Mode = req.Mode
+	}
 	if req.IntervalSec >= 30 {
 		s.IntervalSec = req.IntervalSec
+	}
+	if req.KillSwitch != nil {
+		s.KillSwitch = *req.KillSwitch
+		egress.SetKillSwitch(s.KillSwitch)
 	}
 	db.Save(&s)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": s})
@@ -88,42 +97,56 @@ func StartProxyPoolAutomation(db *gorm.DB) {
 				continue
 			}
 
-			// Refresh health of every pool member so decisions use live data.
+			var active models.ProxyProfile
+			hasActive := db.Where("is_active = ?", true).First(&active).Error == nil
+
+			// Failover: probe only the ACTIVE proxy each cycle (cheap). Fan out to
+			// the whole pool to find a replacement ONLY when the active is down or
+			// absent — so N proxies don't cost 2N probes/minute for nothing.
+			if s.Mode == "failover" {
+				if hasActive {
+					updateProfileHealth(db, &active, egress.Probe(active.URL))
+					if active.Healthy {
+						continue // active still up — no pool scan needed
+					}
+				}
+				var all []models.ProxyProfile
+				db.Order("id asc").Find(&all)
+				for i := range all {
+					updateProfileHealth(db, &all[i], egress.Probe(all[i].URL))
+					if all[i].Healthy {
+						activateProfileInternal(db, &all[i])
+						break
+					}
+				}
+				continue
+			}
+
+			// Rotate: every candidate's health must be fresh to pick the next exit.
 			var all []models.ProxyProfile
 			db.Find(&all)
 			for i := range all {
 				updateProfileHealth(db, &all[i], egress.Probe(all[i].URL))
 			}
-
 			var healthy []models.ProxyProfile
 			db.Where("healthy = ?", true).Order("id asc").Find(&healthy)
 			if len(healthy) == 0 {
 				continue
 			}
-			var active models.ProxyProfile
-			hasActive := db.Where("is_active = ?", true).First(&active).Error == nil
-
-			switch s.Mode {
-			case "failover":
-				if !hasActive || !active.Healthy {
-					activateProfileInternal(db, &healthy[0])
-				}
-			case "rotate":
-				if time.Since(lastRotate) < time.Duration(s.IntervalSec)*time.Second {
-					continue
-				}
-				next := healthy[0]
-				if hasActive {
-					for i, h := range healthy {
-						if h.ID == active.ID {
-							next = healthy[(i+1)%len(healthy)]
-							break
-						}
+			if time.Since(lastRotate) < time.Duration(s.IntervalSec)*time.Second {
+				continue
+			}
+			next := healthy[0]
+			if hasActive {
+				for i, h := range healthy {
+					if h.ID == active.ID {
+						next = healthy[(i+1)%len(healthy)]
+						break
 					}
 				}
-				activateProfileInternal(db, &next)
-				lastRotate = time.Now()
 			}
+			activateProfileInternal(db, &next)
+			lastRotate = time.Now()
 		}
 	}()
 }

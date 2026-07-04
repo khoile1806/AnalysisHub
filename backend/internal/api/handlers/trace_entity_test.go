@@ -41,6 +41,38 @@ func TestBuildEntityTrace_ProcessAncestry(t *testing.T) {
 	}
 }
 
+func TestBuildEntityTrace_BrowserAndAutorunsSources(t *testing.T) {
+	// No process match — the origin is a browser download; persistence context
+	// comes from an autoruns Run-key that references the same binary.
+	browser := `[
+		{"browser":"Chrome","profile":"alice/Default","url":"http://bad.example/evil.exe","last_visit":"2026-06-01T08:30:00Z","suspicious":["executable-download"]},
+		{"browser":"Chrome","profile":"alice/Default","url":"http://good.example/index.html","last_visit":"2026-06-01T07:00:00Z"}
+	]`
+	autoruns := `[
+		{"category":"Run Key","name":"Updater","location":"HKCU\\...\\Run","command":"C:\\Temp\\evil.exe -x","image_path":"C:\\Temp\\evil.exe","signature":"Unsigned"}
+	]`
+	res := buildEntityTrace("evil.exe", 0, []traceSource{
+		{Type: "browser", Data: json.RawMessage(browser)},
+		{Type: "autoruns", Data: json.RawMessage(autoruns)},
+	})
+	// One matching download event + one persistence event = 2; the unrelated URL
+	// must be excluded.
+	if len(res.Timeline) != 2 {
+		t.Fatalf("expected 2 events (1 browser + 1 autoruns), got %d: %+v", len(res.Timeline), res.Timeline)
+	}
+	// Dated browser download sorts before the undated persistence record.
+	if res.Timeline[0].Kind != "download" || res.Timeline[0].Time != "2026-06-01 08:30:00" {
+		t.Errorf("first event should be the dated browser download, got %+v", res.Timeline[0])
+	}
+	if res.Timeline[1].Kind != "persistence" {
+		t.Errorf("second event should be the persistence record, got %+v", res.Timeline[1])
+	}
+	// The origin summary is the browser download time.
+	if res.Summary["origin"] != "2026-06-01 08:30:00" {
+		t.Errorf("origin should be the download time, got %v", res.Summary["origin"])
+	}
+}
+
 func TestBuildEntityTrace_ByPID(t *testing.T) {
 	procs := `[
 		{"pid":10,"ppid":0,"name":"a.exe"},

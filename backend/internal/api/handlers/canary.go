@@ -805,7 +805,19 @@ func (h *CanaryHandler) ScanCanaryHit(c *gin.Context) {
 	h.DB.Model(&scan).Update("root_scan_id", rootSelf)
 	scan.RootScanID = &rootSelf
 
-	names := osint.CollectorNamesFor(ttype)
+	// Enriching a canary visitor's IP is still OSINT, so it obeys the scope policy
+	// too — an admin can keep this passive (no active probe back at the visitor).
+	decision := osint.DecideScope(h.DB, scan.Target, ttype)
+	h.DB.Model(&scan).Updates(map[string]interface{}{
+		"scope_mode": string(decision.Mode),
+		"scope_rule": decision.MatchedRule,
+	})
+	if decision.Mode == osint.ModeBlock {
+		h.DB.Model(&scan).Update("status", models.OsintDone)
+		c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"scan_id": scan.ID, "blocked": true}})
+		return
+	}
+	names := decision.Allowed
 	collectors := make([]models.OsintCollector, len(names))
 	for i, n := range names {
 		collectors[i] = models.OsintCollector{ScanID: scan.ID, Name: n, Status: models.OsintCollectorPending}

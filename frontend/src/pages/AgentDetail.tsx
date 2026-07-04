@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield, Database, HardDrive } from 'lucide-react'
+import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield, Database, HardDrive, GitBranch } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
 import { casesApi } from '@/api/cases'
@@ -13,6 +13,7 @@ import { FileBrowser } from '@/components/FileBrowser'
 import { YaraScanner } from '@/components/Agent/YaraScanner'
 import { RegistryViewer } from '@/components/Agent/RegistryViewer'
 import { EvtxViewer } from '@/components/Agent/EvtxViewer'
+import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 import { EdgeForensics } from '@/components/Agent/EdgeForensics'
 import { formatDuration, getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 import {
@@ -544,6 +545,7 @@ function NetworkTab({ agent }: { agent: Agent }) {
 function ProcessesTab({ agent }: { agent: Agent }) {
   const isOnline = agent.status === 'online'
   const { data: procs, connected } = useRealtimeSSE<ProcessInfo>(agent.id, 'processes', isOnline)
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
   const sorted = procs ? [...procs].sort((a, b) => b.mem_kb - a.mem_kb) : null
 
@@ -575,11 +577,12 @@ function ProcessesTab({ agent }: { agent: Agent }) {
                   <th className="table-header text-left px-4 py-2">Name</th>
                   <th className="table-header text-right px-4 py-2">Memory</th>
                   <th className="table-header text-left px-4 py-2 hidden xl:table-cell">Command Line</th>
+                  <th className="table-header text-right px-4 py-2 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((p, i) => (
-                  <tr key={i} className="border-b border-gray-800/40 hover:bg-gray-800/20">
+                  <tr key={i} className="group border-b border-gray-800/40 hover:bg-gray-800/20">
                     <td className="px-4 py-1.5 text-xs font-mono text-gray-500">{p.pid}</td>
                     <td className="px-4 py-1.5 text-xs font-mono text-gray-600">{p.ppid || '—'}</td>
                     <td className="px-4 py-1.5 text-xs font-mono text-gray-200">{p.name}</td>
@@ -589,6 +592,15 @@ function ProcessesTab({ agent }: { agent: Agent }) {
                     <td className="px-4 py-1.5 text-xs font-mono text-gray-500 hidden xl:table-cell max-w-xs truncate" title={p.cmdline}>
                       {p.cmdline || '—'}
                     </td>
+                    <td className="px-2 py-1.5 text-right">
+                      <button
+                        onClick={() => setTraceTarget({ target: p.name, pid: p.pid })}
+                        title="Trace this process's origin (parent chain, user, when)"
+                        className="text-gray-500 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <GitBranch className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -597,6 +609,7 @@ function ProcessesTab({ agent }: { agent: Agent }) {
         </div>
       </div>
       <p className="text-xs text-gray-600">Updated every 1 second · {sorted?.length ?? 0} processes · sorted by memory</p>
+      {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
     </div>
   )
 }

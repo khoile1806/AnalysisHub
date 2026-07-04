@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,19 @@ import (
 	"github.com/analysishub/backend/internal/models"
 )
 
+// isLoopbackFlowHost reports whether a flow's host is loopback (localhost SIEM,
+// sandbox, etc.) — intentional direct traffic that is never anonymisable and so
+// is excluded from the anonymity-coverage denominator.
+func isLoopbackFlowHost(h string) bool {
+	if h == "" || h == "localhost" {
+		return true
+	}
+	if ip := net.ParseIP(h); ip != nil {
+		return ip.IsLoopback()
+	}
+	return false
+}
+
 // proxy_flows.go — records every egress request/response (the "flow") into a
 // bounded in-memory ring (live view) and asynchronously into Postgres (history,
 // rolling window). The recorder is registered as egress's flow sink at startup.
@@ -26,11 +40,72 @@ const (
 )
 
 // ProxyFlowRecorder fans a flow into the ring (sync) and the DB writer (async).
+// The ring is a fixed-size circular buffer: writes are O(1) even at the cap,
+// since a full ring overwrites the oldest slot in place instead of shifting.
 type ProxyFlowRecorder struct {
-	db   *gorm.DB
-	ch   chan models.ProxyFlow
-	mu   sync.Mutex
-	ring []models.ProxyFlow // oldest first; newest appended at the end
+	db    *gorm.DB
+	ch    chan models.ProxyFlow
+	mu    sync.Mutex
+	ring  []models.ProxyFlow // fixed length flowRingCap
+	head  int                // index of the oldest element
+	count int                // number of valid elements (0..flowRingCap)
+
+	// Running aggregates over the ring, maintained incrementally on insert/evict
+	// so the stats endpoint is O(1) instead of re-scanning the whole ring on every
+	// (3-second) poll.
+	aggBytesIn, aggBytesOut                                int64
+	aggErrs, aggProxied, aggDirect, aggLeaked, aggDirectEx int
+	aggByProxy                                             map[string]int
+}
+
+// flowAgg is an O(1) snapshot of the ring's running aggregates.
+type flowAgg struct {
+	count                                         int
+	bytesIn, bytesOut                             int64
+	errs, proxied, direct, leaked, directExternal int
+	byProxy                                       map[string]int
+}
+
+// applyStats adds (sign +1) or removes (sign -1) a flow's contribution to the
+// running aggregates. Caller holds r.mu.
+func (r *ProxyFlowRecorder) applyStats(f models.ProxyFlow, sign int) {
+	r.aggBytesIn += int64(sign) * f.BytesIn
+	r.aggBytesOut += int64(sign) * f.BytesOut
+	if f.Error != "" || f.Status >= 400 {
+		r.aggErrs += sign
+	}
+	if f.ViaProxy {
+		r.aggProxied += sign
+	} else {
+		r.aggDirect += sign
+		if !isLoopbackFlowHost(f.Host) {
+			r.aggDirectEx += sign
+		}
+	}
+	if f.Leaked {
+		r.aggLeaked += sign
+	}
+	if r.aggByProxy != nil {
+		r.aggByProxy[f.ProxyLabel] += sign
+		if r.aggByProxy[f.ProxyLabel] <= 0 {
+			delete(r.aggByProxy, f.ProxyLabel)
+		}
+	}
+}
+
+// snapshot returns a copy of the running aggregates.
+func (r *ProxyFlowRecorder) snapshot() flowAgg {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	byProxy := make(map[string]int, len(r.aggByProxy))
+	for k, v := range r.aggByProxy {
+		byProxy[k] = v
+	}
+	return flowAgg{
+		count: r.count, bytesIn: r.aggBytesIn, bytesOut: r.aggBytesOut,
+		errs: r.aggErrs, proxied: r.aggProxied, direct: r.aggDirect,
+		leaked: r.aggLeaked, directExternal: r.aggDirectEx, byProxy: byProxy,
+	}
 }
 
 // flowRecorder is the process-wide recorder, set by NewProxyFlowRecorder and read
@@ -40,9 +115,10 @@ var flowRecorder *ProxyFlowRecorder
 // NewProxyFlowRecorder builds the recorder and starts its background DB writer.
 func NewProxyFlowRecorder(db *gorm.DB) *ProxyFlowRecorder {
 	r := &ProxyFlowRecorder{
-		db:   db,
-		ch:   make(chan models.ProxyFlow, flowChanSize),
-		ring: make([]models.ProxyFlow, 0, flowRingCap),
+		db:         db,
+		ch:         make(chan models.ProxyFlow, flowChanSize),
+		ring:       make([]models.ProxyFlow, flowRingCap),
+		aggByProxy: map[string]int{},
 	}
 	flowRecorder = r
 	go r.writer()
@@ -79,15 +155,29 @@ func (r *ProxyFlowRecorder) Sink(f egress.Flow) {
 	}
 
 	r.mu.Lock()
-	if len(r.ring) >= flowRingCap {
-		r.ring = append(r.ring[:0], r.ring[1:]...) // drop oldest
+	if r.count < flowRingCap {
+		r.ring[(r.head+r.count)%flowRingCap] = rec
+		r.count++
+		r.applyStats(rec, +1)
+	} else {
+		// Ring full: evict the oldest (subtract its stats), overwrite in place, and
+		// advance head — all O(1).
+		r.applyStats(r.ring[r.head], -1)
+		r.ring[r.head] = rec
+		r.head = (r.head + 1) % flowRingCap
+		r.applyStats(rec, +1)
 	}
-	r.ring = append(r.ring, rec)
 	r.mu.Unlock()
 
 	select {
 	case r.ch <- rec:
 	default: // writer backed up — skip persistence rather than stall egress
+	}
+
+	// An anonymity leak (direct while a proxy was expected) fires a throttled
+	// out-of-band alert. Non-blocking — the send runs in its own goroutine.
+	if rec.Leaked {
+		maybeAlertLeak(f)
 	}
 }
 
@@ -116,20 +206,27 @@ func (r *ProxyFlowRecorder) prune() {
 func (r *ProxyFlowRecorder) recent(limit int) []models.ProxyFlow {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	n := len(r.ring)
-	if limit > n {
-		limit = n
+	if limit > r.count {
+		limit = r.count
 	}
 	out := make([]models.ProxyFlow, 0, limit)
-	for i := n - 1; i >= 0 && len(out) < limit; i-- {
-		out = append(out, r.ring[i])
+	// Walk backwards from the newest element (head+count-1) toward the oldest.
+	for i := 0; i < limit; i++ {
+		idx := (r.head + r.count - 1 - i) % flowRingCap
+		if idx < 0 {
+			idx += flowRingCap
+		}
+		out = append(out, r.ring[idx])
 	}
 	return out
 }
 
 func (r *ProxyFlowRecorder) clearRing() {
 	r.mu.Lock()
-	r.ring = r.ring[:0]
+	r.head, r.count = 0, 0
+	r.aggBytesIn, r.aggBytesOut = 0, 0
+	r.aggErrs, r.aggProxied, r.aggDirect, r.aggLeaked, r.aggDirectEx = 0, 0, 0, 0, 0
+	r.aggByProxy = map[string]int{}
 	r.mu.Unlock()
 }
 
@@ -206,40 +303,22 @@ func ProxyFlowStats(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{}})
 		return
 	}
-	flows := flowRecorder.recent(flowRingCap)
-	var bytesIn, bytesOut int64
-	errs, proxied, direct, leaked := 0, 0, 0, 0
-	byProxy := map[string]int{}
-	for _, f := range flows {
-		bytesIn += f.BytesIn
-		bytesOut += f.BytesOut
-		if f.Error != "" || f.Status >= 400 {
-			errs++
-		}
-		if f.ViaProxy {
-			proxied++
-		} else {
-			direct++
-		}
-		if f.Leaked {
-			leaked++
-		}
-		byProxy[f.ProxyLabel]++
-	}
-	// Anonymity coverage: share of traffic that actually went through a proxy.
+	a := flowRecorder.snapshot()
+	// Anonymity coverage: share of EXTERNAL traffic that went through a proxy.
+	// Loopback/intended-direct is excluded from the denominator.
 	coverage := 100.0
-	if n := proxied + direct; n > 0 {
-		coverage = float64(proxied) * 100.0 / float64(n)
+	if n := a.proxied + a.directExternal; n > 0 {
+		coverage = float64(a.proxied) * 100.0 / float64(n)
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
-		"count":        len(flows),
-		"bytes_in":     bytesIn,
-		"bytes_out":    bytesOut,
-		"errors":       errs,
-		"proxied":      proxied,
-		"direct":       direct,
-		"leaked":       leaked,
+		"count":        a.count,
+		"bytes_in":     a.bytesIn,
+		"bytes_out":    a.bytesOut,
+		"errors":       a.errs,
+		"proxied":      a.proxied,
+		"direct":       a.direct,
+		"leaked":       a.leaked,
 		"coverage_pct": coverage,
-		"by_proxy":     byProxy,
+		"by_proxy":     a.byProxy,
 	}})
 }

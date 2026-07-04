@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Folder, FileIcon, ChevronRight, Home, Download, Loader2, FolderOpen,
-  FolderArchive, Inbox, RefreshCw,
+  FolderArchive, Inbox, RefreshCw, GitBranch,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { Agent } from '@/api/agents'
@@ -10,6 +10,7 @@ import { fsApi, type FsEntry } from '@/api/fs'
 import { getErrorMessage } from '@/lib/utils'
 import { downloadHistory } from '@/lib/downloadHistory'
 import { DownloadedFilesPanel } from './DownloadedFilesPanel'
+import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 
 type Sep = '/' | '\\'
 
@@ -88,6 +89,7 @@ export function FileBrowser({ agent }: { agent: Agent }) {
   const [selected, setSelected] = useState<Set<string>>(new Set()) // entry name → selected
   const [bundling, setBundling] = useState(false)
   const [downloading, setDownloading] = useState<Set<string>>(new Set())
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
   const markDownloading = (key: string, on: boolean) => {
     setDownloading(prev => {
@@ -404,7 +406,16 @@ export function FileBrowser({ agent }: { agent: Agent }) {
                       <td className="px-3 py-1.5 text-xs font-mono text-gray-500 hidden md:table-cell">
                         {e.mod_time ? e.mod_time.replace('T', ' ').replace('Z', '') : '—'}
                       </td>
-                      <td className="px-3 py-1.5 text-right">
+                      <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                        {!e.is_dir && (
+                          <button
+                            onClick={() => setTraceTarget({ target: e.name, pid: 0 })}
+                            className="p-1.5 text-gray-400 hover:text-emerald-400 hover:bg-emerald-900/20 rounded transition-colors"
+                            title="Trace origin (which process wrote/ran this, download URL, when)"
+                          >
+                            <GitBranch className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => downloadEntry(e)}
                           disabled={isDownloading}
@@ -430,6 +441,8 @@ export function FileBrowser({ agent }: { agent: Agent }) {
       </p>
 
       <DownloadedFilesPanel agentId={agent.id} agentName={agent.name} agentOnline={isOnline} />
+
+      {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
     </div>
   )
 }

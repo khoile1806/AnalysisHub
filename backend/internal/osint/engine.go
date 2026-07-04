@@ -638,7 +638,22 @@ func (e *Engine) autoPivot(parent *models.OsintScan) {
 			continue
 		}
 
-		names := CollectorNamesFor(ttype)
+		// Auto-pivot children obey the same admin scope policy as user-launched
+		// scans, so a pivot can never quietly run active/target-touching collectors
+		// the policy would have blocked at the root.
+		decision := DecideScope(e.db, p.value, ttype)
+		e.db.Model(&child).Updates(map[string]interface{}{
+			"scope_mode": string(decision.Mode),
+			"scope_rule": decision.MatchedRule,
+		})
+		if decision.Mode == ModeBlock {
+			e.db.Model(&child).Update("status", models.OsintDone)
+			e.emit(parentID.String(), fmt.Sprintf("[*] auto-pivot -> %s (%s) BLOCKED by scope policy (%s)", p.value, ttype, decision.MatchedRule))
+			alreadyInGraph[p.value] = true
+			continue
+		}
+
+		names := decision.Allowed
 		collectors := make([]models.OsintCollector, len(names))
 		for i, n := range names {
 			collectors[i] = models.OsintCollector{ScanID: child.ID, Name: n, Status: models.OsintCollectorPending}

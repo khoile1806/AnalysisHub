@@ -217,6 +217,41 @@ func buildEntityTrace(target string, pid int, sources []traceSource) traceResult
 			"Log: "+title, truncate(str(r["message"]), 200), "evtx")
 	}
 
+	// 6) Browser history: the URL a binary was downloaded from (or a page
+	// navigated to) is frequently the TRUE origin of a dropped file. Match on
+	// the URL's basename (e.g. an .exe download) or a substring of the target.
+	for _, r := range bySrc["browser"] {
+		u := str(r["url"])
+		if u == "" {
+			continue
+		}
+		if !nameMatch(path.Base(u)) && !strings.Contains(strings.ToLower(u), tl) {
+			continue
+		}
+		flags := ""
+		if arr, ok := r["suspicious"].([]interface{}); ok && len(arr) > 0 {
+			var s []string
+			for _, f := range arr {
+				s = append(s, str(f))
+			}
+			flags = "flags=" + strings.Join(s, ",")
+		}
+		addEvent(firstPresent(r, "last_visit"), "download", "Browser: "+truncate(u, 120),
+			joinDetail("browser="+str(r["browser"]), "profile="+str(r["profile"]), flags), "browser")
+	}
+
+	// 7) Autoruns / persistence: if the target binary is also registered as an
+	// autostart entry, surface HOW it persists. These records carry no reliable
+	// timestamp, so they sort to the end of the timeline as undated context.
+	for _, r := range bySrc["autoruns"] {
+		if !nameMatch(str(r["image_path"])) && !nameMatch(str(r["name"])) && !nameMatch(str(r["command"])) {
+			continue
+		}
+		addEvent(nil, "persistence",
+			"Persistence: "+firstNonBlank(str(r["category"]), "autostart")+" — "+str(r["name"]),
+			joinDetail("location="+str(r["location"]), "command="+str(r["command"]), "signature="+str(r["signature"])), "autoruns")
+	}
+
 	// Sort the focused timeline oldest-first; the first entry is the origin.
 	sort.SliceStable(events, func(i, j int) bool {
 		if events[i].ts.IsZero() != events[j].ts.IsZero() {

@@ -28,6 +28,8 @@ type proxyAgg struct {
 	BytesIn    int64   `json:"bytes_in"`
 	BytesOut   int64   `json:"bytes_out"`
 	AvgMs      float64 `json:"avg_ms"`
+	P50Ms      float64 `json:"p50_ms"`
+	P95Ms      float64 `json:"p95_ms"`
 }
 
 // ProxyAnalytics GET /api/v1/system/proxy/analytics?since_hours=24
@@ -59,17 +61,23 @@ func ProxyAnalytics(c *gin.Context) {
 		coalesce(sum(case when error <> '' or status >= 400 then 1 else 0 end),0) as errors,
 		coalesce(sum(bytes_in),0) as bytes_in,
 		coalesce(sum(bytes_out),0) as bytes_out,
-		coalesce(avg(duration_ms),0) as avg_ms`).
+		coalesce(avg(duration_ms),0) as avg_ms,
+		coalesce(percentile_cont(0.5) within group (order by duration_ms),0) as p50_ms,
+		coalesce(percentile_cont(0.95) within group (order by duration_ms),0) as p95_ms`).
 		Group("proxy_label").Order("n desc").Scan(&perProxy)
 
-	var total, proxied, leaked int64
+	var total, proxied, leaked, loopbackDirect int64
 	base().Count(&total)
 	base().Where("via_proxy = ?", true).Count(&proxied)
 	base().Where("leaked = ?", true).Count(&leaked)
+	// Loopback/intended-direct traffic (localhost SIEM, sandbox) is excluded from
+	// the coverage denominator — it can never be anonymised, so counting it would
+	// understate real anonymity coverage.
+	base().Where("via_proxy = ? AND host IN ?", false, []string{"127.0.0.1", "localhost", "::1"}).Count(&loopbackDirect)
 
 	coverage := 100.0
-	if total > 0 {
-		coverage = float64(proxied) * 100.0 / float64(total)
+	if den := total - loopbackDirect; den > 0 {
+		coverage = float64(proxied) * 100.0 / float64(den)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{

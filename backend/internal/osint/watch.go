@@ -82,7 +82,22 @@ func (e *Engine) fireWatch(w *models.OsintWatch) {
 	e.db.Model(&scan).Update("root_scan_id", rootSelf)
 	scan.RootScanID = &rootSelf
 
-	names := CollectorNamesFor(w.TargetType)
+	// A scheduled watch re-run obeys the same admin scope policy as a manual scan,
+	// so recurring monitoring can never quietly run active/target-touching
+	// collectors the policy would block (e.g. probing an external target while
+	// egress is direct).
+	decision := DecideScope(e.db, scan.Target, w.TargetType)
+	e.db.Model(&scan).Updates(map[string]interface{}{
+		"scope_mode": string(decision.Mode),
+		"scope_rule": decision.MatchedRule,
+	})
+	if decision.Mode == ModeBlock {
+		e.db.Model(&scan).Update("status", models.OsintDone)
+		log.Printf("[osint] watch %s: scan blocked by scope policy (%s)", w.ID, decision.MatchedRule)
+		return
+	}
+
+	names := decision.Allowed
 	collectors := make([]models.OsintCollector, len(names))
 	for i, n := range names {
 		collectors[i] = models.OsintCollector{ScanID: scan.ID, Name: n, Status: models.OsintCollectorPending}

@@ -254,10 +254,14 @@ func newCrawlerProvider(sources []string, proxy string) *crawlerProvider {
 			viaTor = true
 		}
 	}
+	// Attribute crawler flows to the "darkweb" lane using this transport's OWN
+	// proxy (Tor when configured), so they aren't mislabelled by the default lane.
+	laneProxy := tr.Proxy
 	return &crawlerProvider{
 		sources: sources,
-		client:  &http.Client{Timeout: 45 * time.Second, Transport: egress.NewLoggingTransport(tr)},
-		viaTor:  viaTor,
+		client: &http.Client{Timeout: 45 * time.Second,
+			Transport: egress.NewLoggingTransportLane(tr, "darkweb", laneProxy, func() bool { return viaTor })},
+		viaTor: viaTor,
 	}
 }
 

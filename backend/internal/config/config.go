@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -223,17 +224,26 @@ type Config struct {
 	SandboxTerminalURL string
 }
 
+// Insecure placeholder secrets. Booting in production with any of these is
+// refused (see validateProduction) so a forgotten env var can't leave the
+// platform signable/decryptable with values published in the source.
+const (
+	defaultJWTSecret = "change-me-in-production-use-a-long-random-string"
+	defaultAESKey    = "default-insecure-key-exct-32-byt"
+	defaultAdminPass = "ChangeMe!2024"
+)
+
 // Load reads configuration from environment variables, applying defaults where appropriate.
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		ServerPort:          getEnv("SERVER_PORT", "8080"),
 		PostgresDSN:         getEnv("POSTGRES_DSN", "host=localhost user=analysishub password=analysishub dbname=analysishub port=5432 sslmode=disable TimeZone=UTC"),
 		RedisAddr:           getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword:       getEnv("REDIS_PASSWORD", ""),
-		JWTSecret:           getEnv("JWT_SECRET", "change-me-in-production-use-a-long-random-string"),
+		JWTSecret:           getEnv("JWT_SECRET", defaultJWTSecret),
 		StoragePath:         getEnv("STORAGE_PATH", "/app/storage"),
 		AdminEmail:          getEnv("ADMIN_EMAIL", "admin@analysishub.local"),
-		AdminPassword:       getEnv("ADMIN_PASSWORD", "ChangeMe!2024"),
+		AdminPassword:       getEnv("ADMIN_PASSWORD", defaultAdminPass),
 		AppEnv:              getEnv("APP_ENV", "development"),
 		PublicURL:           getEnv("PUBLIC_URL", ""),
 		CanaryBaseURL:       getEnv("CANARY_BASE_URL", ""),
@@ -245,7 +255,7 @@ func Load() *Config {
 		NVDAPIKey:           getEnv("NVD_API_KEY", ""),
 		APINvdURL:           getEnv("API_NVD_URL", "https://services.nvd.nist.gov/rest/json/cves/2.0"),
 		GitHubToken:         getEnv("GITHUB_TOKEN", ""),
-		AESEncryptionKey:    getEnv("AES_ENCRYPTION_KEY", "default-insecure-key-exct-32-byt"),
+		AESEncryptionKey:    getEnv("AES_ENCRYPTION_KEY", defaultAESKey),
 
 		VirusTotalKeys: loadVirusTotalKeys(),
 		AbuseIPDBKey:   getEnv("ABUSEIPDB", ""),
@@ -320,6 +330,30 @@ func Load() *Config {
 		APIWebArchiveURL:      getEnv("API_WEB_ARCHIVE_URL", "http://web.archive.org/cdx/search/cdx"),
 
 		LogPath: getEnv("LOG_PATH", "data/logs"),
+	}
+	validateProduction(cfg)
+	return cfg
+}
+
+// validateProduction refuses to start when APP_ENV=production and any critical
+// secret is still the insecure in-source default — a forgotten env var must fail
+// loud at boot, not silently ship a signable JWT key or decryptable AES key.
+func validateProduction(cfg *Config) {
+	if !strings.EqualFold(cfg.AppEnv, "production") {
+		return
+	}
+	var bad []string
+	if cfg.JWTSecret == defaultJWTSecret {
+		bad = append(bad, "JWT_SECRET")
+	}
+	if cfg.AESEncryptionKey == defaultAESKey {
+		bad = append(bad, "AES_ENCRYPTION_KEY")
+	}
+	if cfg.AdminPassword == defaultAdminPass {
+		bad = append(bad, "ADMIN_PASSWORD")
+	}
+	if len(bad) > 0 {
+		log.Fatalf("refusing to start in production with default secret(s): %s — set them to strong, unique values", strings.Join(bad, ", "))
 	}
 }
 

@@ -17,6 +17,20 @@ type ProxyProfile struct {
 	FallbackDirect bool   `json:"fallback_direct" gorm:"default:false"`
 	IsActive       bool   `json:"is_active" gorm:"index;default:false"`
 
+	// Lane binds a profile to an egress lane so different traffic classes can use
+	// different exits: "default" (project-wide egress), "osint", or "vulnscan".
+	// Exactly one profile per lane may be active. Empty is treated as "default".
+	Lane string `json:"lane" gorm:"index;default:'default'"`
+
+	// QuotaBytes caps total bytes (in+out) attributed to this profile's label over
+	// the retained flow window; 0 = unlimited. Metered residential proxies bill by
+	// GB, so this surfaces a soft budget with a UI warning.
+	QuotaBytes int64 `json:"quota_bytes" gorm:"default:0"`
+	// QuotaHardStop upgrades the quota from advisory to enforced: when usage
+	// reaches QuotaBytes the profile is auto-deactivated (its lane drops to direct)
+	// so it can't keep spending. Off by default.
+	QuotaHardStop bool `json:"quota_hard_stop" gorm:"default:false"`
+
 	// Last health-probe result for this profile (updated by an explicit check or
 	// when the profile is active and the background probe runs).
 	Healthy   bool       `json:"healthy" gorm:"default:false"`
@@ -32,8 +46,28 @@ type ProxyProfile struct {
 	IsTor         bool       `json:"is_tor" gorm:"default:false"`
 	ExitCheckedAt *time.Time `json:"exit_checked_at"`
 
+	// Exit-identity drift: the previously-seen exit IP and a flag raised when a
+	// later auto-refresh finds a different IP — an unexpected change can mean the
+	// proxy died and traffic fell back, or the exit rotated under you.
+	ExitIPPrev    string `json:"exit_ip_prev,omitempty"`
+	IdentityDrift bool   `json:"identity_drift" gorm:"default:false"`
+
+	// QuotaUsedBytes / OverQuota are computed (not stored) for the list response.
+	QuotaUsedBytes int64 `json:"quota_used_bytes" gorm:"-"`
+	OverQuota      bool  `json:"over_quota" gorm:"-"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ProxyHealthSample is one timestamped health-probe result for a profile, kept as
+// a rolling window so the UI can draw an uptime/latency sparkline per proxy.
+type ProxyHealthSample struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	ProfileID uint      `json:"profile_id" gorm:"index"`
+	Healthy   bool      `json:"healthy"`
+	LatencyMs int64     `json:"latency_ms"`
+	CreatedAt time.Time `json:"created_at" gorm:"index"`
 }
 
 // ProxyFlow is one recorded outbound request/response through the egress layer —
@@ -72,8 +106,13 @@ type ProxyFlow struct {
 //   - rotate:   round-robin the active proxy across healthy profiles every
 //     IntervalSec seconds (rotating exit identity).
 type ProxyPoolSetting struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
-	Mode        string    `json:"mode" gorm:"default:manual"`
-	IntervalSec int       `json:"interval_sec" gorm:"default:300"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uint   `json:"id" gorm:"primaryKey"`
+	Mode        string `json:"mode" gorm:"default:manual"`
+	IntervalSec int    `json:"interval_sec" gorm:"default:300"`
+	// KillSwitch, when on, HARD-BLOCKS all project-wide egress whenever no healthy
+	// proxy is available (none configured, or the active one is confirmed down and
+	// fall-back-to-direct is off) — fail-closed so recon can never leak the real
+	// IP the moment anonymity drops.
+	KillSwitch bool      `json:"kill_switch" gorm:"default:false"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }

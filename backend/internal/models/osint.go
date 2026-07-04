@@ -66,10 +66,18 @@ type OsintScan struct {
 	ExposureScore int    `gorm:"default:0" json:"exposure_score"`
 	ExposureGrade string `                 json:"exposure_grade,omitempty"`
 
-	CreatedBy  uuid.UUID   `gorm:"type:uuid"                                      json:"created_by"`
-	CreatedAt  time.Time   `                                                      json:"created_at"`
-	UpdatedAt  time.Time   `                                                      json:"updated_at"`
-	FinishedAt *time.Time  `                                                      json:"finished_at"`
+	// ── Scope policy (admin-defined) ─────────────────────────────────────────
+	// ScopeMode is the collector mode the OSINT scope policy applied to this scan
+	// (all | passive_only | block); ScopeRule names the rule that matched. Both
+	// are recorded so an operator can see, per investigation, why the active
+	// collectors did or did not run.
+	ScopeMode string `gorm:"default:'all'" json:"scope_mode"`
+	ScopeRule string `                     json:"scope_rule,omitempty"`
+
+	CreatedBy  uuid.UUID        `gorm:"type:uuid"                                      json:"created_by"`
+	CreatedAt  time.Time        `                                                      json:"created_at"`
+	UpdatedAt  time.Time        `                                                      json:"updated_at"`
+	FinishedAt *time.Time       `                                                      json:"finished_at"`
 	Collectors []OsintCollector `gorm:"foreignKey:ScanID;constraint:OnDelete:CASCADE" json:"collectors,omitempty"`
 }
 
@@ -127,26 +135,26 @@ type OsintCollector struct {
 // holds a JSON array of {type,value} pivots — discovered identifiers the
 // operator can launch a fresh investigation against in one click.
 type OsintFinding struct {
-	ID              uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"                              json:"id"`
-	ScanID          uuid.UUID `gorm:"type:uuid;not null;index:idx_osint_finding_scan" json:"scan_id"`
-	CollectorID     uuid.UUID `gorm:"type:uuid"                                                                   json:"collector_id"`
-	Source          string    `gorm:"not null"                                                                    json:"source"`   // rdap|dns|crtsh|geoip|...
-	Category        string    `gorm:"not null"                                                                    json:"category"` // registration|dns|certificate|geolocation|ports|reputation|breach|historical|identity
-	Title           string    `gorm:"not null"                                                                    json:"title"`
-	Value           string    `gorm:"type:text"                                                                   json:"value"`
-	Data            string    `gorm:"type:text"                                                                   json:"data,omitempty"` // optional extra JSON
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"                              json:"id"`
+	ScanID      uuid.UUID `gorm:"type:uuid;not null;index:idx_osint_finding_scan" json:"scan_id"`
+	CollectorID uuid.UUID `gorm:"type:uuid"                                                                   json:"collector_id"`
+	Source      string    `gorm:"not null"                                                                    json:"source"`   // rdap|dns|crtsh|geoip|...
+	Category    string    `gorm:"not null"                                                                    json:"category"` // registration|dns|certificate|geolocation|ports|reputation|breach|historical|identity
+	Title       string    `gorm:"not null"                                                                    json:"title"`
+	Value       string    `gorm:"type:text"                                                                   json:"value"`
+	Data        string    `gorm:"type:text"                                                                   json:"data,omitempty"` // optional extra JSON
 	// SourceURL is the link to where the trace was discovered (e.g. the breach
 	// search that surfaced a leaked credential), so an analyst can open the
 	// origin directly. Empty when the source has no addressable location.
 	SourceURL string `gorm:"type:text" json:"source_url,omitempty"`
-	Severity        string    `                                                                                   json:"severity,omitempty"` // info|low|medium|high|critical
+	Severity  string `                                                                                   json:"severity,omitempty"` // info|low|medium|high|critical
 	// Confidence is the tool's self-verification verdict for the finding,
 	// computed by cross-checking it against the scan's other collectors:
 	// verified | likely | unverified | "" (not applicable). VerifyNote explains
 	// what corroborated (or failed to corroborate) it.
-	Confidence      string    `                                                                                   json:"confidence,omitempty"`
-	VerifyNote      string    `gorm:"type:text"                                                                   json:"verify_note,omitempty"`
-	RelatedEntities string    `gorm:"type:text"                                                                   json:"related_entities,omitempty"` // JSON [{type,value}]
+	Confidence      string `                                                                                   json:"confidence,omitempty"`
+	VerifyNote      string `gorm:"type:text"                                                                   json:"verify_note,omitempty"`
+	RelatedEntities string `gorm:"type:text"                                                                   json:"related_entities,omitempty"` // JSON [{type,value}]
 	// DedupeKey is sha256 hex of (source|category|title|value) — collapses the
 	// same trace surfaced twice within one scan to a single row. The composite
 	// UNIQUE index (scan_id, dedupe_key) lets concurrent collectors insert with

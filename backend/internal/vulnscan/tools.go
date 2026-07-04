@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
 
+	"github.com/analysishub/backend/internal/egress"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/netsafe"
 )
@@ -349,6 +350,11 @@ func (e *Engine) resolveProxy(proxyChoice string) (string, string) {
 	}
 	if e.cfg == nil {
 		return "", "direct"
+	}
+	// A Proxy Manager profile assigned to the "vulnscan" lane wins over env config,
+	// so the scanner exit can be switched from the UI at runtime.
+	if p := egress.LaneProxy("vulnscan"); p != nil {
+		return p.String(), "lane"
 	}
 	if e.cfg.VulnScanProxy != "" {
 		return e.cfg.VulnScanProxy, "configured"

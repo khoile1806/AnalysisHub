@@ -4,6 +4,8 @@ import apiClient from './client'
 // outbound flow log. Mirrors the backend routes under /system/proxies and
 // /system/proxy/flows.
 
+export type ProxyLane = 'default' | 'osint' | 'vulnscan'
+
 export interface ProxyProfile {
   id: number
   name: string
@@ -11,6 +13,11 @@ export interface ProxyProfile {
   no_proxy: string
   fallback_direct: boolean
   is_active: boolean
+  lane: ProxyLane
+  quota_bytes: number
+  quota_hard_stop: boolean
+  quota_used_bytes: number
+  over_quota: boolean
   healthy: boolean
   latency_ms: number
   last_error: string
@@ -20,6 +27,8 @@ export interface ProxyProfile {
   exit_org: string
   is_tor: boolean
   exit_checked_at: string | null
+  exit_ip_prev: string
+  identity_drift: boolean
   created_at: string
   updated_at: string
 }
@@ -64,6 +73,21 @@ export interface ProxyPoolMode {
   id: number
   mode: 'manual' | 'failover' | 'rotate'
   interval_sec: number
+  kill_switch: boolean
+}
+
+export interface ProxyHealthHistory {
+  samples: { id: number; profile_id: number; healthy: boolean; latency_ms: number; created_at: string }[]
+  uptime_pct: number
+  count: number
+}
+
+export interface ProxyLeakTest {
+  exit_ips: Record<string, string>
+  exit_ip: string
+  consistent: boolean
+  checked_at: string
+  error?: string
 }
 
 export interface ProxyAnalytics {
@@ -73,7 +97,7 @@ export interface ProxyAnalytics {
   leaked: number
   coverage_pct: number
   top_hosts: { host: string; count: number; bytes: number }[]
-  per_proxy: { proxy_label: string; count: number; errors: number; bytes_in: number; bytes_out: number; avg_ms: number }[]
+  per_proxy: { proxy_label: string; count: number; errors: number; bytes_in: number; bytes_out: number; avg_ms: number; p50_ms: number; p95_ms: number }[]
 }
 
 export interface ProxyProfilePayload {
@@ -81,6 +105,9 @@ export interface ProxyProfilePayload {
   url: string
   no_proxy?: string
   fallback_direct?: boolean
+  lane?: ProxyLane
+  quota_bytes?: number
+  quota_hard_stop?: boolean
 }
 
 interface ApiResponse<T> {
@@ -133,8 +160,28 @@ export const proxyApi = {
     return data.data
   },
 
-  setMode: async (body: { mode: string; interval_sec?: number }): Promise<ProxyPoolMode> => {
+  setMode: async (body: { mode?: string; interval_sec?: number; kill_switch?: boolean }): Promise<ProxyPoolMode> => {
     const { data } = await apiClient.post<ApiResponse<ProxyPoolMode>>('/system/proxies/mode', body)
+    return data.data
+  },
+
+  bulkCreate: async (text: string, lane: ProxyLane): Promise<{ created: number; errors: string[] }> => {
+    const { data } = await apiClient.post<ApiResponse<{ created: number; errors: string[] }>>('/system/proxies/bulk', { text, lane })
+    return data.data
+  },
+
+  checkAll: async (): Promise<ProxyProfile[]> => {
+    const { data } = await apiClient.post<ApiResponse<ProxyProfile[]>>('/system/proxies/check-all')
+    return data.data
+  },
+
+  healthHistory: async (id: number, hours = 24): Promise<ProxyHealthHistory> => {
+    const { data } = await apiClient.get<ApiResponse<ProxyHealthHistory>>(`/system/proxies/${id}/health-history?hours=${hours}`)
+    return data.data
+  },
+
+  leakTest: async (id: number): Promise<ProxyLeakTest> => {
+    const { data } = await apiClient.post<ApiResponse<ProxyLeakTest>>(`/system/proxies/${id}/leak-test`)
     return data.data
   },
 

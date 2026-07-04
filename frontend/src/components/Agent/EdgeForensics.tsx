@@ -1363,7 +1363,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
             )}
             {activeTab === 'browser' && browserResults && (
               browserResults.length > 0
-                ? <div className="mt-2 border-t border-gray-800 pt-6"><BrowserTable data={browserResults} onLookup={setLookup} /></div>
+                ? <div className="mt-2 border-t border-gray-800 pt-6"><BrowserTable data={browserResults} onLookup={setLookup} onTrace={(target, pid) => setTraceTarget({ target, pid })} /></div>
                 : <div className="mt-2 border-t border-gray-800 pt-6 text-center py-12"><Search className="h-8 w-8 text-gray-600 mx-auto mb-3" /><p className="text-gray-500 text-sm">Scan completed — no browser history found.</p></div>
             )}
 
@@ -1980,9 +1980,10 @@ function DllsTable({ data, iocMatches, onLookup, selected, onToggle, onTrace }: 
 }
 
 // ── Browser history table ────────────────────────────────────────────────────
-function BrowserTable({ data, onLookup }: {
+function BrowserTable({ data, onLookup, onTrace }: {
   data: BrowserEntry[]
   onLookup?: (t: LookupTarget) => void
+  onTrace?: (target: string, pid: number) => void
 }) {
   const [filter, setFilter] = useState('')
   const [threatsOnly, setThreatsOnly] = useState(false)
@@ -1993,6 +1994,9 @@ function BrowserTable({ data, onLookup }: {
     return mf && (!threatsOnly || (e.suspicious?.length ?? 0) > 0)
   })
   const hostOf = (u: string) => { try { return new URL(u).hostname } catch { return '' } }
+  // fileOf extracts the last path segment (a downloaded filename) so Trace origin
+  // can correlate the download with its later on-disk execution (prefetch/shimcache).
+  const fileOf = (u: string) => { try { return new URL(u).pathname.split('/').filter(Boolean).pop() || '' } catch { return '' } }
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-4 text-xs">
@@ -2045,6 +2049,10 @@ function BrowserTable({ data, onLookup }: {
                     {onLookup && host && (
                       <button onClick={() => onLookup({ indicator: host, type: 'domain' })} title={`IOC lookup: ${host}`}
                         className="ml-2 text-gray-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity align-middle"><Search className="h-3 w-3 inline" /></button>
+                    )}
+                    {onTrace && (fileOf(e.url) || host) && (
+                      <button onClick={() => onTrace(fileOf(e.url) || host, 0)} title="Trace origin: correlate this download/URL with on-disk execution"
+                        className="ml-2 text-gray-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity align-middle"><GitBranch className="h-3 w-3 inline" /></button>
                     )}
                   </td>
                 </tr>

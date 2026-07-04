@@ -103,9 +103,14 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.ProxyProfile{},
 		&models.ProxyFlow{},
 		&models.ProxyPoolSetting{},
+		&models.ProxyHealthSample{},
+		&models.OsintScopeRule{},
+		&models.OsintScopeSetting{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
+
+	seedOsintScopePolicy(db)
 
 	// Backfill: legacy single-row ELK/OpenCTI configs predate the multi-profile
 	// schema. Give them a name + active=true so they remain usable after the
@@ -164,4 +169,38 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 
 	slog.Info("migrations applied successfully")
 	return db, nil
+}
+
+// seedOsintScopePolicy installs the default OSINT scope policy on first run. It
+// is keyed on the singleton settings row: once that exists the policy is left
+// entirely to the administrator (so clearing all rules is respected and never
+// re-seeded). The defaults are conservative — active/target-touching collectors
+// only run against EXTERNAL targets over ANONYMIZED egress; everything else is
+// passive-only so a recon never quietly leaks the operator's real IP.
+func seedOsintScopePolicy(db *gorm.DB) {
+	var count int64
+	if err := db.Model(&models.OsintScopeSetting{}).Count(&count).Error; err != nil || count > 0 {
+		return // settings exist (or table unavailable) → admin owns the policy now
+	}
+	if err := db.Create(&models.OsintScopeSetting{
+		ID: 1, Enforce: true, AllowOverride: true,
+		InternalDomains: "local\ncorp\ninternal\nlan",
+	}).Error; err != nil {
+		slog.Warn("could not seed OSINT scope settings", "error", err)
+		return
+	}
+	defaults := []models.OsintScopeRule{
+		{Priority: 10, Name: "Internal targets — passive only", Enabled: true,
+			MatchTargetType: "any", MatchScope: "internal", MatchEgress: "any",
+			Action: "passive_only", RequireProxy: false},
+		{Priority: 20, Name: "Direct egress — passive only (protect real IP)", Enabled: true,
+			MatchTargetType: "any", MatchScope: "any", MatchEgress: "direct",
+			Action: "passive_only", RequireProxy: false},
+		{Priority: 30, Name: "External + anonymized — full recon", Enabled: true,
+			MatchTargetType: "any", MatchScope: "external", MatchEgress: "anonymized",
+			Action: "all", RequireProxy: false},
+	}
+	if err := db.Create(&defaults).Error; err != nil {
+		slog.Warn("could not seed OSINT scope rules", "error", err)
+	}
 }

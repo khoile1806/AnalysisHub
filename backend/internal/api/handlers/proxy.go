@@ -25,6 +25,21 @@ type proxyProfilePayload struct {
 	URL            string `json:"url"`
 	NoProxy        string `json:"no_proxy"`
 	FallbackDirect bool   `json:"fallback_direct"`
+	Lane           string `json:"lane"`            // default | osint | vulnscan
+	QuotaBytes     int64  `json:"quota_bytes"`     // 0 = unlimited
+	QuotaHardStop  bool   `json:"quota_hard_stop"` // auto-deactivate when quota reached
+}
+
+// validLanes are the egress lanes a profile may drive.
+var validLanes = map[string]bool{"default": true, "osint": true, "vulnscan": true}
+
+// laneOf normalises a profile's lane; empty means the default egress lane.
+func laneOf(lane string) string {
+	lane = strings.TrimSpace(strings.ToLower(lane))
+	if lane == "" {
+		return "default"
+	}
+	return lane
 }
 
 // normalizeProxyURL trims and validates a proxy URL (http/https/socks5).
@@ -53,11 +68,28 @@ func requireAdmin(c *gin.Context) bool {
 	return true
 }
 
-// ApplyActiveProxyProfile points the live egress layer at profile and stamps the
-// flow label. Shared by Activate and by startup restore.
+// ApplyActiveProxyProfile points the relevant egress lane at profile. The default
+// lane re-points the whole project-wide egress; a named lane (osint / vulnscan)
+// only re-routes that traffic class. Shared by Activate and by startup restore.
 func ApplyActiveProxyProfile(p models.ProxyProfile) {
-	egress.Set(p.URL, config.EffectiveNoProxy(p.NoProxy), p.FallbackDirect)
-	egress.SetActiveLabel(p.Name)
+	switch laneOf(p.Lane) {
+	case "osint", "vulnscan":
+		egress.SetLaneProxy(laneOf(p.Lane), p.URL)
+	default:
+		egress.Set(p.URL, config.EffectiveNoProxy(p.NoProxy), p.FallbackDirect)
+		egress.SetActiveLabel(p.Name)
+	}
+}
+
+// clearProxyLane drops a lane's routing when its active profile is removed.
+func clearProxyLane(lane string) {
+	switch laneOf(lane) {
+	case "osint", "vulnscan":
+		egress.SetLaneProxy(laneOf(lane), "")
+	default:
+		egress.Set("", config.EffectiveNoProxy(""), false)
+		egress.SetActiveLabel("direct")
+	}
 }
 
 // ListProxyProfiles GET /api/v1/system/proxies
@@ -71,8 +103,23 @@ func ListProxyProfiles(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to list proxies"})
 		return
 	}
+	// Quota usage: bytes attributed to each profile's label over the flow window.
+	usage := map[string]int64{}
+	type row struct {
+		ProxyLabel string
+		Bytes      int64
+	}
+	var rows []row
+	db.Model(&models.ProxyFlow{}).
+		Select("proxy_label, coalesce(sum(bytes_in + bytes_out),0) as bytes").
+		Group("proxy_label").Scan(&rows)
+	for _, r := range rows {
+		usage[r.ProxyLabel] = r.Bytes
+	}
 	for i := range profiles {
 		withMask(&profiles[i])
+		profiles[i].QuotaUsedBytes = usage[profiles[i].Name]
+		profiles[i].OverQuota = profiles[i].QuotaBytes > 0 && profiles[i].QuotaUsedBytes >= profiles[i].QuotaBytes
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": profiles})
 }
@@ -100,11 +147,19 @@ func CreateProxyProfile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
+	lane := laneOf(payload.Lane)
+	if !validLanes[lane] {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "lane must be default, osint, or vulnscan"})
+		return
+	}
 	p := models.ProxyProfile{
 		Name:           strings.TrimSpace(payload.Name),
 		URL:            rawURL,
 		NoProxy:        strings.TrimSpace(payload.NoProxy),
 		FallbackDirect: payload.FallbackDirect,
+		Lane:           lane,
+		QuotaBytes:     payload.QuotaBytes,
+		QuotaHardStop:  payload.QuotaHardStop,
 	}
 	if err := db.Create(&p).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to save proxy"})
@@ -146,6 +201,16 @@ func UpdateProxyProfile(c *gin.Context) {
 	}
 	p.NoProxy = strings.TrimSpace(payload.NoProxy)
 	p.FallbackDirect = payload.FallbackDirect
+	if payload.Lane != "" {
+		lane := laneOf(payload.Lane)
+		if !validLanes[lane] {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "lane must be default, osint, or vulnscan"})
+			return
+		}
+		p.Lane = lane
+	}
+	p.QuotaBytes = payload.QuotaBytes
+	p.QuotaHardStop = payload.QuotaHardStop
 	if err := db.Save(&p).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to update proxy"})
 		return
@@ -177,11 +242,10 @@ func DeleteProxyProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to delete proxy"})
 		return
 	}
-	// Deleting the active proxy drops egress back to a direct connection so we
-	// never silently keep routing through a profile the operator just removed.
+	// Deleting the active proxy drops that lane back to direct so we never silently
+	// keep routing through a profile the operator just removed.
 	if p.IsActive {
-		egress.Set("", config.EffectiveNoProxy(""), false)
-		egress.SetActiveLabel("direct")
+		clearProxyLane(p.Lane)
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "proxy deleted"})
 }
@@ -200,8 +264,10 @@ func ActivateProxyProfile(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "proxy not found"})
 		return
 	}
+	// Only one profile per LANE may be active, so activating an osint-lane exit
+	// doesn't deactivate the default egress proxy (and vice-versa).
 	err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.ProxyProfile{}).Where("id <> ?", p.ID).Update("is_active", false).Error; err != nil {
+		if err := tx.Model(&models.ProxyProfile{}).Where("lane = ? AND id <> ?", laneOf(p.Lane), p.ID).Update("is_active", false).Error; err != nil {
 			return err
 		}
 		return tx.Model(&p).Update("is_active", true).Error
@@ -233,6 +299,8 @@ func DeactivateProxy(c *gin.Context) {
 	db.Model(&models.ProxyProfile{}).Where("is_active = ?", true).Update("is_active", false)
 	egress.Set("", config.EffectiveNoProxy(""), false)
 	egress.SetActiveLabel("direct")
+	egress.SetLaneProxy("osint", "")
+	egress.SetLaneProxy("vulnscan", "")
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "egress set to direct"})
 }
 
@@ -268,17 +336,27 @@ func CheckProxyIdentity(c *gin.Context) {
 	}
 	id := egress.ProbeIdentity(p.URL)
 	now := id.CheckedAt
+	// Drift: a different exit IP than last seen can mean the proxy died and
+	// traffic fell back, or the exit rotated unexpectedly.
+	drift := p.ExitIP != "" && id.IP != "" && id.IP != p.ExitIP
+	prev := p.ExitIPPrev
+	if drift {
+		prev = p.ExitIP
+	}
 	p.ExitIP = id.IP
 	p.ExitCountry = id.Country
 	p.ExitOrg = id.Org
 	p.IsTor = id.IsTor
 	p.ExitCheckedAt = &now
+	p.ExitIPPrev = prev
+	p.IdentityDrift = drift
 	db.Model(&p).Updates(map[string]interface{}{
 		"exit_ip": p.ExitIP, "exit_country": p.ExitCountry, "exit_org": p.ExitOrg,
 		"is_tor": p.IsTor, "exit_checked_at": p.ExitCheckedAt,
+		"exit_ip_prev": p.ExitIPPrev, "identity_drift": p.IdentityDrift,
 	})
 	withMask(&p)
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": p, "identity": id})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": p, "identity": id, "drift": drift})
 }
 
 // updateProfileHealth persists the latest probe result onto a profile row.
@@ -297,4 +375,10 @@ func updateProfileHealth(db *gorm.DB, p *models.ProxyProfile, h egress.Health) {
 		"last_error": p.LastError,
 		"last_check": p.LastCheck,
 	})
+	// Append a rolling health sample for the per-profile uptime/latency sparkline,
+	// and trim anything older than the retention window.
+	if p.ID != 0 {
+		db.Create(&models.ProxyHealthSample{ProfileID: p.ID, Healthy: h.Healthy, LatencyMs: h.LatencyMs, CreatedAt: now})
+		db.Where("profile_id = ? AND created_at < ?", p.ID, now.Add(-7*24*time.Hour)).Delete(&models.ProxyHealthSample{})
+	}
 }

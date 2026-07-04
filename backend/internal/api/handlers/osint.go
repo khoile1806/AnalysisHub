@@ -38,6 +38,10 @@ type createOsintScanRequest struct {
 	AutoPivot bool    `json:"auto_pivot"` // recursively investigate discovered entities
 	MaxDepth  int     `json:"max_depth"`  // pivot depth limit (default 2 when auto_pivot)
 	CaseID    *string `json:"case_id"`    // optional: file this investigation under a DFIR case
+	// ScopeOverride optionally tightens the admin scope policy for this one scan
+	// (all | passive_only | block). It may only make the scan MORE restrictive
+	// than the policy allows, and only when the policy permits overrides.
+	ScopeOverride string `json:"scope_override"`
 }
 
 // DetectOsintTarget classifies a target string without creating a scan, so the
@@ -70,10 +74,22 @@ func DetectOsintTarget(c *gin.Context) {
 			skipped = engine.UnavailableCollectors(names)
 		}
 	}
+	// Evaluate the admin scope policy so the launch UI can show, before the scan
+	// starts, whether active collectors will run for this target.
+	var policy *osint.ScopeDecision
+	var allowOverride bool
+	if db, ok := mustGetDBSilent(c); ok {
+		d := osint.DecideScope(db, target, ttype)
+		policy = &d
+		_, settings := osint.LoadScopePolicy(db)
+		allowOverride = settings.Enforce && settings.AllowOverride
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
 		"target_type":    ttype,
 		"collectors":     names,
 		"skipped_no_key": skipped,
+		"policy":         policy,
+		"allow_override": allowOverride,
 	}})
 }
 
@@ -156,7 +172,34 @@ func CreateOsintScan(c *gin.Context) {
 	db.Model(&scan).Update("root_scan_id", rootSelf)
 	scan.RootScanID = &rootSelf
 
-	names := osint.CollectorNamesFor(ttype)
+	// Apply the admin scope policy: it decides which collectors may run for this
+	// target (all / passive-only / block). An operator may additionally tighten
+	// (never loosen) the decision via ScopeOverride when the policy allows it.
+	decision := osint.DecideScope(db, target, ttype)
+	if strings.TrimSpace(req.ScopeOverride) != "" {
+		if _, settings := osint.LoadScopePolicy(db); settings.Enforce && settings.AllowOverride {
+			decision = osint.ApplyOverride(decision, req.ScopeOverride, osint.CollectorNamesFor(ttype))
+		}
+	}
+	db.Model(&scan).Updates(map[string]interface{}{
+		"scope_mode": string(decision.Mode),
+		"scope_rule": decision.MatchedRule,
+	})
+	scan.ScopeMode = string(decision.Mode)
+	scan.ScopeRule = decision.MatchedRule
+
+	// block mode: nothing may run — record the scan as finished with no collectors
+	// rather than starting an empty pipeline.
+	if decision.Mode == osint.ModeBlock {
+		db.Model(&scan).Update("status", models.OsintDone)
+		writeAudit(c, db, &userID, nil, "osint.create", scan.ID.String(),
+			fmt.Sprintf("target=%s type=%s BLOCKED by scope policy (%s)", target, ttype, decision.MatchedRule))
+		db.Preload("Collectors").First(&scan, "id = ?", scan.ID)
+		c.JSON(http.StatusCreated, gin.H{"success": true, "data": scan, "policy": decision})
+		return
+	}
+
+	names := decision.Allowed
 	collectors := make([]models.OsintCollector, len(names))
 	for i, n := range names {
 		collectors[i] = models.OsintCollector{
@@ -174,7 +217,7 @@ func CreateOsintScan(c *gin.Context) {
 	}
 
 	writeAudit(c, db, &userID, nil, "osint.create", scan.ID.String(),
-		fmt.Sprintf("target=%s type=%s", target, ttype))
+		fmt.Sprintf("target=%s type=%s scope=%s rule=%q", target, ttype, decision.Mode, decision.MatchedRule))
 
 	db.Preload("Collectors").First(&scan, "id = ?", scan.ID)
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": scan})

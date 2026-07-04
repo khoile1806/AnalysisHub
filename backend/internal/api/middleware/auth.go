@@ -13,15 +13,15 @@ import (
 )
 
 const (
-	ContextUserID         = "userID"
-	ContextRole           = "role"
-	ContextAgentID        = "agentID"
+	ContextUserID  = "userID"
+	ContextRole    = "role"
+	ContextAgentID = "agentID"
 )
 
 // Claims extends jwt.RegisteredClaims with application-specific fields.
 type Claims struct {
-	UserID         string `json:"user_id,omitempty"`
-	Role           string `json:"role,omitempty"`
+	UserID string `json:"user_id,omitempty"`
+	Role   string `json:"role,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -71,11 +71,27 @@ func AuthMiddleware(jwtSecret string, db *gorm.DB) gin.HandlerFunc {
 
 		c.Set(ContextUserID, claims.UserID)
 		c.Set("userEmail", user.Email)
-		c.Set(ContextRole, claims.Role)
+		// Trust the role from the DATABASE, not the token claim, so a
+		// role change (e.g. a demotion) takes effect immediately instead of
+		// lingering until the token expires.
+		c.Set(ContextRole, user.Role)
 		c.Next()
 	}
 }
 
+// RequireAdmin aborts the request unless the authenticated user's role is admin.
+// Layer it after AuthMiddleware on high-privilege routes (arbitrary command
+// execution, remote shell, filesystem access) so those can never be reached by a
+// non-admin account.
+func RequireAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if GetRole(c) != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "error": "admin role required"})
+			return
+		}
+		c.Next()
+	}
+}
 
 // AgentAuthMiddleware validates the X-Agent-Token header against the agents table.
 // On success it stores agentID in the Gin context.

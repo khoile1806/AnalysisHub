@@ -46,18 +46,10 @@ func Probe(proxyURL string) Health {
 	probe := probeURL
 	mu.RUnlock()
 
-	client := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: &http.Transport{Proxy: http.ProxyURL(pu)},
-	}
-	start := time.Now()
-	resp, err := client.Get(probe)
-	lat := time.Since(start).Milliseconds()
-	if err != nil {
-		return Health{Healthy: false, LastCheck: time.Now(), LatencyMs: lat, Err: err.Error()}
-	}
-	_ = resp.Body.Close()
-	return Health{Healthy: resp.StatusCode < 500, LastCheck: time.Now(), LatencyMs: lat}
+	// Reuse the shared probe cycle so a per-profile check matches the background
+	// checker: multi-URL fallback + 407 (bad-credentials) treated as unhealthy.
+	ok, lat, errStr := probeProxyOnce(pu, append([]string{probe}, fallbackProbes...))
+	return Health{Healthy: ok, LastCheck: time.Now(), LatencyMs: lat, Err: errStr}
 }
 
 // Flow is one recorded outbound request/response through the egress layer. It is
@@ -131,22 +123,70 @@ func currentLabel() string {
 	return activeLabel
 }
 
-// NewLoggingTransport wraps base so every request/response is recorded as a Flow.
-// When no sink is registered the overhead is a single nil check, so it is safe to
-// install unconditionally. base is typically an *http.Transport whose Proxy is
-// egress.Proxy.
+// NewLoggingTransport wraps base for the DEFAULT egress lane: it attributes
+// each flow to the active Proxy Manager profile (via egress.Proxy) and flags a
+// leak when a proxy is configured but a request went direct. Safe to install
+// unconditionally — with no sink registered the overhead is a nil check.
 func NewLoggingTransport(base http.RoundTripper) http.RoundTripper {
+	return NewLoggingTransportLane(base, "", nil, nil)
+}
+
+// NewLoggingTransportLane wraps base for a NAMED egress lane (e.g. "osint") whose
+// upstream proxy differs from the default egress proxy. Without this, a request
+// routed through OSINT_PROXY would be mislabelled "direct" because the default
+// egress.Proxy doesn't know about it.
+//
+//   - lane:        label stamped on proxied flows from this transport ("" = use
+//     the active profile name, for the default egress lane).
+//   - proxyFn:     resolves the ACTUAL upstream proxy for this lane (nil = the
+//     default egress.Proxy). A non-nil result means the request is proxied.
+//   - expectProxy: reports whether this lane is meant to be anonymized right now,
+//     used for leak detection (nil = !egress.Direct(), the default lane's state).
+func NewLoggingTransportLane(base http.RoundTripper, lane string, proxyFn func(*http.Request) (*url.URL, error), expectProxy func() bool) http.RoundTripper {
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	return &loggingTransport{base: base}
+	return &loggingTransport{base: base, lane: lane, proxyFn: proxyFn, expectProxy: expectProxy}
 }
 
-type loggingTransport struct{ base http.RoundTripper }
+type loggingTransport struct {
+	base        http.RoundTripper
+	lane        string
+	proxyFn     func(*http.Request) (*url.URL, error)
+	expectProxy func() bool
+}
 
 // Unwrap exposes the wrapped transport so callers that need the underlying
 // *http.Transport (e.g. to inspect its Proxy/Dial settings) can reach it.
 func (l *loggingTransport) Unwrap() http.RoundTripper { return l.base }
+
+// resolveProxy returns this lane's proxy resolver (its own, or the default).
+func (l *loggingTransport) resolveProxy() func(*http.Request) (*url.URL, error) {
+	if l.proxyFn != nil {
+		return l.proxyFn
+	}
+	return Proxy
+}
+
+// labelFor names a flow: the lane (or active profile) when proxied, else direct.
+func (l *loggingTransport) labelFor(viaProxy bool) string {
+	if !viaProxy {
+		return "direct"
+	}
+	if l.lane != "" {
+		return l.lane
+	}
+	return currentLabel()
+}
+
+// expectsProxy reports whether this lane should currently be anonymized, so a
+// direct request can be flagged as a leak only when a proxy was expected.
+func (l *loggingTransport) expectsProxy() bool {
+	if l.expectProxy != nil {
+		return l.expectProxy()
+	}
+	return !Direct()
+}
 
 func (l *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now()
@@ -170,7 +210,7 @@ func (l *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 
 	viaProxy := false
 	if req.URL != nil {
-		if u, err := Proxy(req); err == nil && u != nil {
+		if u, err := l.resolveProxy()(req); err == nil && u != nil {
 			viaProxy = true
 		}
 	}
@@ -179,7 +219,7 @@ func (l *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		Time:       start,
 		Method:     req.Method,
 		ViaProxy:   viaProxy,
-		ProxyLabel: labelFor(viaProxy),
+		ProxyLabel: l.labelFor(viaProxy),
 		Source:     sourceFor(req),
 		BytesOut:   nonNeg(req.ContentLength),
 	}
@@ -187,9 +227,9 @@ func (l *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		f.Host = req.URL.Hostname()
 		f.Scheme = req.URL.Scheme
 		f.URL = redactURL(req.URL)
-		// Anonymity leak: a proxy is active but this request went straight out to
-		// a non-loopback host. Loopback bypasses (localhost SIEM, etc.) are fine.
-		f.Leaked = !viaProxy && !Direct() && !isLoopbackHost(f.Host)
+		// Anonymity leak: this lane expects a proxy but the request went straight
+		// out to a non-loopback host. Loopback bypasses (localhost SIEM, etc.) fine.
+		f.Leaked = !viaProxy && l.expectsProxy() && !isLoopbackHost(f.Host)
 	}
 
 	resp, err := l.base.RoundTrip(req)
@@ -287,13 +327,6 @@ func (c *countingBody) Close() error {
 		emitFlow(c.flow)
 	})
 	return err
-}
-
-func labelFor(viaProxy bool) string {
-	if !viaProxy {
-		return "direct"
-	}
-	return currentLabel()
 }
 
 func nonNeg(v int64) int64 {

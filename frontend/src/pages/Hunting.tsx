@@ -24,6 +24,7 @@ import {
   CalendarPlus,
   Radar,
   Database,
+  GitBranch,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { safeDistanceToNow } from '@/lib/utils'
@@ -38,6 +39,7 @@ import { agentsApi } from '@/api/agents'
 import { jobsApi } from '@/api/jobs'
 import { casesApi } from '@/api/cases'
 import { traceApi } from '@/api/trace'
+import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 import { openctiApi } from '@/api/opencti'
 import type { IOCSweepResult } from '@/api/agents'
 import { JobStatusBadge, AgentStatusBadge } from '@/components/StatusBadge'
@@ -696,6 +698,7 @@ function IOCSweepTab() {
   const [running, setRunning] = useState(false)
   const [caseId, setCaseId] = useState('')
   const [useStore, setUseStore] = useState(false)
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
   const { data: facets } = useQuery({ queryKey: ['ioc-facets'], queryFn: openctiApi.iocFacets })
   const storeTotal = facets?.total ?? 0
@@ -805,15 +808,25 @@ function IOCSweepTab() {
                       <th className="px-3 py-2 text-left text-gray-500 font-medium">Type</th>
                       <th className="px-3 py-2 text-left text-gray-500 font-medium">Artifact</th>
                       <th className="px-3 py-2 text-left text-gray-500 font-medium">Where found</th>
+                      <th className="px-3 py-2 text-right text-gray-500 font-medium w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {result.matches.map((m, i) => (
-                      <tr key={i} className="border-b border-gray-900 hover:bg-white/5 bg-red-500/5">
+                      <tr key={i} className="group border-b border-gray-900 hover:bg-white/5 bg-red-500/5">
                         <td className="px-3 py-1.5 font-mono text-red-300 break-all max-w-[220px]">{m.indicator}</td>
                         <td className="px-3 py-1.5"><span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${IND_BADGE[m.indicator_type] ?? 'text-gray-400 border-slate-700'}`}>{m.indicator_type}</span></td>
                         <td className="px-3 py-1.5 text-gray-400">{m.artifact}</td>
                         <td className="px-3 py-1.5 font-mono text-gray-300 break-all">{m.context}</td>
+                        <td className="px-2 py-1.5 text-right">
+                          {agent && (
+                            <button onClick={() => setTraceTarget({ target: m.indicator, pid: 0 })}
+                              title="Trace origin of this indicator on the endpoint (parent chain, download URL, execution)"
+                              className="text-gray-500 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <GitBranch className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -832,6 +845,10 @@ function IOCSweepTab() {
             </>
           )}
         </div>
+      )}
+
+      {traceTarget && agent && (
+        <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />
       )}
     </div>
   )

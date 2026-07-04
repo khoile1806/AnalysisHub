@@ -4,18 +4,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
-  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert,
+  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert, ShieldCheck,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
 import { CanaryPanel } from './CanaryTokens'
 import { OobPanel } from './Oob'
 import { VulnScanPanel } from './VulnScan'
+import { ScopePolicyPanel } from './OsintScopePolicy'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
   osintApi, COLLECTOR_LABELS,
   type OsintScan, type OsintTargetType, type DetectResult, type ImageExtraction,
-  type EmailCandidate, type DocMetaResult,
+  type EmailCandidate, type DocMetaResult, type ScopeMode,
 } from '@/api/osint'
 import { analysisApi } from '@/api/analysis'
 import { casesApi } from '@/api/cases'
@@ -24,6 +25,22 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter, DialogBody,
 } from '@/components/ui/dialog'
+
+// Operator override choices offered on the launch form — only options STRICTER
+// than the policy's own decision, so an override can never widen the scan.
+function OVERRIDE_OPTIONS(mode: ScopeMode): { val: '' | ScopeMode; label: string }[] {
+  const opts: { val: '' | ScopeMode; label: string }[] = [{ val: '', label: 'Policy default' }]
+  if (mode === 'all') opts.push({ val: 'passive_only', label: 'Passive only' })
+  opts.push({ val: 'block', label: 'Block' })
+  return opts
+}
+
+// Visual style per scope-policy decision shown on the launch form.
+const SCOPE_STYLE: Record<ScopeMode, { label: string; box: string; icon: string; text: string }> = {
+  all:          { label: 'Full recon',   box: 'border-emerald-900/50 bg-emerald-950/20', icon: 'text-emerald-400', text: 'text-emerald-300' },
+  passive_only: { label: 'Passive only',  box: 'border-amber-900/50 bg-amber-950/20',    icon: 'text-amber-400',   text: 'text-amber-300' },
+  block:        { label: 'Blocked',       box: 'border-red-900/50 bg-red-950/20',        icon: 'text-red-400',     text: 'text-red-300' },
+}
 
 const STATUS_BADGE: Record<OsintScan['status'], { label: string; cls: string }> = {
   pending: { label: 'Pending', cls: 'bg-gray-700 text-gray-300' },
@@ -87,6 +104,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
   const [caseId, setCaseId] = useState('')
   const [detected, setDetected] = useState<DetectResult | null>(null)
   const [detectError, setDetectError] = useState('')
+  const [scopeOverride, setScopeOverride] = useState<'' | ScopeMode>('')
 
   // Cases to optionally file the investigation under (only open ones offered).
   const { data: cases = [] } = useQuery({
@@ -96,7 +114,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
   })
 
   const reset = () => {
-    setTarget(''); setName(''); setAutoPivot(false); setDepth(2); setCaseId(''); setDetected(null); setDetectError('')
+    setTarget(''); setName(''); setAutoPivot(false); setDepth(2); setCaseId(''); setDetected(null); setDetectError(''); setScopeOverride('')
   }
 
   const mutation = useMutation({
@@ -118,7 +136,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
   // type + which collectors will run, so the input is no longer a blind text box.
   useEffect(() => {
     const t = target.trim()
-    setDetected(null); setDetectError('')
+    setDetected(null); setDetectError(''); setScopeOverride('')
     if (!t) { setDetecting(false); return }
     setDetecting(true)
     const seq = ++detectSeq.current
@@ -144,6 +162,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
       auto_pivot: autoPivot,
       max_depth: autoPivot ? depth : undefined,
       case_id: caseId || undefined,
+      scope_override: scopeOverride || undefined,
     })
   }
 
@@ -199,7 +218,12 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
                 ))}
               </div>
 
-              {detected && (
+              {detected && (() => {
+                const policy = detected.policy ?? null
+                const blockedByPolicy = new Set(policy?.blocked_collectors ?? [])
+                const noKey = new Set(detected.skipped_no_key ?? [])
+                const willRun = detected.collectors.filter(c => !noKey.has(c) && !blockedByPolicy.has(c))
+                return (
                 <div className="mt-2 rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-2.5 space-y-1.5">
                   <div className="flex items-center gap-2">
                     {(() => {
@@ -210,25 +234,65 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
                       {TYPE_LABEL[detected.target_type as OsintTargetType] ?? detected.target_type.replace(/_/g, ' ')}
                     </span>
                     <span className="ml-auto text-[10px] font-mono text-gray-500">
-                      {detected.collectors.filter(c => !(detected.skipped_no_key ?? []).includes(c)).length} collectors
+                      {willRun.length} collectors
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {detected.collectors
-                      .filter(c => !(detected.skipped_no_key ?? []).includes(c))
-                      .map(c => (
-                        <span key={c} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-800/70 text-gray-300 border border-slate-700">
-                          {COLLECTOR_LABELS[c] ?? c}
-                        </span>
-                      ))}
+                    {willRun.map(c => (
+                      <span key={c} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-800/70 text-gray-300 border border-slate-700">
+                        {COLLECTOR_LABELS[c] ?? c}
+                      </span>
+                    ))}
                   </div>
                   {(detected.skipped_no_key?.length ?? 0) > 0 && (
                     <p className="text-[10px] text-amber-500/80">
                       Skipped (no API key): {detected.skipped_no_key!.map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
                     </p>
                   )}
+
+                  {/* Admin scope-policy decision: whether active (target-touching)
+                      collectors may run for this target. */}
+                  {policy && policy.enforced && (
+                    <div className={`mt-1 rounded-md border p-2 ${SCOPE_STYLE[policy.mode].box}`}>
+                      <div className="flex items-center gap-1.5">
+                        <ShieldAlert className={`h-3.5 w-3.5 shrink-0 ${SCOPE_STYLE[policy.mode].icon}`} />
+                        <span className={`text-[11px] font-semibold ${SCOPE_STYLE[policy.mode].text}`}>
+                          Scope policy: {SCOPE_STYLE[policy.mode].label}
+                        </span>
+                        <span className="ml-auto text-[9px] uppercase tracking-wide font-mono text-gray-500">
+                          {policy.scope} · {policy.anonymized ? 'via proxy' : 'direct'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] text-gray-400">{policy.reason}</p>
+                      {policy.matched_rule && (
+                        <p className="text-[9px] text-gray-600">rule: {policy.matched_rule}</p>
+                      )}
+                      {blockedByPolicy.size > 0 && (
+                        <p className="mt-1 text-[10px] text-amber-500/80">
+                          Blocked by policy: {[...blockedByPolicy].map(c => COLLECTOR_LABELS[c] ?? c).join(' · ')}
+                        </p>
+                      )}
+                      {detected.allow_override && policy.mode !== 'block' && (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-500">Tighten:</span>
+                          {OVERRIDE_OPTIONS(policy.mode).map(opt => (
+                            <button
+                              key={opt.val || 'default'} type="button"
+                              onClick={() => setScopeOverride(opt.val)}
+                              className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                                scopeOverride === opt.val
+                                  ? 'bg-indigo-600 border-indigo-500 text-white'
+                                  : 'border-slate-700 text-gray-400 hover:text-gray-200'
+                              }`}
+                            >{opt.label}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+                )
+              })()}
               {detectError && (
                 <p className="mt-2 text-xs text-red-400">{detectError}</p>
               )}
@@ -663,7 +727,7 @@ function TabButton({ active, onClick, icon: Icon, label }: {
   )
 }
 
-type OsintTab = 'investigations' | 'watchlist' | 'canary' | 'oob' | 'vulnscan'
+type OsintTab = 'investigations' | 'watchlist' | 'canary' | 'oob' | 'vulnscan' | 'scope'
 
 export default function OsintPage() {
   const qc = useQueryClient()
@@ -724,9 +788,12 @@ export default function OsintPage() {
         <TabButton active={tab === 'canary'} onClick={() => setTab('canary')} icon={Link2} label="Canary Tokens" />
         <TabButton active={tab === 'oob'} onClick={() => setTab('oob')} icon={Radio} label="Catch (OOB)" />
         <TabButton active={tab === 'vulnscan'} onClick={() => setTab('vulnscan')} icon={ShieldAlert} label="Vuln Scan" />
+        <TabButton active={tab === 'scope'} onClick={() => setTab('scope')} icon={ShieldCheck} label="Scope Policy" />
       </div>
 
-      {tab === 'vulnscan' ? (
+      {tab === 'scope' ? (
+        <ScopePolicyPanel />
+      ) : tab === 'vulnscan' ? (
         <VulnScanPanel />
       ) : tab === 'oob' ? (
         <OobPanel />

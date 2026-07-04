@@ -1,11 +1,24 @@
 import { useState } from 'react'
-import { Search, Database, AlertTriangle } from 'lucide-react'
+import { Search, Database, AlertTriangle, GitBranch } from 'lucide-react'
 import { agentsApi, type Agent } from '@/api/agents'
 import toast from 'react-hot-toast'
+import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+// exeFromValue extracts the executable a registry value points to (e.g. a Run-key
+// command) so Trace origin can reconstruct WHERE that binary came from. Returns
+// the basename only when the value clearly references an executable, else "".
+function exeFromValue(v: unknown): string {
+  const s = typeof v === 'string' ? v : ''
+  if (!s) return ''
+  const m = s.match(/"([^"]+)"/)
+  const first = m ? m[1] : s.split(/\s+/)[0]
+  if (!/\.(exe|dll|bat|cmd|ps1|scr|com)$/i.test(first)) return ''
+  return first.split(/[\\/]/).pop() || ''
+}
 
 export function RegistryViewer({ agent }: { agent: Agent }) {
   const [root, setRoot] = useState('HKLM')
@@ -13,6 +26,7 @@ export function RegistryViewer({ agent }: { agent: Agent }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
   const handleParse = async () => {
     if (!path) {
@@ -149,6 +163,42 @@ export function RegistryViewer({ agent }: { agent: Agent }) {
              <div className="h-full flex items-center justify-center text-gray-500">
                <p className="text-sm">Enter a path and click "Read Key" to view registry values.</p>
              </div>
+          ) : Array.isArray(result?.values) ? (
+             <div className="space-y-2">
+               {result.key_path && <div className="text-[11px] font-mono text-gray-500 break-all">{result.key_path}</div>}
+               <div className="overflow-auto rounded-lg border border-gray-800">
+                 <table className="w-full text-xs">
+                   <thead className="sticky top-0 bg-gray-900 z-10">
+                     <tr className="border-b border-gray-800">
+                       <th className="px-3 py-2 text-left text-gray-500 font-medium">Name</th>
+                       <th className="px-3 py-2 text-left text-gray-500 font-medium">Type</th>
+                       <th className="px-3 py-2 text-left text-gray-500 font-medium">Value</th>
+                       <th className="px-2 py-2 w-10"></th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {result.values.map((v: any, i: number) => {
+                       const exe = exeFromValue(v.value)
+                       return (
+                         <tr key={i} className="group border-b border-gray-900 hover:bg-white/5">
+                           <td className="px-3 py-1.5 font-mono text-gray-300 whitespace-nowrap">{v.name || '(Default)'}</td>
+                           <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{v.type || '—'}</td>
+                           <td className="px-3 py-1.5 font-mono text-gray-400 break-all">{v.error ? <span className="text-red-400">{v.error}</span> : String(v.value ?? '')}</td>
+                           <td className="px-2 py-1.5 text-right">
+                             {exe && agent.status === 'online' && (
+                               <button onClick={() => setTraceTarget({ target: exe, pid: 0 })} title={`Trace origin of ${exe}`}
+                                 className="text-gray-500 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <GitBranch className="h-3.5 w-3.5" />
+                               </button>
+                             )}
+                           </td>
+                         </tr>
+                       )
+                     })}
+                   </tbody>
+                 </table>
+               </div>
+             </div>
           ) : (
              <div className="bg-gray-950 rounded border border-gray-800 p-4 overflow-auto">
                <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-all">
@@ -158,6 +208,7 @@ export function RegistryViewer({ agent }: { agent: Agent }) {
           )}
         </div>
       </div>
+      {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
     </div>
   )
 }

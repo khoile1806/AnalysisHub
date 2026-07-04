@@ -2,6 +2,7 @@ package egress
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -69,6 +70,89 @@ func ProbeIdentity(proxyURL string) Identity {
 		}
 	}
 	return out
+}
+
+// LeakTestResult is the outcome of an exit-consistency self-test: the exit IP
+// each independent echo service reports through the proxy. When they all agree,
+// the proxy presents one stable identity; a disagreement (or a failure to reach
+// some services) can indicate split routing or a partially-applied proxy.
+type LeakTestResult struct {
+	ExitIPs    map[string]string `json:"exit_ips"`
+	ExitIP     string            `json:"exit_ip"`
+	Consistent bool              `json:"consistent"`
+	CheckedAt  time.Time         `json:"checked_at"`
+	Err        string            `json:"error,omitempty"`
+}
+
+// LeakTest asks several independent echo services, THROUGH the proxy, what exit
+// IP they see. Agreement across services is evidence the proxy is applied
+// consistently to egress; disagreement is a red flag worth investigating.
+func LeakTest(proxyURL string) LeakTestResult {
+	out := LeakTestResult{ExitIPs: map[string]string{}, CheckedAt: time.Now()}
+	proxyURL = strings.TrimSpace(proxyURL)
+	if proxyURL == "" {
+		out.Err = "empty proxy URL"
+		return out
+	}
+	pu, err := url.Parse(proxyURL)
+	if err != nil {
+		out.Err = "invalid proxy URL"
+		return out
+	}
+	client := &http.Client{
+		Timeout:   12 * time.Second,
+		Transport: &http.Transport{Proxy: http.ProxyURL(pu)},
+	}
+
+	// api.ipify.org (JSON).
+	var ipify struct {
+		IP string `json:"ip"`
+	}
+	if e := getJSONThrough(client, "https://api.ipify.org/?format=json", &ipify); e == nil && ipify.IP != "" {
+		out.ExitIPs["ipify"] = ipify.IP
+	}
+	// ip-api.com (JSON).
+	var ipapi struct {
+		Query string `json:"query"`
+	}
+	if e := getJSONThrough(client, "http://ip-api.com/json/?fields=query", &ipapi); e == nil && ipapi.Query != "" {
+		out.ExitIPs["ip-api"] = ipapi.Query
+	}
+	// icanhazip.com (plain text).
+	if ip := getTextThrough(client, "https://icanhazip.com/"); ip != "" {
+		out.ExitIPs["icanhazip"] = ip
+	}
+
+	if len(out.ExitIPs) == 0 {
+		out.Err = "no echo service reachable through the proxy"
+		return out
+	}
+	first := ""
+	out.Consistent = true
+	for _, ip := range out.ExitIPs {
+		if first == "" {
+			first = ip
+			out.ExitIP = ip
+		} else if ip != first {
+			out.Consistent = false
+		}
+	}
+	return out
+}
+
+func getTextThrough(client *http.Client, u string) string {
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("User-Agent", "AnalysisHub-ProxyLeakTest/1.0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 128))
+	return strings.TrimSpace(string(b))
 }
 
 func getJSONThrough(client *http.Client, u string, dst interface{}) error {

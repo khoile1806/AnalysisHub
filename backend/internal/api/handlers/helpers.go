@@ -31,6 +31,17 @@ func mustGetDB(c *gin.Context) (*gorm.DB, bool) {
 	return db, true
 }
 
+// mustGetDBSilent retrieves the *gorm.DB without writing any response when it is
+// absent — for optional, best-effort reads where the caller degrades gracefully.
+func mustGetDBSilent(c *gin.Context) (*gorm.DB, bool) {
+	v, exists := c.Get("db")
+	if !exists {
+		return nil, false
+	}
+	db, ok := v.(*gorm.DB)
+	return db, ok
+}
+
 // mustGetStorage retrieves the *storage.LocalStorage from the Gin context.
 func mustGetStorage(c *gin.Context) (*storage.LocalStorage, bool) {
 	v, exists := c.Get("storage")

@@ -104,6 +104,25 @@ export interface CreateOsintScanData {
   auto_pivot?: boolean  // recursively investigate discovered entities
   max_depth?: number    // pivot depth limit (default 2)
   case_id?: string      // optional: file this investigation under a DFIR case
+  // scope_override optionally tightens the admin scope policy for this one scan
+  // (all | passive_only | block). May only make the scan MORE restrictive.
+  scope_override?: ScopeMode
+}
+
+export type ScopeMode = 'all' | 'passive_only' | 'block'
+
+// ScopeDecision is what the admin scope policy resolved for a target: which
+// collectors may run and why. Surfaced on the launch form before the scan starts.
+export interface ScopeDecision {
+  mode: ScopeMode
+  allowed_collectors: string[]
+  blocked_collectors: string[]
+  require_proxy: boolean
+  anonymized: boolean          // current OSINT egress state
+  scope: 'internal' | 'external'
+  enforced: boolean            // false when the master switch is off
+  matched_rule: string
+  reason: string
 }
 
 export interface DetectResult {
@@ -111,6 +130,61 @@ export interface DetectResult {
   collectors: string[]
   // Collectors that will be skipped because their optional API key is unset.
   skipped_no_key?: string[]
+  // Admin scope-policy decision for this target (null when unavailable).
+  policy?: ScopeDecision | null
+  // Whether the operator may tighten the decision at launch (policy-permitting).
+  allow_override?: boolean
+}
+
+// ── OSINT scope policy (admin) ─────────────────────────────────────────────
+export interface OsintScopeRule {
+  id: number
+  priority: number
+  name: string
+  enabled: boolean
+  match_target_type: string
+  match_scope: string
+  match_egress: string
+  action: ScopeMode
+  require_proxy: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface OsintScopeSettings {
+  id: number
+  enforce: boolean
+  allow_override: boolean
+  internal_domains: string
+  updated_at?: string
+}
+
+export type OsintScopeRulePayload = Omit<OsintScopeRule, 'id' | 'created_at' | 'updated_at'>
+
+export const osintPolicyApi = {
+  listRules: async (): Promise<OsintScopeRule[]> => {
+    const { data } = await apiClient.get<ApiResponse<OsintScopeRule[]>>('/osint/policy/rules')
+    return data.data
+  },
+  createRule: async (body: OsintScopeRulePayload): Promise<OsintScopeRule> => {
+    const { data } = await apiClient.post<ApiResponse<OsintScopeRule>>('/osint/policy/rules', body)
+    return data.data
+  },
+  updateRule: async (id: number, body: OsintScopeRulePayload): Promise<OsintScopeRule> => {
+    const { data } = await apiClient.patch<ApiResponse<OsintScopeRule>>(`/osint/policy/rules/${id}`, body)
+    return data.data
+  },
+  deleteRule: async (id: number): Promise<void> => {
+    await apiClient.delete(`/osint/policy/rules/${id}`)
+  },
+  getSettings: async (): Promise<OsintScopeSettings> => {
+    const { data } = await apiClient.get<ApiResponse<OsintScopeSettings>>('/osint/policy/settings')
+    return data.data
+  },
+  updateSettings: async (body: Partial<Pick<OsintScopeSettings, 'enforce' | 'allow_override' | 'internal_domains'>>): Promise<OsintScopeSettings> => {
+    const { data } = await apiClient.put<ApiResponse<OsintScopeSettings>>('/osint/policy/settings', body)
+    return data.data
+  },
 }
 
 // Investigation graph (auto-pivot): nodes are scans, edges are pivot links.

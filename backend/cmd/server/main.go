@@ -26,6 +26,7 @@ import (
 	"github.com/analysishub/backend/internal/hunting/sigma"
 	"github.com/analysishub/backend/internal/logger"
 	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/notify"
 	"github.com/analysishub/backend/internal/oob"
 	"github.com/analysishub/backend/internal/osint"
 	"github.com/analysishub/backend/internal/storage"
@@ -115,17 +116,29 @@ func main() {
 	// and restore the active proxy profile so a switch survives a restart. A saved
 	// active profile takes precedence over the OUTBOUND_PROXY env default.
 	egress.SetFlowSink(handlers.NewProxyFlowRecorder(db).Sink)
+	handlers.SetLeakNotifier(notify.New(cfg.NotifyWebhookURL, cfg.NotifyTelegramToken, cfg.NotifyTelegramChat))
 	if cfg.OutboundProxy != "" {
 		egress.SetActiveLabel("env")
 	}
-	var activeProxy models.ProxyProfile
-	if err := db.Where("is_active = ?", true).First(&activeProxy).Error; err == nil {
-		handlers.ApplyActiveProxyProfile(activeProxy)
+	// Restore every active profile (one per egress lane: default / osint / vulnscan)
+	// so a switch survives a restart.
+	var activeProxies []models.ProxyProfile
+	if err := db.Where("is_active = ?", true).Find(&activeProxies).Error; err == nil {
+		for i := range activeProxies {
+			handlers.ApplyActiveProxyProfile(activeProxies[i])
+			slog.Info("restored active proxy profile", "name", activeProxies[i].Name, "lane", activeProxies[i].Lane)
+		}
 		egress.CheckNow()
-		slog.Info("restored active proxy profile", "name", activeProxy.Name)
+	}
+	// Arm the kill-switch from persisted settings.
+	var poolSetting models.ProxyPoolSetting
+	if err := db.First(&poolSetting, 1).Error; err == nil {
+		egress.SetKillSwitch(poolSetting.KillSwitch)
 	}
 	// Pool automation (failover / rotation); a no-op while mode is manual.
 	handlers.StartProxyPoolAutomation(db)
+	// Periodic exit-identity drift watch on active profiles.
+	handlers.StartProxyIdentityRefresh(db, 15*time.Minute)
 
 	// ------------------------------------------------------------------ //
 	// 4. Connect to Redis

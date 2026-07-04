@@ -10,9 +10,9 @@ import (
 	"github.com/analysishub/backend/internal/config"
 	"github.com/analysishub/backend/internal/oob"
 	"github.com/analysishub/backend/internal/osint"
-	"github.com/analysishub/backend/internal/vulnscan"
 	"github.com/analysishub/backend/internal/storage"
 	"github.com/analysishub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/vulnscan"
 	"github.com/analysishub/backend/internal/ws"
 )
 
@@ -80,7 +80,7 @@ func NewRouter(
 
 	// WebSocket — agents + interactive admin terminal.
 	router.GET("/ws/agent", middleware.AgentAuthMiddleware(db), handlers.AgentWebSocket)
-	router.GET("/ws/terminal", middleware.AuthMiddleware(jwtSecret, db), handlers.TerminalWebSocket)
+	router.GET("/ws/terminal", middleware.AuthMiddleware(jwtSecret, db), middleware.RequireAdmin(), handlers.TerminalWebSocket)
 
 	v1 := router.Group("/api/v1")
 
@@ -127,16 +127,16 @@ func NewRouter(
 		protected.POST("/agents/:id/dlls", handlers.AgentDllsParse)
 		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
 		protected.POST("/agents/:id/browser", handlers.AgentBrowserParse)
-		protected.POST("/agents/:id/triage", handlers.AgentTriageCollect)
+		protected.POST("/agents/:id/triage", middleware.RequireAdmin(), handlers.AgentTriageCollect)
 		protected.POST("/agents/:id/ioc-sweep", handlers.AgentIOCSweep)
 		protected.POST("/agents/:id/baseline", handlers.SetAgentBaseline)
 		protected.GET("/agents/:id/baseline", handlers.GetAgentBaseline)
-		protected.POST("/agents/:id/kill", handlers.AgentKillProcess)
+		protected.POST("/agents/:id/kill", middleware.RequireAdmin(), handlers.AgentKillProcess)
 
-		// Filesystem browser
-		protected.GET("/agents/:id/fs", handlers.ListAgentFS)
-		protected.GET("/agents/:id/fs/download", handlers.DownloadAgentPath)
-		protected.POST("/agents/:id/fs/download-bundle", handlers.DownloadAgentBundle)
+		// Filesystem browser — arbitrary remote file read, so admin-only.
+		protected.GET("/agents/:id/fs", middleware.RequireAdmin(), handlers.ListAgentFS)
+		protected.GET("/agents/:id/fs/download", middleware.RequireAdmin(), handlers.DownloadAgentPath)
+		protected.POST("/agents/:id/fs/download-bundle", middleware.RequireAdmin(), handlers.DownloadAgentBundle)
 		protected.GET("/agents/binary/:platform", handlers.DownloadAgentBinary)
 
 		// Fleet management — groups/tags, bulk collection, scheduled collections.
@@ -278,6 +278,17 @@ func NewRouter(
 		protected.POST("/osint/reverse-image", handlers.ReverseImage)
 		protected.POST("/osint/promote-ioc", handlers.PromoteOsintIOC)
 
+		// OSINT scope policy — admin-defined rules deciding whether a scan may run
+		// its active (target-touching) collectors. Reads are open (the launch UI
+		// shows the decision); mutations are admin-gated inside each handler. The
+		// static "policy" segment sits alongside the "/osint/:id" param routes.
+		protected.GET("/osint/policy/rules", handlers.ListOsintScopeRules)
+		protected.POST("/osint/policy/rules", handlers.CreateOsintScopeRule)
+		protected.PATCH("/osint/policy/rules/:id", handlers.UpdateOsintScopeRule)
+		protected.DELETE("/osint/policy/rules/:id", handlers.DeleteOsintScopeRule)
+		protected.GET("/osint/policy/settings", handlers.GetOsintScopeSettings)
+		protected.PUT("/osint/policy/settings", handlers.UpdateOsintScopeSettings)
+
 		// OSINT watchlist — continuous monitoring (A4). Static "watches" segment
 		// sits alongside the "/osint/:id" param routes.
 		protected.GET("/osint/watches", handlers.ListOsintWatches)
@@ -337,8 +348,8 @@ func NewRouter(
 
 		// Volatility Memory Analysis
 		protected.GET("/memory/dumps", handlers.ListMemoryDumps)
-		protected.POST("/memory/upload", handlers.UploadMemoryDump)
-		protected.DELETE("/memory/dumps/:filename", handlers.DeleteMemoryDump)
+		protected.POST("/memory/upload", middleware.RequireAdmin(), handlers.UploadMemoryDump)
+		protected.DELETE("/memory/dumps/:filename", middleware.RequireAdmin(), handlers.DeleteMemoryDump)
 
 		// Sandbox terminal — issue the iframe's path-scoped cookie. Mounted here
 		// (behind AuthMiddleware) so the SPA's Bearer fetch authenticates; the
@@ -382,7 +393,7 @@ func NewRouter(
 		protected.GET("/evidence/:id/view", evidenceHandler.View)
 
 		// Evidence Collection Checklist
-		protected.POST("/checklist/run", handlers.RunChecklist)
+		protected.POST("/checklist/run", middleware.RequireAdmin(), handlers.RunChecklist)
 		protected.GET("/checklist/runs", handlers.ListChecklistRuns)
 		protected.GET("/checklist/runs/:id", handlers.GetChecklistRun)
 		protected.GET("/checklist/batches/:id/output", handlers.StreamBatchOutput)
@@ -455,6 +466,10 @@ func NewRouter(
 		protected.POST("/system/proxies/:id/activate", handlers.ActivateProxyProfile)
 		protected.POST("/system/proxies/:id/check", handlers.CheckProxyProfile)
 		protected.POST("/system/proxies/:id/identity", handlers.CheckProxyIdentity)
+		protected.POST("/system/proxies/:id/leak-test", handlers.LeakTestProxy)
+		protected.GET("/system/proxies/:id/health-history", handlers.GetProxyHealthHistory)
+		protected.POST("/system/proxies/bulk", handlers.BulkCreateProxies)
+		protected.POST("/system/proxies/check-all", handlers.CheckAllProxies)
 		protected.POST("/system/proxies/deactivate", handlers.DeactivateProxy)
 		protected.GET("/system/proxies/mode", handlers.GetProxyMode)
 		protected.POST("/system/proxies/mode", handlers.SetProxyMode)

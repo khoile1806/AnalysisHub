@@ -126,17 +126,55 @@ const SYSMON_NAMES: Record<number, string> = {
 
 // evtxTarget extracts the process/file an event is about (NewProcessName, Image,
 // …) as a basename, so it can be traced back to its origin. "" when none.
+// evtxTarget picks the binary/executable an event references so Trace origin can
+// reconstruct where it came from. Ordered by preference (the acting process
+// first, then parents, then service/image-load binaries). Returns "" for events
+// with no binary to trace — e.g. pure logon / audit records (4624/4625) carry an
+// account, not a process, so no Trace button is shown for them.
 function evtxTarget(e: EvtEvent): string {
-  const want = ['newprocessname', 'image', 'processname', 'targetimage', 'sourceimage', 'application', 'originalfilename', 'targetfilename']
+  const want = [
+    // Acting process / image (4688, Sysmon 1, most execution events)
+    'newprocessname', 'image', 'processname', 'application',
+    // Sysmon file / target / source images
+    'targetimage', 'sourceimage', 'targetfilename', 'originalfilename', 'imageloaded',
+    // Parent process (still a real binary to trace)
+    'parentimage', 'parentprocessname',
+    // Service install (7045: ImagePath) / other resolved paths
+    'imagepath', 'servicefilename', 'callerprocessname',
+  ]
   const d = e.data || {}
+  // Build a case-insensitive lookup once so field-name casing never hides a match.
+  const lower: Record<string, string> = {}
+  for (const k of Object.keys(d)) lower[k.toLowerCase()] = d[k]
   for (const w of want) {
-    for (const k of Object.keys(d)) {
-      if (k.toLowerCase() === w && d[k] && d[k] !== '-') {
-        const v = d[k].trim()
-        return v.split(/[\\/]/).pop() || v
-      }
+    const v = lower[w]
+    if (v && v !== '-') {
+      const t = String(v).trim()
+      return t.split(/[\\/]/).pop() || t
     }
   }
+  return ''
+}
+
+// bestTraceTarget always yields SOMETHING to trace so every event row shows a
+// Trace button. It prefers a real binary (evtxTarget); for events that carry no
+// process/image — pure logon, RDP session, share access — it falls back to the
+// acting account (from EventData, or parsed out of the rendered message, e.g.
+// "User: DOMAIN\name"). Tracing an account gives a thinner result than tracing a
+// binary, but lets the analyst open the panel and pivot from there.
+function bestTraceTarget(e: EvtEvent): string {
+  const bin = evtxTarget(e)
+  if (bin) return bin
+  const d = e.data || {}
+  const lower: Record<string, string> = {}
+  for (const k of Object.keys(d)) lower[k.toLowerCase()] = d[k]
+  for (const w of ['subjectusername', 'targetusername', 'user', 'accountname', 'sourceusername']) {
+    const v = lower[w]
+    if (v && v !== '-' && v !== '') return String(v).trim()
+  }
+  // TerminalServices / RDP events put the account in the message body only.
+  const m = (e.message || '').match(/User:\s*([^\r\n]+)/i)
+  if (m && m[1].trim()) return m[1].trim()
   return ''
 }
 
@@ -507,17 +545,24 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
                           </div>
                         </td>
                         <td className="px-3 py-1.5">
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap items-center gap-1">
                             {inds.slice(0, 3).map((ind, k) => {
                               const hit = iocMatches.has(ind.value.toLowerCase())
                               return (
-                                <button key={k} onClick={() => setLookup({ indicator: ind.value, type: ind.type })} title="Look up on VirusTotal"
+                                <button key={k} onClick={(ev) => { ev.stopPropagation(); setLookup({ indicator: ind.value, type: ind.type }) }} title="Look up on VirusTotal"
                                   className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${hit ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-purple-500/40'}`}>
                                   {hit ? <Database className="h-2.5 w-2.5" /> : <ShieldQuestion className="h-2.5 w-2.5" />}
                                   {ind.value.length > 18 ? ind.value.slice(0, 8) + '…' + ind.value.slice(-6) : ind.value}
                                 </button>
                               )
                             })}
+                            {bestTraceTarget(e) && (
+                              <button onClick={(ev) => { ev.stopPropagation(); setTraceTarget({ target: bestTraceTarget(e), pid: 0 }) }}
+                                title={`Trace origin of ${bestTraceTarget(e)} (parent process / user, when)`}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border bg-gray-800 border-gray-700 text-gray-300 hover:border-emerald-500/40 hover:text-emerald-300">
+                                <GitBranch className="h-2.5 w-2.5" /> trace
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -544,10 +589,10 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
                               <pre className="flex-1 text-[11px] text-gray-400 font-mono whitespace-pre-wrap bg-black/30 p-2 rounded border border-gray-800/60 max-h-40 overflow-auto">{e.message}</pre>
                               <button onClick={() => copy('Message', e.message)} className="text-gray-600 hover:text-emerald-400 shrink-0"><Copy className="h-3.5 w-3.5" /></button>
                             </div>
-                            {evtxTarget(e) && (
+                            {bestTraceTarget(e) && (
                               <div className="pt-1">
-                                <button onClick={() => setTraceTarget({ target: evtxTarget(e), pid: 0 })} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title={`Trace the origin of ${evtxTarget(e)} (parent process, user, when)`}>
-                                  <GitBranch className="h-3.5 w-3.5" /> Trace origin: {evtxTarget(e)}
+                                <button onClick={() => setTraceTarget({ target: bestTraceTarget(e), pid: 0 })} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-700/80 hover:bg-emerald-700 text-white" title={`Trace the origin of ${bestTraceTarget(e)} (parent process / user, when)`}>
+                                  <GitBranch className="h-3.5 w-3.5" /> Trace origin: {bestTraceTarget(e)}
                                 </button>
                               </div>
                             )}

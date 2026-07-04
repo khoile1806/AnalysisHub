@@ -13,7 +13,7 @@ export interface TraceProc {
 
 export interface TraceEvent {
   time: string
-  kind: 'process' | 'prefetch' | 'file' | 'shimcache' | 'log'
+  kind: 'process' | 'prefetch' | 'file' | 'shimcache' | 'log' | 'download' | 'persistence'
   title: string
   detail?: string
   source: string
@@ -35,7 +35,7 @@ export interface TraceResult {
 }
 
 export interface TraceSource {
-  type: 'processes' | 'prefetch' | 'mft' | 'shimcache' | 'evtx'
+  type: 'processes' | 'prefetch' | 'mft' | 'shimcache' | 'evtx' | 'browser' | 'autoruns'
   data: unknown
 }
 
