@@ -222,6 +222,23 @@ type Config struct {
 	// proxies to it behind an admin JWT (see handlers/sandbox.go), so this is a
 	// container-network address. Defaults to the compose service name.
 	SandboxTerminalURL string
+
+	// LogSearchESURL is the internal Elasticsearch the Log Search module bulk-
+	// indexes uploaded logs into. On first boot the backend auto-registers it as
+	// an ELK hunting profile ("Local Log Store") so ingested logs are immediately
+	// searchable from the SIEM Threat Hunting page. Empty disables the module.
+	LogSearchESURL string
+
+	// LogSearchKibanaURL is the internal Kibana URL (including its /kbn base
+	// path). On startup the backend best-effort creates the hunt-* data view here
+	// so ingested logs are viewable in the embedded Kibana page. Empty skips it.
+	LogSearchKibanaURL string
+
+	// DockerAPIURL is the base URL of the least-privilege docker-socket-proxy the
+	// backend uses to start/stop the built-in ES+Kibana containers (the Log Ingest
+	// power toggle). When set and reachable the toggle auto-enables; empty hides
+	// it. The backend itself never touches the raw docker socket.
+	DockerAPIURL string
 }
 
 // Insecure placeholder secrets. Booting in production with any of these is
@@ -284,6 +301,9 @@ func Load() *Config {
 		DarkWebSources:           parseCSV(getEnv("OSINT_DARKWEB_SOURCES", "")),
 		TorProxy:                 getEnv("OSINT_TOR_PROXY", ""),
 		SandboxTerminalURL:       getEnv("SANDBOX_TERMINAL_URL", "http://volatility_sandbox:7681"),
+		LogSearchESURL:           getEnv("LOGSEARCH_ES_URL", ""),
+		LogSearchKibanaURL:       getEnv("LOGSEARCH_KIBANA_URL", ""),
+		DockerAPIURL:             getEnv("DOCKER_API_URL", ""),
 
 		OOBEnabled:    getEnv("OOB_ENABLED", "false") == "true",
 		OOBDomain:     strings.ToLower(strings.TrimSuffix(getEnv("OOB_DOMAIN", ""), ".")),

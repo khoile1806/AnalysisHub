@@ -128,7 +128,7 @@ export default function DashboardPage() {
         <section className="card p-4">
           <h2 className="flex items-center justify-between text-sm font-semibold text-gray-200 mb-3">
             <span>Recent IOCs</span>
-            <Link to="/opencti" className="text-xs text-gray-500 hover:text-emerald-400 flex items-center gap-1">all <ArrowRight className="h-3 w-3" /></Link>
+            <Link to="/elk" className="text-xs text-gray-500 hover:text-emerald-400 flex items-center gap-1">all <ArrowRight className="h-3 w-3" /></Link>
           </h2>
           {iocs.length === 0 ? <div className="text-xs text-gray-500 py-6 text-center">No IOCs</div> : (
             <ul className="space-y-2">
@@ -145,7 +145,7 @@ export default function DashboardPage() {
         <section className="card p-4">
           <h2 className="flex items-center justify-between text-sm font-semibold text-gray-200 mb-3">
             <span>ELK hunt results</span>
-            <Link to="/opencti" className="text-xs text-gray-500 hover:text-emerald-400 flex items-center gap-1">all <ArrowRight className="h-3 w-3" /></Link>
+            <Link to="/elk" className="text-xs text-gray-500 hover:text-emerald-400 flex items-center gap-1">all <ArrowRight className="h-3 w-3" /></Link>
           </h2>
           {elkResults.length === 0 ? <div className="text-xs text-gray-500 py-6 text-center">No hunt results</div> : (
             <ul className="space-y-2">

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { openctiApi, OpenCTIConfig, OpenCTIConfigPayload } from '@/api/opencti'
 import {
@@ -17,11 +18,14 @@ import toast from 'react-hot-toast'
 import {
   ShieldAlert, Server, Search,
   Plus, X, Zap, Code2,
-  Upload, Pencil, Trash2, CheckCircle2, Rocket, FileSearch, Layers
+  Upload, Pencil, Trash2, CheckCircle2, Rocket, FileSearch, Layers,
+  FolderUp, Loader2, Database, RefreshCw, AlertTriangle, HardDriveUpload,
+  LayoutDashboard, Power, PlayCircle, StopCircle
 } from 'lucide-react'
 import { JsonViewer } from '@/components/JsonViewer'
+import { logsearchApi, LogIngestJob, LogIndex, ELKStatus } from '@/api/logsearch'
 
-type TabType = 'hunt' | 'connections'
+type TabType = 'hunt' | 'ingest' | 'connections'
 
 // ---------------------------------------------------------------------------
 // Page shell 
@@ -31,6 +35,7 @@ export default function ELKHuntingPage() {
 
   const tabs: { id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'hunt',        label: 'Threat Hunt',   icon: Search },
+    { id: 'ingest',      label: 'Log Ingest',    icon: HardDriveUpload },
     { id: 'connections', label: 'Integrations',  icon: Layers },
   ]
 
@@ -69,7 +74,339 @@ export default function ELKHuntingPage() {
       </div>
 
       {activeTab === 'hunt'        && <HuntTab />}
+      {activeTab === 'ingest'      && <IngestTab onGoHunt={() => setActiveTab('hunt')} />}
       {activeTab === 'connections' && <ConnectionsTab />}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// LOG INGEST TAB — upload collected logs, parse to ECS, index into the built-in
+// Elasticsearch. Search happens in the Threat Hunt tab against those hunt-*
+// indices (the "Local Log Store" ELK profile).
+// ---------------------------------------------------------------------------
+const ACCEPT_EXT = ['evtx', 'log', 'txt', 'json', 'ndjson', 'jsonl', 'csv', 'tsv', 'gz', 'zip', 'syslog', 'out']
+
+function extAllowed(name: string): boolean {
+  const n = name.toLowerCase()
+  if (n.endsWith('.gz') || n.endsWith('.zip')) return true
+  const dot = n.lastIndexOf('.')
+  if (dot === -1) return true
+  return ACCEPT_EXT.includes(n.slice(dot + 1))
+}
+
+function walkEntry(entry: any, out: File[]): Promise<void> {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      entry.file((f: File) => { out.push(f); resolve() }, () => resolve())
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader()
+      const readBatch = () => reader.readEntries(async (entries: any[]) => {
+        if (!entries.length) return resolve()
+        await Promise.all(entries.map((en) => walkEntry(en, out)))
+        readBatch()
+      }, () => resolve())
+      readBatch()
+    } else resolve()
+  })
+}
+
+function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const [caseName, setCaseName] = useState('')
+  const [logType, setLogType] = useState('auto')
+  const [files, setFiles] = useState<File[]>([])
+  const [skipped, setSkipped] = useState(0)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const folderInput = useRef<HTMLInputElement>(null)
+
+  const { data: meta } = useQuery({ queryKey: ['logsearch-meta'], queryFn: logsearchApi.meta, refetchInterval: 20000 })
+  const { data: jobs } = useQuery({
+    queryKey: ['logsearch-jobs'],
+    queryFn: () => logsearchApi.listJobs(),
+    refetchInterval: (q) => {
+      const list = (q.state.data as LogIngestJob[] | undefined) ?? []
+      return list.some((j) => j.status === 'queued' || j.status === 'running') ? 2000 : false
+    },
+  })
+  const { data: indices } = useQuery({ queryKey: ['logsearch-indices'], queryFn: logsearchApi.listIndices, refetchInterval: 5000 })
+  const { data: elk } = useQuery({
+    queryKey: ['logsearch-elk-status'],
+    queryFn: logsearchApi.elkStatus,
+    refetchInterval: 5000,
+  })
+  const powerMut = useMutation({
+    mutationFn: (verb: 'start' | 'stop') => logsearchApi.elkPower(verb),
+    onSuccess: (_d, verb) => {
+      toast.success(verb === 'start' ? 'Starting ELK…' : 'Stopping ELK…')
+      qc.invalidateQueries({ queryKey: ['logsearch-elk-status'] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Action failed'),
+  })
+
+  const addFiles = (list: FileList | File[], filter: boolean) => {
+    let sk = 0
+    setFiles((prev) => {
+      const next = [...prev]
+      for (const f of Array.from(list)) {
+        if (filter && !extAllowed(f.name)) { sk++; continue }
+        if (!next.some((x) => x.name === f.name && x.size === f.size)) next.push(f)
+      }
+      return next
+    })
+    setSkipped(sk)
+  }
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false)
+    const items = e.dataTransfer.items
+    if (items && items.length && (items[0] as any).webkitGetAsEntry) {
+      const collected: File[] = []
+      await Promise.all(Array.from(items).map((it) => {
+        const entry = (it as any).webkitGetAsEntry()
+        return entry ? walkEntry(entry, collected) : Promise.resolve()
+      }))
+      addFiles(collected, true)
+    } else {
+      addFiles(e.dataTransfer.files, true)
+    }
+  }
+
+  const uploadMut = useMutation({
+    mutationFn: () => logsearchApi.upload(caseName.trim(), logType, files),
+    onSuccess: () => {
+      setFiles([]); setSkipped(0)
+      qc.invalidateQueries({ queryKey: ['logsearch-jobs'] })
+      toast.success('Upload started — parsing & indexing')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Upload failed'),
+  })
+
+  const delMut = useMutation({
+    mutationFn: (index: string) => logsearchApi.deleteIndex(index),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['logsearch-indices'] }); toast.success('Index deleted') },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Delete failed'),
+  })
+
+  const totalMB = (files.reduce((s, f) => s + f.size, 0) / 1048576).toFixed(1)
+  const statusColor: Record<string, string> = {
+    done: 'text-emerald-400', running: 'text-amber-400', queued: 'text-amber-400', error: 'text-rose-400',
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* Upload card */}
+      <div className="space-y-4">
+        <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <HardDriveUpload className="h-5 w-5 text-emerald-500" />
+            <h2 className="font-semibold text-gray-100">Ingest collected logs</h2>
+            <span className={`ml-auto text-xs ${meta?.es_up ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {meta?.es_up ? '● store online' : '● store offline'}
+            </span>
+          </div>
+
+          <label className="block text-xs text-gray-400 mb-1">Case / hunt name</label>
+          <input
+            value={caseName} onChange={(e) => setCaseName(e.target.value)}
+            placeholder="e.g. incident-2026-07"
+            className="w-full mb-3 px-3 py-2 rounded-md bg-gray-950 border border-gray-800 text-gray-100 text-sm focus:outline-none focus:border-emerald-500"
+          />
+
+          <label className="block text-xs text-gray-400 mb-1">Log type</label>
+          <select
+            value={logType} onChange={(e) => setLogType(e.target.value)}
+            className="w-full mb-3 px-3 py-2 rounded-md bg-gray-950 border border-gray-800 text-gray-100 text-sm focus:outline-none focus:border-emerald-500"
+          >
+            {(meta?.log_types ?? ['auto']).map((t) => (
+              <option key={t} value={t}>{t === 'auto' ? 'auto-detect' : t}</option>
+            ))}
+          </select>
+
+          <div
+            onClick={() => fileInput.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            className={`mt-1 rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-colors ${
+              dragOver ? 'border-emerald-500 text-gray-200' : 'border-gray-700 text-gray-400 hover:border-gray-600'
+            }`}
+          >
+            <FolderUp className="h-6 w-6 mx-auto mb-2 opacity-70" />
+            Drag &amp; drop <b>files or an entire folder</b> of logs here<br />
+            <span className="text-[11px] font-mono">.evtx · access · firewall · syslog · .json/.ndjson · .csv · .gz</span>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button type="button" onClick={(e) => { e.stopPropagation(); fileInput.current?.click() }}
+                className="px-3 py-1.5 rounded-md text-xs border border-gray-700 hover:border-emerald-500 text-gray-200">Choose files…</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); folderInput.current?.click() }}
+                className="px-3 py-1.5 rounded-md text-xs border border-gray-700 hover:border-emerald-500 text-gray-200">Choose folder…</button>
+            </div>
+          </div>
+          <input ref={fileInput} type="file" multiple hidden
+            onChange={(e) => { if (e.target.files) addFiles(e.target.files, false); e.target.value = '' }} />
+          <input ref={folderInput} type="file" multiple hidden
+            // @ts-expect-error non-standard directory picker attribute
+            webkitdirectory=""
+            onChange={(e) => { if (e.target.files) addFiles(e.target.files, true); e.target.value = '' }} />
+
+          {files.length > 0 && (
+            <div className="mt-3 text-xs text-gray-400">
+              <b className="text-gray-200">{files.length} file(s)</b> · {totalMB} MB
+              {skipped > 0 && <span className="text-gray-500"> · skipped {skipped} non-log file(s)</span>}
+              <div className="mt-1 max-h-28 overflow-auto font-mono">
+                {files.slice(0, 40).map((f, i) => <div key={i}>• {f.name} <span className="text-gray-600">({(f.size / 1024).toFixed(0)} KB)</span></div>)}
+                {files.length > 40 && <div className="text-gray-500">… and {files.length - 40} more</div>}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              disabled={!caseName.trim() || files.length === 0 || uploadMut.isPending}
+              onClick={() => uploadMut.mutate()}
+              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+            >
+              {uploadMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Upload &amp; Index
+            </button>
+            {files.length > 0 && (
+              <button onClick={() => { setFiles([]); setSkipped(0) }}
+                className="px-3 py-2 rounded-md text-sm border border-gray-700 text-gray-300 hover:border-gray-600">Clear list</button>
+            )}
+          </div>
+        </div>
+
+        {/* Indices */}
+        <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Database className="h-4 w-4 text-emerald-500" />
+            <h3 className="font-semibold text-gray-100 text-sm">Indexed log stores</h3>
+            <div className="ml-auto flex items-center gap-3">
+              <button onClick={() => navigate('/kibana')} className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1">
+                <LayoutDashboard className="h-3.5 w-3.5" /> View in Kibana →
+              </button>
+              <button onClick={onGoHunt} className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                <Search className="h-3.5 w-3.5" /> Hunt these logs →
+              </button>
+            </div>
+          </div>
+          {(indices ?? []).length === 0
+            ? <p className="text-xs text-gray-500">No indices yet. Upload logs to get started.</p>
+            : (
+              <table className="w-full text-xs">
+                <thead><tr className="text-gray-500 text-left"><th className="py-1">Index</th><th>Docs</th><th>Size</th><th></th></tr></thead>
+                <tbody>
+                  {(indices ?? []).map((ix: LogIndex) => (
+                    <tr key={ix.index} className="border-t border-gray-800/60">
+                      <td className="py-1.5 font-mono text-gray-300">{ix.index}</td>
+                      <td className="text-gray-400">{ix.docs}</td>
+                      <td className="text-gray-400">{ix.size}</td>
+                      <td className="text-right">
+                        <button onClick={() => { if (confirm(`Delete index ${ix.index}?`)) delMut.mutate(ix.index) }}
+                          className="text-rose-400/70 hover:text-rose-400"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+        </div>
+
+        {/* ELK power toggle — free RAM when idle */}
+        <ELKPowerCard elk={elk} esUp={!!meta?.es_up}
+          onPower={(v) => powerMut.mutate(v)} pending={powerMut.isPending} />
+      </div>
+
+      {/* Jobs */}
+      <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw className="h-4 w-4 text-emerald-500" />
+          <h3 className="font-semibold text-gray-100 text-sm">Ingest jobs</h3>
+        </div>
+        {(jobs ?? []).length === 0
+          ? <p className="text-xs text-gray-500">No jobs yet.</p>
+          : (
+            <div className="space-y-2 max-h-[600px] overflow-auto">
+              {(jobs ?? []).map((j: LogIngestJob) => (
+                <div key={j.id} className="rounded-md border border-gray-800/60 bg-gray-950/40 p-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    {j.status === 'done' ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      : j.status === 'error' ? <AlertTriangle className="h-4 w-4 text-rose-400" />
+                      : <Loader2 className="h-4 w-4 text-amber-400 animate-spin" />}
+                    <span className="font-mono text-gray-300 truncate">{j.filename}</span>
+                    <span className={`ml-auto font-semibold ${statusColor[j.status] ?? 'text-gray-400'}`}>{j.status}</span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-gray-500">
+                    <span>case: <span className="text-gray-400">{j.case}</span></span>
+                    <span>type: <span className="text-gray-400">{j.detected_type || j.log_type}</span></span>
+                    <span>docs: <span className="text-gray-300">{j.docs_indexed}</span>{j.docs_failed > 0 && <span className="text-rose-400"> (+{j.docs_failed} err)</span>}</span>
+                  </div>
+                  {j.message && <div className="mt-1 text-gray-500">{j.message}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+      </div>
+    </div>
+  )
+}
+
+// ELKPowerCard — start/stop the built-in ES+Kibana containers to free RAM when
+// idle. When in-app control is disabled it degrades to a status + manual hint.
+function ELKPowerCard({ elk, esUp, onPower, pending }: {
+  elk?: ELKStatus
+  esUp: boolean
+  onPower: (verb: 'start' | 'stop') => void
+  pending: boolean
+}) {
+  const enabled = !!elk?.control_enabled
+  const esRunning = enabled ? !!elk?.elasticsearch?.running : esUp
+  const kbRunning = enabled ? !!elk?.kibana?.running : esUp
+  const anyRunning = esRunning || kbRunning
+  const allRunning = esRunning && kbRunning
+
+  const dot = (on: boolean) => (
+    <span className={`inline-block h-2 w-2 rounded-full ${on ? 'bg-emerald-400' : 'bg-gray-600'}`} />
+  )
+
+  return (
+    <div className="mt-4 rounded-lg border border-gray-800 bg-gray-900/60 p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Power className={`h-4 w-4 ${anyRunning ? 'text-emerald-500' : 'text-gray-500'}`} />
+        <h3 className="font-semibold text-gray-100 text-sm">ELK system</h3>
+        <span className="ml-auto text-xs text-gray-500">stop when idle to free RAM</span>
+      </div>
+
+      <div className="flex items-center gap-6 text-xs text-gray-300 mb-3">
+        <span className="flex items-center gap-2">{dot(esRunning)} Elasticsearch <span className="text-gray-500">{esRunning ? 'running' : 'stopped'}</span></span>
+        <span className="flex items-center gap-2">{dot(kbRunning)} Kibana <span className="text-gray-500">{kbRunning ? 'running' : 'stopped'}</span></span>
+      </div>
+
+      {enabled ? (
+        <div className="flex items-center gap-2">
+          <button
+            disabled={allRunning || pending}
+            onClick={() => onPower('start')}
+            className="px-3 py-1.5 rounded-md text-xs bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 flex items-center gap-1.5"
+          >
+            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />} Start ELK
+          </button>
+          <button
+            disabled={!anyRunning || pending}
+            onClick={() => onPower('stop')}
+            className="px-3 py-1.5 rounded-md text-xs border border-gray-700 text-gray-200 hover:border-rose-500 hover:text-rose-300 disabled:opacity-40 flex items-center gap-1.5"
+          >
+            <StopCircle className="h-3.5 w-3.5" /> Stop ELK
+          </button>
+        </div>
+      ) : (
+        <div className="text-xs text-gray-500">
+          In-app control is off (<code className="text-gray-400">DOCKER_API_URL</code>/docker proxy not configured). Start/stop manually:
+          <div className="mt-1 font-mono text-gray-400">docker compose stop elasticsearch kibana</div>
+        </div>
+      )}
     </div>
   )
 }

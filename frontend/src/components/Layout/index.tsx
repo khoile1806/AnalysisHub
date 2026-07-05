@@ -69,7 +69,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/sandbox',     icon: Cpu,          label: 'Sandbox Analysis' },
       { to: '/ai-analysis', icon: BrainCircuit, label: 'AI Analysis' },
-      { to: '/opencti',     icon: ShieldAlert,  label: 'SIEM Threat Hunting' },
+      { to: '/elk',         icon: ShieldAlert,  label: 'ELK' },
     ]
   },
   {
@@ -98,7 +98,8 @@ const BREADCRUMB_MAP: Record<string, string> = {
   agents:    'Agent Management',
   jobs:      'Jobs',
   cve:       'Vulnerability Search',
-  opencti:   'SIEM Threat Hunting',
+  elk:       'ELK',
+  kibana:    'Kibana',
   'yara-scanner': 'YARA Scanner',
   'hunting': 'Scenario Hunting',
   'cve-collection': 'Threat Intelligence',

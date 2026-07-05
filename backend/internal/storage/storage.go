@@ -111,6 +111,27 @@ func (s *LocalStorage) GetEvidencePath(relPath string) string {
 	return filepath.Join(s.BasePath, relPath)
 }
 
+// SaveLogUpload stores an uploaded log file under log-uploads/<jobID>/ and
+// returns its relative path. Each job gets its own directory so identical
+// filenames across uploads never collide.
+func (s *LocalStorage) SaveLogUpload(jobID, filename string, reader io.Reader) (string, error) {
+	dir := filepath.Join(s.BasePath, "log-uploads", jobID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("create log-upload dir for job %s: %w", jobID, err)
+	}
+	safe := filepath.Base(filename)
+	dest := filepath.Join(dir, safe)
+	if err := s.writeFile(dest, reader); err != nil {
+		return "", fmt.Errorf("save log upload %s: %w", filename, err)
+	}
+	return filepath.Join("log-uploads", jobID, safe), nil
+}
+
+// GetLogUploadPath resolves a stored log-upload relative path to absolute.
+func (s *LocalStorage) GetLogUploadPath(relPath string) string {
+	return filepath.Join(s.BasePath, relPath)
+}
+
 // RemoveByRelPath deletes a stored file given its relative path.
 func (s *LocalStorage) RemoveByRelPath(relPath string) error {
 	if relPath == "" {

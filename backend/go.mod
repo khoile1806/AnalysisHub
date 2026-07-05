@@ -3,6 +3,7 @@ module github.com/analysishub/backend
 go 1.25.0
 
 require (
+	github.com/0xrawsec/golang-evtx v1.2.9
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
@@ -24,6 +25,7 @@ require (
 )
 
 require (
+	github.com/0xrawsec/golang-utils v1.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect

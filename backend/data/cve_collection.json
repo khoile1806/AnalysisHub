@@ -1,5 +1,2606 @@
 [
   {
+    "id": "CVE-2026-14691",
+    "description": "A security vulnerability has been detected in SourceCodester Multi-Vendor Online Grocery Management System 1.0. This impacts the function update_settings_info of the file classes/SystemSettings.php of the component Setting Handler. Such manipulation of the argument content[] leads to code injection. The attack can be executed remotely. The exploit has been disclosed publicly and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T02:17:40.907",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T02:22:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14690",
+    "description": "A weakness has been identified in SourceCodester Multi-Vendor Online Grocery Management System 1.0. This affects the function save_users of the file classes/Users.php. This manipulation causes improper authorization. Remote exploitation of the attack is possible. The exploit has been made available to the public and could be used for attacks.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T02:17:40.743",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T02:22:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14689",
+    "description": "A security flaw has been discovered in CodeAstro Apartment Visitor Management System 1.0. The impacted element is an unknown function of the file /apartment-visitor/add-apartment.php. The manipulation of the argument apartmentno results in sql injection. The attack may be launched remotely. The exploit has been released to the public and may be used for attacks.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T02:17:40.470",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T02:21:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14570",
+    "description": "Crypt::DSA versions before 1.22 for Perl draw the DSA signing nonce and private key from a biased random generator, leading to private-key recovery.\n\n\"Crypt::DSA::Util::makerandom forces the high bit of every value it returns to obtain an exactly N-bit integer for prime search. The signing nonce and the private key are drawn from makerandom. Because the high bit is always set, the result is not uniform: its top bit is fixed, producing insecure values.\"\n\nAn attacker who collects a modest number of signatures under an affected key, together with the public key, can recover the private key with a lattice attack.\n\nKeys used to sign with an affected version should be considered compromised and new keys should be generated.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T02:17:40.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T02:21:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14688",
+    "description": "A vulnerability was identified in itsourcecode Online Hotel Management System 1.0. The affected element is an unknown function of the file /admin/login.php. The manipulation of the argument email leads to sql injection. The attack may be initiated remotely. The exploit is publicly available and might be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T01:21:57.917",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14687",
+    "description": "A vulnerability was determined in 666ghj BettaFish up to 1.2.1. Impacted is the function _deduplicate_results of the file InsightEngine/agent.py of the component InsightEngine search-result Deduplication. Executing a manipulation can lead to partial string comparison. The attack can be launched remotely. The exploit has been publicly disclosed and may be utilized. The pull request to fix this issue awaits acceptance.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T01:21:57.753",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14686",
+    "description": "A vulnerability was found in HdrHistogram up to 2.2.2. This issue affects the function org.HdrHistogram.DoubleHistogram.recordValue of the file src/main/java/org/HdrHistogram/DoubleHistogram.java of the component Range Check. Performing a manipulation results in incorrect comparison. The attack is only possible with local access. The exploit has been made public and could be used. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T01:21:57.560",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14685",
+    "description": "A vulnerability has been found in HdrHistogram up to 2.2.2. This vulnerability affects the function recordValueWithCount of the file src/main/java/org/HdrHistogram/AbstractHistogram.java of the component AbstractHistogram. Such manipulation of the argument Count leads to state issue. The attack can only be performed from a local environment. The exploit has been disclosed to the public and may be used. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T00:17:35.610",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14684",
+    "description": "A flaw has been found in HdrHistogram up to 2.2.2. This affects the function org.HdrHistogram.AbstractHistogram.decodeFromByteBuffer of the file src/main/java/org/HdrHistogram/AbstractHistogram.java. This manipulation of the argument numberOfSignificantValueDigits causes uncontrolled memory allocation. The attack can only be executed locally. The exploit has been published and may be used. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T00:17:35.457",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14683",
+    "description": "A vulnerability was detected in HdrHistogram up to 2.2.2. Affected by this issue is the function org.HdrHistogram.AbstractHistogram.decodeFromCompressedByteBuffer of the file src/main/java/org/HdrHistogram/AbstractHistogram.java. The manipulation of the argument lengthOfCompressedContents results in uncontrolled memory allocation. The attack needs to be approached locally. The exploit is now public and may be used. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T23:16:55.590",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14660",
+    "description": "A vulnerability was found in code-projects Online Job Portal 1.0. The affected element is an unknown function of the file login.php. Performing a manipulation of the argument txtUser/txtPass results in sql injection. The attack may be initiated remotely. The exploit has been made public and could be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T23:16:55.437",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14659",
+    "description": "A vulnerability has been found in itsourcecode Hospital Management System 1.0. Impacted is an unknown function of the file /patientappointment.php. Such manipulation of the argument patiente leads to sql injection. The attack can be launched remotely. The exploit has been disclosed to the public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T23:16:55.280",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:51:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14658",
+    "description": "A vulnerability was detected in code-projects Assessment Management 1.0. This vulnerability affects unknown code of the file /lecturer/marking-scheme.php. The manipulation of the argument smarksrange[] results in sql injection. It is possible to launch the attack remotely. The exploit is now public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T23:16:54.607",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14657",
+    "description": "A flaw has been found in code-projects Assessment Management 1.0. This issue affects some unknown processing of the file /lecturer/marking-scheme.php of the component Database Query Handler. This manipulation of the argument squestions[] causes sql injection. The attack can be initiated remotely. The exploit has been published and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T22:16:42.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14656",
+    "description": "A security vulnerability has been detected in code-projects Assessment Management 1.0. This affects an unknown part of the file /admin/remove-user.php. The manipulation of the argument ID leads to cross site scripting. It is possible to initiate the attack remotely. The exploit has been disclosed publicly and may be used.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T22:16:42.553",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14655",
+    "description": "A weakness has been identified in code-projects Assessment Management 1.0. Affected by this issue is some unknown functionality of the file admin/view-users.php. Executing a manipulation of the argument User can lead to cross site scripting. The attack may be performed from remote. The exploit has been made available to the public and could be used for attacks.",
+    "severity": "low",
+    "cvss_score": 2.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T22:16:42.397",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14654",
+    "description": "A vulnerability was identified in SourceCodester Simple and Nice Shopping Cart Script 1.0. Affected is an unknown function of the file /admin/girlsproductdeletequery.php. Such manipulation of the argument user_id leads to sql injection. The attack can be executed remotely. The exploit is publicly available and might be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T21:17:15.193",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14653",
+    "description": "A vulnerability was determined in SourceCodester Simple and Nice Shopping Cart Script 1.0. This impacts an unknown function of the file /admin/mensproductdeletequery.php. This manipulation of the argument user_id causes sql injection. Remote exploitation of the attack is possible. The exploit has been publicly disclosed and may be utilized.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T21:17:15.043",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:41Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14652",
+    "description": "A vulnerability was found in SourceCodester Simple and Nice Shopping Cart Script 1.0. This affects an unknown function of the file /admin/login.php of the component Admin Login. The manipulation of the argument Username results in sql injection. The attack may be launched remotely. The exploit has been made public and could be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T21:17:14.840",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14651",
+    "description": "A vulnerability has been found in connorskees grass up to 0.13.4. The impacted element is the function grass_compiler::selector::extend/grass_compiler::evaluate::visitor. The manipulation leads to denial of service. The attack must be carried out locally. The exploit has been disclosed to the public and may be used. The project maintainer explains: \"DoS vulnerabilities are generally fine in Sass compilers -- they are trivially possible with recursive functions, infinite loops, nested mixins, etc. The description here is wrong. Compile time is not expected to be linear relative to the input, and the @extend algorithm is definitionally exponential.\"",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T21:17:14.690",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-1248",
+    "description": "The silent Just-In-Time (JIT) provisioning feature in federated authentication implementations fails to properly segregate user roles during account creation when a federated user shares a username with a local user. This allows the provisioning process to overwrite existing roles of local users with roles assigned to the federated user.\n\nExploitation requires a federated identity provider (IDP) with silent JIT provisioning enabled and an attacker's knowledge of a local user's username. When these conditions are met, a malicious individual can leverage the JIT provisioning process to modify the roles of local users. The overwritten roles are limited to those defined within the federated IDP, typically granting minimal access rights unless explicitly configured otherwise by the federated IDP administrator.",
+    "severity": "medium",
+    "cvss_score": 4.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T21:17:13.793",
+    "poc_links": [
+      "https://github.com/LiChaser/CVE-2024-12484"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14650",
+    "description": "A flaw has been found in connorskees grass up to 0.13.4. The affected element is the function grass_compiler::raw_to_parse_error of the component UTF-8 Character Handler. Executing a manipulation can lead to denial of service. The attack is restricted to local execution. The exploit has been published and may be used. In Issue #117 with similar structure the project maintainer explains: \"DoS vulnerabilities are generally fine in Sass compilers -- they are trivially possible with recursive functions, infinite loops, nested mixins, etc. The description here is wrong. Compile time is not expected to be linear relative to the input, and the @extend algorithm is definitionally exponential.\"",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T20:16:55.117",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14649",
+    "description": "A vulnerability was detected in code-projects Online Voting System 1.0. Impacted is the function test_input of the file /saveVote.php. Performing a manipulation of the argument voterName/voterEmail/voterID/selectedCandidate results in sql injection. The attack can be initiated remotely.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T20:16:54.950",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14648",
+    "description": "A security vulnerability has been detected in code-projects Online Voting System up to 0.x/1.0. This issue affects the function test_input of the file /authentication.php of the component Login. Such manipulation of the argument adminUserName/adminPassword leads to sql injection. It is possible to launch the attack remotely. The exploit has been disclosed publicly and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T20:16:54.780",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14647",
+    "description": "A weakness has been identified in onnx up to 1.21.x. This vulnerability affects the function convPoolShapeInference_opset19 of the file onnx/defs/nn/old.cc of the component onnxruntime. This manipulation causes out-of-bounds read. It is possible to initiate the attack remotely. The exploit has been made available to the public and could be used for attacks. Patch name: a7bf3a0f1d18bb62575236ef6e4944980c40e045. It is recommended to apply a patch to fix this issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T19:16:53.640",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14642",
+    "description": "A vulnerability was identified in SourceCodester Class and Exam Timetabling System 1.0. Affected by this issue is some unknown functionality of the file /edit_class2.php. The manipulation of the argument ID leads to sql injection. The attack is possible to be carried out remotely. The exploit is publicly available and might be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T19:16:53.483",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14641",
+    "description": "A vulnerability was determined in SourceCodester Class and Exam Timetabling System 1.0. Affected by this vulnerability is an unknown functionality of the file /edit_course.php. Executing a manipulation of the argument ID can lead to sql injection. The attack can be executed remotely. The exploit has been publicly disclosed and may be utilized.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T19:16:53.333",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14640",
+    "description": "A vulnerability was found in CodeAstro Apartment Visitor Management System 1.0. Affected is an unknown function of the file /index.php of the component Login. Performing a manipulation of the argument Username results in sql injection. Remote exploitation of the attack is possible. The exploit has been made public and could be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T19:16:53.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14639",
+    "description": "A vulnerability has been found in CodeAstro Ecommerce Website 1.0. This impacts an unknown function of the file /ecommerce-website-php/customer/my_account.php?edit_account. Such manipulation of the argument c_name leads to sql injection. The attack may be launched remotely. The exploit has been disclosed to the public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T18:16:28.700",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14638",
+    "description": "A flaw has been found in itsourcecode Hospital Management System 1.0. This affects an unknown function of the file /patient.php. This manipulation of the argument editid causes sql injection. The attack may be initiated remotely. The exploit has been published and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T18:16:28.550",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:41:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14637",
+    "description": "A security vulnerability has been detected in kirilkirkov Ecommerce-CodeIgniter-Bootstrap up to 13fd582aaf49aeab7438acc0fc3eb973a1f5e6a7. The affected element is the function getCartItems in the library application/libraries/ShoppingCart.php. The manipulation of the argument shopping_cart leads to deserialization. The attack can be initiated remotely. The exploit has been disclosed publicly and may be used. Continious delivery with rolling releases is used by this product. Therefore, no version details of affected nor updated releases are available. The identifier of the patch is 49b20f53de2b7ec34e920b11c863f1491d911a04. It is recommended to apply a patch to fix this issue.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T18:16:28.357",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12746",
+    "description": "Dancer2::Plugin::Auth::OAuth::Provider versions before 0.23 for Perl do not support the OAuth 2.0 state parameter.\n\nThe authentication_url method builds the provider authorization redirect without issuing a state value, and the callback method exchanges the callback code and registers the resulting token into the session without verifying that the callback corresponds to an authorization request this session initiated.\n\nAny application that uses this plugin for OAuth 2.0 login is exposed to login cross-site request forgery: because the callback is not bound to the session that began the flow, an attacker who starts an authorization with their own provider account can deliver the resulting callback to a victim, causing the victim's session to complete the attacker's authorization and associating the attacker's provider identity and access token with that session. Where the application persists this as an account link, the attacker may retain access to the victim's account through their own provider credentials.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T18:16:28.247",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12740",
+    "description": "Plack::Middleware::OAuth versions through 0.10 for Perl do not support the OAuth 2.0 state parameter.\n\nRequestTokenV2 builds the provider authorization redirect without issuing a state value, and AccessTokenV2 exchanges the callback code and registers the resulting token into the session (register_session) without verifying that the callback corresponds to an authorization request this session initiated.\n\nAny application that uses this middleware for OAuth 2.0 login is exposed to login cross-site request forgery: because the callback is not bound to the session that began the flow, an attacker who starts an authorization with their own provider account can deliver the resulting callback to a victim, causing the victim's session to complete the attacker's authorization and associating the attacker's provider identity and access token with that session. Where the application persists this as an account link, the attacker may retain access to the victim's account through their own provider credentials.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T18:16:28.133",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14636",
+    "description": "A weakness has been identified in kirilkirkov Ecommerce-CodeIgniter-Bootstrap up to 23105f25dadf57b4314fc015a63a7c6e910c89df. Impacted is the function do_upload_others_images of the file application/modules/vendor/controllers/AddProduct.php of the component Vendor Image Manager. Executing a manipulation of the argument folder can lead to path traversal. It is possible to launch the attack remotely. This product takes the approach of rolling releases to provide continious delivery. Therefore, version details for affected and updated releases are not available. This patch is called de1c9e73ccf3bd032d9a0525c4752290d959dd8b. It is best practice to apply a patch to resolve this issue.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T17:16:48.937",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14635",
+    "description": "A security flaw has been discovered in kirilkirkov Ecommerce-CodeIgniter-Bootstrap up to 222ff31c06687b1c6d0e1ab63953f82c3674c52b. This issue affects some unknown processing of the file application/modules/vendor/controllers/AddProduct.php of the component Vendor Multi-Image Endpoint. Performing a manipulation of the argument folder results in path traversal. It is possible to initiate the attack remotely. The exploit has been released to the public and may be used for attacks. This product is using a rolling release to provide continious delivery. Therefore, no version details for affected nor updated releases are available. The patch is named 2a9497ff11f36e573ad99e1c357ff0e6ded49745. Applying a patch is the recommended action to fix this issue.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T17:16:48.780",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14634",
+    "description": "A vulnerability was identified in kirilkirkov Ecommerce-CodeIgniter-Bootstrap up to 213babdbaa949e94557246414db0130e01394517. This vulnerability affects the function checkForPostRequests of the file application/core/MY_Controller.php of the component Subscribed Emails Admin Page. Such manipulation of the argument User-Agent leads to cross site scripting. The attack may be performed from remote. The exploit is publicly available and might be used. This product utilizes a rolling release system for continuous delivery, and as such, version information for affected or updated releases is not disclosed. The name of the patch is 23105f25dadf57b4314fc015a63a7c6e910c89df. It is advisable to implement a patch to correct this issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T17:16:48.610",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14633",
+    "description": "A vulnerability was determined in kirilkirkov Ecommerce-CodeIgniter-Bootstrap up to 49b20f53de2b7ec34e920b11c863f1491d911a04. This affects an unknown part of the file /index.php/api/product/set of the component Hidden REST API Endpoint. This manipulation of the argument title/description causes cross site scripting. The attack is possible to be carried out remotely. The exploit has been publicly disclosed and may be utilized. This product adopts a rolling release strategy to maintain continuous delivery. Therefore, version details for affected or updated releases cannot be specified. Patch name: d9785f995da77bdc62fb2d34bad5f7a162c9ad23. To fix this issue, it is recommended to deploy a patch.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T16:17:14.300",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14632",
+    "description": "A vulnerability was found in kirilkirkov Ecommerce-CodeIgniter-Bootstrap up to 95dfa8cebbb87ab46ae450643a07241274a74dce. Affected by this issue is the function setReferrer of the file application/core/MY_Controller.php of the component Trusted Backend Interface. The manipulation of the argument href results in open redirect. The attack can be executed remotely. The exploit has been made public and could be used. This product implements a rolling release for ongoing delivery, which means version information for affected or updated releases is unavailable. The patch is identified as 213babdbaa949e94557246414db0130e01394517. A patch should be applied to remediate this issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T16:17:14.140",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14630",
+    "description": "A vulnerability has been found in ForceInjection AI-fundermentals 2.0/3.0. Affected by this vulnerability is the function get_conversation_history of the file 08_agentic_system/memory/langchain/code/smart_customer_service.py of the component Memory Recall Handler. The manipulation leads to use of weak hash. Remote exploitation of the attack is possible. A high degree of complexity is needed for the attack. The exploitation appears to be difficult. The exploit has been disclosed to the public and may be used. The identifier of the patch is f57277fdd9ba373ace72d83c272023ec67f720d6. It is suggested to install a patch to address this issue. The project confirms (translated from Chinese): \"We now require session ownership verification in methods such as `username`, `sessionowner`, etc., and we've chat()changed the generation of `sessionowner` to include verified user identity and security context metadata.\"",
+    "severity": "low",
+    "cvss_score": 3.1,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T15:16:30.740",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14629",
+    "description": "A flaw has been found in RT-Thread up to 5.2.2. Affected is the function read/write/sys_ioctl of the file components/lwp/lwp_syscall.c of the component Parameter Handler. Executing a manipulation can lead to divide by zero. The attack may be launched remotely. The exploit has been published and may be used. The pull request to fix this issue awaits acceptance.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T14:16:29.203",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14535",
+    "description": "In Trail of Bits fickling versions up to and including 0.1.11, the UnsafeImportsML analysis pass unconditionally calls AnalysisContext.shorten_code(node) on every import node it inspects, regardless of whether the import is flagged as unsafe. This call registers the shortened code representation in the shared AnalysisContext.reported_shortened_code set. When the MLAllowlist analysis pass subsequently runs, it calls the same shorten_code() method, receives already_reported=True for every import, and executes a continue statement that skips its allowlist check entirely. This renders MLAllowlist dead code for all imports — it never evaluates whether an import is in the ML allowlist or not. The MLAllowlist pass was designed to catch imports of modules outside the known-safe ML ecosystem (torch, numpy, transformers, etc.) that slip past the UnsafeImports denylist. With MLAllowlist inoperative, any standard library module not in the UNSAFE_IMPORTS denylist can be invoked via pickle deserialization while fickling's check_safety() returns LIKELY_SAFE. The fickling.load() API chains check_safety() into pickle.loads() as an explicit security gate, meaning a LIKELY_SAFE verdict causes the payload to be deserialized and executed. The root cause is shared mutable state between independently-correct analysis passes — UnsafeImportsML works as designed in isolation, MLAllowlist works as designed in isolation, but the shared reported_shortened_code set causes UnsafeImportsML to poison MLAllowlist's deduplication logic.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T14:16:29.063",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14534",
+    "description": "Trail of Bits fickling versions up to and including 0.1.10 do not include the Python standard library modules _posixsubprocess, site, and atexit in the UNSAFE_IMPORTS denylist (fickle.py). Because these modules are absent from the denylist, fickling's check_safety() function returns LIKELY_SAFE with zero findings for pickle payloads that invoke dangerous functions including _posixsubprocess.fork_exec (C-level process spawner capable of executing arbitrary binaries), site.execsitecustomize (executes arbitrary site customization code), and atexit._run_exitfuncs (triggers all registered exit handler callbacks). The fickling.load() API chains check_safety() into pickle.loads() as an explicit security gate; a LIKELY_SAFE verdict causes the payload to be deserialized and executed. This shares the same root cause as CVE-2026-22607 (cProfile), CVE-2025-67748 (pty), and CVE-2025-67747 (marshal/types). OvertlyBadEvals does not flag these modules because they are standard library imports. UnsafeImports does not flag them because they are not in the denylist. The UnusedVariables heuristic is defeated by the SETITEMS opcode pattern.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T14:16:28.400",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14628",
+    "description": "A vulnerability was detected in NousResearch hermes-agent up to 2026.5.16. This impacts the function extract_media of the file gateway/platforms/base.py of the component Live Webhook Endpoint. Performing a manipulation results in path traversal. The attack may be initiated remotely. The exploit is now public and may be used. The vendor was contacted early about this disclosure but did not respond in any way.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T13:16:30.413",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14627",
+    "description": "A security vulnerability has been detected in NousResearch hermes-agent up to 0.15.2. This affects the function DiscordAdapter._is_allowed_user of the file gateway/platforms/discord.py of the component Discord Platform Integration. Such manipulation leads to improper authentication. The attack can be launched remotely. This attack is characterized by high complexity. The exploitability is reported as difficult. The exploit has been disclosed publicly and may be used. The vendor was contacted early about this disclosure but did not respond in any way.",
+    "severity": "medium",
+    "cvss_score": 5.6,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T13:16:30.230",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-13475",
+    "description": "In multi-tenanted deployments, the application consent management mechanism fails to correctly isolate consent scopes between tenants. Consent granted by a user for a specific SaaS application within one tenant can be incorrectly applied to SaaS applications with the same name in other tenants, leading to unintended cross-tenant consent sharing.\n\nThis vulnerability may result in the exposure of user data across tenants, enabling SaaS applications in different tenants to access and modify information without explicit user authorization. This can lead to unauthorized data access and privacy violations. This vulnerability has no impact if the deployment does not support multi-tenancy.",
+    "severity": "low",
+    "cvss_score": 3.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T13:16:30.083",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53362",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nipv6: account for fraggap on the paged allocation path\n\nIn __ip6_append_data(), when the paged-allocation branch is taken\n(MSG_MORE / NETIF_F_SG / large fraglen), alloclen and pagedlen are\ncomputed as\n\n\talloclen = fragheaderlen + transhdrlen;\n\tpagedlen = datalen - transhdrlen;\n\ndatalen already includes fraggap (datalen = length + fraggap). When\nfraggap is non-zero, this is not the first skb and transhdrlen is zero.\nThe fraggap bytes carried over from the previous skb are copied just past\nthe fragment headers in the new skb's linear area. The linear area is\ntherefore undersized by fraggap bytes while pagedlen is overstated by the\nsame amount, and the copy writes past skb-\u003eend into the trailing\nskb_shared_info.\n\nAn unprivileged user can trigger this via a UDPv6 socket using\nMSG_MORE together with MSG_SPLICE_PAGES.\n\nThe bad accounting was introduced by commit 773ba4fe9104 (\"ipv6:\navoid partial copy for zc\"). Before commit ce650a166335 (\"udp6: Fix\n__ip6_append_data()'s handling of MSG_SPLICE_PAGES\"), the negative\ncopy value caused -EINVAL to be returned. That later commit allowed\nMSG_SPLICE_PAGES to proceed in this case, making the corruption\ntriggerable.\n\nThe non-paged branch sets alloclen to fraglen, which already accounts\nfor fraggap because datalen does. Bring the paged branch in line by\nadding fraggap to alloclen and subtracting it from pagedlen.\n\nAfter this adjustment, copy no longer collapses to -fraggap on the\npaged path, so remove the stale comment describing that old arithmetic.\nSince a negative copy is no longer expected for a valid MSG_SPLICE_PAGES\ncase, remove the MSG_SPLICE_PAGES exception from the negative copy check.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:17:02.113",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53361",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\naf_unix: Set gc_in_progress to true in unix_gc().\n\nIgor Ushakov reported that unix_gc() could run with gc_in_progress\nbeing false if the work is scheduled while running:\n\n  Thread 1         Thread 2                     Thread 3\n  --------         --------                     --------\n                   unix_schedule_gc()           unix_schedule_gc()\n                   `- if (!gc_in_progress)      `- if (!gc_in_progress)\n                      |- gc_in_progress = true     |\n                      `- queue_work()              |\n  unix_gc() \u003c----------------/                     |\n  |                                                |- gc_in_progress = true\n  ...                                              `- queue_work()\n  |                                                       |\n  `- gc_in_progress = false                               |\n                                                          |\n  unix_gc() \u003c---------------------------------------------'\n  |\n  ... /* gc_in_progress == false */\n  |\n  `- gc_in_progress = false\n\nunix_peek_fpl() relies on gc_in_progress not to confuse GC\nby MSG_PEEK.\n\nLet's set gc_in_progress to true in unix_gc().",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:17:02.010",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53360",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nKVM: SEV: Require in-GHCB scratch area if GHCB v2+ is in use\n\nAs per the GHCB spec, when using GHCB v2+ require the software scratch area\nto reside in the GHCB's shared buffer.  Note, things like Page State Change\n(PSC) requests _rely_ on this behavior, as the guest can't provide a length\nwhen making the request, i.e. the size of the guest payload is bounded by\nthe size of the shared buffer.\n\nFailure to force usage of the GHCB, and a slew of other flaws, lets a\nmalicious SNP guest corrupt host kernel heap memory, and leak host heap\nlayout information.\n\nsetup_vmgexit_scratch() allocates a buffer via kvzalloc(exit_info_2),\nwhere exit_info_2 is guest-controlled. With exit_info_2=24, this yields\na 24-byte allocation in kmalloc-cg-32 (32-byte slab objects). The buffer\nholds an 8-byte psc_hdr followed by 8-byte psc_entry structs, so only\nentries[0] and entries[1] are in-bounds.\n\nsnp_begin_psc() validates end_entry against VMGEXIT_PSC_MAX_COUNT (253)\nbut NOT against the actual buffer size:\n\n      idx_end = hdr-\u003eend_entry;\n\n      if (idx_end \u003e= VMGEXIT_PSC_MAX_COUNT) {   // checks 253, not buffer\n          snp_complete_psc(svm, ...);\n          return 1;\n      }\n\n      for (idx = idx_start; idx \u003c= idx_end; idx++) {\n          entry_start = entries[idx];           // OOB when idx \u003e= 2\n\nThe guest sets end_entry=10+, causing the host to iterate entries[2+]\nwhich are OOB into adjacent slab objects. For each OOB entry:\n\n  - The host reads 8 bytes (OOB READ / info leak oracle)\n  - If the data passes PSC validation, __snp_complete_one_psc() writes\n    cur_page = 1 or 512 into the entry (OOB WRITE, sev.c:3806)\n  - If validation fails, the error response reveals whether adjacent\n    memory is zero vs non-zero (information disclosure to guest)\n\nThe guest controls allocation size (exit_info_2), entry range\n(cur_entry/end_entry), and can fire unlimited VMGEXITs to repeatedly\nhit different slab positions.\n\nBy exploiting the variety of bugs, a malicious SEV-SNP guest can:\n    - OOB read adjacent kmalloc-cg-32 objects (heap layout disclosure)\n    - OOB write cur_page bits into adjacent objects (heap corruption)\n    - Trigger use-after-free conditions across VMGEXITs\n\nE.g. with KASAN enabled, a single insmod of the PoC guest module\nproduces 73 KASAN reports:\n\n    BUG: KASAN: slab-out-of-bounds in snp_begin_psc+0x126/0x890\n    Read of size 8 at addr ffff888219ffb5e0 by task qemu-system-x86/2199\n\n    BUG: KASAN: slab-out-of-bounds in snp_begin_psc+0x468/0x890\n    Write of size 8 at addr ffff888351566648 by task qemu-system-x86/2199\n\n    The buggy address belongs to the object at ffff888XXXXXXXXX\n     which belongs to the cache kmalloc-cg-32 of size 32\n    The buggy address is located N bytes to the right of\n     allocated 32-byte region [ffff888XXXXXXXXX, ffff888XXXXXXXXX)\n\n  Breakdown:\n    62 slab-out-of-bounds (reads + writes past allocation)\n     7 slab-use-after-free\n     4 use-after-free\n\nAll credit to Stan for the wonderful description and reproducer!\n\n[sean: write changelog]",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:17:01.880",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:40:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-53359",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nKVM: x86: Fix shadow paging use-after-free due to unexpected role\n\nCommit 0cb2af2ea66ad (\"KVM: x86: Fix shadow paging use-after-free due\nto unexpected GFN\") fixed a shadow paging mismatch between stored and\ncomputed GFNs; the bug could be triggered by changing a PDE mapping from\noutside the guest, and then deleting a memslot.  The rmap_remove()\ncall would miss entries created after the PDE change because the GFN\nof the leaf SPTE does not match the GFN of the struct kvm_mmu_page.\n\nA similar hole however remains if the modified PDE points to a non-leaf\npage.  In this case the gfn can be made to match, but the role does not\nmatch: the original large 2MB page creates a kvm_mmu_page with direct=1,\nwhile the new 4KB needs a kvm_mmu_page with direct=0.  However,\nkvm_mmu_get_child_sp() does not compare the role, and therefore reuses\nthe page.\n\nThe next step is installing a leaf (4KB) SPTE on the new path which\nrecords an rmap entry under the gfn resolved by the walk.  But when\nthat child is zapped its parent kvm_mmu_page has direct=1 and\nkvm_mmu_page_get_gfn() computes the gfn for the 4KB page as\nsp-\u003egfn + index instead of using sp-\u003eshadowed_translation[] (or sp-\u003egfns[]\nin older kernels).  It therefore fails to remove the recorded entry.\n\nWhen the memslot is dropped the shadow page is freed but the rmap\nentry survives, as in the scenario that was already fixed.  Code that\nlater walks that gfn (dirty logging, MMU notifier invalidation, and\nso on) dereferences an sptep that lies in the freed page, causing the\nuse-after-free.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:17:01.760",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14626",
+    "description": "A weakness has been identified in NousResearch hermes-agent up to 2026.4.30. The impacted element is the function AIAgent.run_conversation of the file run_agent.py of the component HTTP API. This manipulation of the argument todos causes denial of service. The attack can be initiated remotely. The exploit has been made available to the public and could be used for attacks. The vendor was contacted early about this disclosure but did not respond in any way.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:16:53.903",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14625",
+    "description": "A security flaw has been discovered in NousResearch hermes-agent up to 0.15.2. The affected element is the function shell.exec of the file tui_gateway/server.py. The manipulation results in protection mechanism failure. It is possible to launch the attack remotely. The exploit has been released to the public and may be used for attacks. The vendor was contacted early about this disclosure but did not respond in any way.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:16:53.740",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12196",
+    "description": "HestiaCP panel cronjob feature is affected by a broken access control vulnerability. Low privilege users can modify the panel cronjob to execute scripts HestiaCP management scripts with passwordless sudo. This could result in the takeover of administrator users in the application and the underlying webserver.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:16:53.600",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12195",
+    "description": "myVesta is affected by an authenticated remote code execution vulnerability. Low privileged users can insert arbitrary commands as a part of the v_ftp_user parameter when deleting FTP usernames. This could result in the execution of commands as the admin user or takevoer of the admin user in myVesta.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T12:16:53.300",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14624",
+    "description": "A vulnerability was identified in omec-project amf up to 2.0.2/2.1.1. Impacted is an unknown function of the file /go/src/amf/ngap/handler.go of the component NGSetupRequest Handler. The manipulation leads to denial of service. It is possible to initiate the attack remotely. The exploit is publicly available and might be used. The identifier of the patch is 34bc6724acc97dba1f8691e586da95b042cb612d. To fix this issue, it is recommended to deploy a patch.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T11:16:47.613",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14623",
+    "description": "A vulnerability was determined in omec-project amf up to 2.1.1. This issue affects the function RRCInactiveTransitionReport of the component NGAP Message Handler. Executing a manipulation can lead to denial of service. The attack may be performed from remote. The exploit has been publicly disclosed and may be utilized. This patch is called 34bc6724acc97dba1f8691e586da95b042cb612d. A patch should be applied to remediate this issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00522,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T10:16:27.623",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14622",
+    "description": "A vulnerability was found in jairiidriss restaurant-website-php-mysql up to 521428b5b612449df0cf4a5d15ee40cba67f3d35. This vulnerability affects unknown code of the file /admin/ajax_files of the component AJAX Endpoint. Performing a manipulation results in missing authentication. The attack is possible to be carried out remotely. The exploit has been made public and could be used. This product adopts a rolling release strategy to maintain continuous delivery. Therefore, version details for affected or updated releases cannot be specified. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0.00517,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T09:16:27.767",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14621",
+    "description": "A vulnerability has been found in FederatedAI FATE up to 2.2.0. This affects the function QueuePushReqStreamObserver.initEggroll of the file java/osx/osx-broker/src/main/java/org/fedai/osx/broker/grpc/QueuePushReqStreamObserver.java of the component OSX Broker. Such manipulation of the argument rollSiteSessionId/dstRole/dstPartyId leads to exposure of data element to wrong session. The attack can be executed remotely. A high complexity level is associated with this attack. It is indicated that the exploitability is difficult. The exploit has been disclosed to the public and may be used. The pull request to fix this issue awaits acceptance.",
+    "severity": "low",
+    "cvss_score": 3.1,
+    "epss_score": 0.00299,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T09:16:27.543",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14619",
+    "description": "A flaw has been found in itsourcecode Hospital Management System 1.0. Affected by this issue is some unknown functionality of the file /medicine.php. This manipulation of the argument editid causes sql injection. Remote exploitation of the attack is possible. The exploit has been published and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0.002,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T08:16:21.647",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12194",
+    "description": "PHPIPAM is affected by an authenticated local file inclusion vulnerability that allows users with access to the API to execute/include arbitrary PHP files on the web server's file system. The API is not enabled by default on installations.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00378,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T08:16:20.643",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14618",
+    "description": "A vulnerability was detected in Open5GS up to 2.7.7. Affected by this vulnerability is the function amf_nnrf_handle_nf_discover of the file src/amf/nnrf-handler.c of the component AMF. The manipulation results in denial of service. The attack may be launched remotely. The exploit is now public and may be used. The patch is identified as fb5f67703de0213fb9c6e6ef3b48b6c1707e9503. It is best practice to apply a patch to resolve this issue.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00316,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T07:16:24.503",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-12252",
+    "description": "In nltk/nltk versions 3.9.3 and earlier, five Stanford interface classes (StanfordPOSTagger, StanfordNERTagger, StanfordParser, StanfordDependencyParser, and StanfordNeuralDependencyParser) are vulnerable to untrusted JAR code execution. These classes accept user-controllable JAR paths and execute them via the `java()` function, which invokes `subprocess.Popen()` without integrity verification. This vulnerability is identical to CVE-2026-0848, which was fixed for StanfordSegmenter by adding SHA256 verification. However, the fix was not applied to these additional classes, leaving them susceptible to arbitrary code execution when loading untrusted JAR files.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:23.603",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71380",
+    "description": "The Execute Command node in n8n allows authenticated users to execute arbitrary commands on the host system where n8n runs. Attackers with user access or compromised credentials can exploit this node to run malicious commands, potentially leading to data exfiltration, service disruption, or complete system compromise.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00413,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:23.477",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:39:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71375",
+    "description": "picklescan before 0.0.34 fails to detect the _operator.methodcaller built-in function when scanning pickle files for malicious code. Attackers can craft malicious pickle payloads using _operator.methodcaller that evade detection and execute arbitrary code when loaded by pickle.load().",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00365,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:23.347",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71373",
+    "description": "picklescan before 0.0.33 fails to detect operator.methodcaller function calls in pickle files, allowing attackers to bypass security checks. Remote attackers can craft malicious pickle payloads using operator.methodcaller that execute arbitrary code when loaded, compromising systems relying on picklescan for validation.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00444,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:23.220",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71372",
+    "description": "Picklescan before 0.0.33 fails to detect the numpy.f2py.crackfortran.getlincoef gadget in pickle __reduce__ methods, allowing arbitrary code execution. Attackers can craft malicious pickle files that execute arbitrary Python code when loaded, bypassing Picklescan's safety checks and enabling supply-chain poisoning of shared model files.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00379,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:23.097",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71369",
+    "description": "picklescan before 0.0.28 fails to detect malicious pickle files that use torch.utils.data.datapipes.utils.decoder.basichandlers in reduce methods, allowing attackers to bypass safety checks. Remote attackers can embed undetected malicious code in pickle files that executes during deserialization, enabling remote code execution.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00445,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.963",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71367",
+    "description": "picklescan before 0.0.34 fails to detect _operator.attrgetter function calls in pickle payloads, allowing attackers to bypass security checks. Remote attackers can craft malicious pickle files using _operator.attrgetter in reduce methods to execute arbitrary code when pickle.load() processes the file.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00445,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.833",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71366",
+    "description": "picklescan before 0.0.28 fails to detect malicious torch.utils.bottleneck.__main__.run_cprofile function calls in pickle files, allowing attackers to bypass safety checks. Remote attackers can embed undetected code in pickle files to achieve arbitrary code execution when victims load the files.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00445,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:36Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71364",
+    "description": "picklescan before 0.0.30 fails to detect the asyncio.unix_events._UnixSubprocessTransport._start function in pickle reduce methods, allowing remote code execution. Attackers can craft malicious pickle files embedding this built-in function that evade detection but execute arbitrary commands when loaded.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00555,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.583",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71362",
+    "description": "picklescan before 0.0.33 fails to detect unsafe deserialization when numpy.f2py.crackfortran functions call eval on arbitrary strings. Attackers can embed malicious code in pickle files that executes when loaded from untrusted sources.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.003,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.457",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71360",
+    "description": "picklescan before 0.0.29 fails to detect malicious pickle files using idlelib.calltip.get_entity function in reduce methods. Attackers can embed undetected code in pickle files that executes remote commands when loaded by victims.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.003,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.327",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71359",
+    "description": "picklescan before 0.0.29 fails to detect malicious pickle payloads that utilize lib2to3.pgen2.grammar.Grammar.loads in the reduce method, allowing remote code execution. Attackers can craft pickle files embedding dangerous code that evades picklescan detection and executes during pickle.load() deserialization.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00427,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.197",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71356",
+    "description": "picklescan before 0.0.28 fails to detect malicious torch.fx.experimental.symbolic_shapes.ShapeEnv.evaluate_guards_expression function calls in pickle files. Attackers can embed undetected code in pickle files that executes remote code when loaded by victims.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.003,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:22.063",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71353",
+    "description": "picklescan before 0.0.28 fails to detect malicious pickle files that exploit torch._dynamo.guards.GuardBuilder.get function in reduce methods. Attackers can craft pickle files with embedded code that evades picklescan detection and executes arbitrary commands when loaded.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.003,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:21.933",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71347",
+    "description": "picklescan before 0.0.33 fails to detect malicious pickle files using numpy.f2py.crackfortran.param_eval function in reduce methods, allowing attackers to bypass security checks. Remote attackers can embed undetected code in pickle files that executes during deserialization, enabling arbitrary code execution in applications loading untrusted pickle data.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00445,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:21.803",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71345",
+    "description": "picklescan before 0.0.30 fails to detect malicious pickle files that invoke torch.utils.bottleneck.__main__.run_autograd_prof function. Attackers can embed undetected code in pickle files that executes during deserialization, enabling remote code execution.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00427,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:21.670",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:09Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71343",
+    "description": "picklescan before 0.0.30 fails to detect malicious pickle files that exploit lib2to3.pgen2.pgen.ParserGenerator.make_label function in the reduce method. Attackers can craft malicious pickle files with embedded code that evades detection but executes arbitrary commands when pickle.load() is called.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.003,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:21.527",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:06Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71342",
+    "description": "picklescan before 0.0.30 fails to detect malicious pickle files using idlelib.run.Executive.runcode in reduce methods. Attackers can embed undetected code in pickle files that executes during pickle.load, enabling remote code execution in PyTorch models and supply chain attacks.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00427,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-04T02:16:21.387",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:32:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58523",
+    "description": "Improper access control in Microsoft Edge for Android allows an unauthorized attacker to bypass a security feature over a network.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00497,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T22:16:55.740",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14617",
+    "description": "A security vulnerability has been detected in NousResearch hermes-agent up to 2026.4.30. Affected is the function GatewayStreamConsumer._filter_and_accumulate of the file gateway/stream_consumer.py of the component Streaming Reasoning Tag Filter. The manipulation leads to improper handling of case sensitivity. The attack may be initiated remotely. The attack's complexity is rated as high. The exploitability is told to be difficult. The exploit has been disclosed publicly and may be used. The project decided to not implement a dedicated fix: \"[T]he analysis and the fix are both sound. It just lands below the bar for the maintenance cost of a duplicated scrub path.\"",
+    "severity": "low",
+    "cvss_score": 3.1,
+    "epss_score": 0.00237,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T22:16:52.943",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:54Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58597",
+    "description": "Insufficient ui warning of dangerous operations in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00407,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:06.127",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58524",
+    "description": "Improper neutralization of input during web page generation ('cross-site scripting') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00245,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:06.000",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58522",
+    "description": "Relative path traversal in Microsoft Edge for Android allows an unauthorized attacker to disclose information locally.",
+    "severity": "medium",
+    "cvss_score": 6.8,
+    "epss_score": 0.0029,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.883",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58426",
+    "description": "Gitea Actions Artifacts V4 signed URL HMAC ambiguity allows cross-repository artifact read and cross-task upload-state write",
+    "severity": "critical",
+    "cvss_score": 9.6,
+    "epss_score": 0.00177,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.770",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58424",
+    "description": "Permanent Fork PR Workflow Approval Gate Bypass",
+    "severity": "high",
+    "cvss_score": 8.9,
+    "epss_score": 0.00201,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.660",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58423",
+    "description": "LFS authentication bypass via malformed SSH sub-verb allows unauthorized read access to private repositories",
+    "severity": "high",
+    "cvss_score": 7.7,
+    "epss_score": 0.0031,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.550",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58422",
+    "description": "Improper authorization on OAuth sign-in callback silently re-enables administrator-disabled accounts",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.447",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58421",
+    "description": "Unauthenticated ReDoS via CODEOWNERS pattern matching allows denial of service",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00162,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.347",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58419",
+    "description": "Notification API leaks private issue metadata after access revocation",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00171,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.243",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58418",
+    "description": "SSRF via HTTP Redirect in Repository Migration",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00243,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.140",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:13Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58300",
+    "description": "Absolute path traversal in Microsoft Edge for Android allows an unauthorized attacker to disclose information locally.",
+    "severity": "medium",
+    "cvss_score": 6.2,
+    "epss_score": 0.00361,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:05.023",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58299",
+    "description": "Time-of-check time-of-use (toctou) race condition in Microsoft Edge for Android allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00276,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.907",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58298",
+    "description": "Improper neutralization of input during web page generation ('cross-site scripting') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "high",
+    "cvss_score": 7.2,
+    "epss_score": 0.00277,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.790",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:31:01Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58297",
+    "description": "Exposure of private personal information to an unauthorized actor in Microsoft Edge for Android allows an unauthorized attacker to disclose information over a network.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00316,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.663",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58296",
+    "description": "Exposure of private personal information to an unauthorized actor in Microsoft Edge for Android allows an unauthorized attacker to disclose information over a network.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00309,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.547",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58295",
+    "description": "Access of resource using incompatible type ('type confusion') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to bypass a security feature over a network.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0.0038,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.417",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58294",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00348,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.293",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58293",
+    "description": "External control of file name or path in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.0053,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.143",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:46Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58292",
+    "description": "Improper input validation in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00285,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:04.013",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58291",
+    "description": "Operation on a resource after expiration or release in Microsoft Edge (Chromium-based) allows an unauthorized attacker to disclose information over a network.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0.00599,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.890",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58290",
+    "description": "Access of resource using incompatible type ('type confusion') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00255,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.770",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58289",
+    "description": "Access of resource using incompatible type ('type confusion') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "critical",
+    "cvss_score": 9,
+    "epss_score": 0.0053,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.640",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:32Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58288",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0.00448,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.523",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:29Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58287",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0.00448,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.413",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:25Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58286",
+    "description": "Improper access control in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00385,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.293",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:22Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58285",
+    "description": "Access of resource using incompatible type ('type confusion') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0.00448,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58284",
+    "description": "Improper authorization in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.3,
+    "epss_score": 0.00414,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:03.057",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58283",
+    "description": "Access of resource using incompatible type ('type confusion') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00406,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.943",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58282",
+    "description": "Improper access control in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00385,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.820",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58278",
+    "description": "Server-side request forgery (ssrf) in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00323,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-58276",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00438,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.573",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:30:00Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57993",
+    "description": "Server-side request forgery (ssrf) in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0.00631,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.443",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:29:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57992",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00438,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.310",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57991",
+    "description": "Improper link resolution before file access ('link following') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to disclose information over a network.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0.00762,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.180",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57988",
+    "description": "Relative path traversal in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00543,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:02.023",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57987",
+    "description": "Server-side request forgery (ssrf) in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00631,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.903",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:21Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57986",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00438,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.780",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:17Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57985",
+    "description": "Improper input validation in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.6,
+    "epss_score": 0.00419,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.663",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:14Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57984",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00438,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.550",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57983",
+    "description": "Improper authorization in Microsoft Edge (Chromium-based) allows an unauthorized attacker to bypass a security feature over a network.",
+    "severity": "high",
+    "cvss_score": 8.7,
+    "epss_score": 0.00464,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.433",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57981",
+    "description": "Use after free in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00568,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.313",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57977",
+    "description": "Improper neutralization of input during web page generation ('cross-site scripting') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00406,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.193",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:13:02Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57975",
+    "description": "Access of resource using incompatible type ('type confusion') in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00438,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:01.077",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:58Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57974",
+    "description": "Integer overflow or wraparound in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00568,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.957",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:55Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56646",
+    "description": "Exposure of sensitive information to an unauthorized actor in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00666,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.783",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:51Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56645",
+    "description": "Heap-based buffer overflow in Microsoft Edge (Chromium-based) allows an unauthorized attacker to execute code over a network.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00568,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.670",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:48Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55945",
+    "description": "Concurrent execution using shared resource with improper synchronization ('race condition') in Microsoft Edge (Chromium-based) allows an authorized attacker to disclose information locally.",
+    "severity": "medium",
+    "cvss_score": 4.2,
+    "epss_score": 0.00148,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.550",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45489",
+    "description": "Microsoft Edge (Chromium-based) Spoofing Vulnerability",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00525,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.307",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-45488",
+    "description": "User interface (ui) misrepresentation of critical information in Microsoft Edge (Chromium-based) allows an unauthorized attacker to perform spoofing over a network.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00298,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.183",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:35Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28744",
+    "description": "Gitea versions up to and including 1.26.1 allow Git smart HTTP requests authenticated with bearer tokens to bypass repository token scope checks.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00343,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:17:00.003",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28740",
+    "description": "Gitea versions up to and including 1.26.2 allow Git LFS object reuse to authorize private source objects for users who have repository access but lack Code-unit access.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00323,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.890",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28737",
+    "description": "Gitea versions from 1.25.0 before 1.26.0 allow stored cross-site scripting through the extensionsRequired field in glTF files rendered by the 3D file viewer.",
+    "severity": "high",
+    "cvss_score": 8.7,
+    "epss_score": 0.00336,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.787",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28705",
+    "description": "Gitea versions before 1.25.5 use release tag names and asset names as filesystem path components when dumping release assets, allowing specially crafted names to affect dump output paths.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00181,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.683",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:19Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28699",
+    "description": "Gitea versions up to and including 1.26.1 allow OAuth2 access token scope enforcement to be bypassed through HTTP Basic authentication.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00566,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.567",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27783",
+    "description": "Gitea versions up to and including 1.26.1 do not enforce repository-unit authorization on issue-template API endpoints.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00283,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.450",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27780",
+    "description": "Gitea versions before 1.26.0 do not fail closed on bufio.Scanner errors while processing pre-receive hook input, allowing oversized input to bypass branch-protection checks.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00174,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.347",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27779",
+    "description": "Gitea versions before 1.25.5 accept malformed or injected forwarded-proto values when detecting public URLs, allowing spoofed canonical URL generation.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.257",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:12:04Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27775",
+    "description": "Gitea 1.25.5 caches a branch-specific write-permission result across multiple refs in one pre-receive hook session, allowing a per-branch maintainer-edit grant to be reused for other refs and escalate to full repository write access.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00198,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.157",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27771",
+    "description": "Gitea versions up to and including 1.26.1 have insufficient permission checks for Composer package source links, which can expose private or internal package source information.",
+    "severity": "high",
+    "cvss_score": 8.2,
+    "epss_score": 0.40738,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:59.043",
+    "poc_links": [
+      "https://github.com/portbuster1337/CVE-2026-27771",
+      "https://github.com/HORKimhab/CVE-2026-27771"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27761",
+    "description": "Gitea versions up to and including 1.26.2 allow repository RSS and Atom feed endpoints to bypass API access token scope checks, exposing private repository commit data to tokens without the required repository scope.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00367,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.937",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27660",
+    "description": "Gitea versions before 1.25.5 allow draft release data or attachments to be accessed without the required write permission.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.830",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-27657",
+    "description": "Gitea versions before 1.25.5 allow a user to change another user's primary email address.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00167,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.720",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-26307",
+    "description": "Gitea versions before 1.25.5 do not enforce a timeout on git grep searches, allowing expensive searches to consume server resources.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00175,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.620",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:39Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-26292",
+    "description": "Gitea versions before 1.25.5 do not use the migration HTTP transport for LFS push and sync mirror operations, bypassing the configured migration transport protections for those LFS requests.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00174,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.517",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-26247",
+    "description": "Gitea versions before 1.25.5 do not persist the OAuth2 PKCE S256 challenge method correctly during authorization, allowing token exchange without the expected verifier check.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00166,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.417",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-26232",
+    "description": "Gitea versions before 1.25.5 do not consistently enforce OAuth2 authorization code expiry and single-use behavior during token exchange.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00167,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.313",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-26231",
+    "description": "Gitea versions up to and including 1.26.1 allow the Allow edits from maintainers permission path to authorize commits to repositories that the user can read but should not be able to write.",
+    "severity": "high",
+    "cvss_score": 8.5,
+    "epss_score": 0.00291,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.200",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25782",
+    "description": "Gitea versions before 1.25.5 look up tracked-time entries by time ID without scoping the lookup to the issue in the request URL, allowing deletion attempts to target entries from another issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:58.030",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25779",
+    "description": "Gitea versions up to and including 1.25.4 allow redirect bypasses through raw or percent-encoded backslashes in redirect_to values.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00167,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.923",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:15Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25718",
+    "description": "Gitea versions before 1.25.5 mishandle path resolution during template repository generation, allowing template processing to read or write through symlinked or otherwise non-regular paths.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00172,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.823",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:11Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25714",
+    "description": "Gitea versions up to and including 1.26.1 do not apply public-only token filtering consistently to the user organization API, leaving an incomplete fix for CVE-2025-68941.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00271,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.707",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25712",
+    "description": "Gitea versions before 1.25.5 have insufficient visibility checks in organization permission APIs for hidden members and private organizations.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.607",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:11:03Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-25038",
+    "description": "Gitea 1.26.2 allows unauthorized users to access labels of private organizations.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00198,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.503",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:59Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24690",
+    "description": "Gitea versions before 1.25.5 have insufficient permission checks for updating or rebasing pull request branches.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.397",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-24451",
+    "description": "Gitea 1.26.2 allows fork synchronization to continue after a parent repository changes from public to private, exposing data to a fork that should no longer be authorized.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00198,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.280",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-22874",
+    "description": "Gitea versions up to and including 1.26.2 have incomplete SSRF protection in webhook and migration allow-list filtering.",
+    "severity": "critical",
+    "cvss_score": 9.6,
+    "epss_score": 0.00464,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.157",
+    "poc_links": [
+      "https://github.com/M8seven/cve-2026-22874-gitea-ssrf-allowlist"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-22555",
+    "description": "Gitea versions before 1.26.0 allow API users to fork a repository into an organization without first passing the CanCreateOrgRepo check, which can expose organization secrets.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00304,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:57.023",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-22547",
+    "description": "Gitea versions before 1.25.5 lack validation constraints for repository creation fields, including length-limited template fields and trust model or object format values.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00168,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:56.890",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:42Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-20909",
+    "description": "Gitea versions before 1.25.5 have insufficient permission checks when listing tracked time entries.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:56.777",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:38Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-20896",
+    "description": "Gitea Docker image versions up to and including 1.26.2 use REVERSE_PROXY_TRUSTED_PROXIES=* by default, allowing any source IP to impersonate a user when reverse-proxy authentication headers such as X-WEBAUTH-USER are enabled.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00783,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:56.660",
+    "poc_links": [
+      "https://github.com/kaleth4/CVE-2026-20896"
+    ],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:34Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-20779",
+    "description": "Gitea versions from 1.5.0 before 1.26.3 have a TOTP single-use enforcement defect that allows a valid TOTP code to be accepted more than once across web two-factor authentication flows and the Basic Auth X-Gitea-OTP path.",
+    "severity": "high",
+    "cvss_score": 7.1,
+    "epss_score": 0.00481,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:56.543",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-20706",
+    "description": "Gitea versions up to and including 1.26.1 allow repository archive downloads to bypass token scope checks on the web archive download endpoint.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00256,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-03T21:16:56.433",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T01:10:26Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-14611",
     "description": "A vulnerability has been found in DeepMyst Mysti up to 0.4.0. The affected element is the function initProjectMemory of the file src/managers/MemoryManager.ts of the component Per-Project Auto-Memory Handler. Such manipulation of the argument workspacePath leads to exposure of resource. The attack may be performed from remote. Upgrading to version 0.4.0 is sufficient to fix this issue. The name of the patch is 6d709229b5199f6769fb3cf763e5122dcc43c079. It is advisable to upgrade the affected component.",
     "severity": "medium",

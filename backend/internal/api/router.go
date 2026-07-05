@@ -8,6 +8,7 @@ import (
 	"github.com/analysishub/backend/internal/api/handlers"
 	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/config"
+	"github.com/analysishub/backend/internal/logsearch"
 	"github.com/analysishub/backend/internal/oob"
 	"github.com/analysishub/backend/internal/osint"
 	"github.com/analysishub/backend/internal/storage"
@@ -225,6 +226,22 @@ func NewRouter(
 		protected.GET("/elk/hunt/results/:id", handlers.GetELKHuntResult)
 		protected.DELETE("/elk/hunt/results/:id", handlers.DeleteELKHuntResult)
 		protected.POST("/elk/hunt/results/:id/promote-timeline", handlers.NewTimelineHandler(db).PromoteELKResult)
+
+		// Log Search — ingest uploaded logs (evtx/access/firewall/syslog/json/csv)
+		// into the built-in Elasticsearch, then search from the ELK hunt UI above.
+		if cfg.LogSearchESURL != "" {
+			handlers.SeedLocalLogStore(db, cfg.LogSearchESURL)
+			go logsearch.EnsureKibanaDataView(cfg.LogSearchKibanaURL)
+			ls := handlers.NewLogSearchHandler(db, store, cfg.LogSearchESURL, cfg.LogSearchKibanaURL, cfg.DockerAPIURL)
+			protected.GET("/logsearch/meta", ls.Meta)
+			protected.POST("/logsearch/upload", ls.Upload)
+			protected.GET("/logsearch/jobs", ls.ListJobs)
+			protected.GET("/logsearch/indices", ls.ListIndices)
+			protected.DELETE("/logsearch/indices/:index", middleware.RequireAdmin(), ls.DeleteIndex)
+			// ELK power toggle (free RAM when idle) — status is read-only; start/stop admin-only.
+			protected.GET("/logsearch/elk/status", ls.ELKStatus)
+			protected.POST("/logsearch/elk/:verb", middleware.RequireAdmin(), ls.ELKPower)
+		}
 
 		// Splunk Hunt
 		protected.GET("/splunk/config", handlers.GetSplunkConfig)

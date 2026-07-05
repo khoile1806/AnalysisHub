@@ -17,7 +17,8 @@ const FleetPage = lazy(() => import('@/pages/Fleet'))
 const JobsPage = lazy(() => import('@/pages/Jobs'))
 const JobDetailPage = lazy(() => import('@/pages/JobDetail'))
 const CVEPage = lazy(() => import('@/pages/CVE'))
-const OpenCTIPage = lazy(() => import('@/pages/OpenCTI'))
+const ELKPage = lazy(() => import('@/pages/ELK'))
+const KibanaPage = lazy(() => import('@/pages/KibanaView'))
 const IOCManagementPage = lazy(() => import('@/pages/IOCManagement'))
 const CVECollectionPage = lazy(() => import('@/pages/CVECollection'))
 const OsintPage = lazy(() => import('@/pages/Osint'))
@@ -239,11 +240,21 @@ export default function App() {
           }
         />
         <Route
-          path="/opencti"
+          path="/kibana"
           element={
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
-                <OpenCTIPage />
+                <KibanaPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/elk"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <ELKPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

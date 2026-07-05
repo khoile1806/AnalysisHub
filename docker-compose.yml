@@ -26,6 +26,82 @@ services:
       timeout: 3s
       retries: 5
 
+  # Elasticsearch — the searchable store for the Log Search module. Uploaded
+  # logs (evtx/access/firewall/syslog/json/csv) are parsed to ECS and bulk-indexed
+  # here, then searched from the "SIEM Threat Hunting" page via a built-in ELK
+  # profile pointed at http://elasticsearch:9200. Security is disabled (single-node
+  # analyst box on an internal network); it is NOT published on the host by default.
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${LOGSEARCH_ES_VERSION:-8.17.3}
+    container_name: analysishub_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms${LOGSEARCH_ES_MEM:-2g} -Xmx${LOGSEARCH_ES_MEM:-2g}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    expose:
+      - "9200"
+    # Uncomment to reach Elasticsearch directly from the host for debugging:
+    # ports:
+    #   - "${LOGSEARCH_ES_PORT:-9200}:9200"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  # Kibana — full ELK UI for viewing/searching the ingested logs and building
+  # detection rules/alerts, dashboards and visualizations like a normal ELK
+  # stack. Served under the /kbn base path through the frontend's nginx (same
+  # origin as the app) so it is centralised at http://<host>:FRONTEND_PORT/kbn
+  # and can be embedded as an in-app "Kibana" page — no extra host port needed.
+  # The version MUST match Elasticsearch.
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${LOGSEARCH_ES_VERSION:-8.17.3}
+    container_name: analysishub_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_BASEPATH=/kbn
+      - SERVER_REWRITEBASEPATH=true
+      - SERVER_PUBLICBASEURL=${KIBANA_PUBLIC_URL:-http://localhost:3000/kbn}
+      - TELEMETRY_ENABLED=false
+    expose:
+      - "5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fs http://localhost:5601/kbn/api/status || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+    restart: unless-stopped
+
+  # Docker socket proxy — a least-privilege gateway that lets the backend START/
+  # STOP the ELK containers (the "Hệ thống ELK" toggle) WITHOUT giving it the raw
+  # host socket. Only the container API + write (POST) methods are allowed; images,
+  # volumes, networks, exec and host info stay denied. The real socket is mounted
+  # read-only here and NEVER into the backend. Not published on the host.
+  docker_socket_proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: analysishub_docker_proxy
+    environment:
+      - CONTAINERS=1   # allow /containers (inspect + start/stop)
+      - POST=1         # allow write methods (start/stop are POST)
+      # everything else stays 0 (denied): IMAGES, VOLUMES, NETWORKS, EXEC, INFO…
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    expose:
+      - "2375"
+    restart: unless-stopped
+
   # Tor SOCKS5 proxy — used ONLY by the dark-web crawler to reach .onion / dark
   # sources without exposing the real source IP. Reachable inside the compose
   # network as tor:9050; also bound to 127.0.0.1:9050 so a locally-run backend
@@ -125,6 +201,17 @@ services:
       # Internal address of the volatility/kali ttyd terminal the backend
       # reverse-proxies (admin-gated). Not published on the host.
       - SANDBOX_TERMINAL_URL=${SANDBOX_TERMINAL_URL:-http://volatility_sandbox:7681}
+      # Log Search module: the built-in Elasticsearch the backend bulk-indexes
+      # uploaded logs into and auto-registers as an ELK hunting profile.
+      - LOGSEARCH_ES_URL=${LOGSEARCH_ES_URL:-http://elasticsearch:9200}
+      # Internal Kibana URL (includes the /kbn base path) — the backend creates
+      # the hunt-* data view here on startup so the logs are immediately viewable.
+      - LOGSEARCH_KIBANA_URL=${LOGSEARCH_KIBANA_URL:-http://kibana:5601/kbn}
+      # In-app ELK power toggle (Log Ingest tab): the backend reaches the scoped
+      # docker_socket_proxy over TCP to start/stop the ES+Kibana containers and
+      # free their RAM when idle. Auto-enabled when this points at a reachable
+      # proxy; set empty to hide the toggle (falls back to a manual command).
+      - DOCKER_API_URL=${DOCKER_API_URL:-http://docker_socket_proxy:2375}
       # OOB interaction server ("Catch"). Disabled unless OOB_ENABLED=true AND the
       # OOB_DOMAIN zone is delegated to OOB_PUBLIC_IP. See .env.example for setup.
       - OOB_ENABLED=${OOB_ENABLED:-false}
@@ -137,6 +224,8 @@ services:
     volumes:
       - storage_data:/app/storage
       - ./backend/data:/app/data
+      # NOTE: the backend does NOT mount the docker socket. The ELK power toggle
+      # goes through the scoped docker_socket_proxy service (least privilege).
     logging:
       driver: "json-file"
       options:
@@ -148,6 +237,10 @@ services:
       redis:
         condition: service_healthy
       tor:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      docker_socket_proxy:
         condition: service_started
     restart: unless-stopped
 
@@ -186,9 +279,11 @@ services:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
+      - kibana
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   storage_data:
+  elasticsearch_data:
