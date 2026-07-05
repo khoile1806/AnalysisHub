@@ -16,8 +16,9 @@ type LogIngestJob struct {
 	Filename     string     `                                                      json:"filename"`
 	LogType      string     `                                                      json:"log_type"`      // requested type (auto|evtx|…)
 	DetectedType string     `                                                      json:"detected_type"` // resolved after detection
-	Index        string     `                                                      json:"index"`         // target hunt-* index
-	Status       string     `gorm:"default:'queued';index"                         json:"status"`        // queued|running|done|error
+	Index        string     `                                                      json:"index"`         // target hunt-* index(es)
+	FileHash     string     `gorm:"index"                                          json:"file_hash"`     // sha256 of upload (dedup)
+	Status       string     `gorm:"default:'queued';index"                         json:"status"`        // queued|running|done|error|skipped
 	DocsIndexed  int        `                                                      json:"docs_indexed"`
 	DocsFailed   int        `                                                      json:"docs_failed"`
 	Message      string     `gorm:"type:text"                                      json:"message"`

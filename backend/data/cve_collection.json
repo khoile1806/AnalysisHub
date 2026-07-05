@@ -1,5 +1,601 @@
 [
   {
+    "id": "CVE-2026-14716",
+    "description": "A security vulnerability has been detected in nextlevelbuilder GoClaw up to 3.13.0-beta.2. Impacted is the function MethodRouter.Handle of the file internal/gateway/router.go of the component WebSocket RPC Handler. Such manipulation leads to incorrect authorization. The attack may be launched remotely. The exploit has been disclosed publicly and may be used. The project was informed of the problem early through an issue report.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:16:31.240",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:53Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14714",
+    "description": "A weakness has been identified in zhayujie chatgpt-on-wechat CowAgent 2.1.0. This issue affects the function verify_server of the file channel/wechatmp/common.py of the component wx Endpoint. This manipulation of the argument wechatmp_token causes missing authentication. The attack may be initiated remotely. The exploit has been made available to the public and could be used for attacks. Upgrading to version 2.1.1 is capable of addressing this issue. Patch name: 3d7c68bac6ee74fad63f43cf99e45c62e202ed55. It is suggested to upgrade the affected component. The project confirms: \"We've added an explicit non-empty check for wechatmp_token in verify_server() so that the /wx endpoint now fails closed with 403 Forbidden whenever the token is missing or left at the default empty value, instead of relying on a signature check that silently degenerates to a predictable hash.\"",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:16:30.873",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:50Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14713",
+    "description": "A security flaw has been discovered in SourceCodester Pizzafy E-Commerce System 1.0. This vulnerability affects unknown code of the file /admin/ajax.php?action=confirm_order. The manipulation of the argument ID results in sql injection. The attack can be launched remotely. The exploit has been released to the public and may be used for attacks.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:16:30.480",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:47Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14706",
+    "description": "A vulnerability was identified in code-projects Online Examination 1.0. This affects an unknown part of the file /update.php?q=addquiz of the component Quiz Creation Feature. The manipulation of the argument name/total/right/wrong/time/tag/desc leads to sql injection. The attack can be initiated remotely. The exploit is publicly available and might be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:16:30.043",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:44Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14705",
+    "description": "A vulnerability was determined in code-projects Online Examination 1.0. Affected by this issue is some unknown functionality of the file head.php. Executing a manipulation of the argument uname/password can lead to sql injection. It is possible to launch the attack remotely. The exploit has been publicly disclosed and may be utilized.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:16:29.607",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:40Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14704",
+    "description": "A vulnerability was found in stephen-kruger bluebox up to 4.5.12. Affected by this vulnerability is an unknown functionality. Performing a manipulation of the argument code results in cross site scripting. It is possible to initiate the attack remotely. The exploit has been made public and could be used. The project was informed of the problem early through an issue report.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:16:28.420",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:37Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14703",
+    "description": "A vulnerability has been found in itsourcecode Hospital Management System 1.0. Affected is an unknown function of the file /patientorder.php. Such manipulation of the argument editid leads to sql injection. The attack may be performed from remote. The exploit has been disclosed to the public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T05:16:28.610",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:33Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14702",
+    "description": "A flaw has been found in zcaceres markdownify-mcp up to 1.1.0. This impacts the function saveToTempFile of the file src/Markdownify.ts of the component webpage-to-markdown/youtube-to-markdown/bing-search-to-markdown. This manipulation causes insufficiently random values. The attack is restricted to local execution. A high degree of complexity is needed for the attack. The exploitability is said to be difficult. The exploit has been published and may be used. The pull request to fix this issue awaits acceptance.",
+    "severity": "low",
+    "cvss_score": 2.5,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T05:16:28.450",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:30Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14701",
+    "description": "A vulnerability was detected in code-projects Internship Management System 1.0. This affects an unknown function of the file employer/details/change_password.php of the component Password Change Endpoint. The manipulation of the argument Current results in sql injection. The attack can be executed remotely. The exploit is now public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T05:16:28.300",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:26Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14700",
+    "description": "A security vulnerability has been detected in code-projects Internship Management System 1.0. The impacted element is an unknown function of the file employer/login.php of the component Employer Login Endpoint. The manipulation of the argument email/password leads to sql injection. Remote exploitation of the attack is possible. The exploit has been disclosed publicly and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T05:16:28.140",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:23Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14699",
+    "description": "A weakness has been identified in zcaceres markdownify-mcp up to 1.1.0. The affected element is the function assertPathAllowed of the file src/Markdownify.ts. Executing a manipulation can lead to symlink following. The attack can only be executed locally. The pull request to fix this issue awaits acceptance.",
+    "severity": "low",
+    "cvss_score": 3.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T05:16:27.977",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14698",
+    "description": "A security flaw has been discovered in SourceCodester Syllabus-Aligned Learning Management and Examination System 1.0. Impacted is an unknown function of the file upload_files.php. Performing a manipulation results in unrestricted upload. The attack may be initiated remotely. The exploit has been released to the public and may be used for attacks.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T05:16:26.997",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T06:42:16Z",
+    "source": "NVD"
+  },
+  {
+    "id": "GHSA-6w7f-vrx5-q78q",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2023-12-28T15:30:19Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9cjp-v48x-fx42",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2023-12-28T15:30:19Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:31Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-3428-vpwf-2w42",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-04-26T15:30:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:30Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r95v-7x7v-phw8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-09-10T18:30:47Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:29Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-6hr6-rx9m-cchc",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-10-07T18:31:09Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:28Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-j3x9-prq7-4p96",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2024-10-11T21:31:34Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:27Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-3g2c-jgm5-pwjh",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-06-23T18:30:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:26Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r8rh-23j8-7gc8",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-06-23T21:31:56Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:25Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pjhm-2qjv-7qpq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2025-08-21T21:32:06Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:24Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-25qc-p89r-xmj4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:23Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-4r3p-cxgg-r53c",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-9fw9-6v7j-4wv9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m6h7-g9xx-qhpj",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pcmr-4mmx-225x",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:21Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q839-q3vx-jmj9",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v5rw-jc7q-7hfw",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v6hv-2p8r-43v4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v6rc-95xw-8xp5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:18Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w4jw-95f5-j2x5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:17Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-63xw-cmj4-rvfq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:32:33Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T04:51:16Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-14695",
+    "description": "A vulnerability was found in SourceCodester Multi-Vendor Online Grocery Management System 1.0. This affects the function save_client of the file classes/Users.php of the component Registration Handler. The manipulation of the argument Name results in sql injection. It is possible to launch the attack remotely. The exploit has been made public and could be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:16:20.137",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T04:51:12Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14694",
+    "description": "A vulnerability has been found in SourceCodester Multi-Vendor Online Grocery Management System 1.0. Affected by this issue is the function cancel_order of the file classes/Master.php of the component POST Parameter Handler. The manipulation of the argument ID leads to sql injection. It is possible to initiate the attack remotely. The exploit has been disclosed to the public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:16:19.967",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T04:51:08Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14693",
+    "description": "A flaw has been found in SourceCodester Multi-Vendor Online Grocery Management System 1.0. Affected by this vulnerability is the function cancel_order of the file classes/Master.php. Executing a manipulation can lead to improper authorization. The attack may be performed from remote. The exploit has been published and may be used.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:16:19.773",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T04:51:05Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14692",
+    "description": "A vulnerability was detected in SourceCodester Multi-Vendor Online Grocery Management System 1.0/5.7.26. Affected is the function save_shop_type of the file classes/Master.php of the component POST Parameter Handler. Performing a manipulation results in sql injection. The attack is possible to be carried out remotely. The exploit is now public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T03:16:18.470",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T04:51:01Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-14691",
     "description": "A security vulnerability has been detected in SourceCodester Multi-Vendor Online Grocery Management System 1.0. This impacts the function update_settings_info of the file classes/SystemSettings.php of the component Setting Handler. Such manipulation of the argument content[] leads to code injection. The attack can be executed remotely. The exploit has been disclosed publicly and may be used.",
     "severity": "medium",

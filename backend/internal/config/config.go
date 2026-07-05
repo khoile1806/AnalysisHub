@@ -239,6 +239,10 @@ type Config struct {
 	// power toggle). When set and reachable the toggle auto-enables; empty hides
 	// it. The backend itself never touches the raw docker socket.
 	DockerAPIURL string
+
+	// LogSearchRetentionDays is how many days ingested hunt-* logs are kept before
+	// ILM deletes them (protects RAM/disk on a long-running box). 0 = keep forever.
+	LogSearchRetentionDays int
 }
 
 // Insecure placeholder secrets. Booting in production with any of these is
@@ -304,6 +308,7 @@ func Load() *Config {
 		LogSearchESURL:           getEnv("LOGSEARCH_ES_URL", ""),
 		LogSearchKibanaURL:       getEnv("LOGSEARCH_KIBANA_URL", ""),
 		DockerAPIURL:             getEnv("DOCKER_API_URL", ""),
+		LogSearchRetentionDays:   getEnvInt("LOGSEARCH_RETENTION_DAYS", 30),
 
 		OOBEnabled:    getEnv("OOB_ENABLED", "false") == "true",
 		OOBDomain:     strings.ToLower(strings.TrimSuffix(getEnv("OOB_DOMAIN", ""), ".")),

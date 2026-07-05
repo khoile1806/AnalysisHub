@@ -3,7 +3,8 @@ package logsearch
 // indexTemplate returns the ECS index template applied to every hunt-* index.
 // Fields are mapped explicitly (ip/long types) so IOC pivots and range/CIDR
 // queries work; ignore_malformed keeps a bad value from dropping a whole doc.
-func indexTemplate() map[string]interface{} {
+// When ilmPolicy is non-empty the indices are attached to that ILM policy.
+func indexTemplate(ilmPolicy string) map[string]interface{} {
 	kwText := func() map[string]interface{} {
 		return map[string]interface{}{
 			"type": "keyword", "ignore_above": 1024,
@@ -71,16 +72,21 @@ func indexTemplate() map[string]interface{} {
 		}},
 	}
 
+	settings := map[string]interface{}{
+		"number_of_shards":                 1,
+		"number_of_replicas":               0,
+		"index.mapping.total_fields.limit": 8000,
+		"index.mapping.ignore_malformed":   true,
+		"index.refresh_interval":           "5s",
+	}
+	if ilmPolicy != "" {
+		settings["index.lifecycle.name"] = ilmPolicy
+	}
+
 	return map[string]interface{}{
 		"index_patterns": []string{IndexPrefix + "-*"},
 		"template": map[string]interface{}{
-			"settings": map[string]interface{}{
-				"number_of_shards":                 1,
-				"number_of_replicas":               0,
-				"index.mapping.total_fields.limit": 8000,
-				"index.mapping.ignore_malformed":   true,
-				"index.refresh_interval":           "5s",
-			},
+			"settings": settings,
 			"mappings": map[string]interface{}{
 				"properties": props,
 				"dynamic_templates": []interface{}{

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { JsonViewer } from '@/components/JsonViewer'
 import { logsearchApi, LogIngestJob, LogIndex, ELKStatus } from '@/api/logsearch'
+import { casesApi } from '@/api/cases'
 
 type TabType = 'hunt' | 'ingest' | 'connections'
 
@@ -115,6 +116,7 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [caseName, setCaseName] = useState('')
+  const [caseId, setCaseId] = useState('')
   const [logType, setLogType] = useState('auto')
   const [files, setFiles] = useState<File[]>([])
   const [skipped, setSkipped] = useState(0)
@@ -123,6 +125,13 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
   const folderInput = useRef<HTMLInputElement>(null)
 
   const { data: meta } = useQuery({ queryKey: ['logsearch-meta'], queryFn: logsearchApi.meta, refetchInterval: 20000 })
+  const { data: health } = useQuery({ queryKey: ['logsearch-health'], queryFn: logsearchApi.health, refetchInterval: 10000 })
+  const { data: cases } = useQuery({ queryKey: ['cases-list'], queryFn: casesApi.list })
+  const { data: summary } = useQuery({
+    queryKey: ['logsearch-summary', caseName],
+    queryFn: () => logsearchApi.summary(caseName.trim() || undefined),
+    refetchInterval: 10000,
+  })
   const { data: jobs } = useQuery({
     queryKey: ['logsearch-jobs'],
     queryFn: () => logsearchApi.listJobs(),
@@ -175,7 +184,7 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
   }
 
   const uploadMut = useMutation({
-    mutationFn: () => logsearchApi.upload(caseName.trim(), logType, files),
+    mutationFn: () => logsearchApi.upload(caseName.trim(), logType, files, caseId || undefined),
     onSuccess: () => {
       setFiles([]); setSkipped(0)
       qc.invalidateQueries({ queryKey: ['logsearch-jobs'] })
@@ -192,7 +201,8 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
 
   const totalMB = (files.reduce((s, f) => s + f.size, 0) / 1048576).toFixed(1)
   const statusColor: Record<string, string> = {
-    done: 'text-emerald-400', running: 'text-amber-400', queued: 'text-amber-400', error: 'text-rose-400',
+    done: 'text-emerald-400', running: 'text-amber-400', queued: 'text-amber-400',
+    error: 'text-rose-400', skipped: 'text-gray-500',
   }
 
   return (
@@ -203,10 +213,30 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
           <div className="flex items-center gap-2 mb-4">
             <HardDriveUpload className="h-5 w-5 text-emerald-500" />
             <h2 className="font-semibold text-gray-100">Ingest collected logs</h2>
-            <span className={`ml-auto text-xs ${meta?.es_up ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {meta?.es_up ? '● store online' : '● store offline'}
-            </span>
+            <div className="ml-auto flex items-center gap-3 text-xs">
+              <span className={health?.elasticsearch?.up ? 'text-emerald-400' : 'text-rose-400'}>
+                ● ES {health?.elasticsearch?.up ? (health.elasticsearch.status || 'up') : 'down'}
+              </span>
+              <span className={health?.kibana?.up ? 'text-emerald-400' : 'text-gray-500'}>
+                ● Kibana {health?.kibana?.up ? 'up' : 'down'}
+              </span>
+              {health && <span className="text-gray-500">{health.indices} idx · {health.documents.toLocaleString()} docs</span>}
+            </div>
           </div>
+
+          <label className="block text-xs text-gray-400 mb-1">Link to case (optional)</label>
+          <select
+            value={caseId}
+            onChange={(e) => {
+              setCaseId(e.target.value)
+              const cs = (cases ?? []).find((c) => c.id === e.target.value)
+              if (cs) setCaseName(cs.name)
+            }}
+            className="w-full mb-3 px-3 py-2 rounded-md bg-gray-950 border border-gray-800 text-gray-100 text-sm focus:outline-none focus:border-emerald-500"
+          >
+            <option value="">— no case (ad-hoc) —</option>
+            {(cases ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
 
           <label className="block text-xs text-gray-400 mb-1">Case / hunt name</label>
           <input
@@ -319,6 +349,30 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
           onPower={(v) => powerMut.mutate(v)} pending={powerMut.isPending} />
       </div>
 
+      {/* Right column: triage summary + jobs */}
+      <div className="space-y-6">
+      {/* Triage summary */}
+      {summary && summary.total > 0 && (
+        <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <FileSearch className="h-4 w-4 text-emerald-500" />
+            <h3 className="font-semibold text-gray-100 text-sm">Triage summary{caseName.trim() ? ` · ${caseName.trim()}` : ''}</h3>
+            <span className="ml-auto text-xs text-gray-500">{summary.total.toLocaleString()} docs</span>
+          </div>
+          <div className="text-xs text-gray-400 mb-3">
+            {summary.min_time && summary.max_time
+              ? <>time range: <span className="text-gray-300">{new Date(summary.min_time).toLocaleString()}</span> → <span className="text-gray-300">{new Date(summary.max_time).toLocaleString()}</span></>
+              : 'no timestamped events'}
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <SummaryList title="By category" items={summary.by_category} />
+            <SummaryList title="By log type" items={summary.by_log_type} />
+            <SummaryList title="Top source IPs" items={summary.top_source_ip} mono />
+            <SummaryList title="Top event codes" items={summary.top_event_code} mono />
+          </div>
+        </div>
+      )}
+
       {/* Jobs */}
       <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
         <div className="flex items-center gap-2 mb-3">
@@ -349,6 +403,24 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
             </div>
           )}
       </div>
+      </div>
+    </div>
+  )
+}
+
+// SummaryList renders a compact top-N aggregation column.
+function SummaryList({ title, items, mono }: { title: string; items: { key: string; count: number }[]; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-gray-500 mb-1">{title}</div>
+      {(items ?? []).length === 0
+        ? <div className="text-gray-600">—</div>
+        : (items ?? []).slice(0, 6).map((b, i) => (
+          <div key={i} className="flex justify-between gap-2">
+            <span className={`truncate ${mono ? 'font-mono' : ''} text-gray-300`}>{b.key}</span>
+            <span className="text-gray-500">{b.count.toLocaleString()}</span>
+          </div>
+        ))}
     </div>
   )
 }

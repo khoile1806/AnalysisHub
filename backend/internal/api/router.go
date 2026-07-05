@@ -232,8 +232,15 @@ func NewRouter(
 		if cfg.LogSearchESURL != "" {
 			handlers.SeedLocalLogStore(db, cfg.LogSearchESURL)
 			go logsearch.EnsureKibanaDataView(cfg.LogSearchKibanaURL)
-			ls := handlers.NewLogSearchHandler(db, store, cfg.LogSearchESURL, cfg.LogSearchKibanaURL, cfg.DockerAPIURL)
+			ls := handlers.NewLogSearchHandler(db, store, handlers.LogSearchConfig{
+				ESURL:         cfg.LogSearchESURL,
+				KibanaURL:     cfg.LogSearchKibanaURL,
+				DockerAPIURL:  cfg.DockerAPIURL,
+				RetentionDays: cfg.LogSearchRetentionDays,
+			})
 			protected.GET("/logsearch/meta", ls.Meta)
+			protected.GET("/logsearch/health", ls.Health)
+			protected.GET("/logsearch/summary", ls.Summary)
 			protected.POST("/logsearch/upload", ls.Upload)
 			protected.GET("/logsearch/jobs", ls.ListJobs)
 			protected.GET("/logsearch/indices", ls.ListIndices)

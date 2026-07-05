@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +19,20 @@ import (
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/storage"
 )
+
+// hashFile returns the hex sha256 of a file's contents (for upload dedup).
+func hashFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
 
 // maxLogUploadBytes bounds a single uploaded log file.
 const maxLogUploadBytes = 16 << 30 // 16 GB
@@ -35,13 +53,21 @@ type LogSearchHandler struct {
 	sem          chan struct{}
 }
 
-func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, esURL, kibanaURL, dockerAPIURL string) *LogSearchHandler {
+// LogSearchConfig carries the wiring the handler needs.
+type LogSearchConfig struct {
+	ESURL         string
+	KibanaURL     string
+	DockerAPIURL  string
+	RetentionDays int
+}
+
+func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, cfg LogSearchConfig) *LogSearchHandler {
 	return &LogSearchHandler{
 		DB:           db,
 		Store:        store,
-		ES:           logsearch.NewESClient(esURL),
-		KibanaURL:    kibanaURL,
-		DockerAPIURL: dockerAPIURL,
+		ES:           logsearch.NewESClient(cfg.ESURL, cfg.RetentionDays),
+		KibanaURL:    cfg.KibanaURL,
+		DockerAPIURL: cfg.DockerAPIURL,
 		sem:          make(chan struct{}, logIngestConcurrency),
 	}
 }
@@ -53,6 +79,52 @@ func (h *LogSearchHandler) Meta(c *gin.Context) {
 		"index_prefix": logsearch.IndexPrefix,
 		"es_up":        h.ES.Ping(),
 	})
+}
+
+// kibanaUp reports whether Kibana answers its status endpoint.
+func (h *LogSearchHandler) kibanaUp() bool {
+	if strings.TrimSpace(h.KibanaURL) == "" {
+		return false
+	}
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(strings.TrimRight(h.KibanaURL, "/") + "/api/status")
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
+}
+
+// Health GET /api/v1/logsearch/health — end-to-end health of the whole feature.
+func (h *LogSearchHandler) Health(c *gin.Context) {
+	esStatus, esUp := h.ES.ClusterStatus()
+	indices, _ := h.ES.CatIndices()
+	docs := 0
+	for _, ix := range indices {
+		docs += atoiSafe(ix.Docs)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"elasticsearch": gin.H{"up": esUp, "status": esStatus},
+		"kibana":        gin.H{"up": h.kibanaUp()},
+		"indices":       len(indices),
+		"documents":     docs,
+		"elk_control":   h.controlEnabled(),
+	})
+}
+
+// Summary GET /api/v1/logsearch/summary?case= — fast triage aggregations.
+func (h *LogSearchHandler) Summary(c *gin.Context) {
+	s, err := h.ES.Summarize(strings.TrimSpace(c.Query("case")))
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, s)
+}
+
+func atoiSafe(s string) int {
+	n, _ := strconv.Atoi(strings.TrimSpace(s))
+	return n
 }
 
 // Upload POST /api/v1/logsearch/upload — multipart: case, log_type, case_id?, files[]
@@ -126,6 +198,22 @@ func (h *LogSearchHandler) Upload(c *gin.Context) {
 		h.DB.Model(&job).Update("stored_path", relPath)
 		job.StoredPath = relPath
 
+		// Dedup: skip a file already ingested (same sha256) in this case.
+		if hash, herr := hashFile(h.Store.GetLogUploadPath(relPath)); herr == nil {
+			job.FileHash = hash
+			h.DB.Model(&job).Update("file_hash", hash)
+			var dup models.LogIngestJob
+			if err := h.DB.Where("file_hash = ? AND status = ? AND \"case\" = ? AND id <> ?", hash, "done", caseName, job.ID).First(&dup).Error; err == nil {
+				now := time.Now()
+				h.DB.Model(&job).Updates(map[string]interface{}{
+					"status": "skipped", "finished_at": &now,
+					"message": "duplicate of an already-ingested file (same content)",
+				})
+				jobs = append(jobs, job)
+				continue
+			}
+		}
+
 		go h.runIngest(job)
 		jobs = append(jobs, job)
 	}
@@ -146,17 +234,21 @@ func (h *LogSearchHandler) runIngest(job models.LogIngestJob) {
 			Updates(map[string]interface{}{"docs_indexed": indexed, "docs_failed": failed})
 	}
 
-	index, indexed, failed, err := h.ES.IngestFile(absPath, job.Filename, job.Case, job.LogType, onProgress)
+	indices, indexed, failed, err := h.ES.IngestPath(absPath, job.Filename, job.Case, job.LogType, onProgress)
 	now := time.Now()
 	updates := map[string]interface{}{
-		"index":        index,
+		"index":        strings.Join(indices, ","),
 		"docs_indexed": indexed,
 		"docs_failed":  failed,
 		"finished_at":  &now,
 	}
-	// detected type is what the index name's last segment encodes
-	if parts := strings.Split(index, "-"); len(parts) > 0 {
-		updates["detected_type"] = parts[len(parts)-1]
+	// detected_type: the single index's last segment, or "archive" for a bundle.
+	if len(indices) == 1 {
+		if parts := strings.Split(indices[0], "-"); len(parts) > 0 {
+			updates["detected_type"] = parts[len(parts)-1]
+		}
+	} else if len(indices) > 1 {
+		updates["detected_type"] = "archive"
 	}
 	if err != nil {
 		updates["status"] = "error"
@@ -164,16 +256,22 @@ func (h *LogSearchHandler) runIngest(job models.LogIngestJob) {
 		log.Printf("logsearch: job %s failed: %v", job.ID, err)
 	} else {
 		updates["status"] = "done"
-		msg := "indexed " + strconv.Itoa(indexed) + " docs"
+		msg := "indexed " + strconv.Itoa(indexed) + " docs into " + strconv.Itoa(len(indices)) + " index(es)"
 		if failed > 0 {
 			msg += ", " + strconv.Itoa(failed) + " failed"
 		}
 		updates["message"] = msg
-		// Make sure the Kibana data view for this category exists so the logs are
+		// Ensure the Kibana data view for each category exists so the logs are
 		// immediately browsable, even if startup provisioning missed it.
 		if indexed > 0 && h.KibanaURL != "" {
-			if parts := strings.Split(index, "-"); len(parts) >= 2 {
-				go logsearch.EnsureCategoryDataView(h.KibanaURL, parts[1])
+			cats := map[string]bool{}
+			for _, idx := range indices {
+				if parts := strings.Split(idx, "-"); len(parts) >= 2 {
+					cats[parts[1]] = true
+				}
+			}
+			for cat := range cats {
+				go logsearch.EnsureCategoryDataView(h.KibanaURL, cat)
 			}
 		}
 	}
@@ -185,6 +283,9 @@ func (h *LogSearchHandler) ListJobs(c *gin.Context) {
 	q := h.DB.Order("created_at desc").Limit(300)
 	if cs := strings.TrimSpace(c.Query("case")); cs != "" {
 		q = q.Where("\"case\" = ?", cs)
+	}
+	if cid := strings.TrimSpace(c.Query("case_id")); cid != "" {
+		q = q.Where("case_id = ?", cid)
 	}
 	var jobs []models.LogIngestJob
 	if err := q.Find(&jobs).Error; err != nil {

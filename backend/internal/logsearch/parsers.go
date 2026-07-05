@@ -30,8 +30,10 @@ const (
 	TypeAuto      = "auto"
 	TypeEvtx      = "evtx"
 	TypeAccess    = "access"
+	TypeIIS       = "iis"
 	TypeFortigate = "fortigate"
 	TypeIptables  = "iptables"
+	TypeCEF       = "cef"
 	TypeSyslog    = "syslog"
 	TypeJSON      = "json"
 	TypeCSV       = "csv"
@@ -40,8 +42,8 @@ const (
 
 // LogTypes is the ordered list surfaced to the UI.
 var LogTypes = []string{
-	TypeAuto, TypeEvtx, TypeAccess, TypeFortigate,
-	TypeIptables, TypeSyslog, TypeJSON, TypeCSV, TypePlaintext,
+	TypeAuto, TypeEvtx, TypeAccess, TypeIIS, TypeFortigate,
+	TypeIptables, TypeCEF, TypeSyslog, TypeJSON, TypeCSV, TypePlaintext,
 }
 
 // LogTypeCategory maps a log type to its platform category, used for index
@@ -51,7 +53,9 @@ var LogTypeCategory = map[string]string{
 	TypeSyslog:    "linux",
 	TypeFortigate: "firewall",
 	TypeIptables:  "firewall",
+	TypeCEF:       "firewall",
 	TypeAccess:    "web",
+	TypeIIS:       "web",
 	TypeJSON:      "app",
 	TypeCSV:       "other",
 	TypePlaintext: "other",
@@ -149,6 +153,12 @@ func DetectLogType(path, filename string) string {
 	if isJSONL(sample) {
 		return TypeJSON
 	}
+	if anyMatch(sample, isIISHeader) {
+		return TypeIIS
+	}
+	if anyMatch(sample, isCEFLine) {
+		return TypeCEF
+	}
 	if countMatch(sample, isAccessLine) >= max(1, len(sample)/2) {
 		return TypeAccess
 	}
@@ -218,6 +228,10 @@ func Parse(path, logType string, emit EmitFunc) error {
 		return parseEvtx(path, emit)
 	case TypeAccess:
 		return parseAccess(path, emit)
+	case TypeIIS:
+		return parseIIS(path, emit)
+	case TypeCEF:
+		return parseCEF(path, emit)
 	case TypeFortigate:
 		return parseFortigate(path, emit)
 	case TypeIptables:

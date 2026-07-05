@@ -40,9 +40,36 @@ export interface ELKStatus {
   kibana?: ContainerState
 }
 
+export interface LogSearchHealth {
+  elasticsearch: { up: boolean; status: string }
+  kibana: { up: boolean }
+  indices: number
+  documents: number
+  elk_control: boolean
+}
+
+export interface LogBucket { key: string; count: number }
+export interface LogSummary {
+  total: number
+  min_time: string
+  max_time: string
+  by_category: LogBucket[]
+  by_log_type: LogBucket[]
+  top_source_ip: LogBucket[]
+  top_event_code: LogBucket[]
+}
+
 export const logsearchApi = {
   meta: async (): Promise<LogSearchMeta> => {
     const { data } = await api.get('/logsearch/meta')
+    return data
+  },
+  health: async (): Promise<LogSearchHealth> => {
+    const { data } = await api.get('/logsearch/health')
+    return data
+  },
+  summary: async (caseName?: string): Promise<LogSummary> => {
+    const { data } = await api.get('/logsearch/summary', { params: caseName ? { case: caseName } : {} })
     return data
   },
   listJobs: async (caseName?: string): Promise<LogIngestJob[]> => {

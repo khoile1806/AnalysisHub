@@ -80,6 +80,110 @@ func EnsureKibanaDataView(kibanaURL string) {
 	for _, cv := range categoryViews() {
 		createDataView(client, kibanaURL, cv.name, cv.pattern)
 	}
+	provisionThreatSearches(client, kibanaURL)
+}
+
+// threatSearch is a prebuilt Discover saved search for a common threat pattern.
+type threatSearch struct {
+	id, title, query string
+	columns          []string
+}
+
+func threatSearches() []threatSearch {
+	return []threatSearch{
+		{"hunt-ssh-bruteforce", "Threat: SSH brute-force",
+			"event.action:ssh_login and event.outcome:failure",
+			[]string{"@timestamp", "source.ip", "user.name", "host.name"}},
+		{"hunt-win-logon-failed", "Threat: Windows failed logon (4625)",
+			"event.code:4625",
+			[]string{"@timestamp", "source.ip", "user.name", "winlog.computer_name"}},
+		{"hunt-win-logon-success", "Windows successful logon (4624)",
+			"event.code:4624",
+			[]string{"@timestamp", "source.ip", "user.name", "winlog.computer_name"}},
+		{"hunt-fw-c2-ports", "Threat: firewall block to C2-ish ports",
+			"event.action:(deny or dropped or blocked) and destination.port:(4444 or 1337 or 3389 or 23 or 445)",
+			[]string{"@timestamp", "source.ip", "destination.ip", "destination.port", "event.action"}},
+		{"hunt-web-scanner-ua", "Threat: web scanner user-agents",
+			"user_agent.original.text:(sqlmap or nmap or nikto or masscan or \"python-requests\")",
+			[]string{"@timestamp", "source.ip", "url.original", "http.response.status_code", "user_agent.original"}},
+		{"hunt-http-errors", "Web 4xx/5xx responses",
+			"http.response.status_code >= 400",
+			[]string{"@timestamp", "source.ip", "url.original", "http.response.status_code"}},
+		{"hunt-powershell-child", "Threat: suspicious process / encoded PowerShell",
+			"process.parent.name:powershell.exe or process.command_line.text:enc",
+			[]string{"@timestamp", "host.name", "process.name", "process.command_line"}},
+	}
+}
+
+func provisionThreatSearches(client *http.Client, kibanaURL string) {
+	viewID := dataViewID(client, kibanaURL, IndexPrefix+"-*")
+	if viewID == "" {
+		log.Printf("logsearch: hunt-* data view not found, skipped threat rule pack")
+		return
+	}
+	for _, ts := range threatSearches() {
+		createSavedSearch(client, kibanaURL, viewID, ts)
+	}
+}
+
+// dataViewID returns the id of the data view whose title matches pattern.
+func dataViewID(client *http.Client, kibanaURL, pattern string) string {
+	resp, err := client.Get(kibanaURL + "/api/data_views")
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	var body struct {
+		DataView []struct {
+			ID    string `json:"id"`
+			Title string `json:"title"`
+		} `json:"data_view"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&body) != nil {
+		return ""
+	}
+	for _, dv := range body.DataView {
+		if dv.Title == pattern {
+			return dv.ID
+		}
+	}
+	return ""
+}
+
+func createSavedSearch(client *http.Client, kibanaURL, viewID string, ts threatSearch) {
+	searchSource := map[string]interface{}{
+		"query":        map[string]interface{}{"query": ts.query, "language": "kuery"},
+		"filter":       []interface{}{},
+		"indexRefName": "kibanaSavedObjectMeta.searchSourceJSON.index",
+	}
+	ssJSON, _ := json.Marshal(searchSource)
+	payload := map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"title":                 ts.title,
+			"columns":               ts.columns,
+			"sort":                  [][]string{{"@timestamp", "desc"}},
+			"kibanaSavedObjectMeta": map[string]interface{}{"searchSourceJSON": string(ssJSON)},
+		},
+		"references": []map[string]interface{}{
+			{"id": viewID, "name": "kibanaSavedObjectMeta.searchSourceJSON.index", "type": "index-pattern"},
+		},
+	}
+	body, _ := json.Marshal(payload)
+	// deterministic id so re-runs don't duplicate (409 = already exists = fine)
+	req, _ := http.NewRequest(http.MethodPost, kibanaURL+"/api/saved_objects/search/"+ts.id, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("kbn-xsrf", "true")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("logsearch: create saved search %q failed: %v", ts.title, err)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
+		log.Printf("logsearch: saved search %q ready (status %d)", ts.title, resp.StatusCode)
+	} else {
+		log.Printf("logsearch: saved search %q status %d", ts.title, resp.StatusCode)
+	}
 }
 
 func createDataView(client *http.Client, kibanaURL, name, pattern string) {

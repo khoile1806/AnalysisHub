@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -22,17 +23,21 @@ const bulkChunkSize = 2000
 // ESClient is a minimal Elasticsearch client for the built-in log store. The
 // store runs on the internal network with security disabled, so no auth.
 type ESClient struct {
-	baseURL  string
-	http     *http.Client
-	tmplOnce sync.Once
-	tmplErr  error
+	baseURL       string
+	retentionDays int
+	http          *http.Client
+	tmplOnce      sync.Once
+	tmplErr       error
 }
 
 // NewESClient returns a client for baseURL (e.g. http://elasticsearch:9200).
-func NewESClient(baseURL string) *ESClient {
+// retentionDays > 0 attaches an ILM policy that deletes hunt-* indices after
+// that many days; 0 keeps them forever.
+func NewESClient(baseURL string, retentionDays int) *ESClient {
 	return &ESClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    &http.Client{Timeout: 120 * time.Second},
+		baseURL:       strings.TrimRight(baseURL, "/"),
+		retentionDays: retentionDays,
+		http:          &http.Client{Timeout: 120 * time.Second},
 	}
 }
 
@@ -95,10 +100,20 @@ func (c *ESClient) DeleteIndex(index string) error {
 	return nil
 }
 
-// EnsureTemplate installs the ECS index template once per client.
+// EnsureTemplate installs the ILM policy (when retention is set) and the ECS
+// index template once per client.
 func (c *ESClient) EnsureTemplate() error {
 	c.tmplOnce.Do(func() {
-		body, _ := json.Marshal(indexTemplate())
+		ilmPolicy := ""
+		if c.retentionDays > 0 {
+			if err := c.ensureILM(); err != nil {
+				// non-fatal: log store still works without retention
+				fmt.Printf("logsearch: install ILM policy failed: %v\n", err)
+			} else {
+				ilmPolicy = IndexPrefix + "-logs"
+			}
+		}
+		body, _ := json.Marshal(indexTemplate(ilmPolicy))
 		req, _ := http.NewRequest(http.MethodPut, c.baseURL+"/_index_template/"+IndexPrefix+"-template", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := c.http.Do(req)
@@ -115,6 +130,33 @@ func (c *ESClient) EnsureTemplate() error {
 	return c.tmplErr
 }
 
+// ensureILM installs a delete-after-N-days lifecycle policy named hunt-logs.
+func (c *ESClient) ensureILM() error {
+	policy := map[string]interface{}{
+		"policy": map[string]interface{}{
+			"phases": map[string]interface{}{
+				"delete": map[string]interface{}{
+					"min_age": fmt.Sprintf("%dd", c.retentionDays),
+					"actions": map[string]interface{}{"delete": map[string]interface{}{}},
+				},
+			},
+		},
+	}
+	body, _ := json.Marshal(policy)
+	req, _ := http.NewRequest(http.MethodPut, c.baseURL+"/_ilm/policy/"+IndexPrefix+"-logs", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("status %d: %s", resp.StatusCode, truncate(string(b), 200))
+	}
+	return nil
+}
+
 // IndexName builds hunt-<category>-<case>-<logtype>.
 func IndexName(caseName, logType string) string {
 	category := LogTypeCategory[logType]
@@ -122,6 +164,51 @@ func IndexName(caseName, logType string) string {
 		category = "other"
 	}
 	return fmt.Sprintf("%s-%s-%s-%s", IndexPrefix, category, Sanitize(caseName), Sanitize(logType))
+}
+
+// IngestPath ingests an upload: a single log file, or a .zip/.tar(.gz) archive
+// whose inner files are each detected and ingested. Returns the distinct target
+// indices and aggregate counts. onProgress reports running (indexed, failed).
+func (c *ESClient) IngestPath(path, displayName, caseName, logType string, onProgress func(indexed, failed int)) (indices []string, indexed, failed int, err error) {
+	if !IsArchive(displayName) {
+		idx, ind, fl, e := c.IngestFile(path, displayName, caseName, logType, onProgress)
+		if idx != "" {
+			indices = []string{idx}
+		}
+		return indices, ind, fl, e
+	}
+
+	tmp, err := os.MkdirTemp("", "logingest-")
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer os.RemoveAll(tmp)
+
+	files, err := extractArchive(path, tmp)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("extract archive: %w", err)
+	}
+	if len(files) == 0 {
+		return nil, 0, 0, fmt.Errorf("archive contained no files")
+	}
+
+	seen := map[string]bool{}
+	for _, f := range files {
+		priorInd, priorFail := indexed, failed
+		idx, ind, fl, _ := c.IngestFile(f.Path, f.Name, caseName, logType, func(i, fail int) {
+			if onProgress != nil {
+				onProgress(priorInd+i, priorFail+fail)
+			}
+		})
+		indexed += ind
+		failed += fl
+		if idx != "" && !seen[idx] {
+			seen[idx] = true
+			indices = append(indices, idx)
+		}
+	}
+	sort.Strings(indices)
+	return indices, indexed, failed, nil
 }
 
 // IngestFile parses one file and bulk-indexes it into the store. onProgress is
