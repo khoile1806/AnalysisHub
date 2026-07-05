@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, Trash2, Terminal as TerminalIcon, Cpu, RefreshCw, Server, MemoryStick, Database, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Upload, Trash2, Terminal as TerminalIcon, Cpu, RefreshCw, Server, MemoryStick, Database, PanelLeftClose, PanelLeftOpen, Power, PlayCircle, StopCircle, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/auth'
 import { useUiStore } from '@/store/uiStore'
+import { logsearchApi } from '@/api/logsearch'
 
 interface DumpFile {
   name: string
@@ -28,6 +29,22 @@ export default function SandboxAnalysis() {
   // State to toggle sidebar and make console bigger
   const isSidebarOpen = useUiStore(s => s.memorySidebarOpen)
   const setIsSidebarOpen = useUiStore(s => s.setMemorySidebarOpen)
+
+  // Sandbox container power toggle (frees its RAM when idle, like the ELK toggle)
+  const { data: sbx } = useQuery({
+    queryKey: ['sandbox-status'],
+    queryFn: logsearchApi.sandboxStatus,
+    refetchInterval: 5000,
+  })
+  const sbxPowerMut = useMutation({
+    mutationFn: (verb: 'start' | 'stop') => logsearchApi.sandboxPower(verb),
+    onSuccess: (_d, verb) => {
+      toast.success(verb === 'start' ? 'Starting sandbox…' : 'Stopping sandbox…')
+      queryClient.invalidateQueries({ queryKey: ['sandbox-status'] })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Action failed'),
+  })
+  const sbxRunning = !!sbx?.sandbox?.running
 
   // The ttyd terminal is no longer exposed on a host port — the backend
   // reverse-proxies it behind an admin JWT. Browsers can't attach an
@@ -134,8 +151,35 @@ export default function SandboxAnalysis() {
           </div>
         </div>
         
+        <div className="ml-auto flex items-center gap-2">
+          {/* Sandbox power toggle */}
+          {sbx?.control_enabled ? (
+            <div className="flex items-center gap-2 mr-1">
+              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                <Power className={`h-3.5 w-3.5 ${sbxRunning ? 'text-emerald-400' : 'text-gray-500'}`} />
+                {sbxRunning ? 'running' : 'stopped'}
+              </span>
+              <button
+                disabled={sbxRunning || sbxPowerMut.isPending}
+                onClick={() => sbxPowerMut.mutate('start')}
+                className="px-2.5 py-1.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 flex items-center gap-1.5"
+              >
+                {sbxPowerMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />} Start
+              </button>
+              <button
+                disabled={!sbxRunning || sbxPowerMut.isPending}
+                onClick={() => sbxPowerMut.mutate('stop')}
+                className="px-2.5 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 disabled:opacity-40 flex items-center gap-1.5"
+              >
+                <StopCircle className="h-3.5 w-3.5" /> Stop
+              </button>
+            </div>
+          ) : (
+            <span className="text-[11px] text-gray-500 mr-1" title={sbx?.hint}>power toggle off</span>
+          )}
+
         {/* Toggle Sidebar Button */}
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
             isSidebarOpen 
@@ -146,6 +190,7 @@ export default function SandboxAnalysis() {
           {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
           {isSidebarOpen ? 'Hide Files' : 'Manage Sandbox Files'}
         </button>
+        </div>
       </div>
 
       {/* Main Content Area */}

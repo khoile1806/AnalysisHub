@@ -48,6 +48,21 @@ func NewSandboxHandler(targetURL string) (*SandboxHandler, error) {
 	}
 
 	rp := httputil.NewSingleHostReverseProxy(u)
+
+	// Use a DEDICATED, clean transport — NOT the global http.DefaultTransport,
+	// which main.go replaces with the egress-logging RoundTripper. That wrapper
+	// records byte counts and therefore returns a non-hijackable response body
+	// for a "101 Switching Protocols" upgrade, which breaks the ttyd WebSocket
+	// ("101 switching protocols response with non-writable body"). Sandbox traffic
+	// is internal (volatility_sandbox:7681) and must not be egress-recorded anyway.
+	rp.Transport = &http.Transport{
+		ForceAttemptHTTP2:     false, // WebSocket upgrades require HTTP/1.1
+		MaxIdleConns:          10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}
+
 	origDirector := rp.Director
 	rp.Director = func(r *http.Request) {
 		origDirector(r) // sets scheme/host + joins paths

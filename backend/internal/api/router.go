@@ -251,6 +251,9 @@ func NewRouter(
 			// ELK power toggle (free RAM when idle) — status is read-only; start/stop admin-only.
 			protected.GET("/logsearch/elk/status", ls.ELKStatus)
 			protected.POST("/logsearch/elk/:verb", middleware.RequireAdmin(), ls.ELKPower)
+			// Volatility/Kali sandbox power toggle (same docker-proxy mechanism).
+			protected.GET("/logsearch/sandbox/status", ls.SandboxStatus)
+			protected.POST("/logsearch/sandbox/:verb", middleware.RequireAdmin(), ls.SandboxPower)
 		}
 
 		// Splunk Hunt

@@ -95,6 +95,14 @@ export const logsearchApi = {
     const { data } = await api.post(`/logsearch/elk/${verb}`)
     return data
   },
+  sandboxStatus: async (): Promise<{ control_enabled: boolean; hint?: string; sandbox?: ContainerState }> => {
+    const { data } = await api.get('/logsearch/sandbox/status')
+    return data
+  },
+  sandboxPower: async (verb: 'start' | 'stop'): Promise<{ ok: boolean }> => {
+    const { data } = await api.post(`/logsearch/sandbox/${verb}`)
+    return data
+  },
   upload: async (
     caseName: string,
     logType: string,

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/analysishub/backend/internal/logsearch"
 )
 
 // The Log Ingest tab exposes a power toggle for the built-in ELK containers
@@ -22,6 +24,7 @@ import (
 const (
 	elkESContainer     = "analysishub_elasticsearch"
 	elkKibanaContainer = "analysishub_kibana"
+	sandboxContainer   = "analysishub_volatility"
 )
 
 // dockerBase returns the trimmed Docker API base URL, or "" when control is off.
@@ -104,6 +107,37 @@ func (h *LogSearchHandler) ELKStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
+// SandboxStatus GET /api/v1/logsearch/sandbox/status — power state of the
+// volatility/kali sandbox container (frees RAM when idle, like the ELK toggle).
+func (h *LogSearchHandler) SandboxStatus(c *gin.Context) {
+	out := gin.H{"control_enabled": h.controlEnabled()}
+	if !h.controlEnabled() {
+		out["hint"] = "In-app control unavailable (docker proxy not configured). Manual: docker compose stop volatility_sandbox"
+		c.JSON(http.StatusOK, out)
+		return
+	}
+	out["sandbox"] = h.inspect(dockerHTTP(), sandboxContainer)
+	c.JSON(http.StatusOK, out)
+}
+
+// SandboxPower POST /api/v1/logsearch/sandbox/:verb (start|stop) — admin only.
+func (h *LogSearchHandler) SandboxPower(c *gin.Context) {
+	verb := c.Param("verb")
+	if verb != "start" && verb != "stop" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "verb must be start or stop"})
+		return
+	}
+	if !h.controlEnabled() {
+		c.JSON(http.StatusPreconditionFailed, gin.H{"error": "sandbox control unavailable — docker proxy not configured"})
+		return
+	}
+	if err := h.action(dockerHTTP(), sandboxContainer, verb); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "verb": verb})
+}
+
 // ELKPower POST /api/v1/logsearch/elk/:verb  (verb = start|stop) — admin only.
 func (h *LogSearchHandler) ELKPower(c *gin.Context) {
 	verb := c.Param("verb")
@@ -128,6 +162,11 @@ func (h *LogSearchHandler) ELKPower(c *gin.Context) {
 			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 			return
 		}
+	}
+	// On start, (re)provision Kibana data views + threat searches/alerts once it
+	// is up again — the boot-time provisioning gives up when ELK is off by default.
+	if verb == "start" && h.KibanaURL != "" {
+		go logsearch.EnsureKibanaDataView(h.KibanaURL)
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "verb": verb})
 }

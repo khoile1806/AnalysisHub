@@ -1,5 +1,149 @@
 [
   {
+    "id": "CVE-2026-14733",
+    "description": "A vulnerability was detected in SourceCodester Class and Exam Timetabling System 1.0. This issue affects some unknown processing of the file /edit_coursea.php. The manipulation of the argument ID results in sql injection. The attack may be launched remotely. The exploit is now public and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T09:16:28.443",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T09:20:31Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14732",
+    "description": "A security vulnerability has been detected in SourceCodester Class and Exam Timetabling System 1.0. This vulnerability affects unknown code of the file /edit_exam.php. The manipulation of the argument ID leads to sql injection. The attack may be initiated remotely. The exploit has been disclosed publicly and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T09:16:28.290",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T09:20:27Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14731",
+    "description": "A weakness has been identified in itsourcecode Hospital Management System 1.0. This affects an unknown part of the file /patientreport.php. Executing a manipulation of the argument editid can lead to sql injection. The attack can be launched remotely. The exploit has been made available to the public and could be used for attacks.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T09:16:28.133",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T09:20:24Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14730",
+    "description": "A security flaw has been discovered in itsourcecode Hospital Management System 1.0. Affected by this issue is some unknown functionality of the file /patientprofile.php. Performing a manipulation of the argument patientname results in sql injection. The attack can be initiated remotely. The exploit has been released to the public and may be used for attacks.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T09:16:27.243",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T09:20:20Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14725",
+    "description": "A vulnerability was identified in SourceCodester Online Boat Reservation System 1.0. Affected by this vulnerability is an unknown functionality. Such manipulation leads to session expiration. It is possible to launch the attack remotely. The exploit is publicly available and might be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T08:16:27.113",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T08:41:56Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14723",
+    "description": "A vulnerability was determined in AD-Security AD_Miner 1.9.0. Affected is the function request_a of the file ad_miner/scripts/analyse_cache.py of the component Cache Handler. This manipulation of the argument sys.argv[1] causes deserialization. The attack can only be executed locally. The pull request to fix this issue awaits acceptance.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T08:16:26.957",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T08:41:52Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14722",
+    "description": "A vulnerability was found in tiddly-gittly TidGi-Desktop up to 0.13.0. This impacts an unknown function of the file src/services/wiki/wikiWorker/loadWikiTiddlersWithSubWikis.ts of the component Git Repository Import. The manipulation results in code injection. The attack may be performed from remote. The exploit has been made public and could be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T08:16:26.807",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T08:41:49Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14721",
+    "description": "A vulnerability has been found in UTT HiPER 1250GW up to 3.2.7-210907-180535. This affects an unknown function of the file /goform/ConfigWirelessBase_5g of the component Web Endpoint. The manipulation of the argument ssid leads to stack-based buffer overflow. The attack is possible to be carried out remotely. The exploit has been disclosed to the public and may be used.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T08:16:26.647",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T08:41:45Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14719",
+    "description": "A flaw has been found in SourceCodester Onlne Examination \u0026 Learning Management System 1.0. The impacted element is an unknown function of the file register.php of the component Registration Endpoint. Executing a manipulation of the argument role can lead to improper privilege management. The attack can be executed remotely. The exploit has been published and may be used. The name of the affected product appears to have a typo in it.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T08:16:25.803",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T08:41:42Z",
+    "source": "NVD"
+  },
+  {
     "id": "GHSA-c4r3-97x9-r646",
     "description": "",
     "severity": "none",
