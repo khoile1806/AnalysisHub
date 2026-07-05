@@ -1,0 +1,2 @@
+{"@timestamp":"2026-07-05T08:10:22.115Z","event":{"code":1},"host":{"name":"WKS-07"},"process":{"name":"powershell.exe","command_line":"powershell -enc SQBFAFgA","parent":{"name":"winword.exe"}}}
+{"@timestamp":"2026-07-05T08:10:23.442Z","event":{"code":3},"source":{"ip":"10.0.5.77","port":50122},"destination":{"ip":"91.219.236.18","port":443}}

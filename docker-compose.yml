@@ -39,6 +39,9 @@ services:
       - xpack.security.enabled=false
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms${LOGSEARCH_ES_MEM:-2g} -Xmx${LOGSEARCH_ES_MEM:-2g}
+    # Cap total container memory (heap + off-heap/Lucene) so a spike can't starve
+    # the rest of the stack. Keep this comfortably above ES_JAVA_OPTS heap.
+    mem_limit: ${LOGSEARCH_ES_MEM_LIMIT:-3g}
     ulimits:
       memlock:
         soft: -1
@@ -80,6 +83,7 @@ services:
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ESO_ENCRYPTIONKEY:-analysishub_kibana_encrypted_saved_objects_key_0}
       - XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_SECURITY_ENCRYPTIONKEY:-analysishub_kibana_security_session_key_000000000}
       - XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_REPORTING_ENCRYPTIONKEY:-analysishub_kibana_reporting_encryption_key_00000}
+    mem_limit: ${KIBANA_MEM_LIMIT:-1500m}
     expose:
       - "5601"
     depends_on:

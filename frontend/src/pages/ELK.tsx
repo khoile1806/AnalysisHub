@@ -118,6 +118,7 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
   const [caseName, setCaseName] = useState('')
   const [caseId, setCaseId] = useState('')
   const [logType, setLogType] = useState('auto')
+  const [timezone, setTimezone] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [skipped, setSkipped] = useState(0)
   const [dragOver, setDragOver] = useState(false)
@@ -183,8 +184,17 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
     }
   }
 
+  const enrichMut = useMutation({
+    mutationFn: () => logsearchApi.enrich(caseName.trim() || undefined),
+    onSuccess: (d) => {
+      if (!d.configured) toast.error('No threat-intel API keys configured (VT/Shodan/AbuseIPDB)')
+      else if (d.results.length === 0) toast('No source IPs to enrich yet')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Enrichment failed'),
+  })
+
   const uploadMut = useMutation({
-    mutationFn: () => logsearchApi.upload(caseName.trim(), logType, files, caseId || undefined),
+    mutationFn: () => logsearchApi.upload(caseName.trim(), logType, files, caseId || undefined, timezone || undefined),
     onSuccess: () => {
       setFiles([]); setSkipped(0)
       qc.invalidateQueries({ queryKey: ['logsearch-jobs'] })
@@ -253,6 +263,21 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
             {(meta?.log_types ?? ['auto']).map((t) => (
               <option key={t} value={t}>{t === 'auto' ? 'auto-detect' : t}</option>
             ))}
+          </select>
+
+          <label className="block text-xs text-gray-400 mb-1">Source timezone <span className="text-gray-600">(syslog/undated logs)</span></label>
+          <select
+            value={timezone} onChange={(e) => setTimezone(e.target.value)}
+            className="w-full mb-3 px-3 py-2 rounded-md bg-gray-950 border border-gray-800 text-gray-100 text-sm focus:outline-none focus:border-emerald-500"
+          >
+            <option value="">UTC (default)</option>
+            <option value="+07:00">+07:00 (Asia/Bangkok, Ho Chi Minh)</option>
+            <option value="+08:00">+08:00 (Asia/Singapore, Shanghai)</option>
+            <option value="+09:00">+09:00 (Asia/Tokyo)</option>
+            <option value="+05:30">+05:30 (Asia/Kolkata)</option>
+            <option value="+01:00">+01:00 (Europe/Paris)</option>
+            <option value="-05:00">-05:00 (US Eastern)</option>
+            <option value="-08:00">-08:00 (US Pacific)</option>
           </select>
 
           <div
@@ -357,7 +382,15 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
           <div className="flex items-center gap-2 mb-3">
             <FileSearch className="h-4 w-4 text-emerald-500" />
             <h3 className="font-semibold text-gray-100 text-sm">Triage summary{caseName.trim() ? ` · ${caseName.trim()}` : ''}</h3>
-            <span className="ml-auto text-xs text-gray-500">{summary.total.toLocaleString()} docs</span>
+            <button
+              onClick={() => enrichMut.mutate()}
+              disabled={enrichMut.isPending}
+              className="ml-auto text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 disabled:opacity-50"
+            >
+              {enrichMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldAlert className="h-3.5 w-3.5" />}
+              Enrich top IPs
+            </button>
+            <span className="text-xs text-gray-500">{summary.total.toLocaleString()} docs</span>
           </div>
           <div className="text-xs text-gray-400 mb-3">
             {summary.min_time && summary.max_time
@@ -370,6 +403,22 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
             <SummaryList title="Top source IPs" items={summary.top_source_ip} mono />
             <SummaryList title="Top event codes" items={summary.top_event_code} mono />
           </div>
+
+          {enrichMut.data && enrichMut.data.results.length > 0 && (
+            <div className="mt-4 border-t border-gray-800 pt-3">
+              <div className="text-gray-500 text-xs mb-1">Threat-intel (top source IPs)</div>
+              <div className="space-y-1">
+                {enrichMut.data.results.map((r) => (
+                  <div key={r.IOC} className="flex items-center gap-2 text-xs">
+                    <span className={`inline-block h-2 w-2 rounded-full ${r.Threat ? 'bg-rose-500' : 'bg-gray-600'}`} />
+                    <span className="font-mono text-gray-300">{r.IOC}</span>
+                    {r.Threat && <span className="text-rose-400">score {r.MaxScore}</span>}
+                    <span className="text-gray-500 truncate">{r.Findings.map((f) => f.Source).join(', ') || 'no data'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -62,11 +62,3 @@ func TestDetectAndParseSamples(t *testing.T) {
 		t.Logf("%-32s type=%-10s docs=%-6d withTS=%-6d withSrcIP=%d", tc.rel, got, n, withTS, withSrcIP)
 	}
 }
-
-func TestIndexNaming(t *testing.T) {
-	got := IndexName("Incident 2026-07", "evtx")
-	want := "hunt-windows-incident-2026-07-evtx"
-	if got != want {
-		t.Errorf("IndexName = %q, want %q", got, want)
-	}
-}

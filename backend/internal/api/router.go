@@ -231,16 +231,19 @@ func NewRouter(
 		// into the built-in Elasticsearch, then search from the ELK hunt UI above.
 		if cfg.LogSearchESURL != "" {
 			handlers.SeedLocalLogStore(db, cfg.LogSearchESURL)
+			handlers.ReconcileStalledJobs(db)
 			go logsearch.EnsureKibanaDataView(cfg.LogSearchKibanaURL)
 			ls := handlers.NewLogSearchHandler(db, store, handlers.LogSearchConfig{
 				ESURL:         cfg.LogSearchESURL,
 				KibanaURL:     cfg.LogSearchKibanaURL,
 				DockerAPIURL:  cfg.DockerAPIURL,
 				RetentionDays: cfg.LogSearchRetentionDays,
+				Enricher:      enrich,
 			})
 			protected.GET("/logsearch/meta", ls.Meta)
 			protected.GET("/logsearch/health", ls.Health)
 			protected.GET("/logsearch/summary", ls.Summary)
+			protected.POST("/logsearch/enrich", ls.Enrich)
 			protected.POST("/logsearch/upload", ls.Upload)
 			protected.GET("/logsearch/jobs", ls.ListJobs)
 			protected.GET("/logsearch/indices", ls.ListIndices)

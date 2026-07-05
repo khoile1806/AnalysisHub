@@ -1,5 +1,241 @@
 [
   {
+    "id": "GHSA-c4r3-97x9-r646",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:22Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m5mg-5h67-mgmr",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:21Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-mf9r-r6pc-8fc6",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:20Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-458c-q8ch-6ghf",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:26Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:19Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-46qv-77xg-7vj5",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:18Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-5869-jwxp-w93g",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:18Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cf27-pvxx-xmcj",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:17Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-r5pv-rmw5-4xxw",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:16Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rcfx-cxxj-hrf2",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:15Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-vrf9-hq99-x9wm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:14Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w392-mcrm-ggqm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:13Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wh4m-9grw-87fp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T06:30:27Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-05T07:48:12Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-14781",
+    "description": "A flaw exists in the org.keycloak.broker.oidc package where the OIDC broker incorrectly synchronizes the email_verified claim. When an OIDC identity provider is configured with trustEmail=true and the userinfo endpoint is enabled, Keycloak retrieves the email address from the userinfo response but retrieves the email_verified status exclusively from the id_token.\nThe root cause is a lack of validation ensuring that the email_verified claim in the id_token actually refers to the email address returned by the userinfo endpoint. If these two sources return different email addresses, the id_token's email_verified=true claim is blindly applied to the userinfo email.\nExploitation Conditions:\nThe OIDC identity provider must have trustEmail set to true (non-default).\n\nThe userinfo endpoint must be enabled (default).\n\nThe attacker must control or have compromised the upstream OIDC provider.\n\n\nConcrete Impact:\nMark arbitrary email addresses as verified in the Keycloak database.\n\nBypass email-based security controls or verification workflows.\n\nPotential account takeover if the application relies solely on the email_verified flag from the IdP to link accounts.",
+    "severity": "medium",
+    "cvss_score": 4.8,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T07:16:39.820",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T07:48:07Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14717",
+    "description": "A vulnerability was detected in itsourcecode Hospital Management System 1.0. The affected element is an unknown function of the file /patientlogin.php. Performing a manipulation of the argument loginid results in sql injection. Remote exploitation of the attack is possible. The exploit is now public and may be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-05T07:16:39.630",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-05T07:48:03Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-14716",
     "description": "A security vulnerability has been detected in nextlevelbuilder GoClaw up to 3.13.0-beta.2. Impacted is the function MethodRouter.Handle of the file internal/gateway/router.go of the component WebSocket RPC Handler. Such manipulation leads to incorrect authorization. The attack may be launched remotely. The exploit has been disclosed publicly and may be used. The project was informed of the problem early through an issue report.",
     "severity": "medium",

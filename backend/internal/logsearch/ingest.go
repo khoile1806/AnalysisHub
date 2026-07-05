@@ -169,57 +169,60 @@ func IndexName(caseName, logType string) string {
 // IngestPath ingests an upload: a single log file, or a .zip/.tar(.gz) archive
 // whose inner files are each detected and ingested. Returns the distinct target
 // indices and aggregate counts. onProgress reports running (indexed, failed).
-func (c *ESClient) IngestPath(path, displayName, caseName, logType string, onProgress func(indexed, failed int)) (indices []string, indexed, failed int, err error) {
+func (c *ESClient) IngestPath(path, displayName, caseName, logType, tz string, onProgress func(indexed, failed int)) (indices []string, indexed, failed int, sampleErr string, err error) {
 	if !IsArchive(displayName) {
-		idx, ind, fl, e := c.IngestFile(path, displayName, caseName, logType, onProgress)
+		idx, ind, fl, samp, e := c.IngestFile(path, displayName, caseName, logType, tz, onProgress)
 		if idx != "" {
 			indices = []string{idx}
 		}
-		return indices, ind, fl, e
+		return indices, ind, fl, samp, e
 	}
 
 	tmp, err := os.MkdirTemp("", "logingest-")
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, 0, "", err
 	}
 	defer os.RemoveAll(tmp)
 
 	files, err := extractArchive(path, tmp)
 	if err != nil {
-		return nil, 0, 0, fmt.Errorf("extract archive: %w", err)
+		return nil, 0, 0, "", fmt.Errorf("extract archive: %w", err)
 	}
 	if len(files) == 0 {
-		return nil, 0, 0, fmt.Errorf("archive contained no files")
+		return nil, 0, 0, "", fmt.Errorf("archive contained no files")
 	}
 
 	seen := map[string]bool{}
 	for _, f := range files {
 		priorInd, priorFail := indexed, failed
-		idx, ind, fl, _ := c.IngestFile(f.Path, f.Name, caseName, logType, func(i, fail int) {
+		idx, ind, fl, samp, _ := c.IngestFile(f.Path, f.Name, caseName, logType, tz, func(i, fail int) {
 			if onProgress != nil {
 				onProgress(priorInd+i, priorFail+fail)
 			}
 		})
 		indexed += ind
 		failed += fl
+		if samp != "" && sampleErr == "" {
+			sampleErr = samp
+		}
 		if idx != "" && !seen[idx] {
 			seen[idx] = true
 			indices = append(indices, idx)
 		}
 	}
 	sort.Strings(indices)
-	return indices, indexed, failed, nil
+	return indices, indexed, failed, sampleErr, nil
 }
 
 // IngestFile parses one file and bulk-indexes it into the store. onProgress is
 // called periodically with (indexed, failed). It returns the target index and
 // final counts.
-func (c *ESClient) IngestFile(path, displayName, caseName, logType string, onProgress func(indexed, failed int)) (index string, indexed, failed int, err error) {
+func (c *ESClient) IngestFile(path, displayName, caseName, logType, tz string, onProgress func(indexed, failed int)) (index string, indexed, failed int, sampleErr string, err error) {
 	if logType == TypeAuto {
 		logType = DetectLogType(path, displayName)
 	}
 	if err = c.EnsureTemplate(); err != nil {
-		return "", 0, 0, err
+		return "", 0, 0, "", err
 	}
 	index = IndexName(caseName, logType)
 	category := LogTypeCategory[logType]
@@ -234,9 +237,12 @@ func (c *ESClient) IngestFile(path, displayName, caseName, logType string, onPro
 		if pending == 0 {
 			return nil
 		}
-		ok, bad, ferr := c.bulk(index, &buf)
+		ok, bad, samp, ferr := c.bulk(index, &buf)
 		indexed += ok
 		failed += bad
+		if samp != "" && sampleErr == "" {
+			sampleErr = samp
+		}
 		buf.Reset()
 		pending = 0
 		if onProgress != nil {
@@ -245,7 +251,7 @@ func (c *ESClient) IngestFile(path, displayName, caseName, logType string, onPro
 		return ferr
 	}
 
-	perr := Parse(path, logType, func(doc Doc) error {
+	perr := ParseTZ(path, logType, tz, func(doc Doc) error {
 		hunt := Doc{"case": caseName, "log_type": logType, "category": category, "source_file": displayName}
 		if _, ok := doc["@timestamp"]; !ok || doc["@timestamp"] == "" {
 			doc["@timestamp"] = ingestTime
@@ -267,51 +273,54 @@ func (c *ESClient) IngestFile(path, displayName, caseName, logType string, onPro
 		return nil
 	})
 	if perr != nil {
-		return index, indexed, failed, perr
+		return index, indexed, failed, sampleErr, perr
 	}
 	if ferr := flush(); ferr != nil {
-		return index, indexed, failed, ferr
+		return index, indexed, failed, sampleErr, ferr
 	}
-	return index, indexed, failed, nil
+	return index, indexed, failed, sampleErr, nil
 }
 
-// bulk posts an NDJSON bulk body and returns (ok, failed).
-func (c *ESClient) bulk(index string, body *bytes.Buffer) (int, int, error) {
+// bulk posts an NDJSON bulk body and returns (ok, failed, sampleError).
+func (c *ESClient) bulk(index string, body *bytes.Buffer) (int, int, string, error) {
 	url := fmt.Sprintf("%s/%s/_bulk", c.baseURL, index)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body.Bytes()))
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, "", err
 	}
 	req.Header.Set("Content-Type", "application/x-ndjson")
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, "", err
 	}
 	defer resp.Body.Close()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 300 {
-		return 0, 0, fmt.Errorf("bulk status %d: %s", resp.StatusCode, truncate(string(respBody), 300))
+		return 0, 0, "", fmt.Errorf("bulk status %d: %s", resp.StatusCode, truncate(string(respBody), 300))
 	}
 	var parsed struct {
-		Errors bool `json:"errors"`
-		Items  []map[string]struct {
-			Status int `json:"status"`
+		Items []map[string]struct {
+			Status int             `json:"status"`
+			Error  json.RawMessage `json:"error"`
 		} `json:"items"`
 	}
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return 0, 0, err
+		return 0, 0, "", err
 	}
-	ok, failed := 0, 0
+	ok, failed, sample := 0, 0, ""
 	for _, item := range parsed.Items {
 		for _, r := range item {
 			if r.Status >= 200 && r.Status < 300 {
 				ok++
 			} else {
 				failed++
+				if sample == "" && len(r.Error) > 0 {
+					sample = truncate(string(r.Error), 300)
+				}
 			}
 		}
 	}
-	return ok, failed, nil
+	return ok, failed, sample, nil
 }
 
 func truncate(s string, n int) string {

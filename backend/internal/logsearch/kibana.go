@@ -3,6 +3,7 @@ package logsearch
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -81,6 +82,75 @@ func EnsureKibanaDataView(kibanaURL string) {
 		createDataView(client, kibanaURL, cv.name, cv.pattern)
 	}
 	provisionThreatSearches(client, kibanaURL)
+	provisionAlertRules(client, kibanaURL)
+}
+
+// alertRule is a Stack Alerting (.es-query) rule that fires when the count of
+// matching docs over hunt-* in the time window exceeds a threshold. These work
+// on a basic license without security (the encryption key must be set in Kibana).
+type alertRule struct {
+	id, name, query string
+	threshold       int
+}
+
+func alertRules() []alertRule {
+	return []alertRule{
+		{"hunt-alert-ssh-bruteforce", "SSH brute-force",
+			"event.action:ssh_login AND event.outcome:failure", 5},
+		{"hunt-alert-win-logon-spike", "Windows failed-logon spike (4625)",
+			"event.code:4625", 10},
+		{"hunt-alert-fw-c2", "Firewall block to C2-ish ports",
+			"event.action:(deny OR dropped OR blocked) AND destination.port:(4444 OR 1337 OR 3389)", 0},
+		{"hunt-alert-web-scanner", "Web scanner user-agent",
+			"user_agent.original.text:(sqlmap OR nmap OR nikto OR masscan)", 0},
+	}
+}
+
+func provisionAlertRules(client *http.Client, kibanaURL string) {
+	for _, r := range alertRules() {
+		createAlertRule(client, kibanaURL, r)
+	}
+}
+
+func createAlertRule(client *http.Client, kibanaURL string, r alertRule) {
+	esQuery := fmt.Sprintf(`{"query":{"query_string":{"query":%q,"lenient":true}}}`, r.query)
+	params := map[string]interface{}{
+		"searchType":                 "esQuery",
+		"esQuery":                    esQuery,
+		"index":                      []string{IndexPrefix + "-*"},
+		"timeField":                  "@timestamp",
+		"threshold":                  []int{r.threshold},
+		"thresholdComparator":        ">",
+		"size":                       100,
+		"timeWindowSize":             5,
+		"timeWindowUnit":             "m",
+		"aggType":                    "count",
+		"groupBy":                    "all",
+		"excludeHitsFromPreviousRun": true,
+	}
+	body, _ := json.Marshal(map[string]interface{}{
+		"name":         r.name,
+		"rule_type_id": ".es-query",
+		"consumer":     "stackAlerts",
+		"schedule":     map[string]string{"interval": "5m"},
+		"params":       params,
+		"actions":      []interface{}{},
+		"tags":         []string{"analysishub", "hunt"},
+	})
+	req, _ := http.NewRequest(http.MethodPost, kibanaURL+"/api/alerting/rule/"+r.id, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("kbn-xsrf", "true")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("logsearch: create alert rule %q failed: %v", r.name, err)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
+		log.Printf("logsearch: alert rule %q ready (status %d)", r.name, resp.StatusCode)
+	} else {
+		log.Printf("logsearch: alert rule %q status %d", r.name, resp.StatusCode)
+	}
 }
 
 // threatSearch is a prebuilt Discover saved search for a common threat pattern.

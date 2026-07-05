@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/analysishub/backend/internal/logsearch"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/storage"
+	"github.com/analysishub/backend/internal/threatintel"
 )
 
 // hashFile returns the hex sha256 of a file's contents (for upload dedup).
@@ -48,8 +50,9 @@ type LogSearchHandler struct {
 	DB           *gorm.DB
 	Store        *storage.LocalStorage
 	ES           *logsearch.ESClient
-	KibanaURL    string // internal Kibana URL (with /kbn) for data view provisioning
-	DockerAPIURL string // scoped docker-socket-proxy base URL; empty = toggle off
+	Enricher     *threatintel.EnrichClient // threat-intel lookups over ingested IPs
+	KibanaURL    string                    // internal Kibana URL (with /kbn) for data view provisioning
+	DockerAPIURL string                    // scoped docker-socket-proxy base URL; empty = toggle off
 	sem          chan struct{}
 }
 
@@ -59,6 +62,7 @@ type LogSearchConfig struct {
 	KibanaURL     string
 	DockerAPIURL  string
 	RetentionDays int
+	Enricher      *threatintel.EnrichClient
 }
 
 func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, cfg LogSearchConfig) *LogSearchHandler {
@@ -66,6 +70,7 @@ func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, cfg LogSearch
 		DB:           db,
 		Store:        store,
 		ES:           logsearch.NewESClient(cfg.ESURL, cfg.RetentionDays),
+		Enricher:     cfg.Enricher,
 		KibanaURL:    cfg.KibanaURL,
 		DockerAPIURL: cfg.DockerAPIURL,
 		sem:          make(chan struct{}, logIngestConcurrency),
@@ -112,6 +117,34 @@ func (h *LogSearchHandler) Health(c *gin.Context) {
 	})
 }
 
+// Enrich POST /api/v1/logsearch/enrich?case= — threat-intel lookup of the top
+// source IPs in the ingested logs (VirusTotal/AbuseIPDB/AlienVault/Shodan).
+func (h *LogSearchHandler) Enrich(c *gin.Context) {
+	if h.Enricher == nil || !h.Enricher.Configured() {
+		c.JSON(http.StatusOK, gin.H{"configured": false, "results": []interface{}{}})
+		return
+	}
+	summ, err := h.ES.Summarize(strings.TrimSpace(c.Query("case")))
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	var ips []string
+	for _, b := range summ.TopSourceIP {
+		if b.Key != "" {
+			ips = append(ips, b.Key)
+		}
+	}
+	if len(ips) == 0 {
+		c.JSON(http.StatusOK, gin.H{"configured": true, "results": []interface{}{}})
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
+	defer cancel()
+	results := h.Enricher.Enrich(ctx, threatintel.IOCSet{IPs: ips})
+	c.JSON(http.StatusOK, gin.H{"configured": true, "results": results})
+}
+
 // Summary GET /api/v1/logsearch/summary?case= — fast triage aggregations.
 func (h *LogSearchHandler) Summary(c *gin.Context) {
 	s, err := h.ES.Summarize(strings.TrimSpace(c.Query("case")))
@@ -142,6 +175,8 @@ func (h *LogSearchHandler) Upload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid log_type"})
 		return
 	}
+
+	tz := strings.TrimSpace(c.PostForm("timezone"))
 
 	var caseID *uuid.UUID
 	if v := strings.TrimSpace(c.PostForm("case_id")); v != "" {
@@ -178,6 +213,7 @@ func (h *LogSearchHandler) Upload(c *gin.Context) {
 			CaseID:    caseID,
 			Filename:  fh.Filename,
 			LogType:   logType,
+			Timezone:  tz,
 			Status:    "queued",
 			CreatedBy: createdBy,
 		}
@@ -234,7 +270,7 @@ func (h *LogSearchHandler) runIngest(job models.LogIngestJob) {
 			Updates(map[string]interface{}{"docs_indexed": indexed, "docs_failed": failed})
 	}
 
-	indices, indexed, failed, err := h.ES.IngestPath(absPath, job.Filename, job.Case, job.LogType, onProgress)
+	indices, indexed, failed, sampleErr, err := h.ES.IngestPath(absPath, job.Filename, job.Case, job.LogType, job.Timezone, onProgress)
 	now := time.Now()
 	updates := map[string]interface{}{
 		"index":        strings.Join(indices, ","),
@@ -259,6 +295,9 @@ func (h *LogSearchHandler) runIngest(job models.LogIngestJob) {
 		msg := "indexed " + strconv.Itoa(indexed) + " docs into " + strconv.Itoa(len(indices)) + " index(es)"
 		if failed > 0 {
 			msg += ", " + strconv.Itoa(failed) + " failed"
+			if sampleErr != "" {
+				msg += " — e.g. " + sampleErr
+			}
 		}
 		updates["message"] = msg
 		// Ensure the Kibana data view for each category exists so the logs are
@@ -327,6 +366,20 @@ func validLogType(t string) bool {
 		}
 	}
 	return false
+}
+
+// ReconcileStalledJobs marks jobs left in queued/running by a previous process
+// (e.g. the backend restarted mid-ingest) as errored, so they don't hang forever
+// in the UI. Called once at startup.
+func ReconcileStalledJobs(db *gorm.DB) {
+	now := time.Now()
+	db.Model(&models.LogIngestJob{}).
+		Where("status IN ?", []string{"queued", "running"}).
+		Updates(map[string]interface{}{
+			"status":      "error",
+			"finished_at": &now,
+			"message":     "interrupted — backend restarted before completion",
+		})
 }
 
 // SeedLocalLogStore registers the built-in Elasticsearch as an ELK hunting

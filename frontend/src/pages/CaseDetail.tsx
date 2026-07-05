@@ -8,8 +8,9 @@ import {
   Briefcase, Activity, Server, ChevronRight, User, Wrench,
   ClipboardList, Lock, Unlock, Package, Monitor, Terminal,
   Globe, CheckSquare, Square, Download, BrainCircuit, Crosshair, ShieldCheck,
-  Fingerprint, FileText, Sparkles, Loader2,
+  Fingerprint, FileText, Sparkles, Loader2, HardDriveUpload, Database, Search, LayoutDashboard,
 } from 'lucide-react'
+import { logsearchApi, LogIngestJob } from '@/api/logsearch'
 import { analysisApi } from '@/api/analysis'
 import AttackTimeline from '@/components/AttackTimeline'
 import AttackCoverage from '@/components/AttackCoverage'
@@ -221,7 +222,7 @@ function OfflineBundleModal({
 }
 
 // ── CaseDetail page ────────────────────────────────────────────────────────
-type TabKey = 'timeline' | 'attack' | 'jobs' | 'compliance' | 'osint' | 'offline'
+type TabKey = 'timeline' | 'attack' | 'jobs' | 'logs' | 'compliance' | 'osint' | 'offline'
 
 // ReportActions — open the self-contained incident report (HTML→PDF) and,
 // optionally, have an AI provider draft the executive narrative into it first.
@@ -336,6 +337,7 @@ export default function CaseDetailPage() {
     { key: 'timeline',   label: 'Activity Timeline', icon: Activity },
     { key: 'attack',     label: 'Attack Timeline',   icon: Crosshair },
     { key: 'jobs',       label: 'Hunting Results',   icon: ClipboardList },
+    { key: 'logs',       label: 'Ingested Logs',     icon: HardDriveUpload },
     { key: 'compliance', label: 'Compliance',        icon: ShieldCheck },
     { key: 'osint',      label: 'OSINT',             icon: Fingerprint },
     { key: 'offline',    label: 'Offline Bundle',    icon: Package },
@@ -622,6 +624,9 @@ export default function CaseDetailPage() {
             </div>
           )}
 
+          {/* Ingested Logs tab */}
+          {tab === 'logs' && id && <CaseLogsPanel caseId={id} />}
+
           {/* Offline Bundle tab */}
           {tab === 'offline' && (
             <div className="space-y-4">
@@ -767,6 +772,78 @@ export default function CaseDetailPage() {
         caseId={caseObj.id}
         caseName={caseObj.name}
       />
+    </div>
+  )
+}
+
+// CaseLogsPanel shows the logs ingested into this case (via the ELK Log Ingest
+// tab) plus quick links to hunt them or view them in Kibana.
+function CaseLogsPanel({ caseId }: { caseId: string }) {
+  const navigate = useNavigate()
+  const { data: jobs } = useQuery({
+    queryKey: ['logsearch-jobs', 'case', caseId],
+    queryFn: () => logsearchApi.listJobs(undefined, caseId),
+    refetchInterval: (q) => {
+      const list = (q.state.data as LogIngestJob[] | undefined) ?? []
+      return list.some((j) => j.status === 'queued' || j.status === 'running') ? 2000 : false
+    },
+  })
+
+  const indices = Array.from(new Set((jobs ?? []).flatMap((j) => (j.index ? j.index.split(',') : [])).filter(Boolean)))
+
+  if ((jobs ?? []).length === 0) {
+    return (
+      <div className="card p-10 text-center flex flex-col items-center justify-center">
+        <HardDriveUpload className="h-10 w-10 text-gray-700 mb-3" />
+        <p className="text-gray-400 font-medium">No logs ingested for this case</p>
+        <p className="text-xs text-gray-500 mt-1">Upload logs from the ELK → Log Ingest tab and link them to this case.</p>
+        <button onClick={() => navigate('/elk')} className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded">
+          <HardDriveUpload className="h-3.5 w-3.5" /> Go to Log Ingest
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Database className="h-4 w-4 text-emerald-500" />
+        <span className="text-sm text-gray-300">{indices.length} index(es)</span>
+        <div className="ml-auto flex gap-2">
+          <button onClick={() => navigate('/elk')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700">
+            <Search className="h-3.5 w-3.5" /> Hunt in ELK
+          </button>
+          <button onClick={() => navigate('/kibana')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700">
+            <LayoutDashboard className="h-3.5 w-3.5" /> Open Kibana
+          </button>
+        </div>
+      </div>
+      <div className="card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-900/60 border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+            <tr>
+              <th className="text-left py-3 px-4 font-medium">File</th>
+              <th className="text-left py-3 px-4 font-medium">Type</th>
+              <th className="text-left py-3 px-4 font-medium">Status</th>
+              <th className="text-left py-3 px-4 font-medium">Docs</th>
+              <th className="text-left py-3 px-4 font-medium">Index</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-800">
+            {(jobs ?? []).map((j) => (
+              <tr key={j.id} className="hover:bg-gray-900/30">
+                <td className="py-2.5 px-4 font-mono text-xs text-gray-300">{j.filename}</td>
+                <td className="py-2.5 px-4 text-gray-400 text-xs">{j.detected_type || j.log_type}</td>
+                <td className="py-2.5 px-4"><span className={`text-xs font-medium ${
+                  j.status === 'done' ? 'text-emerald-400' : j.status === 'error' ? 'text-rose-400' : j.status === 'skipped' ? 'text-gray-500' : 'text-amber-400'
+                }`}>{j.status}</span></td>
+                <td className="py-2.5 px-4 text-gray-300 text-xs">{j.docs_indexed}{j.docs_failed > 0 && <span className="text-rose-400"> (+{j.docs_failed})</span>}</td>
+                <td className="py-2.5 px-4 font-mono text-xs text-gray-500">{j.index}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

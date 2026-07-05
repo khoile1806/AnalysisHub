@@ -16,7 +16,31 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata" // embed the tz database so LoadLocation works in a slim image
 )
+
+var offsetRe = regexp.MustCompile(`^([+-])(\d{1,2}):?(\d{2})?$`)
+
+// resolveLoc turns a timezone name ("Asia/Ho_Chi_Minh") or a fixed offset
+// ("+07:00", "-0500", "+7") into a *time.Location. Empty/invalid → UTC.
+func resolveLoc(tz string) *time.Location {
+	tz = strings.TrimSpace(tz)
+	if tz == "" || strings.EqualFold(tz, "utc") {
+		return time.UTC
+	}
+	if m := offsetRe.FindStringSubmatch(tz); m != nil {
+		sign := 1
+		if m[1] == "-" {
+			sign = -1
+		}
+		secs := sign * (atoiOr(m[2], 0)*3600 + atoiOr(m[3], 0)*60)
+		return time.FixedZone(tz, secs)
+	}
+	if loc, err := time.LoadLocation(tz); err == nil {
+		return loc
+	}
+	return time.UTC
+}
 
 // Doc is one parsed log record. Field names follow ECS so the same query
 // (e.g. source.ip:1.2.3.4) matches across every log type.
@@ -220,9 +244,16 @@ func max(a, b int) int {
 	return b
 }
 
-// Parse dispatches to the parser for the given (already-detected) log type,
-// streaming documents to emit.
+// Parse dispatches to the parser for the given log type (UTC for undated logs).
 func Parse(path, logType string, emit EmitFunc) error {
+	return ParseTZ(path, logType, "", emit)
+}
+
+// ParseTZ is Parse with a source timezone for formats that carry no offset
+// (syslog RFC3164, iptables). tz may be a name ("Asia/Ho_Chi_Minh") or an
+// offset ("+07:00"); empty/invalid falls back to UTC.
+func ParseTZ(path, logType, tz string, emit EmitFunc) error {
+	loc := resolveLoc(tz)
 	switch logType {
 	case TypeEvtx:
 		return parseEvtx(path, emit)
@@ -235,9 +266,9 @@ func Parse(path, logType string, emit EmitFunc) error {
 	case TypeFortigate:
 		return parseFortigate(path, emit)
 	case TypeIptables:
-		return parseIptables(path, emit)
+		return parseIptables(path, loc, emit)
 	case TypeSyslog:
-		return parseSyslog(path, emit)
+		return parseSyslog(path, loc, emit)
 	case TypeJSON:
 		return parseJSONL(path, emit)
 	case TypeCSV:
@@ -415,8 +446,8 @@ var iptKvRe = regexp.MustCompile(`\b([A-Z]{2,10})=(\S*)`)
 
 func isIptablesLine(line string) bool { return iptSrcRe.MatchString(line) }
 
-func parseIptables(path string, emit EmitFunc) error {
-	return parseSyslogInner(path, func(doc Doc) error {
+func parseIptables(path string, loc *time.Location, emit EmitFunc) error {
+	return parseSyslogInner(path, loc, func(doc Doc) error {
 		msg, _ := doc["message"].(string)
 		kvs := map[string]string{}
 		for _, m := range iptKvRe.FindAllStringSubmatch(msg, -1) {
@@ -461,17 +492,20 @@ var months = map[string]time.Month{
 
 func isSyslogLine(line string) bool { return syslogRe.MatchString(line) }
 
-func parseSyslog(path string, emit EmitFunc) error {
-	return parseSyslogInner(path, emit)
+func parseSyslog(path string, loc *time.Location, emit EmitFunc) error {
+	return parseSyslogInner(path, loc, emit)
 }
 
-func parseSyslogInner(path string, emit EmitFunc) error {
+func parseSyslogInner(path string, loc *time.Location, emit EmitFunc) error {
 	r, err := openText(path)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
-	now := time.Now().UTC()
+	if loc == nil {
+		loc = time.UTC
+	}
+	now := time.Now().In(loc)
 	sc := scanner(r)
 	for sc.Scan() {
 		line := strings.TrimRight(sc.Text(), "\n")
@@ -490,7 +524,7 @@ func parseSyslogInner(path string, emit EmitFunc) error {
 			day := atoiOr(m[2], 1)
 			hms := strings.Split(m[3], ":")
 			if len(hms) == 3 {
-				dt := time.Date(now.Year(), mon, day, atoiOr(hms[0], 0), atoiOr(hms[1], 0), atoiOr(hms[2], 0), 0, time.UTC)
+				dt := time.Date(now.Year(), mon, day, atoiOr(hms[0], 0), atoiOr(hms[1], 0), atoiOr(hms[2], 0), 0, loc)
 				if dt.After(now) {
 					dt = dt.AddDate(-1, 0, 0)
 				}

@@ -7,7 +7,7 @@ export interface LogIngestJob {
   log_type: string
   detected_type: string
   index: string
-  status: 'queued' | 'running' | 'done' | 'error'
+  status: 'queued' | 'running' | 'done' | 'error' | 'skipped'
   docs_indexed: number
   docs_failed: number
   message: string
@@ -72,10 +72,11 @@ export const logsearchApi = {
     const { data } = await api.get('/logsearch/summary', { params: caseName ? { case: caseName } : {} })
     return data
   },
-  listJobs: async (caseName?: string): Promise<LogIngestJob[]> => {
-    const { data } = await api.get('/logsearch/jobs', {
-      params: caseName ? { case: caseName } : {},
-    })
+  listJobs: async (caseName?: string, caseId?: string): Promise<LogIngestJob[]> => {
+    const params: Record<string, string> = {}
+    if (caseName) params.case = caseName
+    if (caseId) params.case_id = caseId
+    const { data } = await api.get('/logsearch/jobs', { params })
     return data.jobs ?? []
   },
   listIndices: async (): Promise<LogIndex[]> => {
@@ -99,15 +100,35 @@ export const logsearchApi = {
     logType: string,
     files: File[],
     caseId?: string,
+    timezone?: string,
   ): Promise<{ jobs: LogIngestJob[] }> => {
     const fd = new FormData()
     fd.append('case', caseName)
     fd.append('log_type', logType)
     if (caseId) fd.append('case_id', caseId)
+    if (timezone) fd.append('timezone', timezone)
     files.forEach((f) => fd.append('files', f))
     const { data } = await api.post('/logsearch/upload', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     return data
   },
+  enrich: async (caseName?: string): Promise<{ configured: boolean; results: EnrichedIOC[] }> => {
+    const { data } = await api.post('/logsearch/enrich', {}, { params: caseName ? { case: caseName } : {} })
+    return data
+  },
+}
+
+export interface EnrichFinding {
+  Source: string
+  Score: number
+  Malicious: boolean
+  Summary: string
+}
+export interface EnrichedIOC {
+  IOC: string
+  Type: string
+  Threat: boolean
+  MaxScore: number
+  Findings: EnrichFinding[]
 }

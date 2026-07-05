@@ -15,6 +15,7 @@ type LogIngestJob struct {
 	CaseID       *uuid.UUID `gorm:"type:uuid;index"                                json:"case_id,omitempty"` // optional link to a Case
 	Filename     string     `                                                      json:"filename"`
 	LogType      string     `                                                      json:"log_type"`      // requested type (auto|evtx|…)
+	Timezone     string     `                                                      json:"timezone"`      // source TZ for undated logs (syslog)
 	DetectedType string     `                                                      json:"detected_type"` // resolved after detection
 	Index        string     `                                                      json:"index"`         // target hunt-* index(es)
 	FileHash     string     `gorm:"index"                                          json:"file_hash"`     // sha256 of upload (dedup)
