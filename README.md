@@ -72,14 +72,34 @@ docker compose up -d --build
 ```
 
 - Lần build đầu mất khoảng **5–10 phút**.
-- Các service: `postgres`, `redis`, `tor`, `backend`, `frontend`, `volatility_sandbox`.
+- Service chạy mặc định: `postgres`, `redis`, `tor`, `docker_socket_proxy`, `backend`, `frontend`.
 - DB migration + tạo tài khoản admin chạy tự động khi backend khởi động lần đầu.
+
+### 4.1. Tạo sẵn các service "on-demand" (Elasticsearch, Kibana, Sandbox)
+
+`elasticsearch`, `kibana` và `volatility_sandbox` **mặc định TẮT** để tiết kiệm RAM
+(profile `on-demand`). Chúng chỉ được **admin bật/tắt tay từ UI**. Để nút bật/tắt
+hoạt động, phải **tạo sẵn container** (ở trạng thái stopped) một lần:
+
+```bash
+docker compose create elasticsearch kibana volatility_sandbox
+```
+
+> Lần đầu, lệnh này sẽ build image `volatility` (~5 GB, hơi lâu) và pull Elasticsearch/Kibana.
+
+- **Bật ELK** (Elasticsearch + Kibana): vào **ELK → tab Log Ingest → Start ELK** (chỉ admin).
+- **Bật Sandbox** (volatility/kali): vào **Sandbox Analysis → Start** (chỉ admin).
+- Bấm **Stop** để trả RAM khi không dùng. `docker compose up -d` về sau **không** đụng
+  tới chúng (chúng thuộc profile) → giữ nguyên trạng thái bạn set qua UI.
 
 Kiểm tra trạng thái:
 ```bash
 docker compose ps
 docker compose logs -f backend
 ```
+
+> **Teardown:** `docker compose down` chỉ dừng service core. Muốn dừng/xoá cả
+> on-demand (kể cả volume) phải kèm profile: `docker compose --profile on-demand down -v`.
 
 ---
 

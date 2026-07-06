@@ -1,0 +1,2 @@
+CEF:0|Fortinet|FortiGate|2.0|13|traffic:forward|3|src=10.0.5.23 spt=51301 dst=45.155.205.233 dpt=4444 proto=TCP act=deny msg=blocked outbound
+CEF:0|Palo Alto|PAN-OS|10.1|threat|spyware|8|src=10.0.5.77 dst=91.219.236.18 dpt=443 act=alert suser=jsmith

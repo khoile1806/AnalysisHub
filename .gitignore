@@ -79,6 +79,10 @@ backend/data/logs/
 # ── Application logs ────────────────────────────────────────────────────────
 *.log
 logs/
+# …but keep the log-parser test fixtures (they end in .log/.csv/.ndjson and MUST
+# be committed or the logsearch unit tests fail on a fresh clone / in CI).
+!backend/internal/logsearch/testdata/
+!backend/internal/logsearch/testdata/**
 
 # ── Docker volumes / persistent storage ─────────────────────────────────────
 storage_data/
