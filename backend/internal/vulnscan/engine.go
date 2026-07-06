@@ -268,9 +268,9 @@ func (e *Engine) failOpenTools(scanID uuid.UUID, msg string) {
 // platform's DEFAULT egress posture (Tor-preferred). When a proxy is configured
 // the preview defers hostname resolution to scan time, so merely opening the
 // review modal never leaks target names to the local/ISP resolver.
-func (e *Engine) ClassifyForPreview(targets []string) []ScopeVerdict {
+func (e *Engine) ClassifyForPreview(targets []string, allowPrivate bool) []ScopeVerdict {
 	proxyURL, _ := e.resolveProxy("tor")
-	return classifyScope(targets, proxyURL != "")
+	return classifyScope(targets, proxyURL != "", allowPrivate)
 }
 
 // finalize writes the terminal status, finish time and severity summary.

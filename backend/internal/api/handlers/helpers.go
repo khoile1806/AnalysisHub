@@ -103,7 +103,14 @@ func getServerURL(c *gin.Context) string {
 	if s, _ := v.(string); s != "" {
 		return s
 	}
+	return requestBaseURL(c)
+}
 
+// requestBaseURL reconstructs the scheme+host the request actually arrived on,
+// honouring reverse-proxy headers. Unlike getServerURL it ignores PUBLIC_URL, so
+// callers (e.g. the agent installer) can pin an agent to the exact URL the
+// operator reached the server through — LAN IP or public domain.
+func requestBaseURL(c *gin.Context) string {
 	// 2. Determine scheme (http vs https).
 	scheme := "http"
 

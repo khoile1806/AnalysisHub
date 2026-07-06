@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,8 +27,8 @@ type ESClient struct {
 	baseURL       string
 	retentionDays int
 	http          *http.Client
-	tmplOnce      sync.Once
-	tmplErr       error
+	tmplMu        sync.Mutex
+	tmplDone      bool // true once the ILM policy + index template are installed
 }
 
 // NewESClient returns a client for baseURL (e.g. http://elasticsearch:9200).
@@ -103,31 +104,38 @@ func (c *ESClient) DeleteIndex(index string) error {
 // EnsureTemplate installs the ILM policy (when retention is set) and the ECS
 // index template once per client.
 func (c *ESClient) EnsureTemplate() error {
-	c.tmplOnce.Do(func() {
-		ilmPolicy := ""
-		if c.retentionDays > 0 {
-			if err := c.ensureILM(); err != nil {
-				// non-fatal: log store still works without retention
-				fmt.Printf("logsearch: install ILM policy failed: %v\n", err)
-			} else {
-				ilmPolicy = IndexPrefix + "-logs"
-			}
+	c.tmplMu.Lock()
+	defer c.tmplMu.Unlock()
+	if c.tmplDone {
+		return nil
+	}
+
+	// The ILM step is best-effort; only the index template gates ingestion. We
+	// deliberately do NOT latch on error (unlike sync.Once) so that ingesting
+	// after Elasticsearch was down — e.g. the admin stopped ELK, then started it
+	// again — succeeds on the next attempt instead of failing forever.
+	ilmPolicy := ""
+	if c.retentionDays > 0 {
+		if err := c.ensureILM(); err != nil {
+			fmt.Printf("logsearch: install ILM policy failed: %v\n", err)
+		} else {
+			ilmPolicy = IndexPrefix + "-logs"
 		}
-		body, _ := json.Marshal(indexTemplate(ilmPolicy))
-		req, _ := http.NewRequest(http.MethodPut, c.baseURL+"/_index_template/"+IndexPrefix+"-template", bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := c.http.Do(req)
-		if err != nil {
-			c.tmplErr = err
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode >= 300 {
-			b, _ := io.ReadAll(resp.Body)
-			c.tmplErr = fmt.Errorf("install template: status %d: %s", resp.StatusCode, string(b))
-		}
-	})
-	return c.tmplErr
+	}
+	body, _ := json.Marshal(indexTemplate(ilmPolicy))
+	req, _ := http.NewRequest(http.MethodPut, c.baseURL+"/_index_template/"+IndexPrefix+"-template", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("install template: status %d: %s", resp.StatusCode, string(b))
+	}
+	c.tmplDone = true
+	return nil
 }
 
 // ensureILM installs a delete-after-N-days lifecycle policy named hunt-logs.
@@ -159,9 +167,20 @@ func (c *ESClient) ensureILM() error {
 
 // IndexName builds hunt-<category>-<case>-<logtype>.
 func IndexName(caseName, logType string) string {
+	return IndexNameHost(caseName, "", logType)
+}
+
+// IndexNameHost builds hunt-<category>-<case>-<host>-<logtype>. When host is
+// empty it omits the host segment (backward-compatible with manual uploads);
+// agent-collected logs pass their source host so each host lands in its own
+// indices — the repository can then group and delete by host cleanly.
+func IndexNameHost(caseName, host, logType string) string {
 	category := LogTypeCategory[logType]
 	if category == "" {
 		category = "other"
+	}
+	if strings.TrimSpace(host) != "" {
+		return fmt.Sprintf("%s-%s-%s-%s-%s", IndexPrefix, category, Sanitize(caseName), Sanitize(host), Sanitize(logType))
 	}
 	return fmt.Sprintf("%s-%s-%s-%s", IndexPrefix, category, Sanitize(caseName), Sanitize(logType))
 }
@@ -169,9 +188,10 @@ func IndexName(caseName, logType string) string {
 // IngestPath ingests an upload: a single log file, or a .zip/.tar(.gz) archive
 // whose inner files are each detected and ingested. Returns the distinct target
 // indices and aggregate counts. onProgress reports running (indexed, failed).
-func (c *ESClient) IngestPath(path, displayName, caseName, logType, tz string, onProgress func(indexed, failed int)) (indices []string, indexed, failed int, sampleErr string, err error) {
+// host scopes the target indices to a source host ("" for manual uploads).
+func (c *ESClient) IngestPath(path, displayName, caseName, host, logType, tz string, onProgress func(indexed, failed int)) (indices []string, indexed, failed int, sampleErr string, err error) {
 	if !IsArchive(displayName) {
-		idx, ind, fl, samp, e := c.IngestFile(path, displayName, caseName, logType, tz, onProgress)
+		idx, ind, fl, samp, e := c.IngestFile(path, displayName, caseName, host, logType, tz, onProgress)
 		if idx != "" {
 			indices = []string{idx}
 		}
@@ -195,7 +215,7 @@ func (c *ESClient) IngestPath(path, displayName, caseName, logType, tz string, o
 	seen := map[string]bool{}
 	for _, f := range files {
 		priorInd, priorFail := indexed, failed
-		idx, ind, fl, samp, _ := c.IngestFile(f.Path, f.Name, caseName, logType, tz, func(i, fail int) {
+		idx, ind, fl, samp, _ := c.IngestFile(f.Path, f.Name, caseName, host, logType, tz, func(i, fail int) {
 			if onProgress != nil {
 				onProgress(priorInd+i, priorFail+fail)
 			}
@@ -217,14 +237,14 @@ func (c *ESClient) IngestPath(path, displayName, caseName, logType, tz string, o
 // IngestFile parses one file and bulk-indexes it into the store. onProgress is
 // called periodically with (indexed, failed). It returns the target index and
 // final counts.
-func (c *ESClient) IngestFile(path, displayName, caseName, logType, tz string, onProgress func(indexed, failed int)) (index string, indexed, failed int, sampleErr string, err error) {
+func (c *ESClient) IngestFile(path, displayName, caseName, host, logType, tz string, onProgress func(indexed, failed int)) (index string, indexed, failed int, sampleErr string, err error) {
 	if logType == TypeAuto {
 		logType = DetectLogType(path, displayName)
 	}
 	if err = c.EnsureTemplate(); err != nil {
 		return "", 0, 0, "", err
 	}
-	index = IndexName(caseName, logType)
+	index = IndexNameHost(caseName, host, logType)
 	category := LogTypeCategory[logType]
 	if category == "" {
 		category = "other"
@@ -253,13 +273,25 @@ func (c *ESClient) IngestFile(path, displayName, caseName, logType, tz string, o
 
 	perr := ParseTZ(path, logType, tz, func(doc Doc) error {
 		hunt := Doc{"case": caseName, "log_type": logType, "category": category, "source_file": displayName}
+		if host != "" {
+			hunt["host"] = host
+		}
 		if _, ok := doc["@timestamp"]; !ok || doc["@timestamp"] == "" {
 			doc["@timestamp"] = ingestTime
 			hunt["timestamp_missing"] = true
 		}
 		doc["hunt"] = hunt
 
-		buf.WriteString("{\"index\":{}}\n")
+		// A parser may supply a stable "_docid" (e.g. EVTX record id) so that
+		// re-ingesting the same source — such as an agent re-collecting a host —
+		// overwrites the existing document instead of creating a duplicate.
+		// Without it, ES auto-generates an id and every re-ingest doubles the data.
+		action := "{\"index\":{}}\n"
+		if id, _ := doc["_docid"].(string); id != "" {
+			delete(doc, "_docid")
+			action = `{"index":{"_id":` + strconv.Quote(id) + "}}\n"
+		}
+		buf.WriteString(action)
 		line, merr := json.Marshal(doc)
 		if merr != nil {
 			return nil // skip a doc that won't marshal rather than abort the file

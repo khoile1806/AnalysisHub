@@ -312,10 +312,11 @@ export function AssetScanModal({ osintScanId, targetLabel, onClose, onStarted }:
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [profile, setProfile] = useState<'quick' | 'full' | 'cve-only' | 'deep' | 'aggressive'>('quick')
   const [direct, setDirect] = useState(false)
+  const [allowPrivate, setAllowPrivate] = useState(false)
 
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['vuln-preview', osintScanId],
-    queryFn: () => vulnscanApi.previewAssets(osintScanId),
+    queryKey: ['vuln-preview', osintScanId, allowPrivate],
+    queryFn: () => vulnscanApi.previewAssets(osintScanId, allowPrivate),
   })
   // Default-select only in-scope assets; out-of-scope (private/mixed) are shown
   // but excluded — the backend would drop them anyway.
@@ -337,6 +338,7 @@ export function AssetScanModal({ osintScanId, targetLabel, onClose, onStarted }:
       targets: Array.from(sel),
       profile,
       proxy_choice: direct ? 'direct' : 'tor',
+      allow_private: allowPrivate,
     }),
     onSuccess: (s) => { toast.success('Scan started'); onStarted(s.id) },
     onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
@@ -418,6 +420,12 @@ export function AssetScanModal({ osintScanId, targetLabel, onClose, onStarted }:
           <label className="flex items-center gap-1.5 text-[11px] text-gray-400">
             <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} /> Direct (no Tor)
           </label>
+          <label
+            className="flex items-center gap-1.5 text-[11px] text-amber-400"
+            title="Allow scanning private/loopback/LAN targets (localhost, 10./192.168.). Authorized internal scans only — use with Direct egress."
+          >
+            <input type="checkbox" checked={allowPrivate} onChange={(e) => setAllowPrivate(e.target.checked)} /> Allow private/LAN
+          </label>
           <button
             className="btn-primary ml-auto justify-center"
             disabled={create.isPending || sel.size === 0}
@@ -440,6 +448,7 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
   const [profile, setProfile] = useState<'quick' | 'full' | 'cve-only' | 'deep' | 'aggressive'>('quick')
   const [tags, setTags] = useState('')
   const [direct, setDirect] = useState(false)
+  const [allowPrivate, setAllowPrivate] = useState(false)
 
   const create = useMutation({
     mutationFn: () =>
@@ -450,6 +459,7 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
         profile,
         tags: tags.trim() || undefined,
         proxy_choice: direct ? 'direct' : 'tor',
+        allow_private: allowPrivate,
       }),
     onSuccess: (s) => { toast.success('Scan started'); setOpen(false); setTargets(''); setName(''); onCreated(s.id) },
     onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
@@ -496,6 +506,10 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
       <label className="flex items-center gap-2 text-[11px] text-gray-400">
         <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} />
         Egress direct (no Tor) — faster but reveals this host's IP
+      </label>
+      <label className="flex items-center gap-2 text-[11px] text-amber-400">
+        <input type="checkbox" checked={allowPrivate} onChange={(e) => setAllowPrivate(e.target.checked)} />
+        Allow private/LAN targets (localhost, 10./192.168.) — authorized internal scans; use with Direct
       </label>
       <div className="flex gap-2">
         <button className="btn-primary flex-1 justify-center" disabled={create.isPending || !targets.trim()} onClick={() => create.mutate()}>

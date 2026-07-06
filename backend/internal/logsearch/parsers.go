@@ -164,7 +164,9 @@ func toISO(s string) string {
 func DetectLogType(path, filename string) string {
 	if f, err := os.Open(path); err == nil {
 		head := make([]byte, 8)
-		n, _ := f.Read(head)
+		// ReadFull, not Read: a single Read may return fewer than 8 bytes, which
+		// would misdetect a valid EVTX as plaintext.
+		n, _ := io.ReadFull(f, head)
 		f.Close()
 		if n == 8 && string(head) == string(evtxMagic) {
 			return TypeEvtx

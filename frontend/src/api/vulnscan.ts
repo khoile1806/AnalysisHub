@@ -99,6 +99,7 @@ export interface CreateVulnScanRequest {
   profile?: 'quick' | 'full' | 'cve-only' | 'deep' | 'aggressive'
   tags?: string
   proxy_choice?: 'tor' | 'direct'
+  allow_private?: boolean // allow scanning private/loopback/LAN targets (internal scan)
 }
 
 export const vulnscanApi = {
@@ -119,9 +120,11 @@ export const vulnscanApi = {
     apiClient.patch(`/vuln-findings/${id}`, body).then((r) => r.data.data as VulnFinding),
   stop: (id: string) => apiClient.post(`/vulnscan/${id}/stop`).then((r) => r.data),
   remove: (id: string) => apiClient.delete(`/vulnscan/${id}`).then((r) => r.data),
-  previewAssets: (osintScanId: string) =>
+  previewAssets: (osintScanId: string, allowPrivate?: boolean) =>
     apiClient
-      .get('/vulnscan/preview-assets', { params: { osint_scan_id: osintScanId } })
+      .get('/vulnscan/preview-assets', {
+        params: { osint_scan_id: osintScanId, ...(allowPrivate ? { allow_private: 'true' } : {}) },
+      })
       .then((r) => r.data.data as VulnAsset[]),
   streamUrl: (id: string) => {
     const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''

@@ -78,6 +78,13 @@ func parseEvtx(path string, emit EmitFunc) (err error) {
 			applyECS(doc, ed)
 		}
 
+		// Stable id so re-collecting the same host is idempotent. EventRecordID is
+		// unique per channel per machine; combine with computer + channel to avoid
+		// cross-channel/host collisions. Falls back to auto-id when absent.
+		if rid := scalarStr(system["EventRecordID"]); rid != "" {
+			doc["_docid"] = computer + "|" + scalarStr(system["Channel"]) + "|" + rid
+		}
+
 		if err := emit(doc); err != nil {
 			return err
 		}

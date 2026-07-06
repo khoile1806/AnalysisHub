@@ -162,4 +162,13 @@ func TestIndexNaming(t *testing.T) {
 	if got := IndexName("Incident 2026-07", "evtx"); got != "hunt-windows-incident-2026-07-evtx" {
 		t.Errorf("IndexName = %q", got)
 	}
+	// Host-scoped indices (agent-collected logs) insert a sanitised host segment
+	// so each host lands in its own index and can be deleted independently.
+	if got := IndexNameHost("Incident 2026-07", "DESKTOP-AB12", "evtx"); got != "hunt-windows-incident-2026-07-desktop-ab12-evtx" {
+		t.Errorf("IndexNameHost = %q", got)
+	}
+	// Empty host must be identical to the plain IndexName (manual uploads).
+	if IndexNameHost("case", "", "syslog") != IndexName("case", "syslog") {
+		t.Errorf("empty-host index must equal IndexName")
+	}
 }

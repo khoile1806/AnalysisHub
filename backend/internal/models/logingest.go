@@ -13,6 +13,8 @@ type LogIngestJob struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Case         string     `gorm:"index"                                          json:"case"`
 	CaseID       *uuid.UUID `gorm:"type:uuid;index"                                json:"case_id,omitempty"` // optional link to a Case
+	Host         string     `gorm:"index"                                          json:"host"`             // source host (agent hostname); "" for manual uploads
+	Source       string     `gorm:"default:'upload';index"                         json:"source"`           // upload|agent — how the file arrived
 	Filename     string     `                                                      json:"filename"`
 	LogType      string     `                                                      json:"log_type"`      // requested type (auto|evtx|…)
 	Timezone     string     `                                                      json:"timezone"`      // source TZ for undated logs (syslog)

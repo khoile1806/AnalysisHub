@@ -45,11 +45,18 @@ func (e *Engine) runPipeline(ctx context.Context, scan *models.VulnScan, targets
 		e.emit(scanID, "[*] Anonymous mode — target names are resolved through the proxy; no local DNS lookups.")
 	}
 
-	// Scope guard: never let the scanner touch private/loopback/metadata ranges.
+	// Scope guard: never let the scanner touch private/loopback/metadata ranges,
+	// UNLESS the operator explicitly opted into an internal scan (AllowPrivate).
 	// In anonymous mode hostnames are deferred (resolved via the proxy) so scoping
 	// itself never leaks a target name to the local/ISP resolver.
+	if scan.AllowPrivate {
+		e.emit(scanID, "[!] Internal scan mode — private/loopback/LAN targets are ALLOWED.")
+		if anonymous {
+			e.emit(scanID, "[!] WARNING: egress is proxied — private targets are unreachable through the proxy/Tor. Use Direct egress for internal scans.")
+		}
+	}
 	var scoped []string
-	for _, v := range classifyScope(targets, anonymous) {
+	for _, v := range classifyScope(targets, anonymous, scan.AllowPrivate) {
 		if v.Keep {
 			scoped = append(scoped, v.Value)
 		} else {
@@ -414,7 +421,7 @@ func (e *Engine) runSubfinder(ctx context.Context, scan *models.VulnScan, assets
 			fresh = append(fresh, d)
 		}
 	})
-	keep, _ := scopeFilter(fresh, proxyURL != "")
+	keep, _ := scopeFilter(fresh, proxyURL != "", scan.AllowPrivate)
 	e.markTool(tool, models.VulnToolDone, len(keep), "")
 	e.emit(scanID, fmt.Sprintf("[+] subfinder done — %d new subdomain(s)", len(keep)))
 	return append(assets, keep...)
@@ -1161,7 +1168,12 @@ const (
 //
 // Resolution is bounded (per-host timeout + worker pool) so a large or hostile
 // target set can never hang the scan on DNS.
-func classifyScope(targets []string, anonymous bool) []ScopeVerdict {
+// allowPrivate opts into keeping private/loopback/internal targets (authorized
+// internal/lab assessments). It never overrides the anonymous-mode DNS-leak
+// protection for hostnames — those are still deferred to the proxy, never
+// resolved locally — it only stops the scope guard from dropping private IPs and
+// private-resolving hosts.
+func classifyScope(targets []string, anonymous, allowPrivate bool) []ScopeVerdict {
 	seen := map[string]bool{}
 	var uniq []string
 	for _, raw := range targets {
@@ -1181,6 +1193,8 @@ func classifyScope(targets []string, anonymous bool) []ScopeVerdict {
 		if ip := net.ParseIP(t); ip != nil {
 			if netsafe.IsPublicIP(ip) {
 				out[i] = ScopeVerdict{Value: t, Keep: true, Scope: "in"}
+			} else if allowPrivate {
+				out[i] = ScopeVerdict{Value: t, Keep: true, Scope: "private", Reason: "private/loopback IP — allowed (internal scan)"}
 			} else {
 				out[i] = ScopeVerdict{Value: t, Scope: "private", Reason: "private/loopback/link-local IP"}
 			}
@@ -1201,7 +1215,7 @@ func classifyScope(targets []string, anonymous bool) []ScopeVerdict {
 					out[i] = ScopeVerdict{Value: host, Keep: true, Scope: "unresolved", Reason: "scope check errored — scanner will try"}
 				}
 			}()
-			out[i] = classifyHost(host)
+			out[i] = classifyHost(host, allowPrivate)
 		}(i, t)
 	}
 	wg.Wait()
@@ -1210,7 +1224,9 @@ func classifyScope(targets []string, anonymous bool) []ScopeVerdict {
 
 // classifyHost resolves a single hostname under a bounded timeout and applies the
 // public/private/mixed policy (direct-egress posture only — see classifyScope).
-func classifyHost(host string) ScopeVerdict {
+// When allowPrivate is set, private-only and mixed hosts are kept instead of
+// dropped (internal/lab assessment).
+func classifyHost(host string, allowPrivate bool) ScopeVerdict {
 	ctx, cancel := context.WithTimeout(context.Background(), scopeResolveTimeout)
 	defer cancel()
 	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
@@ -1227,10 +1243,16 @@ func classifyHost(host string) ScopeVerdict {
 	}
 	switch {
 	case hasPublic && hasPrivate:
+		if allowPrivate {
+			return ScopeVerdict{Value: host, Keep: true, Scope: "mixed", Reason: "public+private IPs — allowed (internal scan)"}
+		}
 		return ScopeVerdict{Value: host, Scope: "mixed", Reason: "resolves to BOTH public and private IPs (DNS-rebinding risk)"}
 	case hasPublic:
 		return ScopeVerdict{Value: host, Keep: true, Scope: "in"}
 	default:
+		if allowPrivate {
+			return ScopeVerdict{Value: host, Keep: true, Scope: "private", Reason: "private/internal host — allowed (internal scan)"}
+		}
 		return ScopeVerdict{Value: host, Scope: "private", Reason: "resolves only to private/internal IPs"}
 	}
 }
@@ -1238,8 +1260,8 @@ func classifyHost(host string) ScopeVerdict {
 // scopeFilter is the boolean view of classifyScope used where reasons aren't
 // needed (e.g. re-filtering subfinder's / tlsx's freshly-discovered subdomains).
 // anonymous MUST mirror the scan's egress posture so re-filtering never leaks DNS.
-func scopeFilter(targets []string, anonymous bool) (keep, drop []string) {
-	for _, v := range classifyScope(targets, anonymous) {
+func scopeFilter(targets []string, anonymous, allowPrivate bool) (keep, drop []string) {
+	for _, v := range classifyScope(targets, anonymous, allowPrivate) {
 		if v.Keep {
 			keep = append(keep, v.Value)
 		} else {

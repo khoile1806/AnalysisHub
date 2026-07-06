@@ -23,6 +23,7 @@ export default function SandboxAnalysis() {
   const token = useAuthStore(s => s.token)
   const queryClient = useQueryClient()
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0) // 0–100, upload %
   const [terminalUrl, setTerminalUrl] = useState<string>('')
   const [isDragging, setIsDragging] = useState(false)
   
@@ -95,27 +96,76 @@ export default function SandboxAnalysis() {
     onError: (err: Error) => toast.error(`Delete failed: ${err.message}`)
   })
 
+  // Chunked upload: RAM dumps are routinely multi-GB, but an upstream proxy
+  // (Cloudflare) caps a single request body at 100 MB. Splitting the file into
+  // sub-cap chunks lets each request pass, and the backend reassembles them.
+  const CHUNK_SIZE = 50 * 1024 * 1024 // 50 MB — safely under the 100 MB cap
+
+  const uploadChunk = (
+    blob: Blob,
+    fields: { uploadId: string; filename: string; offset: number; totalSize: number; final: boolean },
+    onChunkProgress: (loaded: number) => void,
+  ) =>
+    new Promise<void>((resolve, reject) => {
+      const fd = new FormData()
+      fd.append('upload_id', fields.uploadId)
+      fd.append('filename', fields.filename)
+      fd.append('offset', String(fields.offset))
+      fd.append('total_size', String(fields.totalSize))
+      fd.append('final', fields.final ? '1' : '0')
+      fd.append('file', blob)
+
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', '/api/v1/memory/upload-chunk')
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.timeout = 0
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) onChunkProgress(e.loaded) }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { resolve(); return }
+        let msg = ''
+        try { msg = JSON.parse(xhr.responseText)?.error } catch { /* not JSON */ }
+        if (!msg) {
+          const snippet = (xhr.responseText || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120)
+          msg = `HTTP ${xhr.status || '???'}${snippet ? ` — ${snippet}` : ''}`
+        }
+        reject(new Error(msg))
+      }
+      xhr.onerror = () => reject(new Error('Network error / connection interrupted during upload'))
+      xhr.ontimeout = () => reject(new Error('Upload timed out'))
+      xhr.onabort = () => reject(new Error('Upload aborted'))
+      xhr.send(fd)
+    })
+
   const handleFile = async (file: File) => {
     setIsUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
+    setUploadProgress(0)
+
+    const uploadId =
+      (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const total = file.size
+    const chunkCount = Math.max(1, Math.ceil(total / CHUNK_SIZE))
 
     try {
-      const res = await fetch('/api/v1/memory/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      })
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null)
-        throw new Error(errorData?.error || 'Upload failed')
+      for (let i = 0; i < chunkCount; i++) {
+        const start = i * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, total)
+        const blob = file.slice(start, end)
+        await uploadChunk(
+          blob,
+          { uploadId, filename: file.name, offset: start, totalSize: total, final: i === chunkCount - 1 },
+          (loaded) => setUploadProgress(Math.round(((start + loaded) / Math.max(1, total)) * 100)),
+        )
       }
+      setUploadProgress(100)
       toast.success('Memory dump uploaded successfully')
       queryClient.invalidateQueries({ queryKey: ['memory-dumps'] })
     } catch (err: any) {
       toast.error(err.message || 'Upload failed')
     } finally {
       setIsUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -235,10 +285,18 @@ export default function SandboxAnalysis() {
                   />
                   
                   {isUploading ? (
-                    <>
+                    <div className="w-full px-4 flex flex-col items-center">
                       <RefreshCw className="h-6 w-6 text-indigo-400 animate-spin mb-2" />
-                      <p className="text-sm font-medium text-indigo-300">Uploading...</p>
-                    </>
+                      <p className="text-sm font-medium text-indigo-300 mb-2">
+                        Uploading… {uploadProgress}%
+                      </p>
+                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 transition-all duration-150"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <>
                       <div className="p-2.5 bg-indigo-500/10 rounded-full mb-2 shadow-[0_0_10px_rgba(99,102,241,0.2)]">

@@ -61,6 +61,12 @@ type VulnScan struct {
 	Tags string `json:"tags,omitempty"`
 	// ProxyChoice is the requested egress route: tor (default) | direct.
 	ProxyChoice string `json:"proxy_choice,omitempty"`
+	// AllowPrivate opts into scanning private/loopback/link-local targets
+	// (localhost, LAN, internal hosts). Off by default; the scope guard refuses
+	// such targets unless this is explicitly set. Intended for authorized
+	// internal/lab/CTF assessments — pair with Direct egress (a proxy/Tor exit
+	// cannot reach your private ranges).
+	AllowPrivate bool `json:"allow_private,omitempty"`
 	// ProxyMode records how egress was ACTUALLY routed: tor | configured | outbound | direct.
 	ProxyMode string `json:"proxy_mode,omitempty"`
 

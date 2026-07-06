@@ -290,7 +290,7 @@ func GetAgentInstaller(c *gin.Context) {
 		return
 	}
 
-	serverURL := getServerURL(c)
+	serverURL := installServerURL(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -336,6 +336,29 @@ func DownloadAgentBinary(c *gin.Context) {
 	c.FileAttachment(filePath, filename)
 }
 
+// installServerURL resolves the server URL to embed in a generated agent
+// installer. Priority:
+//  1. explicit ?server=http://host:port override (multi-homed servers);
+//  2. the host the installer was fetched through (so a LAN-IP install talks to
+//     the LAN IP and a public-domain install talks to the domain);
+//  3. PUBLIC_URL as a last resort when no request host is available.
+//
+// This is deliberately NOT plain getServerURL: pinning every installer to
+// PUBLIC_URL breaks LAN installs on hosts that cannot reach the public domain.
+func installServerURL(c *gin.Context) string {
+	if s := strings.TrimSpace(c.Query("server")); s != "" {
+		if strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
+			return strings.TrimRight(s, "/")
+		}
+	}
+	// requestBaseURL returns "scheme://host"; if the host is empty it ends with
+	// "://" — only trust it when a real host is present.
+	if base := requestBaseURL(c); !strings.HasSuffix(base, "://") {
+		return base
+	}
+	return getServerURL(c)
+}
+
 // GetAgentInstallScript returns a PowerShell (.ps1) or Bash (.sh) one-click install
 // script with the agent credentials embedded. Authentication is performed inline
 // using the agent token supplied via the ?token= query parameter so that the
@@ -379,7 +402,7 @@ func GetAgentInstallScript(c *gin.Context) {
 		return
 	}
 
-	serverURL := getServerURL(c)
+	serverURL := installServerURL(c)
 
 	data := struct {
 		AgentID   string
@@ -580,13 +603,18 @@ if (-not (Test-Path $InstallDir)) {
 }
 
 # 2. Download agent binary
-Write-Host "[*] Downloading agent binary..."
+Write-Host "[*] Downloading agent binary from $BinaryUrl"
 try {
     Invoke-WebRequest -Uri ($BinaryUrl + "?token=" + $AgentToken) -OutFile $AgentBinary -UseBasicParsing
     Write-Host "[+] Binary saved to $AgentBinary"
 } catch {
-    Write-Host "[!] Download failed: $_" -ForegroundColor Red
-    exit 1
+    Write-Host ""
+    Write-Host "[!] Download failed from: $BinaryUrl" -ForegroundColor Red
+    Write-Host "    $_" -ForegroundColor Red
+    Write-Host "    This machine could not reach the server URL above." -ForegroundColor Yellow
+    Write-Host "    Re-run the installer pointing at a URL this machine CAN reach, e.g. the LAN address:" -ForegroundColor Yellow
+    Write-Host "    iex (irm '<installer-url>&server=http://<server-ip>:3000')" -ForegroundColor Yellow
+    return   # NOT 'exit' — 'exit' would close the whole PowerShell window under iex
 }
 
 # 3. Write configuration

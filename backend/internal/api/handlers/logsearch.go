@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -20,6 +21,7 @@ import (
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/storage"
 	"github.com/analysishub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/ws"
 )
 
 // hashFile returns the hex sha256 of a file's contents (for upload dedup).
@@ -53,6 +55,7 @@ type LogSearchHandler struct {
 	Enricher     *threatintel.EnrichClient // threat-intel lookups over ingested IPs
 	KibanaURL    string                    // internal Kibana URL (with /kbn) for data view provisioning
 	DockerAPIURL string                    // scoped docker-socket-proxy base URL; empty = toggle off
+	Hub          *ws.Hub                   // agent WS hub — used to trigger agent log collection
 	sem          chan struct{}
 }
 
@@ -63,6 +66,7 @@ type LogSearchConfig struct {
 	DockerAPIURL  string
 	RetentionDays int
 	Enricher      *threatintel.EnrichClient
+	Hub           *ws.Hub
 }
 
 func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, cfg LogSearchConfig) *LogSearchHandler {
@@ -73,6 +77,7 @@ func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, cfg LogSearch
 		Enricher:     cfg.Enricher,
 		KibanaURL:    cfg.KibanaURL,
 		DockerAPIURL: cfg.DockerAPIURL,
+		Hub:          cfg.Hub,
 		sem:          make(chan struct{}, logIngestConcurrency),
 	}
 }
@@ -203,58 +208,89 @@ func (h *LogSearchHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	meta := ingestMeta{Case: caseName, CaseID: caseID, LogType: logType, Timezone: tz, Source: "upload", CreatedBy: createdBy}
 	jobs := make([]models.LogIngestJob, 0, len(files))
 	for _, fh := range files {
 		if fh.Size > maxLogUploadBytes {
 			continue
 		}
-		job := models.LogIngestJob{
-			Case:      caseName,
-			CaseID:    caseID,
-			Filename:  fh.Filename,
-			LogType:   logType,
-			Timezone:  tz,
-			Status:    "queued",
-			CreatedBy: createdBy,
+		if job, ok := h.enqueueFromMultipart(fh, meta); ok {
+			jobs = append(jobs, job)
 		}
-		if err := h.DB.Create(&job).Error; err != nil {
-			continue
-		}
-		f, openErr := fh.Open()
-		if openErr != nil {
-			h.markError(&job, "failed to open upload")
-			continue
-		}
-		relPath, saveErr := h.Store.SaveLogUpload(job.ID.String(), fh.Filename, f)
-		f.Close()
-		if saveErr != nil {
-			h.markError(&job, "failed to store file: "+saveErr.Error())
-			continue
-		}
-		h.DB.Model(&job).Update("stored_path", relPath)
-		job.StoredPath = relPath
-
-		// Dedup: skip a file already ingested (same sha256) in this case.
-		if hash, herr := hashFile(h.Store.GetLogUploadPath(relPath)); herr == nil {
-			job.FileHash = hash
-			h.DB.Model(&job).Update("file_hash", hash)
-			var dup models.LogIngestJob
-			if err := h.DB.Where("file_hash = ? AND status = ? AND \"case\" = ? AND id <> ?", hash, "done", caseName, job.ID).First(&dup).Error; err == nil {
-				now := time.Now()
-				h.DB.Model(&job).Updates(map[string]interface{}{
-					"status": "skipped", "finished_at": &now,
-					"message": "duplicate of an already-ingested file (same content)",
-				})
-				jobs = append(jobs, job)
-				continue
-			}
-		}
-
-		go h.runIngest(job)
-		jobs = append(jobs, job)
 	}
 
 	c.JSON(http.StatusAccepted, gin.H{"jobs": jobs})
+}
+
+// ingestMeta carries the per-file metadata shared by the manual upload path and
+// the agent auto-collect path.
+type ingestMeta struct {
+	Case      string
+	CaseID    *uuid.UUID
+	Host      string // source host; "" for manual uploads
+	Source    string // upload|agent
+	LogType   string
+	Timezone  string
+	CreatedBy uuid.UUID
+}
+
+// enqueueFromMultipart persists one uploaded file, creates its LogIngestJob,
+// runs sha256 dedup (scoped to case+host), and kicks off ingestion. Returns the
+// job row and whether it was enqueued. Used by both Upload and AgentIngest.
+func (h *LogSearchHandler) enqueueFromMultipart(fh *multipart.FileHeader, meta ingestMeta) (models.LogIngestJob, bool) {
+	logType := meta.LogType
+	if logType == "" {
+		logType = logsearch.TypeAuto
+	}
+	source := meta.Source
+	if source == "" {
+		source = "upload"
+	}
+	job := models.LogIngestJob{
+		Case:      meta.Case,
+		CaseID:    meta.CaseID,
+		Host:      meta.Host,
+		Source:    source,
+		Filename:  fh.Filename,
+		LogType:   logType,
+		Timezone:  meta.Timezone,
+		Status:    "queued",
+		CreatedBy: meta.CreatedBy,
+	}
+	if err := h.DB.Create(&job).Error; err != nil {
+		return job, false
+	}
+	f, openErr := fh.Open()
+	if openErr != nil {
+		h.markError(&job, "failed to open upload")
+		return job, true
+	}
+	relPath, saveErr := h.Store.SaveLogUpload(job.ID.String(), fh.Filename, f)
+	f.Close()
+	if saveErr != nil {
+		h.markError(&job, "failed to store file: "+saveErr.Error())
+		return job, true
+	}
+	h.DB.Model(&job).Update("stored_path", relPath)
+	job.StoredPath = relPath
+
+	// Dedup: skip a file already ingested (same sha256) for this case+host.
+	if hash, herr := hashFile(h.Store.GetLogUploadPath(relPath)); herr == nil {
+		job.FileHash = hash
+		h.DB.Model(&job).Update("file_hash", hash)
+		var dup models.LogIngestJob
+		if err := h.DB.Where("file_hash = ? AND status = ? AND \"case\" = ? AND host = ? AND id <> ?", hash, "done", meta.Case, meta.Host, job.ID).First(&dup).Error; err == nil {
+			now := time.Now()
+			h.DB.Model(&job).Updates(map[string]interface{}{
+				"status": "skipped", "finished_at": &now,
+				"message": "duplicate of an already-ingested file (same content)",
+			})
+			return job, true
+		}
+	}
+
+	go h.runIngest(job)
+	return job, true
 }
 
 // runIngest parses and indexes one file, updating its job row as it goes.
@@ -270,7 +306,7 @@ func (h *LogSearchHandler) runIngest(job models.LogIngestJob) {
 			Updates(map[string]interface{}{"docs_indexed": indexed, "docs_failed": failed})
 	}
 
-	indices, indexed, failed, sampleErr, err := h.ES.IngestPath(absPath, job.Filename, job.Case, job.LogType, job.Timezone, onProgress)
+	indices, indexed, failed, sampleErr, err := h.ES.IngestPath(absPath, job.Filename, job.Case, job.Host, job.LogType, job.Timezone, onProgress)
 	now := time.Now()
 	updates := map[string]interface{}{
 		"index":        strings.Join(indices, ","),
@@ -319,7 +355,10 @@ func (h *LogSearchHandler) runIngest(job models.LogIngestJob) {
 
 // ListJobs GET /api/v1/logsearch/jobs?case=
 func (h *LogSearchHandler) ListJobs(c *gin.Context) {
-	q := h.DB.Order("created_at desc").Limit(300)
+	// Limit is generous: the Log Ingest repository groups these rows by host, and
+	// one agent collection alone yields ~15 files, so a small cap would silently
+	// hide hosts once a few endpoints have been collected.
+	q := h.DB.Order("created_at desc").Limit(2000)
 	if cs := strings.TrimSpace(c.Query("case")); cs != "" {
 		q = q.Where("\"case\" = ?", cs)
 	}

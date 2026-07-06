@@ -19,10 +19,11 @@ import {
   ShieldAlert, Server, Search,
   Plus, X, Zap, Code2,
   Upload, Pencil, Trash2, CheckCircle2, Rocket, FileSearch, Layers,
-  FolderUp, Loader2, Database, RefreshCw, AlertTriangle, HardDriveUpload,
-  LayoutDashboard, Power, PlayCircle, StopCircle
+  FolderUp, Loader2, Database, AlertTriangle, HardDriveUpload,
+  LayoutDashboard, Power, PlayCircle, StopCircle, ChevronRight, ChevronDown, MonitorSmartphone
 } from 'lucide-react'
 import { JsonViewer } from '@/components/JsonViewer'
+import { getErrorMessage } from '@/lib/utils'
 import { logsearchApi, LogIngestJob, LogIndex, ELKStatus } from '@/api/logsearch'
 import { casesApi } from '@/api/cases'
 
@@ -208,6 +209,44 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['logsearch-indices'] }); toast.success('Index deleted') },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Delete failed'),
   })
+
+  // Repository: hosts are expanded/collapsed; deleting a host drops all its logs.
+  const [expandedHosts, setExpandedHosts] = useState<Set<string>>(new Set())
+  const toggleHost = (h: string) =>
+    setExpandedHosts((prev) => {
+      const next = new Set(prev)
+      next.has(h) ? next.delete(h) : next.add(h)
+      return next
+    })
+  const delHostMut = useMutation({
+    mutationFn: (host: string) => logsearchApi.deleteHost(host),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['logsearch-jobs'] })
+      qc.invalidateQueries({ queryKey: ['logsearch-indices'] })
+      qc.invalidateQueries({ queryKey: ['logsearch-summary'] })
+      toast.success(`Removed ${r.removed_jobs} file(s) and ${r.deleted_indices.length} index(es) from "${r.host}"`)
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  // Group ingest jobs by source host so Log Ingest reads as a per-host repository.
+  const hostGroups = (() => {
+    const map = new Map<string, LogIngestJob[]>()
+    for (const j of jobs ?? []) {
+      const key = j.host && j.host.trim() ? j.host : '(uploads)'
+      const arr = map.get(key) ?? []
+      arr.push(j)
+      map.set(key, arr)
+    }
+    return Array.from(map.entries()).map(([host, items]) => ({
+      host,
+      items,
+      docs: items.reduce((s, j) => s + (j.docs_indexed || 0), 0),
+      running: items.filter((j) => j.status === 'queued' || j.status === 'running').length,
+      errors: items.filter((j) => j.status === 'error').length,
+      isAgent: items.some((j) => j.source === 'agent'),
+    }))
+  })()
 
   const totalMB = (files.reduce((s, f) => s + f.size, 0) / 1048576).toFixed(1)
   const statusColor: Record<string, string> = {
@@ -422,33 +461,74 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
         </div>
       )}
 
-      {/* Jobs */}
+      {/* Repository — logs grouped by source host */}
       <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <RefreshCw className="h-4 w-4 text-emerald-500" />
-          <h3 className="font-semibold text-gray-100 text-sm">Ingest jobs</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <Database className="h-4 w-4 text-emerald-500" />
+          <h3 className="font-semibold text-gray-100 text-sm">Log repository</h3>
+          <span className="ml-auto text-xs text-gray-500">{hostGroups.length} host{hostGroups.length !== 1 ? 's' : ''}</span>
         </div>
-        {(jobs ?? []).length === 0
-          ? <p className="text-xs text-gray-500">No jobs yet.</p>
+        <p className="text-xs text-gray-500 mb-3">
+          Logs organised per host. Collect from an agent (Agents → Collect Logs) or upload manually.
+          Delete a host to free its indices once the investigation is done.
+        </p>
+        {hostGroups.length === 0
+          ? <p className="text-xs text-gray-500">No logs yet.</p>
           : (
-            <div className="space-y-2 max-h-[600px] overflow-auto">
-              {(jobs ?? []).map((j: LogIngestJob) => (
-                <div key={j.id} className="rounded-md border border-gray-800/60 bg-gray-950/40 p-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    {j.status === 'done' ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                      : j.status === 'error' ? <AlertTriangle className="h-4 w-4 text-rose-400" />
-                      : <Loader2 className="h-4 w-4 text-amber-400 animate-spin" />}
-                    <span className="font-mono text-gray-300 truncate">{j.filename}</span>
-                    <span className={`ml-auto font-semibold ${statusColor[j.status] ?? 'text-gray-400'}`}>{j.status}</span>
+            <div className="space-y-2 max-h-[620px] overflow-auto">
+              {hostGroups.map((g) => {
+                const open = expandedHosts.has(g.host)
+                return (
+                  <div key={g.host} className="rounded-md border border-gray-800/60 bg-gray-950/40">
+                    <div className="flex items-center gap-2 p-2.5">
+                      <button onClick={() => toggleHost(g.host)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
+                        {open ? <ChevronDown className="h-4 w-4 text-gray-500 shrink-0" /> : <ChevronRight className="h-4 w-4 text-gray-500 shrink-0" />}
+                        <MonitorSmartphone className={`h-4 w-4 shrink-0 ${g.isAgent ? 'text-emerald-400' : 'text-gray-500'}`} />
+                        <span className="font-mono text-gray-200 text-xs truncate">{g.host}</span>
+                        {g.isAgent && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 shrink-0">agent</span>}
+                        {g.running > 0 && <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin shrink-0" />}
+                      </button>
+                      <span className="text-[11px] text-gray-500 shrink-0">{g.items.length} file{g.items.length !== 1 ? 's' : ''}</span>
+                      <span className="text-[11px] text-gray-400 shrink-0">{g.docs.toLocaleString()} docs</span>
+                      {g.errors > 0 && <span className="text-[11px] text-rose-400 shrink-0">{g.errors} err</span>}
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete ALL logs for host "${g.host}"? This drops its Elasticsearch indices and cannot be undone.`)) {
+                            delHostMut.mutate(g.host)
+                          }
+                        }}
+                        disabled={delHostMut.isPending}
+                        title="Delete all logs for this host"
+                        className="p-1 rounded text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-40 shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {open && (
+                      <div className="border-t border-gray-800/60 divide-y divide-gray-800/40">
+                        {g.items.map((j) => (
+                          <div key={j.id} className="px-3 py-2 text-xs">
+                            <div className="flex items-center gap-2">
+                              {j.status === 'done' ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                                : j.status === 'error' ? <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                                : j.status === 'skipped' ? <X className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                                : <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin shrink-0" />}
+                              <span className="font-mono text-gray-300 truncate">{j.filename}</span>
+                              <span className={`ml-auto font-semibold ${statusColor[j.status] ?? 'text-gray-400'}`}>{j.status}</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-gray-500">
+                              <span>case: <span className="text-gray-400">{j.case}</span></span>
+                              <span>type: <span className="text-gray-400">{j.detected_type || j.log_type}</span></span>
+                              <span>docs: <span className="text-gray-300">{j.docs_indexed}</span>{j.docs_failed > 0 && <span className="text-rose-400"> (+{j.docs_failed} err)</span>}</span>
+                            </div>
+                            {j.message && <div className="mt-0.5 text-gray-600 truncate" title={j.message}>{j.message}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-gray-500">
-                    <span>case: <span className="text-gray-400">{j.case}</span></span>
-                    <span>type: <span className="text-gray-400">{j.detected_type || j.log_type}</span></span>
-                    <span>docs: <span className="text-gray-300">{j.docs_indexed}</span>{j.docs_failed > 0 && <span className="text-rose-400"> (+{j.docs_failed} err)</span>}</span>
-                  </div>
-                  {j.message && <div className="mt-1 text-gray-500">{j.message}</div>}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
       </div>

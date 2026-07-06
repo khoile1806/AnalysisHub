@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield, Database, HardDrive, GitBranch } from 'lucide-react'
+import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield, Database, HardDrive, GitBranch, ScrollText } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { agentsApi, type Agent } from '@/api/agents'
+import { logsearchApi } from '@/api/logsearch'
 import { casesApi } from '@/api/cases'
 import { jobsApi, type Job } from '@/api/jobs'
 import { toolsApi, TOOL_CATEGORIES } from '@/api/tools'
@@ -663,6 +664,16 @@ export default function AgentDetailPage() {
     enabled: !!id,
   })
 
+  const collectLogsMutation = useMutation({
+    mutationFn: () => {
+      const linked = cases.find((c: any) => c.id === agent?.case_id)
+      return logsearchApi.collectFromAgent(id!, { case: linked?.name, days: 7 })
+    },
+    onSuccess: (r) =>
+      toast.success(`Collecting OS logs from ${r.host || 'host'} → Log Ingest (case "${r.case}")`),
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  })
+
   const cleanupMutation = useMutation({
     mutationFn: () => agentsApi.cleanup(id!),
     onSuccess: () => {
@@ -737,6 +748,17 @@ export default function AgentDetailPage() {
               </button>
             )
           })()}
+          <button
+            onClick={() => collectLogsMutation.mutate()}
+            disabled={agent.status !== 'online' || collectLogsMutation.isPending}
+            className="btn-secondary text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={agent.status !== 'online'
+              ? 'Agent must be online'
+              : 'Auto-detect OS and collect all logs into Log Ingest (grouped by this host)'}
+          >
+            <ScrollText className="h-3.5 w-3.5" />
+            {collectLogsMutation.isPending ? 'Collecting…' : 'Collect Logs'}
+          </button>
           <button
             onClick={() => setCleanupOpen(true)}
             disabled={agent.status !== 'online'}

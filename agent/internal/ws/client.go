@@ -380,6 +380,8 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			go c.handleEdgeParseBrowser(msg)
 		case "edge_parse_triage":
 			go c.handleEdgeParseTriage(msg)
+		case "collect_os_logs":
+			go c.handleCollectOSLogs(msg)
 		case "kill_process":
 			go c.handleKillProcess(msg)
 		case "ping":

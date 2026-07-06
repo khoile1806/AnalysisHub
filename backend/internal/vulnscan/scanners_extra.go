@@ -116,7 +116,7 @@ func (e *Engine) runTLSx(ctx context.Context, scan *models.VulnScan, liveURLs []
 	for s := range sans {
 		fresh = append(fresh, s)
 	}
-	keep, _ := scopeFilter(fresh, proxyURL != "")
+	keep, _ := scopeFilter(fresh, proxyURL != "", scan.AllowPrivate)
 	have := map[string]bool{}
 	for _, u := range liveURLs {
 		have[u] = true

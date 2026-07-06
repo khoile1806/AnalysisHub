@@ -3,6 +3,8 @@ import api from './client'
 export interface LogIngestJob {
   id: string
   case: string
+  host?: string
+  source?: 'upload' | 'agent'
   filename: string
   log_type: string
   detected_type: string
@@ -13,6 +15,16 @@ export interface LogIngestJob {
   message: string
   created_at: string
   finished_at?: string
+}
+
+export interface HostSummary {
+  host: string
+  files: number
+  docs_indexed: number
+  running: number
+  errors: number
+  sources: string[]
+  last_activity?: string
 }
 
 export interface LogIndex {
@@ -123,6 +135,21 @@ export const logsearchApi = {
   },
   enrich: async (caseName?: string): Promise<{ configured: boolean; results: EnrichedIOC[] }> => {
     const { data } = await api.post('/logsearch/enrich', {}, { params: caseName ? { case: caseName } : {} })
+    return data
+  },
+  hosts: async (caseName?: string): Promise<HostSummary[]> => {
+    const { data } = await api.get('/logsearch/hosts', { params: caseName ? { case: caseName } : {} })
+    return data.hosts ?? []
+  },
+  deleteHost: async (host: string): Promise<{ host: string; deleted_indices: string[]; removed_jobs: number }> => {
+    const { data } = await api.delete(`/logsearch/hosts/${encodeURIComponent(host)}`)
+    return data
+  },
+  collectFromAgent: async (
+    agentId: string,
+    opts?: { case?: string; days?: number },
+  ): Promise<{ ok: boolean; job_id: string; case: string; host: string; days: number }> => {
+    const { data } = await api.post(`/logsearch/agents/${agentId}/collect`, opts ?? {})
     return data
   },
 }

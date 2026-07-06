@@ -239,6 +239,7 @@ func NewRouter(
 				DockerAPIURL:  cfg.DockerAPIURL,
 				RetentionDays: cfg.LogSearchRetentionDays,
 				Enricher:      enrich,
+				Hub:           hub,
 			})
 			protected.GET("/logsearch/meta", ls.Meta)
 			protected.GET("/logsearch/health", ls.Health)
@@ -248,6 +249,15 @@ func NewRouter(
 			protected.GET("/logsearch/jobs", ls.ListJobs)
 			protected.GET("/logsearch/indices", ls.ListIndices)
 			protected.DELETE("/logsearch/indices/:index", middleware.RequireAdmin(), ls.DeleteIndex)
+			// Per-host log repository (agent-collected + uploaded logs).
+			protected.GET("/logsearch/hosts", ls.Hosts)
+			protected.DELETE("/logsearch/hosts/:host", middleware.RequireAdmin(), ls.DeleteHost)
+			// Trigger OS-log collection on an online agent (auto-detects OS).
+			protected.POST("/logsearch/agents/:agentId/collect", ls.CollectLogs)
+			// Agent-authenticated upload target for collected OS logs. Kept under
+			// /logsearch/* (all-static children) to avoid colliding with the
+			// /agents/:id/* param routes in the same POST tree.
+			v1.POST("/logsearch/agent-ingest", middleware.AgentAuthMiddleware(db), middleware.AuditMiddleware(), ls.AgentIngest)
 			// ELK power toggle (free RAM when idle) — status is read-only; start/stop admin-only.
 			protected.GET("/logsearch/elk/status", ls.ELKStatus)
 			protected.POST("/logsearch/elk/:verb", middleware.RequireAdmin(), ls.ELKPower)
@@ -379,6 +389,8 @@ func NewRouter(
 		// Volatility Memory Analysis
 		protected.GET("/memory/dumps", handlers.ListMemoryDumps)
 		protected.POST("/memory/upload", middleware.RequireAdmin(), handlers.UploadMemoryDump)
+		// Chunked upload — survives upstream 100 MB body caps (e.g. Cloudflare) for multi-GB dumps.
+		protected.POST("/memory/upload-chunk", middleware.RequireAdmin(), handlers.UploadMemoryDumpChunk)
 		protected.DELETE("/memory/dumps/:filename", middleware.RequireAdmin(), handlers.DeleteMemoryDump)
 
 		// Sandbox terminal — issue the iframe's path-scoped cookie. Mounted here

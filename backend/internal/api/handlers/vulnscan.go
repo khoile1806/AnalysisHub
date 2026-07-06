@@ -86,9 +86,10 @@ func CreateVulnScan(c *gin.Context) {
 		Targets      []string `json:"targets"`
 		CaseID       string   `json:"case_id"`
 		Severities   string   `json:"severities"`
-		Profile      string   `json:"profile"`      // quick | full | cve-only
-		Tags         string   `json:"tags"`         // extra nuclei tags (CSV)
-		ProxyChoice  string   `json:"proxy_choice"` // tor (default) | direct
+		Profile      string   `json:"profile"`       // quick | full | cve-only
+		Tags         string   `json:"tags"`          // extra nuclei tags (CSV)
+		ProxyChoice  string   `json:"proxy_choice"`  // tor (default) | direct
+		AllowPrivate bool     `json:"allow_private"` // allow private/loopback/LAN targets
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -106,12 +107,13 @@ func CreateVulnScan(c *gin.Context) {
 		proxyChoice = "direct"
 	}
 	scan := models.VulnScan{
-		Name:        strings.TrimSpace(req.Name),
-		Status:      models.VulnPending,
-		Severities:  strings.TrimSpace(req.Severities),
-		Profile:     profile,
-		Tags:        strings.TrimSpace(req.Tags),
-		ProxyChoice: proxyChoice,
+		Name:         strings.TrimSpace(req.Name),
+		Status:       models.VulnPending,
+		Severities:   strings.TrimSpace(req.Severities),
+		Profile:      profile,
+		Tags:         strings.TrimSpace(req.Tags),
+		ProxyChoice:  proxyChoice,
+		AllowPrivate: req.AllowPrivate,
 	}
 	if uid, ok := middleware.GetUserID(c); ok {
 		scan.CreatedBy = uid
@@ -238,8 +240,9 @@ func PreviewVulnAssets(c *gin.Context) {
 	for i, a := range assets {
 		values[i] = a.Value
 	}
+	allowPrivate := c.Query("allow_private") == "true" || c.Query("allow_private") == "1"
 	verdicts := map[string]vulnscan.ScopeVerdict{}
-	for _, v := range engine.ClassifyForPreview(values) {
+	for _, v := range engine.ClassifyForPreview(values, allowPrivate) {
 		verdicts[v.Value] = v
 	}
 	type previewAsset struct {
