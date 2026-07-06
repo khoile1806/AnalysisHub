@@ -71,26 +71,9 @@ Mọi cấu hình nằm trong file **`.env`**. Mở ra và chỉnh trước khi 
 docker compose up -d --build
 ```
 
-- Lần build đầu mất khoảng **5–10 phút**.
-- Service chạy mặc định: `postgres`, `redis`, `tor`, `docker_socket_proxy`, `backend`, `frontend`.
+- Lần build đầu mất khoảng **5–10 phút** (có image `volatility` ~5 GB).
+- **Tất cả** service khởi động, gồm cả Elasticsearch, Kibana và Sandbox.
 - DB migration + tạo tài khoản admin chạy tự động khi backend khởi động lần đầu.
-
-### 4.1. Tạo sẵn các service "on-demand" (Elasticsearch, Kibana, Sandbox)
-
-`elasticsearch`, `kibana` và `volatility_sandbox` **mặc định TẮT** để tiết kiệm RAM
-(profile `on-demand`). Chúng chỉ được **admin bật/tắt tay từ UI**. Để nút bật/tắt
-hoạt động, phải **tạo sẵn container** (ở trạng thái stopped) một lần:
-
-```bash
-docker compose create elasticsearch kibana volatility_sandbox
-```
-
-> Lần đầu, lệnh này sẽ build image `volatility` (~5 GB, hơi lâu) và pull Elasticsearch/Kibana.
-
-- **Bật ELK** (Elasticsearch + Kibana): vào **ELK → tab Log Ingest → Start ELK** (chỉ admin).
-- **Bật Sandbox** (volatility/kali): vào **Sandbox Analysis → Start** (chỉ admin).
-- Bấm **Stop** để trả RAM khi không dùng. `docker compose up -d` về sau **không** đụng
-  tới chúng (chúng thuộc profile) → giữ nguyên trạng thái bạn set qua UI.
 
 Kiểm tra trạng thái:
 ```bash
@@ -98,8 +81,17 @@ docker compose ps
 docker compose logs -f backend
 ```
 
-> **Teardown:** `docker compose down` chỉ dừng service core. Muốn dừng/xoá cả
-> on-demand (kể cả volume) phải kèm profile: `docker compose --profile on-demand down -v`.
+### 4.1. Tắt/bật ELK & Sandbox để tiết kiệm RAM
+
+ELK (Elasticsearch + Kibana, ~4.5 GB) và Sandbox (volatility, nặng khi phân tích)
+chạy sẵn. Khi không dùng, **admin** có thể **TẮT** để trả RAM, rồi **BẬT** lại:
+
+- **ELK**: **ELK → tab Log Ingest → nút Stop/Start ELK**.
+- **Sandbox**: **Sandbox Analysis → nút Stop/Start**.
+
+Việc bật/tắt đi qua `docker_socket_proxy` (chỉ cho phép start/stop container, admin-only).
+Lưu ý: `docker compose up -d` sẽ khởi động lại các service đã tắt — nếu muốn giữ tắt
+qua lần `up`, tắt bằng `docker compose stop elasticsearch kibana volatility_sandbox`.
 
 ---
 

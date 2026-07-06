@@ -34,9 +34,8 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${LOGSEARCH_ES_VERSION:-8.17.3}
     container_name: analysishub_elasticsearch
-    # On-demand: NOT started by `docker compose up`. An admin starts/stops the ELK
-    # stack (ES + Kibana) from the Log Ingest tab to free RAM when not hunting.
-    profiles: [ "on-demand" ]
+    # Runs on `docker compose up`. An admin can STOP it (with Kibana) from the Log
+    # Ingest tab to free RAM when not hunting, and Start it again later.
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -72,7 +71,6 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:${LOGSEARCH_ES_VERSION:-8.17.3}
     container_name: analysishub_kibana
-    profiles: [ "on-demand" ]   # on-demand — started with Elasticsearch from the UI
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - SERVER_BASEPATH=/kbn
@@ -256,9 +254,9 @@ services:
         condition: service_started
       docker_socket_proxy:
         condition: service_started
-      # NOTE: no depends_on for elasticsearch/kibana — they are on-demand
-      # (profile "on-demand", default OFF) and started by an admin from the UI.
-      # The backend tolerates them being down.
+      # NOTE: intentionally no depends_on for elasticsearch/kibana — the backend
+      # starts immediately (it tolerates ELK being down/stopped) instead of waiting
+      # ~1 min for Elasticsearch to become healthy.
     restart: unless-stopped
 
   # Volatility + Kali offensive sandbox. The ttyd web terminal is intentionally
@@ -271,9 +269,8 @@ services:
       context: ./volatility
       dockerfile: Dockerfile
     container_name: analysishub_volatility
-    # On-demand: NOT started by `docker compose up`. An admin starts/stops it from
-    # the Sandbox Analysis page (via the scoped docker proxy) to free RAM when idle.
-    profiles: [ "on-demand" ]
+    # Runs on `docker compose up`. An admin can STOP it from the Sandbox Analysis
+    # page (via the scoped docker proxy) to free RAM when idle, and Start it again.
     # No host port mapping — reachable only via the backend sandbox proxy.
     expose:
       - "7681"
@@ -299,8 +296,8 @@ services:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
-    # NOTE: no depends_on for kibana — it is on-demand (default OFF). nginx just
-    # returns 502 on /kbn until an admin starts ELK from the UI.
+    # NOTE: no depends_on for kibana — nginx resolves it at request time (see the
+    # /kbn location), so the frontend stays up even while an admin has ELK stopped.
     restart: unless-stopped
 
 volumes:

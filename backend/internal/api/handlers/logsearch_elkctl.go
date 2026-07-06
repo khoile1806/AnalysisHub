@@ -90,6 +90,9 @@ func (h *LogSearchHandler) action(client *http.Client, name, verb string) error 
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotModified {
 		return nil
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("container %q not found — run: docker compose up -d", name)
+	}
 	return fmt.Errorf("%s %s: docker returned %d", verb, name, resp.StatusCode)
 }
 
