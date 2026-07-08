@@ -103,6 +103,20 @@ export interface ProxyStatus {
   darkweb_sources: number
 }
 
+export interface UpdaterStatus {
+  name: string
+  description: string
+  category: string
+  interval_seconds: number
+  running: boolean
+  runs: number
+  last_run?: string
+  last_success: boolean
+  last_error?: string
+  last_duration_ms: number
+  next_run?: string
+}
+
 interface ApiResponse<T> {
   success: boolean
   data: T
@@ -132,5 +146,14 @@ export const systemApi = {
   checkProxy: async (): Promise<ProxyStatus> => {
     const { data } = await apiClient.post<ApiResponse<ProxyStatus>>('/system/proxy/check')
     return data.data
+  },
+
+  getUpdaters: async (): Promise<UpdaterStatus[]> => {
+    const { data } = await apiClient.get<ApiResponse<UpdaterStatus[]>>('/system/updaters')
+    return data.data
+  },
+
+  runUpdater: async (name: string): Promise<void> => {
+    await apiClient.post(`/system/updaters/${encodeURIComponent(name)}/run`)
   },
 }

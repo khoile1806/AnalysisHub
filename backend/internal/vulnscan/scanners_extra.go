@@ -60,7 +60,7 @@ func (e *Engine) runTLSx(ctx context.Context, scan *models.VulnScan, liveURLs []
 	if proxyURL != "" {
 		args = append(args, "-proxy", proxyURL)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	var findings []models.VulnFinding
@@ -181,7 +181,7 @@ func (e *Engine) runGau(ctx context.Context, scan *models.VulnScan, targets []st
 
 	cctx, cancel := context.WithTimeout(ctx, e.toolTimeout())
 	defer cancel()
-	cmd := exec.CommandContext(cctx, bin, "--threads", "5", "--subs")
+	cmd := e.commandFor(tool, cctx, bin, "--threads", "5", "--subs")
 	cmd.Stdin = in
 	cmd.Env = proxyEnv(proxyURL)
 

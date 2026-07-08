@@ -14,6 +14,7 @@ export interface VulnTool {
   status: VulnToolStatus
   findings_count: number
   error?: string
+  command?: string // exact CLI invocation the engine ran (proxy creds redacted)
   started_at?: string | null
   finished_at?: string | null
 }
@@ -102,6 +103,33 @@ export interface CreateVulnScanRequest {
   allow_private?: boolean // allow scanning private/loopback/LAN targets (internal scan)
 }
 
+export interface AdHocNucleiRequest {
+  url: string
+  name?: string
+  severities?: string
+  exclude_severity?: string
+  tags?: string
+  include_tags?: string
+  exclude_tags?: string
+  cve_ids?: string[]
+  template_ids?: string[]
+  exclude_ids?: string[]
+  templates?: string[]
+  authors?: string
+  protocols?: string
+  headers?: string[]
+  vars?: string[]
+  rate_limit?: number
+  concurrency?: number
+  timeout?: number
+  retries?: number
+  new_templates?: boolean
+  extra_args?: string[]
+  proxy_choice?: 'tor' | 'direct'
+  allow_private?: boolean
+  dast?: boolean
+}
+
 export const vulnscanApi = {
   list: (caseId?: string) =>
     apiClient
@@ -116,6 +144,13 @@ export const vulnscanApi = {
     apiClient.get(`/vulnscan/${id}/findings`, { params }).then((r) => r.data.data as VulnFinding[]),
   create: (body: CreateVulnScanRequest) =>
     apiClient.post('/vulnscan', body).then((r) => r.data.data as VulnScan),
+  // createAdHocNuclei runs nuclei against a single URL with custom filters (chosen
+  // CVE/template ids, severities, tags) — no full pipeline.
+  createAdHocNuclei: (body: AdHocNucleiRequest) =>
+    apiClient.post('/vulnscan/nuclei', body).then((r) => r.data.data as VulnScan),
+  // previewNuclei returns the exact nuclei command a run would execute (validated).
+  previewNuclei: (body: AdHocNucleiRequest) =>
+    apiClient.post('/vulnscan/nuclei/preview', body).then((r) => r.data.data as { command: string; args: string[] }),
   updateFinding: (id: string, body: { status?: string; note?: string }) =>
     apiClient.patch(`/vuln-findings/${id}`, body).then((r) => r.data.data as VulnFinding),
   stop: (id: string) => apiClient.post(`/vulnscan/${id}/stop`).then((r) => r.data),

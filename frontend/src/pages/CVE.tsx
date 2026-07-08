@@ -43,9 +43,12 @@ export default function CVEPage() {
 
   const search = useQuery({
     queryKey: ['cve', 'search', query, version],
-    queryFn: () => cveApi.search(query, version || undefined, 500),
+    queryFn: () => cveApi.search(query, version || undefined, 100),
     enabled: query.length > 0,
     staleTime: 60_000,
+    // The backend already fails fast (≈12s budget) and caches; retrying only
+    // doubles the wait before the user sees an error on a throttled/empty query.
+    retry: false,
   })
 
   const filtered = useMemo<CveSummary[]>(() => {

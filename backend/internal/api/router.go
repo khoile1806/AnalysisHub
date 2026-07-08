@@ -294,6 +294,7 @@ func NewRouter(
 		// OSINT footprinting — passive entity intelligence (IP/domain/email/phone/username)
 		protected.POST("/osint", handlers.CreateOsintScan)
 		protected.POST("/osint/detect", handlers.DetectOsintTarget)
+		protected.GET("/osint/sources", handlers.OsintSources)
 		protected.GET("/osint", handlers.ListOsintScans)
 		protected.GET("/osint/:id", handlers.GetOsintScan)
 		protected.POST("/osint/:id/stop", handlers.StopOsintScan)
@@ -316,6 +317,11 @@ func NewRouter(
 		protected.POST("/osint/extract-doc-meta", handlers.ExtractDocMeta)
 		protected.POST("/osint/email-permute", handlers.EmailPermute)
 		protected.POST("/osint/reverse-image", handlers.ReverseImage)
+		protected.POST("/osint/techstack", handlers.OsintTechStack)
+		protected.POST("/osint/techstack/batch", handlers.OsintTechStackBatch)
+		protected.GET("/osint/techstack/sessions", handlers.ListTechStackSessions)
+		protected.GET("/osint/techstack/sessions/:id", handlers.GetTechStackSession)
+		protected.DELETE("/osint/techstack/sessions/:id", handlers.DeleteTechStackSession)
 		protected.POST("/osint/promote-ioc", handlers.PromoteOsintIOC)
 
 		// OSINT scope policy — admin-defined rules deciding whether a scan may run
@@ -343,6 +349,8 @@ func NewRouter(
 		// Active/intrusive → create/stop/delete are admin-gated in the handlers.
 		protected.GET("/vulnscan/preview-assets", handlers.PreviewVulnAssets)
 		protected.POST("/vulnscan", handlers.CreateVulnScan)
+		protected.POST("/vulnscan/nuclei", handlers.RunAdHocNuclei)
+		protected.POST("/vulnscan/nuclei/preview", handlers.PreviewAdHocNuclei)
 		protected.GET("/vulnscan", handlers.ListVulnScans)
 		protected.GET("/vulnscan/:id", handlers.GetVulnScan)
 		protected.GET("/vulnscan/:id/findings", handlers.GetVulnFindings)
@@ -494,6 +502,8 @@ func NewRouter(
 		// System — health check and usage statistics
 		sysHandler := handlers.NewSystemHandler(db, rdb, store, hub)
 		protected.GET("/system/health", sysHandler.GetHealth)
+		protected.GET("/system/updaters", handlers.ListUpdaters)
+		protected.POST("/system/updaters/:name/run", handlers.RunUpdater)
 		protected.GET("/system/token-stats", sysHandler.GetTokenStats)
 		protected.GET("/system/proxy", sysHandler.GetProxyStatus)
 		protected.PATCH("/system/proxy", sysHandler.SetProxy)

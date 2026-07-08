@@ -406,7 +406,7 @@ func (e *Engine) runSubfinder(ctx context.Context, scan *models.VulnScan, assets
 
 	cctx, cancel := context.WithTimeout(ctx, e.toolTimeout())
 	defer cancel()
-	cmd := exec.CommandContext(cctx, bin, "-dL", listFile, "-silent", "-all")
+	cmd := e.commandFor(tool, cctx, bin, "-dL", listFile, "-silent", "-all")
 	cmd.Env = proxyEnv(proxyURL)
 
 	found := map[string]bool{}
@@ -453,7 +453,7 @@ func (e *Engine) runNaabu(ctx context.Context, scan *models.VulnScan, assets []s
 	if proxyURL != "" {
 		args = append(args, "-proxy", proxyURL)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	var out []string
@@ -502,7 +502,7 @@ func (e *Engine) runDNSx(ctx context.Context, scan *models.VulnScan, assets []st
 
 	cctx, cancel := context.WithTimeout(ctx, e.toolTimeout())
 	defer cancel()
-	cmd := exec.CommandContext(cctx, bin, "-l", listFile, "-silent", "-wd", "-r", "1.1.1.1,8.8.8.8")
+	cmd := e.commandFor(tool, cctx, bin, "-l", listFile, "-silent", "-wd", "-r", "1.1.1.1,8.8.8.8")
 	var live []string
 	streamLines(cmd, func(line string) {
 		if h := strings.TrimSpace(line); h != "" {
@@ -550,7 +550,7 @@ func (e *Engine) runCDNCheck(ctx context.Context, scan *models.VulnScan, assets 
 	cctx, cancel := context.WithTimeout(ctx, e.toolTimeout())
 	defer cancel()
 	// Default cdncheck output is the inputs that ARE behind a CDN/WAF/cloud edge.
-	cmd := exec.CommandContext(cctx, bin, "-l", listFile, "-silent")
+	cmd := e.commandFor(tool, cctx, bin, "-l", listFile, "-silent")
 	cdn := map[string]bool{}
 	streamLines(cmd, func(line string) {
 		f := strings.Fields(strings.TrimSpace(line))
@@ -599,7 +599,7 @@ func (e *Engine) runKatana(ctx context.Context, scan *models.VulnScan, liveURLs 
 	if proxyURL != "" {
 		args = append(args, "-proxy", proxyURL)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	const maxURLs = 3000
@@ -703,7 +703,7 @@ func (e *Engine) runHTTPx(ctx context.Context, scan *models.VulnScan, tool *mode
 	if proxyURL != "" {
 		args = append(args, "-proxy", proxyURL)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	var live []string
@@ -967,7 +967,7 @@ func (e *Engine) runNuclei(ctx context.Context, scan *models.VulnScan, tool *mod
 	if tdir := e.nucleiTemplatesDir(); tdir != "" {
 		args = append(args, "-templates", tdir)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	// Micro-batch the streamed findings: keep the live log line per match (for

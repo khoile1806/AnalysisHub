@@ -7,7 +7,7 @@ import {
   History, ChevronDown, ChevronUp, MemoryStick, Network, Save,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { systemApi, type ComponentStatus, type ProviderTokenStat, type RecentSession, type ServerResources, type AgentResource } from '@/api/system'
+import { systemApi, type ComponentStatus, type ProviderTokenStat, type RecentSession, type ServerResources, type AgentResource, type UpdaterStatus } from '@/api/system'
 import { safeDistanceToNow, safeFormat } from '@/lib/utils'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -489,6 +489,86 @@ class TabErrorBoundary extends Component<
 // Health Check tab
 // ──────────────────────────────────────────────────────────────────────────────
 
+function fmtUpdateEvery(sec: number): string {
+  const h = sec / 3600
+  if (h >= 24) return `${Math.round(h / 24)}d`
+  if (h >= 1) return `${Math.round(h)}h`
+  return `${Math.round(sec / 60)}m`
+}
+
+function UpdaterRow({ u, onRun, pending }: { u: UpdaterStatus; onRun: () => void; pending: boolean }) {
+  const busy = u.running || pending
+  return (
+    <tr className="hover:bg-gray-800/30">
+      <td className="px-3 py-2">
+        <div className="text-gray-200">{u.description}</div>
+        <div className="text-[11px] text-gray-600 font-mono">{u.name} · {u.category}</div>
+        {!u.last_success && u.last_error && (
+          <div className="text-[11px] text-red-400/80 truncate max-w-[320px]" title={u.last_error}>{u.last_error}</div>
+        )}
+      </td>
+      <td className="px-3 py-2 text-center">
+        {u.running ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400 inline" />
+          : u.runs === 0 ? <span className="text-gray-600 text-[11px]">idle</span>
+          : u.last_success ? <span className="text-emerald-400 text-[11px]">✓ ok</span>
+          : <span className="text-red-400 text-[11px]">✕ failed</span>}
+      </td>
+      <td className="px-3 py-2 text-[11px] text-gray-400">
+        {u.last_run
+          ? <>{safeDistanceToNow(u.last_run, { addSuffix: true })}{u.last_duration_ms > 0 && <span className="text-gray-600"> · {u.last_duration_ms}ms</span>}</>
+          : '—'}
+      </td>
+      <td className="px-3 py-2 text-[11px] text-gray-500">{fmtUpdateEvery(u.interval_seconds)}</td>
+      <td className="px-3 py-2 text-right">
+        <button onClick={onRun} disabled={busy}
+          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-40">
+          <RefreshCw className={`h-3 w-3 ${busy ? 'animate-spin' : ''}`} /> Update now
+        </button>
+      </td>
+    </tr>
+  )
+}
+
+function AutoUpdateSection() {
+  const qc = useQueryClient()
+  const { data: updaters = [] } = useQuery({
+    queryKey: ['system-updaters'],
+    queryFn: systemApi.getUpdaters,
+    refetchInterval: 5000,
+  })
+  const run = useMutation({
+    mutationFn: (name: string) => systemApi.runUpdater(name),
+    onSuccess: () => {
+      toast.success('Refresh triggered')
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['system-updaters'] }), 1500)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to trigger update'),
+  })
+  if (updaters.length === 0) {
+    return <p className="text-xs text-gray-600">No auto-updaters registered.</p>
+  }
+  return (
+    <div className="rounded-xl border border-gray-800 overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-900/60 text-gray-500 text-[11px] uppercase tracking-wider">
+          <tr>
+            <th className="text-left px-3 py-2">Component</th>
+            <th className="text-center px-3 py-2">Status</th>
+            <th className="text-left px-3 py-2">Last run</th>
+            <th className="text-left px-3 py-2">Every</th>
+            <th className="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-800/60">
+          {updaters.map((u) => (
+            <UpdaterRow key={u.name} u={u} pending={run.isPending && run.variables === u.name} onRun={() => run.mutate(u.name)} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function HealthTab() {
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['system-health'],
@@ -636,6 +716,12 @@ function HealthTab() {
           <div>
             <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3">Egress Proxy</h3>
             <EgressProxySection />
+          </div>
+
+          {/* Auto-update status for tools & vulnerability databases */}
+          <div>
+            <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3">Auto-Update — Tools &amp; Vuln Databases</h3>
+            <AutoUpdateSection />
           </div>
 
           {/* Agent resource telemetry */}

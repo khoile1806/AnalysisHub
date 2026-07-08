@@ -40,46 +40,89 @@ var (
 	lastCISASync   time.Time
 )
 
+// WarmCISACatalog primes the CISA KEV catalog in the background at startup so
+// the first CVE search doesn't pay the multi-MB synchronous download on its
+// critical path.
+func WarmCISACatalog() {
+	go updateCISACatalog()
+}
+
+// updateCISACatalog refreshes the in-memory KEV catalog at most once per 24h. Used
+// by the cve-worker and lazily on CVE searches.
 func updateCISACatalog() {
-	cisaMu.Lock()
-	defer cisaMu.Unlock()
-
-	// Update every 24 hours
-	if time.Since(lastCISASync) < 24*time.Hour && cisaKEVCatalog != nil {
+	cisaMu.RLock()
+	fresh := time.Since(lastCISASync) < 24*time.Hour && cisaKEVCatalog != nil
+	cisaMu.RUnlock()
+	if fresh {
 		return
 	}
+	if err := UpdateCISAKEV(context.Background()); err != nil {
+		log.Printf("[cve-worker] CISA KEV update failed: %v", err)
+	}
+}
 
-	log.Println("[cve-worker] updating CISA KEV catalog...")
-	req, err := http.NewRequest(http.MethodGet, "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", nil)
+// cisaKEVSources are the KEV catalog URLs, tried in order. The cisagov GitHub
+// mirror is primary: cisa.gov's Akamai WAF returns 403 to non-browser (datacenter)
+// clients, so the direct feed is unreliable from a server — it stays as a fallback.
+var cisaKEVSources = []string{
+	"https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json",
+	"https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+}
+
+// UpdateCISAKEV fetches the CISA Known Exploited Vulnerabilities catalog and swaps
+// it in unconditionally (no debounce). Exported for the unified updater registry
+// and its manual "update now" trigger.
+func UpdateCISAKEV(ctx context.Context) error {
+	var lastErr error
+	for _, src := range cisaKEVSources {
+		newMap, err := fetchCISAKEV(ctx, src)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		cisaMu.Lock()
+		cisaKEVCatalog = newMap
+		lastCISASync = time.Now()
+		cisaMu.Unlock()
+		log.Printf("[updater] CISA KEV catalog updated: %d entries (from %s)", len(newMap), src)
+		return nil
+	}
+	return fmt.Errorf("all KEV sources failed: %w", lastErr)
+}
+
+func fetchCISAKEV(ctx context.Context, url string) (map[string]bool, error) {
+	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(cctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Printf("[cve-worker] error building CISA KEV request: %v", err)
-		return
+		return nil, err
 	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; AnalysisHub/1.0; +https://analysishub.local)")
+	req.Header.Set("Accept", "application/json")
 	resp, err := cveHTTPClient.Do(req)
 	if err != nil {
-		log.Printf("[cve-worker] error fetching CISA KEV: %v", err)
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
-
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status %d", resp.StatusCode)
+	}
 	var catalog struct {
 		Vulnerabilities []struct {
 			CveID string `json:"cveID"`
 		} `json:"vulnerabilities"`
 	}
-
 	if err := json.NewDecoder(resp.Body).Decode(&catalog); err != nil {
-		log.Printf("[cve-worker] error decoding CISA KEV: %v", err)
-		return
+		return nil, err
 	}
-
-	newMap := make(map[string]bool)
+	newMap := make(map[string]bool, len(catalog.Vulnerabilities))
 	for _, v := range catalog.Vulnerabilities {
 		newMap[v.CveID] = true
 	}
-	cisaKEVCatalog = newMap
-	lastCISASync = time.Now()
-	log.Printf("[cve-worker] CISA KEV catalog updated: %d entries", len(newMap))
+	if len(newMap) == 0 {
+		return nil, fmt.Errorf("empty catalog")
+	}
+	return newMap, nil
 }
 
 func isCISAExploited(cveID string) bool {

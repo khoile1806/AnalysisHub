@@ -90,8 +90,11 @@ type VulnTool struct {
 	Status        VulnToolStatus `gorm:"default:'pending'"                              json:"status"`
 	FindingsCount int            `gorm:"default:0"                                      json:"findings_count"`
 	Error         string         `gorm:"type:text"                                      json:"error,omitempty"`
-	StartedAt     *time.Time     `                                                      json:"started_at"`
-	FinishedAt    *time.Time     `                                                      json:"finished_at"`
+	// Command is the exact CLI invocation the engine ran for this tool (proxy
+	// credentials redacted), so a saved scan can be reviewed/reproduced.
+	Command    string     `gorm:"type:text" json:"command,omitempty"`
+	StartedAt  *time.Time `json:"started_at"`
+	FinishedAt *time.Time `json:"finished_at"`
 }
 
 // VulnFinding is a single result emitted by a scanner. The nuclei fields

@@ -107,6 +107,7 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.OsintScopeRule{},
 		&models.OsintScopeSetting{},
 		&models.LogIngestJob{},
+		&models.TechStackSession{},
 	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}

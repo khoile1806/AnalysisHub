@@ -272,6 +272,27 @@ func describeReason(mode ScopeMode, scope string, anonymized, forcedByProxy bool
 	}
 }
 
+// LiftPassiveToActive upgrades a passive-only decision to full active scanning when
+// an operator explicitly authorises touching the target directly — accepting the
+// IP-exposure risk that forced passive-only on direct egress. It never lifts a
+// Block decision (the hard boundary) and is a no-op for any non-passive mode.
+func LiftPassiveToActive(d ScopeDecision, names []string) ScopeDecision {
+	if d.Mode != ModePassiveOnly {
+		return d
+	}
+	var allowed []string
+	for _, n := range names {
+		if allowCollector(ModeAll, n) {
+			allowed = append(allowed, n)
+		}
+	}
+	d.Mode = ModeAll
+	d.Allowed = allowed
+	d.Blocked = nil
+	d.Reason = "operator-authorised active scan on direct egress — " + d.Reason
+	return d
+}
+
 // ApplyOverride tightens a decision with an operator-supplied mode. The override
 // may only make the scan MORE restrictive; a looser or unknown override is
 // ignored. Returns the (possibly) adjusted decision.

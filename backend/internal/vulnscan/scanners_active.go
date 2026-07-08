@@ -138,7 +138,7 @@ func (e *Engine) runNmapVuln(ctx context.Context, scan *models.VulnScan, probeTa
 	} else {
 		args = append(args, "--top-ports", "200")
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	out, errTail, werr := runCapture(cmd, 16*1024*1024)
@@ -302,7 +302,7 @@ func (e *Engine) runFfuf(ctx context.Context, scan *models.VulnScan, liveURLs []
 		if proxyURL != "" {
 			args = append(args, "-x", proxyURL)
 		}
-		cmd := exec.CommandContext(cctx, bin, args...)
+		cmd := e.commandFor(tool, cctx, bin, args...)
 		cmd.Env = proxyEnv(proxyURL)
 		out, errTail, _ := runCapture(cmd, 16*1024*1024)
 		cancel()
@@ -431,7 +431,7 @@ func (e *Engine) runDalfox(ctx context.Context, scan *models.VulnScan, urls []st
 	if proxyURL != "" {
 		args = append(args, "--proxy", proxyURL)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	var batch []models.VulnFinding
@@ -557,7 +557,7 @@ func (e *Engine) wpscanOne(ctx context.Context, scan *models.VulnScan, tool *mod
 	if proxyURL != "" {
 		args = append(args, "--proxy", proxyURL)
 	}
-	cmd := exec.CommandContext(cctx, bin, args...)
+	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
 
 	out, _, _ := runCapture(cmd, 16*1024*1024)

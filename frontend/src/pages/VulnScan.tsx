@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 
 import {
-  vulnscanApi, type VulnScan, type VulnFinding, SEVERITY_ORDER, SEVERITY_COLOR,
+  vulnscanApi, type VulnScan, type VulnFinding, type AdHocNucleiRequest, SEVERITY_ORDER, SEVERITY_COLOR,
   priorityScore, priorityLabel,
 } from '@/api/vulnscan'
 import { useAuthStore } from '@/store/auth'
@@ -449,6 +449,53 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
   const [tags, setTags] = useState('')
   const [direct, setDirect] = useState(false)
   const [allowPrivate, setAllowPrivate] = useState(false)
+  // Ad-hoc nuclei mode: run nuclei on a single URL with chosen filters (no pipeline).
+  const [mode, setMode] = useState<'pipeline' | 'adhoc'>('pipeline')
+  const [url, setUrl] = useState('')
+  const [cveIds, setCveIds] = useState('')
+  // Ad-hoc advanced options (CLI-like customisation).
+  const [showAdv, setShowAdv] = useState(false)
+  const [excludeTags, setExcludeTags] = useState('')
+  const [includeTags, setIncludeTags] = useState('')
+  const [excludeIds, setExcludeIds] = useState('')
+  const [templates, setTemplates] = useState('')
+  const [authors, setAuthors] = useState('')
+  const [protocols, setProtocols] = useState('')
+  const [headers, setHeaders] = useState('')
+  const [rateLimit, setRateLimit] = useState('')
+  const [concurrency, setConcurrency] = useState('')
+  const [timeoutS, setTimeoutS] = useState('')
+  const [retries, setRetries] = useState('')
+  const [newTemplates, setNewTemplates] = useState(false)
+  const [dast, setDast] = useState(false)
+  const [extraArgs, setExtraArgs] = useState('')
+
+  const splitList = (s: string, sep: RegExp = /[\s,]+/) => s.split(sep).map((t) => t.trim()).filter(Boolean)
+  const numOrUndef = (s: string) => (s.trim() === '' ? undefined : Number(s))
+
+  const buildAdHocReq = (): AdHocNucleiRequest => ({
+    name: name.trim() || undefined,
+    url: url.trim(),
+    severities: Array.from(sev).join(','),
+    tags: tags.trim() || undefined,
+    exclude_tags: excludeTags.trim() || undefined,
+    include_tags: includeTags.trim() || undefined,
+    cve_ids: splitList(cveIds),
+    exclude_ids: splitList(excludeIds),
+    templates: splitList(templates),
+    authors: authors.trim() || undefined,
+    protocols: protocols.trim() || undefined,
+    headers: headers.split('\n').map((h) => h.trim()).filter(Boolean),
+    rate_limit: numOrUndef(rateLimit),
+    concurrency: numOrUndef(concurrency),
+    timeout: numOrUndef(timeoutS),
+    retries: numOrUndef(retries),
+    new_templates: newTemplates || undefined,
+    dast: dast || undefined,
+    extra_args: splitList(extraArgs, /\s+/),
+    proxy_choice: direct ? 'direct' : 'tor',
+    allow_private: allowPrivate,
+  })
 
   const create = useMutation({
     mutationFn: () =>
@@ -465,6 +512,31 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
     onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
   })
 
+  const adhoc = useMutation({
+    mutationFn: () => vulnscanApi.createAdHocNuclei(buildAdHocReq()),
+    onSuccess: (s) => { toast.success('Ad-hoc nuclei started'); setOpen(false); setUrl(''); setCveIds(''); setName(''); onCreated(s.id) },
+    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
+  })
+
+  // Live command preview (debounced) so the operator sees the exact nuclei invocation.
+  const [previewReq, setPreviewReq] = useState('')
+  useEffect(() => {
+    if (mode !== 'adhoc' || !url.trim()) { setPreviewReq(''); return }
+    const h = setTimeout(() => setPreviewReq(JSON.stringify(buildAdHocReq())), 400)
+    return () => clearTimeout(h)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, url, name, sev, tags, excludeTags, includeTags, cveIds, excludeIds, templates, authors, protocols, headers, rateLimit, concurrency, timeoutS, retries, newTemplates, dast, extraArgs, direct, allowPrivate])
+  const preview = useQuery({
+    queryKey: ['nuclei-preview', previewReq],
+    queryFn: () => vulnscanApi.previewNuclei(JSON.parse(previewReq)),
+    enabled: previewReq.length > 0,
+    retry: false,
+  })
+
+  const busy = create.isPending || adhoc.isPending
+  const canStart = mode === 'pipeline' ? targets.trim().length > 0 : url.trim().length > 0
+  const start = () => (mode === 'pipeline' ? create.mutate() : adhoc.mutate())
+
   if (!open) {
     return (
       <button className="btn-primary w-full justify-center" onClick={() => setOpen(true)}>
@@ -474,13 +546,88 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
   }
   return (
     <div className="card space-y-2.5 p-3">
+      {/* Mode: full pipeline vs. a single-URL nuclei run with custom filters. */}
+      <div className="flex rounded-md border border-slate-700 overflow-hidden text-xs">
+        <button type="button" onClick={() => setMode('pipeline')}
+          className={`flex-1 px-3 py-1.5 ${mode === 'pipeline' ? 'bg-emerald-900/40 text-emerald-300' : 'text-gray-400 hover:text-gray-200'}`}>
+          Full pipeline
+        </button>
+        <button type="button" onClick={() => setMode('adhoc')}
+          className={`flex-1 px-3 py-1.5 border-l border-slate-700 ${mode === 'adhoc' ? 'bg-emerald-900/40 text-emerald-300' : 'text-gray-400 hover:text-gray-200'}`}>
+          Ad-hoc nuclei
+        </button>
+      </div>
+
       <input className="input w-full text-sm" placeholder="Scan name (optional)" value={name} onChange={(e) => setName(e.target.value)} />
-      <textarea
-        className="input w-full text-sm font-mono h-24"
-        placeholder="Targets — one per line (domain / IP). e.g.&#10;example.com&#10;203.0.113.5"
-        value={targets}
-        onChange={(e) => setTargets(e.target.value)}
-      />
+
+      {mode === 'pipeline' ? (
+        <>
+          <textarea
+            className="input w-full text-sm font-mono h-24"
+            placeholder="Targets — one per line (domain / IP). e.g.&#10;example.com&#10;203.0.113.5"
+            value={targets}
+            onChange={(e) => setTargets(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] text-gray-500">Profile</label>
+            <select className="input text-xs flex-1" value={profile} onChange={(e) => setProfile(e.target.value as any)}>
+              <option value="quick">Quick (cve · exposure · misconfig)</option>
+              <option value="full">Full — all templates + ports + wpscan (no crawl)</option>
+              <option value="cve-only">CVE only</option>
+              <option value="deep">Deep — Full + katana/gau crawl + XSS + DAST fuzzing</option>
+              <option value="aggressive">Aggressive — Deep + nmap NSE + intrusive templates</option>
+            </select>
+          </div>
+        </>
+      ) : (
+        <>
+          <input className="input w-full text-sm font-mono" placeholder="Single URL — https://target/path" value={url} onChange={(e) => setUrl(e.target.value)} />
+          <input className="input w-full text-sm font-mono" placeholder="CVE / template ids (optional, CSV) — e.g. CVE-2021-44228" value={cveIds} onChange={(e) => setCveIds(e.target.value)} />
+
+          <button type="button" onClick={() => setShowAdv((v) => !v)} className="text-[11px] text-gray-400 hover:text-gray-200 inline-flex items-center gap-1">
+            {showAdv ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} Advanced options (CLI-like)
+          </button>
+          {showAdv && (
+            <div className="space-y-2 border border-slate-800 rounded-md p-2 bg-gray-900/30">
+              <div className="grid grid-cols-2 gap-2">
+                <input className="input text-xs" placeholder="templates -t (CSV, e.g. http/cves/2021)" value={templates} onChange={(e) => setTemplates(e.target.value)} />
+                <input className="input text-xs" placeholder="exclude ids -eid (CSV)" value={excludeIds} onChange={(e) => setExcludeIds(e.target.value)} />
+                <input className="input text-xs" placeholder="include tags -itags (CSV)" value={includeTags} onChange={(e) => setIncludeTags(e.target.value)} />
+                <input className="input text-xs" placeholder="exclude tags -etags (CSV)" value={excludeTags} onChange={(e) => setExcludeTags(e.target.value)} />
+                <input className="input text-xs" placeholder="authors -author (CSV)" value={authors} onChange={(e) => setAuthors(e.target.value)} />
+                <input className="input text-xs" placeholder="protocols -type (http,dns,ssl,tcp)" value={protocols} onChange={(e) => setProtocols(e.target.value)} />
+              </div>
+              <textarea className="input text-xs font-mono h-14" placeholder="headers -H (one per line — Key: value)" value={headers} onChange={(e) => setHeaders(e.target.value)} />
+              <div className="grid grid-cols-4 gap-2">
+                <input className="input text-xs" type="number" placeholder="rate" value={rateLimit} onChange={(e) => setRateLimit(e.target.value)} />
+                <input className="input text-xs" type="number" placeholder="conc" value={concurrency} onChange={(e) => setConcurrency(e.target.value)} />
+                <input className="input text-xs" type="number" placeholder="timeout" value={timeoutS} onChange={(e) => setTimeoutS(e.target.value)} />
+                <input className="input text-xs" type="number" placeholder="retries" value={retries} onChange={(e) => setRetries(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-4 text-[11px] text-gray-400">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={newTemplates} onChange={(e) => setNewTemplates(e.target.checked)} /> new templates only (-nt)</label>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={dast} onChange={(e) => setDast(e.target.checked)} /> DAST fuzzing (-dast)</label>
+              </div>
+              <input className="input text-xs font-mono" placeholder="extra flags (guarded) — e.g. -vv -stats" value={extraArgs} onChange={(e) => setExtraArgs(e.target.value)} />
+              <p className="text-[9px] text-gray-600">Blocked in extra flags: target override (-u/-l), file output (-o/exports), code/headless, template loading (-t/-w), proxy/OOB override, self-update.</p>
+            </div>
+          )}
+
+          {url.trim() && (
+            <div className="rounded-md border border-slate-800 bg-black/40 p-2">
+              <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mb-1"><Terminal className="h-3 w-3" /> Command preview</div>
+              {preview.isError
+                ? <p className="text-[11px] text-red-400 font-mono break-all">{(preview.error as any)?.response?.data?.error ?? 'invalid options'}</p>
+                : <p className="text-[11px] text-emerald-300/90 font-mono break-all whitespace-pre-wrap">{preview.data?.command ?? '…'}</p>}
+            </div>
+          )}
+
+          <p className="text-[11px] text-gray-600">
+            Runs nuclei directly on this URL (no subfinder/httpx/crawl). CVE/template ids verify just those.
+          </p>
+        </>
+      )}
+
       <div className="flex flex-wrap gap-1">
         {ALL_SEV.map((s) => (
           <button
@@ -492,17 +639,7 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-2">
-        <label className="text-[11px] text-gray-500">Profile</label>
-        <select className="input text-xs flex-1" value={profile} onChange={(e) => setProfile(e.target.value as any)}>
-          <option value="quick">Quick (cve · exposure · misconfig)</option>
-          <option value="full">Full — all templates + ports + wpscan (no crawl)</option>
-          <option value="cve-only">CVE only</option>
-          <option value="deep">Deep — Full + katana/gau crawl + XSS + DAST fuzzing</option>
-          <option value="aggressive">Aggressive — Deep + nmap NSE + intrusive templates</option>
-        </select>
-      </div>
-      <input className="input w-full text-sm" placeholder="Extra nuclei tags (optional, CSV)" value={tags} onChange={(e) => setTags(e.target.value)} />
+      <input className="input w-full text-sm" placeholder={mode === 'adhoc' ? 'nuclei tags (optional, CSV) — e.g. tech,cve,misconfig' : 'Extra nuclei tags (optional, CSV)'} value={tags} onChange={(e) => setTags(e.target.value)} />
       <label className="flex items-center gap-2 text-[11px] text-gray-400">
         <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} />
         Egress direct (no Tor) — faster but reveals this host's IP
@@ -512,8 +649,8 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
         Allow private/LAN targets (localhost, 10./192.168.) — authorized internal scans; use with Direct
       </label>
       <div className="flex gap-2">
-        <button className="btn-primary flex-1 justify-center" disabled={create.isPending || !targets.trim()} onClick={() => create.mutate()}>
-          {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Start
+        <button className="btn-primary flex-1 justify-center" disabled={busy || !canStart} onClick={start}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Start
         </button>
         <button className="btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
       </div>
@@ -637,6 +774,29 @@ function ScanDetail({ scanId, isAdmin, onDeleted }: { scanId: string; isAdmin: b
               </span>
             )
           })}
+        </div>
+      )}
+
+      {/* Exact command(s) the engine ran — reviewable/reproducible per tool. */}
+      {scan?.tool_runs && scan.tool_runs.some((t) => t.command) && (
+        <div className="card p-0 overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 text-xs text-gray-400">
+            <Code2 className="h-3.5 w-3.5 text-emerald-400" /> Command{scan.tool_runs.filter((t) => t.command).length > 1 ? 's' : ''} used
+          </div>
+          <div className="divide-y divide-slate-800/60">
+            {scan.tool_runs.filter((t) => t.command).map((t) => (
+              <div key={t.id} className="px-3 py-2">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[11px] text-gray-500 font-medium">{t.name}</span>
+                  <button className="inline-flex items-center gap-1 text-[10px] text-gray-500 hover:text-emerald-400"
+                    onClick={() => { navigator.clipboard?.writeText(t.command || ''); toast.success('Command copied') }}>
+                    <Copy className="h-3 w-3" /> copy
+                  </button>
+                </div>
+                <pre className="text-[11px] text-emerald-300/90 font-mono whitespace-pre-wrap break-all bg-black/40 rounded p-2 border border-slate-800/60">{t.command}</pre>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

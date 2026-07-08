@@ -4,13 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
-  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert, ShieldCheck,
+  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert, ShieldCheck, Layers, KeyRound,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
 import { CanaryPanel } from './CanaryTokens'
 import { OobPanel } from './Oob'
 import { VulnScanPanel } from './VulnScan'
 import { ScopePolicyPanel } from './OsintScopePolicy'
+import { OsintSourcesPanel } from './OsintSources'
+import { TechStackPanel } from './TechStack'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
@@ -105,6 +107,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
   const [detected, setDetected] = useState<DetectResult | null>(null)
   const [detectError, setDetectError] = useState('')
   const [scopeOverride, setScopeOverride] = useState<'' | ScopeMode>('')
+  const [authorizedActive, setAuthorizedActive] = useState(false)
 
   // Cases to optionally file the investigation under (only open ones offered).
   const { data: cases = [] } = useQuery({
@@ -114,7 +117,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
   })
 
   const reset = () => {
-    setTarget(''); setName(''); setAutoPivot(false); setDepth(2); setCaseId(''); setDetected(null); setDetectError(''); setScopeOverride('')
+    setTarget(''); setName(''); setAutoPivot(false); setDepth(2); setCaseId(''); setDetected(null); setDetectError(''); setScopeOverride(''); setAuthorizedActive(false)
   }
 
   const mutation = useMutation({
@@ -163,6 +166,7 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
       max_depth: autoPivot ? depth : undefined,
       case_id: caseId || undefined,
       scope_override: scopeOverride || undefined,
+      authorized_active: authorizedActive || undefined,
     })
   }
 
@@ -287,6 +291,14 @@ function NewScanModal({ open, onClose }: { open: boolean; onClose: () => void })
                             >{opt.label}</button>
                           ))}
                         </div>
+                      )}
+                      {policy.mode === 'passive_only' && (
+                        <label className="mt-2 flex items-start gap-2 text-[10px] cursor-pointer select-none border-t border-amber-900/30 pt-1.5">
+                          <input type="checkbox" checked={authorizedActive} onChange={e => setAuthorizedActive(e.target.checked)} className="mt-0.5 accent-amber-500" />
+                          <span className="text-amber-300/90">
+                            <span className="font-semibold">Authorize active scan</span> — run active collectors anyway (accepts direct-egress IP exposure). Admin-only; requires authorization for this target.
+                          </span>
+                        </label>
                       )}
                     </div>
                   )}
@@ -710,6 +722,11 @@ function ToolsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 // ---- Page -------------------------------------------------------------------
 
+// TabDivider is a thin vertical rule separating logical tab groups.
+function TabDivider() {
+  return <div aria-hidden className="w-px self-center h-5 bg-slate-700/60 mx-1.5 shrink-0" />
+}
+
 function TabButton({ active, onClick, icon: Icon, label }: {
   active: boolean; onClick: () => void; icon: React.ElementType; label: string
 }) {
@@ -727,7 +744,9 @@ function TabButton({ active, onClick, icon: Icon, label }: {
   )
 }
 
-type OsintTab = 'investigations' | 'watchlist' | 'canary' | 'oob' | 'vulnscan' | 'scope'
+// Ordered to match the grouped tab bar: recon & assessment → monitoring →
+// deception & callbacks → governance.
+type OsintTab = 'investigations' | 'techstack' | 'vulnscan' | 'watchlist' | 'oob' | 'canary' | 'scope' | 'sources'
 
 export default function OsintPage() {
   const qc = useQueryClient()
@@ -781,18 +800,32 @@ export default function OsintPage() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-800">
+      {/* Tabs — grouped by workflow: recon & assessment → monitoring →
+          deception & callbacks → governance (see TabDivider separators). */}
+      <div className="flex gap-1 border-b border-slate-800 overflow-x-auto">
+        {/* Recon & assessment */}
         <TabButton active={tab === 'investigations'} onClick={() => setTab('investigations')} icon={Fingerprint} label="Investigations" />
-        <TabButton active={tab === 'watchlist'} onClick={() => setTab('watchlist')} icon={RadioTower} label="Watchlist" />
-        <TabButton active={tab === 'canary'} onClick={() => setTab('canary')} icon={Link2} label="Canary Tokens" />
-        <TabButton active={tab === 'oob'} onClick={() => setTab('oob')} icon={Radio} label="Catch (OOB)" />
+        <TabButton active={tab === 'techstack'} onClick={() => setTab('techstack')} icon={Layers} label="Tech Stack" />
         <TabButton active={tab === 'vulnscan'} onClick={() => setTab('vulnscan')} icon={ShieldAlert} label="Vuln Scan" />
+        <TabDivider />
+        {/* Monitoring */}
+        <TabButton active={tab === 'watchlist'} onClick={() => setTab('watchlist')} icon={RadioTower} label="Watchlist" />
+        <TabDivider />
+        {/* Deception & callbacks */}
+        <TabButton active={tab === 'oob'} onClick={() => setTab('oob')} icon={Radio} label="Catch (OOB)" />
+        <TabButton active={tab === 'canary'} onClick={() => setTab('canary')} icon={Link2} label="Canary Tokens" />
+        <TabDivider />
+        {/* Governance */}
         <TabButton active={tab === 'scope'} onClick={() => setTab('scope')} icon={ShieldCheck} label="Scope Policy" />
+        <TabButton active={tab === 'sources'} onClick={() => setTab('sources')} icon={KeyRound} label="Sources" />
       </div>
 
-      {tab === 'scope' ? (
+      {tab === 'sources' ? (
+        <OsintSourcesPanel />
+      ) : tab === 'scope' ? (
         <ScopePolicyPanel />
+      ) : tab === 'techstack' ? (
+        <TechStackPanel />
       ) : tab === 'vulnscan' ? (
         <VulnScanPanel />
       ) : tab === 'oob' ? (

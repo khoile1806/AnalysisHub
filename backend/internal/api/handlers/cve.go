@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -35,6 +36,11 @@ var cveHTTPClient = &http.Client{Timeout: 30 * time.Second}
 // cveIDRegex matches well-formed CVE identifiers per MITRE format.
 var cveIDRegex = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
 
+// errNVDRateLimited flags an upstream throttle (403/429/503) so the handler can
+// return a clear 429 with actionable advice instead of a generic 502 — NVD's
+// unauthenticated limit is only 5 req / 30s, so this is the common failure.
+var errNVDRateLimited = errors.New("NVD rate limited")
+
 // cveSearchSF collapses concurrent identical searches into a single upstream
 // NVD round-trip (thundering-herd protection), so many users searching the same
 // keyword while the cache is cold/refreshing only cost ONE slow NVD call.
@@ -64,6 +70,12 @@ const (
 	cveDefaultLimit  = 200
 	cveMaxLimit      = 500
 	cvePoCsPerPage   = 10
+
+	// cveSearchBudget caps the total upstream time a single cold search may spend
+	// on NVD + EPSS. With the cheap-count-probe strategy a typical search is a
+	// sub-second probe + one data page, so this rarely bites; it exists so a genuine
+	// NVD slow spell fails cleanly instead of hanging on the client's 30s timeout.
+	cveSearchBudget = 20 * time.Second
 )
 
 // CveSummary is the trimmed CVE shape returned in search results.
@@ -180,12 +192,15 @@ func SearchCVE(c *gin.Context) {
 	// runSearch performs the actual upstream NVD work. It takes a plain context
 	// (no gin.Context) so it is safe to run in a detached background refresh.
 	// Returns the summaries and whether at least one query succeeded.
-	runSearch := func(rctx context.Context) ([]CveSummary, bool) {
+	runSearch := func(rctx context.Context) ([]CveSummary, bool, bool) {
+		sctx, cancel := context.WithTimeout(rctx, cveSearchBudget)
+		defer cancel()
 		var (
-			all      []CveSummary
-			failures int
-			mu       sync.Mutex
-			wg       sync.WaitGroup
+			all         []CveSummary
+			failures    int
+			rateLimited bool
+			mu          sync.Mutex
+			wg          sync.WaitGroup
 		)
 		for _, singleQ := range queries {
 			keyword := singleQ
@@ -195,11 +210,14 @@ func SearchCVE(c *gin.Context) {
 			wg.Add(1)
 			go func(kw string) {
 				defer wg.Done()
-				res, err := searchNVD(rctx, f, kw, limit)
+				res, err := searchNVD(sctx, f, kw, limit)
 				mu.Lock()
 				if err != nil {
 					log.Printf("[cve] nvd search error for %q: %v", kw, err)
 					failures++
+					if errors.Is(err, errNVDRateLimited) {
+						rateLimited = true
+					}
 				} else {
 					all = append(all, res...)
 				}
@@ -208,27 +226,27 @@ func SearchCVE(c *gin.Context) {
 		}
 		wg.Wait()
 		if failures == len(queries) {
-			return nil, false // every query failed → don't cache, surface error
+			return nil, false, rateLimited // every query failed → don't cache, surface error
 		}
 		s := mergeCveSummaries(all)
-		enrichWithRiskData(rctx, s) // EPSS + KEV folded in before caching
-		return s, true
+		enrichWithRiskData(sctx, s) // EPSS + KEV folded in before caching
+		return s, true, false
 	}
 
 	// loadFresh fetches + caches, collapsing concurrent identical calls via
 	// singleflight so a stampede of the same query hits NVD only once.
-	loadFresh := func(rctx context.Context) ([]CveSummary, bool) {
+	loadFresh := func(rctx context.Context) ([]CveSummary, bool, bool) {
 		v, _, _ := cveSearchSF.Do(cacheKey, func() (interface{}, error) {
-			s, ok := runSearch(rctx)
+			s, ok, rl := runSearch(rctx)
 			if ok && rdb != nil {
 				if b, e := json.Marshal(cveCacheEntry{Data: s, CachedAt: time.Now().UTC()}); e == nil {
 					rdb.Set(context.Background(), cacheKey, b, cveSearchTTL)
 				}
 			}
-			return cveResult{sums: s, ok: ok}, nil
+			return cveResult{sums: s, ok: ok, rateLimited: rl}, nil
 		})
 		r, _ := v.(cveResult)
-		return r.sums, r.ok
+		return r.sums, r.ok, r.rateLimited
 	}
 
 	// ── Stale-while-revalidate: serve cache instantly, refresh if stale ──
@@ -248,8 +266,12 @@ func SearchCVE(c *gin.Context) {
 	}
 
 	// ── Cache miss: fetch synchronously ──
-	summaries, ok := loadFresh(ctx)
+	summaries, ok, rateLimited := loadFresh(ctx)
 	if !ok {
+		if rateLimited {
+			c.JSON(http.StatusTooManyRequests, gin.H{"success": false, "error": "NVD is rate-limiting requests right now. Configure an NVD API key (NVD_API_KEY) or retry in a few seconds."})
+			return
+		}
 		c.JSON(http.StatusBadGateway, gin.H{"success": false, "error": "failed to fetch from NVD"})
 		return
 	}
@@ -259,8 +281,9 @@ func SearchCVE(c *gin.Context) {
 
 // cveResult is the singleflight payload for a search (results + success flag).
 type cveResult struct {
-	sums []CveSummary
-	ok   bool
+	sums        []CveSummary
+	ok          bool
+	rateLimited bool
 }
 
 // GetCVE handles GET /api/v1/cve/:id
@@ -426,53 +449,182 @@ func searchNVD(ctx context.Context, f cveFetch, keyword string, limit int) ([]Cv
 		paramVal = strings.TrimSpace(keyword)
 	}
 
-	// NVD API 2.0 sorts results by published date ASCENDING and has no sort
-	// parameter, so the newest CVEs are always on the LAST page. We fetch only
-	// `limit` rows per request (NOT 2000): a 2000-row page for a broad keyword
-	// like "windows" is several MB and routinely blows the 30s HTTP timeout —
-	// that was the source of the 502 "failed to fetch from NVD".
-	params := url.Values{}
-	params.Set(paramKey, paramVal)
-	params.Set("resultsPerPage", strconv.Itoa(limit))
+	// Exact CVE/CWE lookups return a small, bounded result set — a single direct
+	// call is enough, no need to probe for the total first.
+	if paramKey != "keywordSearch" {
+		params := url.Values{}
+		params.Set(paramKey, paramVal)
+		params.Set("resultsPerPage", strconv.Itoa(limit))
+		raw, status, err := fetchNVD(ctx, f, params)
+		if err != nil {
+			return nil, err
+		}
+		if status != http.StatusOK {
+			return nil, nvdStatusError(status)
+		}
+		return parseNVDSummaries(raw)
+	}
 
-	raw, status, err := fetchNVD(ctx, f, params)
+	// NVD API 2.0 orders matches by published date ASCENDING with no sort param,
+	// so the NEWEST CVEs live on the LAST page. Reading totalResults used to cost a
+	// full `limit`-row page (100 hydrated CVE records ≈ 400KB); for a broad keyword
+	// like "windows 11" that probe alone took ~15s and, together with the last-page
+	// fetch, blew the request budget → 502. Instead probe the count with a 1-row
+	// page (a few hundred bytes, sub-second) and then fetch ONLY the newest page.
+	countParams := url.Values{}
+	countParams.Set(paramKey, paramVal)
+	countParams.Set("resultsPerPage", "1")
+	raw, status, err := fetchNVD(ctx, f, countParams)
 	if err != nil {
 		return nil, err
 	}
 	if status != http.StatusOK {
-		return nil, fmt.Errorf("NVD search status %d", status)
+		return nil, nvdStatusError(status)
 	}
-
 	var meta struct {
 		TotalResults int `json:"totalResults"`
 	}
 	if err := json.Unmarshal(raw, &meta); err != nil {
 		return nil, err
 	}
-
-	// First page (startIndex 0) holds the OLDEST results. If the whole match set
-	// fits in one page, that page already contains everything — return it.
-	if meta.TotalResults <= limit {
-		return parseNVDSummaries(raw)
+	if meta.TotalResults == 0 {
+		return nil, nil
 	}
 
-	// Otherwise fetch the LAST page to surface the NEWEST `limit` CVEs. Both
-	// requests are small (`limit` rows), so even ultra-broad keywords stay fast.
+	// Fetch a single page ending at the newest result. When the whole match set
+	// fits in one page startIdx is 0 and this returns everything.
 	startIdx := meta.TotalResults - limit
 	if startIdx < 0 {
 		startIdx = 0
 	}
-	params.Set("startIndex", strconv.Itoa(startIdx))
-
-	raw, status, err = fetchNVD(ctx, f, params)
+	dataParams := url.Values{}
+	dataParams.Set(paramKey, paramVal)
+	dataParams.Set("resultsPerPage", strconv.Itoa(limit))
+	dataParams.Set("startIndex", strconv.Itoa(startIdx))
+	raw, status, err = fetchNVD(ctx, f, dataParams)
 	if err != nil {
 		return nil, err
 	}
 	if status != http.StatusOK {
-		return nil, fmt.Errorf("NVD search status %d", status)
+		return nil, nvdStatusError(status)
+	}
+	return parseNVDSummaries(raw)
+}
+
+// nvdStatusError maps a non-200 NVD status to an error, tagging throttle
+// responses (403/429/503) with errNVDRateLimited so the handler can surface a
+// distinct, actionable message.
+func nvdStatusError(status int) error {
+	switch status {
+	case http.StatusForbidden, http.StatusTooManyRequests, http.StatusServiceUnavailable:
+		return fmt.Errorf("NVD search status %d: %w", status, errNVDRateLimited)
+	default:
+		return fmt.Errorf("NVD search status %d", status)
+	}
+}
+
+// searchNVDByCPE finds CVEs whose applicability ranges include a specific
+// product version, using NVD's virtualMatchString. This is materially more
+// accurate than a keyword search ("nginx 1.18") because NVD resolves it against
+// each CVE's CPE version ranges — so 1.18.0 correctly matches a "< 1.20.1"
+// advisory. cpe23 is a full CPE 2.3 string with a concrete version component.
+func searchNVDByCPE(ctx context.Context, f cveFetch, cpe23 string, limit int) ([]CveSummary, error) {
+	params := url.Values{}
+	params.Set("virtualMatchString", cpe23)
+	params.Set("resultsPerPage", strconv.Itoa(limit))
+	raw, status, err := fetchNVD(ctx, f, params)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, nvdStatusError(status)
+	}
+	return parseNVDSummaries(raw)
+}
+
+// resolveProductCPE looks up a product name in NVD's CPE dictionary and returns a
+// "cpe:2.3:a:vendor:product" (no version) for the best application match. This lets
+// CVE matching stay CPE-accurate (version-range aware) even when the fingerprinter
+// didn't supply a CPE — far less noisy than a bare keyword search.
+func resolveProductCPE(ctx context.Context, f cveFetch, product string) (string, bool) {
+	product = strings.ToLower(strings.TrimSpace(product))
+	if product == "" {
+		return "", false
+	}
+	base := f.nvdURL
+	if base == "" {
+		base = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+	}
+	cpeBase := strings.Replace(base, "/cves/2.0", "/cpes/2.0", 1)
+
+	params := url.Values{}
+	params.Set("keywordSearch", product)
+	params.Set("resultsPerPage", "50")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cpeBase+"?"+params.Encode(), nil)
+	if err != nil {
+		return "", false
+	}
+	req.Header.Set("Accept", "application/json")
+	if f.apiKey != "" {
+		req.Header.Set("apiKey", f.apiKey)
+	}
+	resp, err := cveHTTPClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return "", false
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", false
 	}
 
-	return parseNVDSummaries(raw)
+	var r struct {
+		Products []struct {
+			CPE struct {
+				CpeName    string `json:"cpeName"`
+				Deprecated bool   `json:"deprecated"`
+			} `json:"cpe"`
+		} `json:"products"`
+	}
+	if json.Unmarshal(body, &r) != nil {
+		return "", false
+	}
+
+	// Prefer a non-deprecated application ("a") CPE whose product component equals
+	// the search term; fall back to the first product that contains it.
+	var exact, contains string
+	target := strings.ReplaceAll(product, " ", "_")
+	for _, p := range r.Products {
+		if p.CPE.Deprecated {
+			continue
+		}
+		parts := strings.Split(p.CPE.CpeName, ":")
+		if len(parts) < 5 || parts[2] != "a" {
+			continue
+		}
+		vendor, prod := parts[3], parts[4]
+		if vendor == "" || vendor == "*" || prod == "" || prod == "*" {
+			continue
+		}
+		vp := fmt.Sprintf("cpe:2.3:a:%s:%s", vendor, prod)
+		if prod == target || prod == product {
+			exact = vp
+			break
+		}
+		if contains == "" && strings.Contains(prod, target) {
+			contains = vp
+		}
+	}
+	if exact != "" {
+		return exact, true
+	}
+	if contains != "" {
+		return contains, true
+	}
+	return "", false
 }
 
 // mergeCveSummaries deduplicates by CVE-ID across multiple parallel NVD
@@ -856,14 +1008,22 @@ func enrichWithRiskData(ctx context.Context, summaries []CveSummary) {
 	if len(summaries) == 0 {
 		return
 	}
-	// 24h-debounced; first call fetches synchronously, subsequent are no-ops.
-	updateCISACatalog()
+	// CISA KEV refresh and the EPSS batch hit different upstreams; run them
+	// concurrently so a cold search pays one round-trip, not two. updateCISACatalog
+	// is 24h-debounced (and warmed at startup), so this is usually a no-op.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		updateCISACatalog()
+	}()
 
 	ids := make([]string, 0, len(summaries))
 	for _, s := range summaries {
 		ids = append(ids, s.ID)
 	}
 	epssMap := fetchEPSSBatch(ctx, ids)
+	wg.Wait()
 
 	for i := range summaries {
 		if e, ok := epssMap[summaries[i].ID]; ok {

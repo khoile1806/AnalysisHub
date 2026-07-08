@@ -107,6 +107,23 @@ export interface CreateOsintScanData {
   // scope_override optionally tightens the admin scope policy for this one scan
   // (all | passive_only | block). May only make the scan MORE restrictive.
   scope_override?: ScopeMode
+  // authorized_active lifts a passive-only decision to active scanning when the
+  // operator confirms authorization (accepts direct-egress IP exposure). Admin-only.
+  authorized_active?: boolean
+}
+
+export interface OsintSource {
+  name: string
+  category: string
+  env_var: string
+  configured: boolean
+  note: string
+}
+
+export interface OsintSourcesResult {
+  sources: OsintSource[]
+  configured_count: number
+  total: number
 }
 
 export type ScopeMode = 'all' | 'passive_only' | 'block'
@@ -396,6 +413,158 @@ interface ApiResponse<T> {
   data: T
 }
 
+// ---- Tech-stack lookup (standalone URL → tech stack → CVE tool) --------------
+
+export type TechSeverity = 'critical' | 'high' | 'medium' | 'low' | 'none'
+
+export interface TechCVE {
+  id: string
+  description: string
+  cvss_score: number
+  severity: TechSeverity
+  epss_score: number
+  epss_percentile: number
+  is_kev: boolean
+  published_date: string
+  poc_count?: number
+  top_poc_url?: string
+  top_poc_name?: string
+  has_exploit?: boolean
+}
+
+export interface DetectedTech {
+  name: string
+  version?: string
+  categories?: string[]
+  cpe?: string
+  source: string
+  confidence: 'confirmed' | 'detected'
+  outdated?: boolean
+  eol?: boolean
+  latest_known?: string
+  cve_count: number
+  top_cves?: TechCVE[]
+}
+
+export interface RiskAction {
+  severity: TechSeverity
+  title: string
+  detail?: string
+  cve?: string
+  url?: string
+}
+
+export interface TechRisk {
+  score: number
+  level: 'critical' | 'high' | 'medium' | 'low'
+  actions?: RiskAction[]
+}
+
+export interface CookieInfo {
+  name: string
+  secure: boolean
+  http_only: boolean
+  same_site?: string
+  issues?: string[]
+}
+
+export interface CORSInfo {
+  allow_origin?: string
+  allow_credentials: boolean
+  reflected: boolean
+  severity: 'high' | 'medium' | 'low' | 'info'
+  note: string
+}
+
+export interface SecurityHeaderInfo {
+  name: string
+  present: boolean
+  value?: string
+}
+
+export interface EdgeService {
+  name: string
+  type: string // CDN | WAF | CDN/WAF
+  evidence: string
+}
+
+export interface ExposedPath {
+  path: string
+  url: string
+  status: number
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info'
+  title: string
+  evidence?: string
+}
+
+export interface TechTLSInfo {
+  version?: string
+  issuer?: string
+  subject?: string
+  sans?: string[]
+  not_after?: string
+  expires_in_days: number
+}
+
+export interface TechStackResult {
+  input_url: string
+  final_url: string
+  host: string
+  status_code: number
+  title?: string
+  server?: string
+  powered_by?: string
+  active: boolean
+  deep: boolean
+  risk?: TechRisk
+  technologies: DetectedTech[]
+  edge_services?: EdgeService[]
+  security_headers: SecurityHeaderInfo[]
+  missing_security_headers?: string[]
+  cookies?: CookieInfo[]
+  cors?: CORSInfo
+  tls?: TechTLSInfo
+  exposures?: ExposedPath[]
+  probed_paths?: string[]
+  cve_summary: { total: number; critical: number; high: number; kev: number; exploit: number }
+  scope_note?: string
+}
+
+export interface TechStackSession {
+  id: string
+  url: string
+  host: string
+  title: string
+  active: boolean
+  deep: boolean
+  risk_score: number
+  risk_level: 'critical' | 'high' | 'medium' | 'low' | ''
+  tech_count: number
+  cve_total: number
+  critical: number
+  kev: number
+  exploit: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TechBatchRow {
+  url: string
+  host?: string
+  error?: string
+  status_code?: number
+  title?: string
+  tech_count: number
+  cve_total: number
+  critical: number
+  kev: number
+  exploit: number
+  exposures: number
+  risk_score: number
+  risk_level?: 'critical' | 'high' | 'medium' | 'low'
+  edge?: string[]
+}
+
 export const osintApi = {
   list: async (): Promise<OsintScan[]> => {
     const { data } = await apiClient.get<ApiResponse<OsintScan[]>>('/osint')
@@ -428,6 +597,35 @@ export const osintApi = {
   detect: async (target: string): Promise<DetectResult> => {
     const { data } = await apiClient.post<ApiResponse<DetectResult>>('/osint/detect', { target })
     return data.data
+  },
+
+  sources: async (): Promise<OsintSourcesResult> => {
+    const { data } = await apiClient.get<ApiResponse<OsintSourcesResult>>('/osint/sources')
+    return data.data
+  },
+
+  techstack: async (url: string, active = true, deep = false): Promise<TechStackResult> => {
+    const { data } = await apiClient.post<ApiResponse<TechStackResult>>('/osint/techstack', { url, active, deep })
+    return data.data
+  },
+
+  techstackBatch: async (urls: string[], active = true, deep = false): Promise<TechBatchRow[]> => {
+    const { data } = await apiClient.post<ApiResponse<{ results: TechBatchRow[] }>>('/osint/techstack/batch', { urls, active, deep })
+    return data.data.results
+  },
+
+  techstackSessions: async (): Promise<TechStackSession[]> => {
+    const { data } = await apiClient.get<ApiResponse<TechStackSession[]>>('/osint/techstack/sessions')
+    return data.data
+  },
+
+  techstackSession: async (id: string): Promise<TechStackResult> => {
+    const { data } = await apiClient.get<ApiResponse<TechStackResult>>(`/osint/techstack/sessions/${id}`)
+    return data.data
+  },
+
+  deleteTechstackSession: async (id: string): Promise<void> => {
+    await apiClient.delete(`/osint/techstack/sessions/${id}`)
   },
 
   // promoteIOC adds an OSINT-discovered indicator to the IOC store so the ELK

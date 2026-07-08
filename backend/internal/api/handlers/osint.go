@@ -42,6 +42,10 @@ type createOsintScanRequest struct {
 	// (all | passive_only | block). It may only make the scan MORE restrictive
 	// than the policy allows, and only when the policy permits overrides.
 	ScopeOverride string `json:"scope_override"`
+	// AuthorizedActive lifts a passive-only decision to full active scanning when
+	// the operator confirms authorization to touch the target directly (accepting
+	// IP exposure). Admin-only; never overrides a Block decision.
+	AuthorizedActive bool `json:"authorized_active"`
 }
 
 // DetectOsintTarget classifies a target string without creating a scan, so the
@@ -180,6 +184,13 @@ func CreateOsintScan(c *gin.Context) {
 		if _, settings := osint.LoadScopePolicy(db); settings.Enforce && settings.AllowOverride {
 			decision = osint.ApplyOverride(decision, req.ScopeOverride, osint.CollectorNamesFor(ttype))
 		}
+	}
+	// Admin operators may authorise active scanning of a passive-only target
+	// (direct-egress IP exposure accepted). Never lifts a Block decision.
+	if req.AuthorizedActive && decision.Mode == osint.ModePassiveOnly && middleware.GetRole(c) == "admin" {
+		decision = osint.LiftPassiveToActive(decision, osint.CollectorNamesFor(ttype))
+		writeAudit(c, db, &userID, nil, "osint.authorize_active", scan.ID.String(),
+			fmt.Sprintf("target=%s type=%s — operator authorised active scan on direct egress", target, ttype))
 	}
 	db.Model(&scan).Updates(map[string]interface{}{
 		"scope_mode": string(decision.Mode),

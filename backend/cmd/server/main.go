@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -31,6 +32,7 @@ import (
 	"github.com/analysishub/backend/internal/osint"
 	"github.com/analysishub/backend/internal/storage"
 	"github.com/analysishub/backend/internal/threatintel"
+	"github.com/analysishub/backend/internal/updater"
 	"github.com/analysishub/backend/internal/vulnscan"
 	"github.com/analysishub/backend/internal/ws"
 )
@@ -59,14 +61,26 @@ func main() {
 	// 1. Load .env (ignore error if file is absent — env vars may be set
 	//    directly, e.g. in Docker / Kubernetes).
 	// ------------------------------------------------------------------ //
+	// godotenv.Load() only reads ./.env (the process CWD). When the server is run
+	// locally from backend/ the .env actually lives one level up at the repo root,
+	// so try both — Docker already injects the vars via env_file, making this a
+	// harmless no-op there.
 	if err := godotenv.Load(); err != nil {
-		slog.Info(".env file not found, using environment variables")
+		if err := godotenv.Load("../.env", "../../.env"); err != nil {
+			slog.Info(".env file not found, using environment variables")
+		}
 	}
 
 	// ------------------------------------------------------------------ //
 	// 2. Load application configuration
 	// ------------------------------------------------------------------ //
 	cfg := config.Load()
+
+	// Log presence (never the value) of the outbound API keys so a missing/unloaded
+	// NVD key — the usual cause of slow, throttled CVE searches — is obvious at boot.
+	slog.Info("outbound API keys",
+		"nvd_api_key", maskPresence(cfg.NVDAPIKey),
+		"github_token", maskPresence(cfg.GitHubToken))
 
 	// Initialize Sigma Engine
 	sigma.Init("tools/sigma-rules")
@@ -302,10 +316,20 @@ func main() {
 	// Vulnerability scanner engine (httpx + nuclei over OSINT-discovered assets).
 	// Marks any scan left mid-run by a crash as failed on construction.
 	vulnEngine := vulnscan.NewEngine(db, cfg, handlers.NewCVEEnricher())
-	// Keep nuclei templates current (daily, best-effort, through the egress proxy)
-	// so newly-published CVEs are detected without an image rebuild.
-	vulnscan.StartAutoUpdate(cfg)
 	slog.Info("vuln-scan engine initialised")
+
+	// Warm the CISA KEV catalog now so the first CVE search doesn't block on the
+	// multi-MB download.
+	handlers.WarmCISACatalog()
+
+	// ------------------------------------------------------------------ //
+	// 7.6 Unified auto-updaters — one registry that keeps every tool/data
+	//     source current on a schedule, with per-component status + manual
+	//     refresh (surfaced under System → Auto-Update). news/CVE/KEV keep
+	//     their own workers; this covers the tool data that used to be static.
+	// ------------------------------------------------------------------ //
+	registerUpdaters(cfg)
+	updater.Default.Start(context.Background())
 
 	// ------------------------------------------------------------------ //
 	// 8. Build Gin router
@@ -370,6 +394,67 @@ func main() {
 	rdb.Close()
 
 	slog.Info("shutdown complete")
+}
+
+// registerUpdaters wires every self-updating tool/data source into the unified
+// updater registry. CLI-tool updaters register only when the binary is present.
+func registerUpdaters(cfg *config.Config) {
+	const retirePath = "data/retirejs.json"
+	// Prefer a previously-downloaded (fresher) retire.js DB over the embedded one.
+	osint.InitRetireFromDisk(retirePath)
+
+	m := updater.Default
+
+	if cfg.VulnScanAutoUpdate {
+		if _, err := exec.LookPath("nuclei"); err == nil {
+			m.Register(updater.Spec{
+				Name: "nuclei-templates", Description: "Nuclei vulnerability templates",
+				Category: "cli-tool", Interval: 24 * time.Hour, Timeout: 20 * time.Minute,
+				RunOnStart: true,
+				Fn:         func(ctx context.Context) error { return vulnscan.UpdateNucleiTemplates(ctx, cfg) },
+			})
+		}
+	}
+
+	m.Register(updater.Spec{
+		Name: "retirejs-db", Description: "retire.js JavaScript vulnerability database",
+		Category: "embedded-db", Interval: 24 * time.Hour, Timeout: 2 * time.Minute,
+		RunOnStart: true,
+		Fn:         func(ctx context.Context) error { return osint.UpdateRetireJS(ctx, retirePath) },
+	})
+
+	m.Register(updater.Spec{
+		Name: "cisa-kev", Description: "CISA Known Exploited Vulnerabilities catalog",
+		Category: "catalog", Interval: 24 * time.Hour, Timeout: 30 * time.Second,
+		RunOnStart: false, // WarmCISACatalog already primes it at boot
+		Fn:         handlers.UpdateCISAKEV,
+	})
+
+	if _, err := exec.LookPath("cdncheck"); err == nil {
+		m.Register(updater.Spec{
+			Name: "cdncheck-data", Description: "cdncheck CDN/WAF provider IP ranges",
+			Category: "cli-tool", Interval: 7 * 24 * time.Hour, Timeout: 5 * time.Minute,
+			RunOnStart: true,
+			Fn:         func(ctx context.Context) error { return vulnscan.UpdateCdncheck(ctx, cfg) },
+		})
+	}
+	if _, err := exec.LookPath("wpscan"); err == nil {
+		m.Register(updater.Spec{
+			Name: "wpscan-db", Description: "WPScan WordPress vulnerability database",
+			Category: "cli-tool", Interval: 7 * 24 * time.Hour, Timeout: 10 * time.Minute,
+			RunOnStart: false,
+			Fn:         func(ctx context.Context) error { return vulnscan.UpdateWpscan(ctx, cfg) },
+		})
+	}
+}
+
+// maskPresence reports whether a secret is configured without leaking its value,
+// for safe startup logging.
+func maskPresence(v string) string {
+	if strings.TrimSpace(v) == "" {
+		return "absent"
+	}
+	return "configured"
 }
 
 // seedAdmin creates the admin user if one with cfg.AdminEmail does not already
