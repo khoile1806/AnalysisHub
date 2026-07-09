@@ -8,6 +8,7 @@ import {
 import { osintApi, type TechStackResult, type DetectedTech, type TechCVE, type ExposedPath, type TechRisk, type TechBatchRow, type TechStackSession } from '@/api/osint'
 import { vulnscanApi } from '@/api/vulnscan'
 import { SeverityBadge } from '@/components/StatusBadge'
+import { CveDetailDialog } from '@/components/CveDetailDialog'
 import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
 
 // TechStackPanel is the standalone "paste a URL → tech stack → possible CVEs"
@@ -21,6 +22,8 @@ export function TechStackPanel() {
   const [deep, setDeep] = useState(false)
   // When set, the results area shows a saved session instead of the live lookup.
   const [sessionId, setSessionId] = useState<string | null>(null)
+  // CVE whose full detail dialog is open (same view as Vulnerability Search).
+  const [cveDetailId, setCveDetailId] = useState<string | null>(null)
 
   const sessions = useQuery({ queryKey: ['techstack-sessions'], queryFn: osintApi.techstackSessions })
   const sessionView = useQuery({
@@ -181,9 +184,11 @@ export function TechStackPanel() {
               <button className="text-emerald-400 hover:text-emerald-300" onClick={() => { setSessionId(null); if (url.trim()) lookup.mutate(url.trim()) }}>Re-run now</button>
             </div>
           )}
-          <Result result={result} />
+          <Result result={result} onOpenCve={setCveDetailId} />
         </>
       )}
+
+      <CveDetailDialog id={cveDetailId} onClose={() => setCveDetailId(null)} />
     </div>
   )
 }
@@ -281,7 +286,7 @@ function BatchTable({ rows, onOpen }: { rows: TechBatchRow[]; onOpen: (u: string
   )
 }
 
-function Result({ result }: { result: TechStackResult }) {
+function Result({ result, onOpenCve }: { result: TechStackResult; onOpenCve: (id: string) => void }) {
   const versioned = result.technologies.filter((t) => t.version)
   const detected = result.technologies.filter((t) => !t.version)
 
@@ -351,7 +356,7 @@ function Result({ result }: { result: TechStackResult }) {
       {versioned.length > 0 && (
         <div className="space-y-3">
           <SectionLabel icon={ShieldAlert} text={`Technologies with known versions (${versioned.length})`} />
-          {versioned.map((t) => <TechCard key={t.name} tech={t} targetUrl={result.final_url} />)}
+          {versioned.map((t) => <TechCard key={t.name} tech={t} targetUrl={result.final_url} onOpenCve={onOpenCve} />)}
         </div>
       )}
 
@@ -462,7 +467,7 @@ function StatTiles({ summary, techCount, versioned }: {
   )
 }
 
-function TechCard({ tech, targetUrl }: { tech: DetectedTech; targetUrl: string }) {
+function TechCard({ tech, targetUrl, onOpenCve }: { tech: DetectedTech; targetUrl: string; onOpenCve: (id: string) => void }) {
   const cves = tech.top_cves ?? []
   return (
     <div className="card p-4">
@@ -499,7 +504,7 @@ function TechCard({ tech, targetUrl }: { tech: DetectedTech; targetUrl: string }
 
       {cves.length > 0 && (
         <div className="mt-3 border-t border-gray-800/60 divide-y divide-gray-800/40">
-          {cves.map((cve) => <CveRow key={cve.id} cve={cve} targetUrl={targetUrl} />)}
+          {cves.map((cve) => <CveRow key={cve.id} cve={cve} targetUrl={targetUrl} onOpenCve={onOpenCve} />)}
         </div>
       )}
     </div>
@@ -513,7 +518,13 @@ function CveScanButton({ cve, targetUrl }: { cve: TechCVE; targetUrl: string }) 
   const scan = useMutation({
     mutationFn: () => vulnscanApi.createAdHocNuclei({ url: targetUrl, cve_ids: [cve.id], proxy_choice: 'direct' }),
     onSuccess: () => toast.success(`Nuclei ${cve.id} scan started — open the Vuln Scan tab for results`),
-    onError: (e) => toast.error(getErrorMessage(e)),
+    onError: (e: any) => {
+      const msg = getErrorMessage(e)
+      // 422 = no nuclei template for this CVE (common for JS-library CVEs) — not a
+      // real error, so show it as an info toast rather than a red failure.
+      if (e?.response?.status === 422) toast(msg, { icon: 'ℹ️', duration: 6000 })
+      else toast.error(msg)
+    },
   })
   return (
     <button type="button" onClick={() => scan.mutate()} disabled={scan.isPending || scan.isSuccess}
@@ -525,15 +536,22 @@ function CveScanButton({ cve, targetUrl }: { cve: TechCVE; targetUrl: string }) 
   )
 }
 
-function CveRow({ cve, targetUrl }: { cve: TechCVE; targetUrl: string }) {
+function CveRow({ cve, targetUrl, onOpenCve }: { cve: TechCVE; targetUrl: string; onOpenCve: (id: string) => void }) {
   const epssPct = Math.round((cve.epss_percentile || 0) * 100)
   return (
     <div className="flex items-start gap-3 py-2">
       <div className="flex flex-col items-start gap-1 w-40 shrink-0">
-        <a href={`https://nvd.nist.gov/vuln/detail/${cve.id}`} target="_blank" rel="noopener noreferrer"
-          className="font-mono text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1">
-          {cve.id}<ExternalLink className="h-3 w-3" />
-        </a>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => onOpenCve(cve.id)}
+            className="font-mono text-xs text-emerald-400 hover:text-emerald-300 hover:underline"
+            title="View full CVE details">
+            {cve.id}
+          </button>
+          <a href={`https://nvd.nist.gov/vuln/detail/${cve.id}`} target="_blank" rel="noopener noreferrer"
+            className="text-gray-600 hover:text-emerald-400" title="Open on NVD">
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
         <div className="flex items-center gap-1.5">
           <SeverityBadge severity={cve.severity} score={cve.cvss_score} />
           {cve.is_kev && (

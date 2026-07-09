@@ -31,16 +31,16 @@ export function formatDuration(startedAt: string, finishedAt: string | null): st
 }
 
 export function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
+  // Check the API response body FIRST: an AxiosError is also an Error instance, so
+  // testing `instanceof Error` before this would return the generic
+  // "Request failed with status code 4xx" and hide the backend's real message.
   if (typeof error === 'object' && error !== null) {
     const axiosError = error as { response?: { data?: { message?: string; error?: string } }; message?: string }
-    return (
-      axiosError.response?.data?.message ??
-      axiosError.response?.data?.error ??
-      axiosError.message ??
-      'An unknown error occurred'
-    )
+    const apiMsg = axiosError.response?.data?.message ?? axiosError.response?.data?.error
+    if (apiMsg) return apiMsg
+    if (typeof axiosError.message === 'string' && axiosError.message) return axiosError.message
   }
+  if (error instanceof Error) return error.message
   return String(error)
 }
 // ──────────────────────────────────────────────────────────────────────────────

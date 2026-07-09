@@ -148,9 +148,10 @@ export const vulnscanApi = {
   // CVE/template ids, severities, tags) — no full pipeline.
   createAdHocNuclei: (body: AdHocNucleiRequest) =>
     apiClient.post('/vulnscan/nuclei', body).then((r) => r.data.data as VulnScan),
-  // previewNuclei returns the exact nuclei command a run would execute (validated).
+  // previewNuclei returns the exact nuclei command a run would execute (validated),
+  // plus any requested template/CVE ids that have no matching nuclei template.
   previewNuclei: (body: AdHocNucleiRequest) =>
-    apiClient.post('/vulnscan/nuclei/preview', body).then((r) => r.data.data as { command: string; args: string[] }),
+    apiClient.post('/vulnscan/nuclei/preview', body).then((r) => r.data.data as { command: string; args: string[]; missing_templates?: string[] }),
   updateFinding: (id: string, body: { status?: string; note?: string }) =>
     apiClient.patch(`/vuln-findings/${id}`, body).then((r) => r.data.data as VulnFinding),
   stop: (id: string) => apiClient.post(`/vulnscan/${id}/stop`).then((r) => r.data),

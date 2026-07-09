@@ -151,6 +151,17 @@ func RunAdHocNuclei(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
+	// Pre-check: if the run is filtered to specific template ids and NONE exist,
+	// nuclei would exit "no templates provided" → a confusing failed scan. Reject
+	// with a clear message instead (common for JavaScript-library CVEs).
+	if len(opts.TemplateIDs) > 0 {
+		if missing := engine.MissingTemplates(opts.TemplateIDs); len(missing) == len(opts.TemplateIDs) {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"success": false,
+				"error": "nuclei has no template for " + strings.Join(missing, ", ") +
+					" — nothing to scan. This is expected for client-side/JavaScript-library CVEs (nuclei only covers CVEs it can detect over the network)."})
+			return
+		}
+	}
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
@@ -212,7 +223,8 @@ func PreviewAdHocNuclei(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	args, err := engine.PreviewAdHocArgs(req.opts(), adHocProxyChoice(req.ProxyChoice))
+	opts := req.opts()
+	args, err := engine.PreviewAdHocArgs(opts, adHocProxyChoice(req.ProxyChoice))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
@@ -229,8 +241,9 @@ func PreviewAdHocNuclei(c *gin.Context) {
 		display = append(display, args[i])
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
-		"command": "nuclei " + shellJoin(display),
-		"args":    display,
+		"command":           "nuclei " + shellJoin(display),
+		"args":              display,
+		"missing_templates": engine.MissingTemplates(opts.TemplateIDs),
 	}})
 }
 

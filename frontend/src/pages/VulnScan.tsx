@@ -619,6 +619,12 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
               {preview.isError
                 ? <p className="text-[11px] text-red-400 font-mono break-all">{(preview.error as any)?.response?.data?.error ?? 'invalid options'}</p>
                 : <p className="text-[11px] text-emerald-300/90 font-mono break-all whitespace-pre-wrap">{preview.data?.command ?? '…'}</p>}
+              {preview.data?.missing_templates && preview.data.missing_templates.length > 0 && (
+                <p className="mt-1 text-[11px] text-amber-400 flex items-start gap-1">
+                  <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                  No nuclei template for: {preview.data.missing_templates.join(', ')} — these won't be scanned (common for client-side/JS-library CVEs).
+                </p>
+              )}
             </div>
           )}
 
