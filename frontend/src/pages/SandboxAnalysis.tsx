@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/auth'
 import { useUiStore } from '@/store/uiStore'
 import { logsearchApi } from '@/api/logsearch'
+import { getErrorMessage } from '@/lib/utils'
 
 interface DumpFile {
   name: string
@@ -43,7 +44,7 @@ export default function SandboxAnalysis() {
       toast.success(verb === 'start' ? 'Starting sandbox…' : 'Stopping sandbox…')
       queryClient.invalidateQueries({ queryKey: ['sandbox-status'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Action failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
   const sbxRunning = !!sbx?.sandbox?.running
 
@@ -162,7 +163,7 @@ export default function SandboxAnalysis() {
       toast.success('Memory dump uploaded successfully')
       queryClient.invalidateQueries({ queryKey: ['memory-dumps'] })
     } catch (err: any) {
-      toast.error(err.message || 'Upload failed')
+      toast.error(getErrorMessage(err))
     } finally {
       setIsUploading(false)
       setUploadProgress(0)

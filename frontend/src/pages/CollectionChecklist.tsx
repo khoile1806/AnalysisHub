@@ -11,6 +11,7 @@ import { checklistApi, ChecklistBatch } from '@/api/checklist'
 import { toolsApi, Tool } from '@/api/tools'
 import { jobsApi } from '@/api/jobs'
 import { casesApi, Case } from '@/api/cases'
+import { getErrorMessage } from '@/lib/utils'
 import {
   COMPLIANCE_SECTIONS, COMPLIANCE_FRAMEWORKS, type Framework,
 } from '@/data/complianceChecklist'
@@ -1136,7 +1137,7 @@ export default function CollectionChecklist() {
         for (const id of allItemIds) next[id] = 'failed'
         return next
       })
-      alert(err?.response?.data?.error ?? 'Failed to start checklist run')
+      alert(getErrorMessage(err))
     } finally {
       setRunning(false)
     }

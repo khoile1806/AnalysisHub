@@ -6,6 +6,7 @@ import {
   osintPolicyApi, type OsintScopeRule, type OsintScopeSettings, type OsintScopeRulePayload, type ScopeMode,
 } from '@/api/osint'
 import { useAuthStore } from '@/store/auth'
+import { getErrorMessage } from '@/lib/utils'
 
 // OSINT Scope Policy — admin console for the rules that decide, per situation,
 // whether an OSINT scan may run its active (target-touching) collectors. The
@@ -33,8 +34,7 @@ const ACTION_STYLE: Record<ScopeMode, string> = {
 }
 
 function errText(e: unknown): string {
-  const a = e as { response?: { data?: { error?: string } }; message?: string }
-  return a?.response?.data?.error || a?.message || 'Request failed'
+  return getErrorMessage(e)
 }
 
 export function ScopePolicyPanel() {

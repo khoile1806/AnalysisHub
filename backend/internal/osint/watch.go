@@ -20,11 +20,27 @@ const watchTick = 60 * time.Second
 func (e *Engine) startWatchScheduler() {
 	go func() {
 		// Small initial delay so startup recovery settles first.
-		time.Sleep(15 * time.Second)
+		select {
+		case <-time.After(15 * time.Second):
+		case <-e.baseCtx.Done():
+			return
+		}
 		t := time.NewTicker(watchTick)
 		defer t.Stop()
-		for range t.C {
-			e.runDueWatches()
+		for {
+			select {
+			case <-e.baseCtx.Done():
+				return
+			case <-t.C:
+			}
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("[osint] PANIC recovered in watch scheduler: %v", r)
+					}
+				}()
+				e.runDueWatches()
+			}()
 		}
 	}()
 	log.Printf("[osint] watch scheduler started (tick %s)", watchTick)

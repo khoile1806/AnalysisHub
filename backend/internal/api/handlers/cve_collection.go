@@ -290,16 +290,15 @@ func DeleteFromCVECollection(c *gin.Context) {
 // StartCVEUpdateWorker starts a background goroutine that periodically syncs latest CVEs.
 func StartCVEUpdateWorker(hub *ws.Hub) {
 	log.Println("[cve-worker] starting background CVE update worker...")
-	ticker := time.NewTicker(6 * time.Hour)
 	go func() {
 		// Run first sync immediately on startup
-		syncLatestCVEs(hub)
-		syncFromCIRCL(hub)
+		safeLoop("cve-worker", func() { syncLatestCVEs(hub) })
+		safeLoop("cve-worker", func() { syncFromCIRCL(hub) })
 
-		for range ticker.C {
+		runWorker("cve-worker", 6*time.Hour, func() {
 			syncLatestCVEs(hub)
 			syncFromCIRCL(hub)
-		}
+		})
 	}()
 }
 
@@ -358,16 +357,16 @@ func syncLatestCVEs(hub *ws.Hub) {
 		}
 	}
 
-	newCount := 0
+	// 3. Collect all new CVEs first (capped per batch) so risk data can be fetched
+	// in bulk rather than one HTTP round-trip per CVE.
+	const maxPerBatch = 50
+	var additions []CollectedCVE
+	var newIDs []string
 	for _, v := range nvdResp.Vulnerabilities {
 		item := v.CVE
 		if item.ID == "" || existingMap[item.ID] {
 			continue
 		}
-
-		// 3. Process new CVE
-		log.Printf("[cve-worker] adding new CVE: %s", item.ID)
-
 		summary := summaryFromCVE(item)
 		cveDetail := CollectedCVE{
 			ID:            summary.ID,
@@ -380,44 +379,64 @@ func syncLatestCVEs(hub *ws.Hub) {
 			Source:        "NVD",
 			IsKEV:         isCISAExploited(item.ID),
 		}
-
 		if cveDetail.IsKEV {
 			cveDetail.ExploitStatus = "Actively Exploited"
 			cveDetail.Tags = append(cveDetail.Tags, "CISA-KEV")
 		}
-
-		// Fetch EPSS Score
-		cveDetail.EPSSScore = fetchEPSSScore(item.ID)
-
-		// Fetch PoCs (with delay to avoid rate limit)
-		time.Sleep(3 * time.Second)
-		pocs, _, err := fetchGitHubPocs(context.Background(), nil, item.ID)
-		if err == nil {
-			cveDetail.PoCLinks = make([]string, 0, len(pocs))
-			for _, p := range pocs {
-				cveDetail.PoCLinks = append(cveDetail.PoCLinks, p.HTMLURL)
-			}
-		}
-
-		// Prepend and SAVE IMMEDIATELY so user sees progress
-		existing = append([]CollectedCVE{cveDetail}, existing...)
-		if err := writeCVEs(existing); err != nil {
-			log.Printf("[cve-worker] error writing collection: %v", err)
-		} else {
-			// Signal live subscribers
-			if hub != nil {
-				hub.PublishCVEUpdate()
-			}
-		}
-
-		newCount++
-		// Limit per batch
-		if newCount >= 50 {
+		additions = append(additions, cveDetail)
+		newIDs = append(newIDs, item.ID)
+		if len(additions) >= maxPerBatch {
 			break
 		}
 	}
 
-	log.Printf("[cve-worker] sync complete, added %d new CVEs", newCount)
+	if len(additions) == 0 {
+		log.Printf("[cve-worker] sync complete, no new CVEs")
+		return
+	}
+
+	// 4. Batch EPSS for every new CVE in one (chunked) call.
+	epss := fetchEPSSBatch(context.Background(), newIDs)
+
+	// 5. Enrich each addition. PoC lookups hit the GitHub search API, which is
+	// rate-limited, so we pace them modestly and stop calling GitHub for the rest
+	// of the batch once it rate-limits (403) — the CVEs are still recorded; PoCs
+	// can be fetched on demand from the detail view later.
+	pocRateLimited := false
+	for i := range additions {
+		id := additions[i].ID
+		if e, ok := epss[id]; ok {
+			additions[i].EPSSScore = e.Score
+		}
+		if pocRateLimited {
+			continue
+		}
+		if i > 0 {
+			time.Sleep(2 * time.Second) // pace GitHub search calls
+		}
+		pocs, status, err := fetchGitHubPocs(context.Background(), nil, id)
+		if status == http.StatusForbidden || status == http.StatusTooManyRequests {
+			log.Printf("[cve-worker] GitHub PoC search rate-limited (%d) — skipping PoC lookups for rest of batch", status)
+			pocRateLimited = true
+			continue
+		}
+		if err == nil {
+			additions[i].PoCLinks = make([]string, 0, len(pocs))
+			for _, p := range pocs {
+				additions[i].PoCLinks = append(additions[i].PoCLinks, p.HTMLURL)
+			}
+		}
+	}
+
+	// 6. Prepend the batch (newest first) and write the collection ONCE.
+	existing = append(additions, existing...)
+	if err := writeCVEs(existing); err != nil {
+		log.Printf("[cve-worker] error writing collection: %v", err)
+	} else if hub != nil {
+		hub.PublishCVEUpdate()
+	}
+
+	log.Printf("[cve-worker] sync complete, added %d new CVEs", len(additions))
 }
 
 func syncFromCIRCL(hub *ws.Hub) {
@@ -454,12 +473,12 @@ func syncFromCIRCL(hub *ws.Hub) {
 		existingMap[c.ID] = true
 	}
 
-	newCount := 0
+	var additions []CollectedCVE
+	var newIDs []string
 	for _, item := range circlCVEs {
 		if item.ID == "" || existingMap[item.ID] {
 			continue
 		}
-
 		cveDetail := CollectedCVE{
 			ID:            item.ID,
 			Description:   item.Summary,
@@ -469,33 +488,38 @@ func syncFromCIRCL(hub *ws.Hub) {
 			Tags:          []string{"auto-synced", "circl"},
 			Source:        "CIRCL",
 			IsKEV:         isCISAExploited(item.ID),
+			Severity:      normalizeSeverity("", item.CVSS),
 		}
-
 		if cveDetail.IsKEV {
 			cveDetail.ExploitStatus = "Actively Exploited"
 			cveDetail.Tags = append(cveDetail.Tags, "CISA-KEV")
 		}
-
-		cveDetail.EPSSScore = fetchEPSSScore(item.ID)
-
-		// Set severity based on score
-		cveDetail.Severity = normalizeSeverity("", cveDetail.CVSSScore)
-
-		existing = append([]CollectedCVE{cveDetail}, existing...)
-		newCount++
-
-		if newCount >= 20 { // Limit CIRCL batch
+		additions = append(additions, cveDetail)
+		newIDs = append(newIDs, item.ID)
+		if len(additions) >= 20 { // Limit CIRCL batch
 			break
 		}
 	}
 
-	if newCount > 0 {
-		writeCVEs(existing)
-		if hub != nil {
-			hub.PublishCVEUpdate()
+	if len(additions) == 0 {
+		log.Printf("[cve-worker] CIRCL sync complete, no new CVEs")
+		return
+	}
+
+	// Batch EPSS for all new CVEs in one (chunked) call.
+	epss := fetchEPSSBatch(context.Background(), newIDs)
+	for i := range additions {
+		if e, ok := epss[additions[i].ID]; ok {
+			additions[i].EPSSScore = e.Score
 		}
 	}
-	log.Printf("[cve-worker] CIRCL sync complete, added %d new CVEs", newCount)
+
+	existing = append(additions, existing...)
+	writeCVEs(existing)
+	if hub != nil {
+		hub.PublishCVEUpdate()
+	}
+	log.Printf("[cve-worker] CIRCL sync complete, added %d new CVEs", len(additions))
 }
 
 // StreamCVECollection pushes signals to the client over SSE whenever the collection changes.

@@ -952,14 +952,42 @@ type epssData struct {
 	Percentile float64
 }
 
-// fetchEPSSBatch queries FIRST.org EPSS API for multiple CVEs in one request.
-// The endpoint accepts a comma-separated list via ?cve=. CVEs without an EPSS
-// score (too new, withdrawn, etc.) are simply absent from the returned map —
-// callers should treat absence as "no data" (zero values), not failure.
+// epssChunkSize bounds how many CVE IDs go in one EPSS request. The FIRST.org
+// endpoint defaults to 100 results per page, so passing more than 100 IDs would
+// silently drop the overflow — chunking keeps every requested CVE covered.
+const epssChunkSize = 100
+
+// fetchEPSSBatch queries FIRST.org EPSS API for many CVEs, splitting the request
+// into <=100-ID chunks so no result is silently truncated by the API's page
+// limit. CVEs without an EPSS score (too new, withdrawn, etc.) are simply absent
+// from the returned map — callers should treat absence as "no data" (zero
+// values), not failure.
 //
-// On any network/parse error this returns nil so the caller can render
-// results without risk data rather than failing the whole request.
+// A failing chunk is skipped (best-effort) rather than failing the whole batch,
+// so partial risk data still renders.
 func fetchEPSSBatch(ctx context.Context, ids []string) map[string]epssData {
+	if len(ids) == 0 {
+		return nil
+	}
+	out := make(map[string]epssData, len(ids))
+	for start := 0; start < len(ids); start += epssChunkSize {
+		end := start + epssChunkSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		for k, v := range fetchEPSSChunk(ctx, ids[start:end]) {
+			out[k] = v
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// fetchEPSSChunk fetches EPSS metrics for up to epssChunkSize CVE IDs in one
+// request. Returns nil on any network/parse error.
+func fetchEPSSChunk(ctx context.Context, ids []string) map[string]epssData {
 	if len(ids) == 0 {
 		return nil
 	}

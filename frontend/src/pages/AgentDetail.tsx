@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Plus, Eye, Server, Network, Cpu, ClipboardList, Trash2, Eraser, Play, Square, Terminal as TerminalIcon, FolderTree, Briefcase, Shield, Database, HardDrive, GitBranch, ScrollText } from 'lucide-react'
@@ -229,7 +229,10 @@ function JobsTab({ agent }: { agent: Agent }) {
     onError: (err) => toast.error(getErrorMessage(err)),
   })
 
-  const sorted = [...jobs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  const sorted = useMemo(
+    () => [...jobs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [jobs],
+  )
 
   return (
     <div className="space-y-4">
@@ -548,7 +551,7 @@ function ProcessesTab({ agent }: { agent: Agent }) {
   const { data: procs, connected } = useRealtimeSSE<ProcessInfo>(agent.id, 'processes', isOnline)
   const [traceTarget, setTraceTarget] = useState<{ target: string; pid: number } | null>(null)
 
-  const sorted = procs ? [...procs].sort((a, b) => b.mem_kb - a.mem_kb) : null
+  const sorted = useMemo(() => (procs ? [...procs].sort((a, b) => b.mem_kb - a.mem_kb) : null), [procs])
 
   if (!isOnline) {
     return (

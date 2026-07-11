@@ -8,6 +8,7 @@ package threatintel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -15,12 +16,20 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type cacheEntry struct {
 	result    EnrichedIOC
 	expiresAt time.Time
 }
+
+// tiCacheTTL is how long an enrichment result is cached (in-memory + Redis).
+const tiCacheTTL = 24 * time.Hour
+
+// tiCachePrefix namespaces threat-intel entries in the shared Redis instance.
+const tiCachePrefix = "ti:enrich:"
 
 // IOCSet holds extracted indicators of compromise from raw content.
 type IOCSet struct {
@@ -67,9 +76,15 @@ type EnrichClient struct {
 	shodan     string
 	hc         *http.Client
 
+	rdb *redis.Client // optional shared Redis cache (nil → in-memory only)
+
 	cacheMu sync.RWMutex
 	cache   map[string]cacheEntry
 }
+
+// UseRedis attaches a Redis client so enrichment results survive restarts and are
+// shared across instances. Safe to pass nil (keeps in-memory-only behaviour).
+func (c *EnrichClient) UseRedis(rdb *redis.Client) { c.rdb = rdb }
 
 // New creates an EnrichClient. Pass empty strings for keys you don't have;
 // the corresponding source will be silently skipped during enrichment.
@@ -169,6 +184,20 @@ func (c *EnrichClient) enrichOne(ctx context.Context, ioc, itype string) Enriche
 	}
 	c.cacheMu.RUnlock()
 
+	// Shared Redis cache: survives restarts and is shared across instances. A hit
+	// also warms the in-memory cache so subsequent lookups skip Redis entirely.
+	if c.rdb != nil {
+		if raw, err := c.rdb.Get(ctx, tiCachePrefix+cacheKey).Bytes(); err == nil {
+			var cached EnrichedIOC
+			if json.Unmarshal(raw, &cached) == nil {
+				c.cacheMu.Lock()
+				c.cache[cacheKey] = cacheEntry{result: cached, expiresAt: time.Now().Add(tiCacheTTL)}
+				c.cacheMu.Unlock()
+				return cached
+			}
+		}
+	}
+
 	result := EnrichedIOC{IOC: ioc, Type: itype}
 
 	var mu sync.Mutex
@@ -240,9 +269,17 @@ func (c *EnrichClient) enrichOne(ctx context.Context, ioc, itype string) Enriche
 	c.cacheMu.Lock()
 	c.cache[cacheKey] = cacheEntry{
 		result:    result,
-		expiresAt: time.Now().Add(24 * time.Hour),
+		expiresAt: time.Now().Add(tiCacheTTL),
 	}
 	c.cacheMu.Unlock()
+
+	// Persist to Redis (best-effort, detached from ctx so a cancelled request
+	// still populates the shared cache).
+	if c.rdb != nil {
+		if raw, err := json.Marshal(result); err == nil {
+			c.rdb.Set(context.Background(), tiCachePrefix+cacheKey, raw, tiCacheTTL)
+		}
+	}
 
 	return result
 }

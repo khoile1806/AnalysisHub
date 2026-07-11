@@ -79,11 +79,17 @@ type aggregatorSeam struct {
 	key  string
 }
 
-func (a *aggregatorSeam) Name() string     { return a.name }
-func (a *aggregatorSeam) Configured() bool { return strings.TrimSpace(a.key) != "" }
+func (a *aggregatorSeam) Name() string { return a.name }
+
+// Configured always reports false: the vendor API call is an unimplemented seam,
+// so even with a key present this provider does nothing. Reporting false keeps it
+// OUT of the active-provider set, so the scan log never claims a non-functional
+// aggregator was "queried". Flip this to `strings.TrimSpace(a.key) != ""` once the
+// Search body below is wired to the licensed vendor API.
+func (a *aggregatorSeam) Configured() bool { return false }
 func (a *aggregatorSeam) Search(ctx context.Context, selectors []string) ([]DarkWebHit, error) {
-	// Seam: wire the licensed vendor API here. Until then a configured key is a
-	// no-op rather than an error, so it never breaks a scan.
+	// Seam: wire the licensed vendor API here. Until then it is inert (and hidden
+	// via Configured()==false), so it never breaks or pads a scan.
 	return nil, nil
 }
 

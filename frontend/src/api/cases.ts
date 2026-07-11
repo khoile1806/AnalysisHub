@@ -79,6 +79,15 @@ export const casesApi = {
     return `${base}/api/v1/cases/${id}/report?token=${encodeURIComponent(token)}${fmt}`
   },
 
+  // exportUrl builds an authenticated link to the machine-readable case export
+  // (json | csv | stix) for ingestion by other tools. Token in the query for the
+  // same new-tab/download reason as reportUrl.
+  exportUrl: (id: string, format: 'json' | 'csv' | 'stix'): string => {
+    const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+    const token = useAuthStore.getState().token ?? ''
+    return `${base}/api/v1/cases/${id}/export?format=${format}&token=${encodeURIComponent(token)}`
+  },
+
   // generateAiSummary asks an AI provider to draft the incident executive
   // narrative and saves it on the case (appears in the report).
   generateAiSummary: async (id: string, providerId: string): Promise<{ summary: string }> => {

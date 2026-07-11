@@ -11,7 +11,7 @@ import {
   priorityScore, priorityLabel,
 } from '@/api/vulnscan'
 import { useAuthStore } from '@/store/auth'
-import { safeDistanceToNow } from '@/lib/utils'
+import { safeDistanceToNow, getErrorMessage } from '@/lib/utils'
 
 const ALL_SEV = ['critical', 'high', 'medium', 'low', 'info']
 
@@ -191,7 +191,7 @@ function FindingCard({ f, scanId }: { f: VulnFinding; scanId: string }) {
   const update = useMutation({
     mutationFn: (body: { status?: string; note?: string }) => vulnscanApi.updateFinding(f.id, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['vulnscan-findings', scanId] }),
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Update failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const muted = status === 'false_positive' || status === 'fixed'
@@ -341,7 +341,7 @@ export function AssetScanModal({ osintScanId, targetLabel, onClose, onStarted }:
       allow_private: allowPrivate,
     }),
     onSuccess: (s) => { toast.success('Scan started'); onStarted(s.id) },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const Group = ({ title, vals }: { title: string; vals: string[] }) => (
@@ -509,13 +509,13 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
         allow_private: allowPrivate,
       }),
     onSuccess: (s) => { toast.success('Scan started'); setOpen(false); setTargets(''); setName(''); onCreated(s.id) },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const adhoc = useMutation({
     mutationFn: () => vulnscanApi.createAdHocNuclei(buildAdHocReq()),
     onSuccess: (s) => { toast.success('Ad-hoc nuclei started'); setOpen(false); setUrl(''); setCveIds(''); setName(''); onCreated(s.id) },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to start scan'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   // Live command preview (debounced) so the operator sees the exact nuclei invocation.
@@ -617,7 +617,7 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
             <div className="rounded-md border border-slate-800 bg-black/40 p-2">
               <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mb-1"><Terminal className="h-3 w-3" /> Command preview</div>
               {preview.isError
-                ? <p className="text-[11px] text-red-400 font-mono break-all">{(preview.error as any)?.response?.data?.error ?? 'invalid options'}</p>
+                ? <p className="text-[11px] text-red-400 font-mono break-all">{getErrorMessage(preview.error)}</p>
                 : <p className="text-[11px] text-emerald-300/90 font-mono break-all whitespace-pre-wrap">{preview.data?.command ?? '…'}</p>}
               {preview.data?.missing_templates && preview.data.missing_templates.length > 0 && (
                 <p className="mt-1 text-[11px] text-amber-400 flex items-start gap-1">
@@ -710,12 +710,12 @@ function ScanDetail({ scanId, isAdmin, onDeleted }: { scanId: string; isAdmin: b
   const stop = useMutation({
     mutationFn: () => vulnscanApi.stop(scanId),
     onSuccess: () => toast.success('Stop requested'),
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
   const remove = useMutation({
     mutationFn: () => vulnscanApi.remove(scanId),
     onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries({ queryKey: ['vulnscans'] }); onDeleted() },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   // Tools present in this scan's findings → powers the tool filter dropdown.

@@ -62,6 +62,67 @@ var (
 	newsPerFeedTimeout    = 15 * time.Second
 )
 
+// ── Feed health / dead-feed pruning ─────────────────────────────────────────
+// A feed that keeps failing (defunct source, permanent 404/DNS failure — e.g.
+// Threatpost, which shut down) is backed off with an exponentially growing skip
+// window so the worker stops paying a per-cycle timeout for it, while still
+// retrying periodically in case it recovers.
+const (
+	feedDeadThreshold = 4 // consecutive failures before backing off
+	feedBackoffBase   = 30 * time.Minute
+	feedBackoffMax    = 12 * time.Hour
+)
+
+type feedStat struct {
+	consecFails int
+	lastErr     string
+	lastCheck   time.Time
+	skipUntil   time.Time
+}
+
+var (
+	feedHealth   = map[string]*feedStat{}
+	feedHealthMu sync.Mutex
+)
+
+// feedShouldSkip reports whether a feed is currently in its dead-feed backoff
+// window and should be skipped this cycle.
+func feedShouldSkip(url string, now time.Time) bool {
+	feedHealthMu.Lock()
+	defer feedHealthMu.Unlock()
+	st := feedHealth[url]
+	return st != nil && !st.skipUntil.IsZero() && now.Before(st.skipUntil)
+}
+
+// feedRecordResult updates a feed's health after a fetch attempt. On repeated
+// failure it sets an exponential backoff; a success clears the failure state.
+func feedRecordResult(url string, now time.Time, err error) {
+	feedHealthMu.Lock()
+	defer feedHealthMu.Unlock()
+	st := feedHealth[url]
+	if st == nil {
+		st = &feedStat{}
+		feedHealth[url] = st
+	}
+	st.lastCheck = now
+	if err == nil {
+		st.consecFails = 0
+		st.lastErr = ""
+		st.skipUntil = time.Time{}
+		return
+	}
+	st.consecFails++
+	st.lastErr = err.Error()
+	if st.consecFails >= feedDeadThreshold {
+		// Exponential backoff: base * 2^(fails-threshold), capped.
+		backoff := feedBackoffBase << uint(st.consecFails-feedDeadThreshold)
+		if backoff > feedBackoffMax || backoff <= 0 {
+			backoff = feedBackoffMax
+		}
+		st.skipUntil = now.Add(backoff)
+	}
+}
+
 // htmlTagRegex strips angle-bracketed HTML tags. RSS descriptions frequently
 // embed markup that would render verbatim in the dashboard otherwise.
 var htmlTagRegex = regexp.MustCompile(`<[^>]+>`)
@@ -197,12 +258,9 @@ func StreamNews(c *gin.Context) {
 // StartCVEUpdateWorker's shape so server bootstrap stays uniform.
 func StartNewsUpdateWorker(hub *ws.Hub) {
 	log.Println("[news-worker] starting background news update worker...")
-	ticker := time.NewTicker(newsRefreshInterval)
 	go func() {
-		syncAllFeeds(hub)
-		for range ticker.C {
-			syncAllFeeds(hub)
-		}
+		safeLoop("news-worker", func() { syncAllFeeds(hub) })
+		runWorker("news-worker", newsRefreshInterval, func() { syncAllFeeds(hub) })
 	}()
 }
 
@@ -224,8 +282,10 @@ func syncAllFeeds(hub *ws.Hub) {
 		okCount   int32
 		failCount int32
 		newCount  int32
+		skipCount int32
 		stats     sync.Mutex
 	)
+	now := time.Now()
 
 	acquireHost := func(rawurl string) {
 		host := hostOf(rawurl)
@@ -255,6 +315,15 @@ func syncAllFeeds(hub *ws.Hub) {
 		go func(feed news.Feed) {
 			defer wg.Done()
 
+			// Skip feeds currently in dead-feed backoff so a defunct source
+			// doesn't cost a per-cycle timeout.
+			if feedShouldSkip(feed.URL, now) {
+				stats.Lock()
+				skipCount++
+				stats.Unlock()
+				return
+			}
+
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
@@ -262,6 +331,7 @@ func syncAllFeeds(hub *ws.Hub) {
 			defer releaseHost(feed.URL)
 
 			arts, err := fetchOneFeed(ctx, feed)
+			feedRecordResult(feed.URL, time.Now(), err)
 			if err != nil {
 				log.Printf("[news-worker] feed %q failed: %v", feed.Name, err)
 				stats.Lock()
@@ -286,8 +356,8 @@ func syncAllFeeds(hub *ws.Hub) {
 	}
 
 	wg.Wait()
-	log.Printf("[news-worker] sync complete: %d new articles, %d feeds ok, %d failed",
-		newCount, okCount, failCount)
+	log.Printf("[news-worker] sync complete: %d new articles, %d feeds ok, %d failed, %d skipped (dead-feed backoff)",
+		newCount, okCount, failCount, skipCount)
 }
 
 // fetchOneFeed downloads + parses a single feed. Failures are surfaced to

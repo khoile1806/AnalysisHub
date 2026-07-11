@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { X, ExternalLink, ShieldCheck, ShieldAlert, ShieldQuestion, Loader2 } from 'lucide-react'
 import { intelApi } from '@/api/intel'
+import { getErrorMessage } from '@/lib/utils'
 
 // IntelLookupModal runs a live threat-intel lookup (VirusTotal + any configured
 // sources) for one indicator and shows the verdict. Reusable from any scan view
@@ -53,7 +54,7 @@ export default function IntelLookupModal({
             </div>
           )}
 
-          {error && <p className="text-sm text-red-400">{(error as any)?.response?.data?.error || 'Lookup failed'}</p>}
+          {error && <p className="text-sm text-red-400">{getErrorMessage(error)}</p>}
 
           {data && !isLoading && (
             <>

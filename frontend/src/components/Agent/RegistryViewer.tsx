@@ -3,6 +3,7 @@ import { Search, Database, AlertTriangle, GitBranch } from 'lucide-react'
 import { agentsApi, type Agent } from '@/api/agents'
 import toast from 'react-hot-toast'
 import TraceOriginModal from '@/components/Agent/TraceOriginModal'
+import { getErrorMessage } from '@/lib/utils'
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
   SelectValue,
@@ -58,7 +59,7 @@ export function RegistryViewer({ agent }: { agent: Agent }) {
       setResult(parsed)
       toast.success('Registry key parsed successfully')
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || 'Failed to parse registry'
+      const msg = getErrorMessage(err)
       setError(msg)
       toast.error(msg)
     } finally {

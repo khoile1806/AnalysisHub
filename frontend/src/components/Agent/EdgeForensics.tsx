@@ -14,7 +14,7 @@ import { osintApi } from '@/api/osint'
 import { timelineApi, type TimelineSeverity } from '@/api/timeline'
 import { casesApi } from '@/api/cases'
 import { evidenceApi } from '@/api/evidence'
-import { copyToClipboard } from '@/lib/utils'
+import { copyToClipboard, getErrorMessage } from '@/lib/utils'
 import { useRealtimeSSE } from '@/hooks/useRealtimeSSE'
 import IntelLookupModal from '@/components/IntelLookupModal'
 import toast from 'react-hot-toast'
@@ -869,7 +869,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`File scan complete — ${arr.length} files`)
       checkIOCs(arr.flatMap(e => [e.sha256, e.md5, e.sha1].filter(Boolean) as string[]))
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -883,7 +883,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`Prefetch scan complete — ${arr.length} entries`)
       checkIOCs(arr.flatMap(e => [e.exe_sha256, e.sha256].filter(Boolean) as string[]))
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Prefetch Scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -897,7 +897,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`Process snapshot complete — ${arr.length} processes`)
       checkIOCs(arr.map(e => e.sha256).filter(Boolean) as string[])
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Process scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -910,7 +910,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       await agentsApi.setBaseline(agent.id, 'autoruns', JSON.stringify(autorunResults))
       toast.success('Autoruns baseline saved for this agent')
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Failed to save baseline')
+      toast.error(getErrorMessage(err))
     } finally { setBaselineBusy(false) }
   }
   const handleCompareBaseline = async () => {
@@ -927,7 +927,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       else toast.success('No drift — autoruns match the baseline')
     } catch (err: any) {
       if (err?.response?.status === 404) toast.error('No baseline set yet — click "Set baseline" first')
-      else toast.error(err?.response?.data?.error || err.message || 'Compare failed')
+      else toast.error(getErrorMessage(err))
     } finally { setBaselineBusy(false) }
   }
 
@@ -941,7 +941,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`Autoruns scan complete — ${arr.length} entries`)
       checkIOCs(arr.map(e => e.sha256).filter(Boolean) as string[])
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Autoruns scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -952,7 +952,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       await agentsApi.killProcess(agent.id, pid)
       toast.success(`Process ${pid} terminated — re-run the scan to refresh`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Kill failed')
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -966,7 +966,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`Loaded-DLL scan complete — ${arr.length} modules`)
       checkIOCs(arr.map(e => e.sha256).filter(Boolean) as string[])
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'DLL scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -979,7 +979,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       setShimResults(arr)
       toast.success(`Shimcache parsed — ${arr.length} records`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Shimcache scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -992,7 +992,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       setBrowserResults(arr)
       toast.success(`Browser history parsed — ${arr.length} URLs`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Browser history scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -1080,7 +1080,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
         toast.success(`Triage done — ${flProc.length + flAuto.length + flPf.length + flHosts.length} flagged${failed.length ? ` · ${failed.length} step(s) skipped` : ''}. ${caseId ? '' : 'Link a case to auto-save.'}`)
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Quick Triage failed')
+      toast.error(getErrorMessage(err))
     } finally { setTriaging(false) }
   }
 
@@ -1189,7 +1189,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       toast.success(`Saved ${res.events_created} event(s) · ${res.iocs_promoted} new IOC(s)`)
       setSelected(new Set())
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Save failed')
+      toast.error(getErrorMessage(err))
     } finally { setSaving(false) }
   }
 
@@ -1484,7 +1484,7 @@ function NetworkRecon({ agent, cases, onLookup }: { agent: Agent; cases: any[]; 
       toast.success('OSINT investigation started')
       navigate(`/osint/${scan.id}`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Failed to start OSINT scan')
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -1496,7 +1496,7 @@ function NetworkRecon({ agent, cases, onLookup }: { agent: Agent; cases: any[]; 
       setDns(data.dns || [])
       toast.success(`Network snapshot — ${(data.connections || []).length} connections, ${(data.dns || []).length} DNS records`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Network scan failed')
+      toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
   }
 
@@ -1529,7 +1529,7 @@ function NetworkRecon({ agent, cases, onLookup }: { agent: Agent; cases: any[]; 
       toast.success(`Saved ${res.events_created} event(s) · ${res.iocs_promoted} new IOC(s)`)
       setSelected(new Set())
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Save failed')
+      toast.error(getErrorMessage(err))
     } finally { setSaving(false) }
   }
 
@@ -2108,7 +2108,7 @@ function TriageCollectionModal({ agent, cases, onClose }: {
       const total = (r.artifacts ?? []).reduce((s, a) => s + (a.count ?? 0), 0)
       toast.success(`Triage complete — ${total.toLocaleString()} records across ${r.artifacts?.length ?? 0} artifacts`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Triage collection failed')
+      toast.error(getErrorMessage(err))
     } finally { setRunning(false) }
   }
 
@@ -2139,7 +2139,7 @@ function TriageCollectionModal({ agent, cases, onClose }: {
       await evidenceApi.upload(caseId, file, host, `Triage collection — ${result.artifacts?.length ?? 0} artifacts, ${total} records`)
       toast.success('Saved — view/download it under Case → Attack Timeline → Evidence', { duration: 6000 })
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err.message || 'Save failed')
+      toast.error(getErrorMessage(err))
     } finally { setSaving(false) }
   }
 

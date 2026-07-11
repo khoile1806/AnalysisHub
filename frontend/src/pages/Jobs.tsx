@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Plus, ClipboardList, Eye, Wrench, Crosshair, Rocket } from 'lucide-react'
@@ -396,15 +396,16 @@ export default function JobsPage() {
     queryFn: agentsApi.list,
   })
 
-  const filtered = jobs.filter((j) => {
-    const matchAgent = filterAgent === 'all' || j.agent_id === filterAgent
-    const matchStatus = filterStatus === 'all' || j.status === filterStatus
-    return matchAgent && matchStatus
-  })
-
-  const sorted = [...filtered].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
+  const sorted = useMemo(() => {
+    const filtered = jobs.filter((j) => {
+      const matchAgent = filterAgent === 'all' || j.agent_id === filterAgent
+      const matchStatus = filterStatus === 'all' || j.status === filterStatus
+      return matchAgent && matchStatus
+    })
+    return [...filtered].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+  }, [jobs, filterAgent, filterStatus])
 
   // Client-side pagination of the already-filtered/sorted list. Keeps all
   // existing filter/sort behavior intact while bounding how many rows render.

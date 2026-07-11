@@ -27,11 +27,12 @@ const histCap = 2000
 // SSE subscribers. It owns its own per-scan subscription map - the ws.Hub is
 // not involved (the hub's broadcast pairs are global, not per-scan).
 type Engine struct {
-	db     *gorm.DB
-	keys   Keys
-	cfg    *config.Config
-	enrich *threatintel.EnrichClient
-	cache  *osintCache // optional Redis read-through cache for idempotent lookups
+	db      *gorm.DB
+	keys    Keys
+	cfg     *config.Config
+	enrich  *threatintel.EnrichClient
+	cache   *osintCache     // optional Redis read-through cache for idempotent lookups
+	baseCtx context.Context // lifecycle context; cancelled on shutdown to stop the watch scheduler
 
 	mu      sync.Mutex
 	running map[string]context.CancelFunc
@@ -118,13 +119,17 @@ func pivotCategory(ttype string) string {
 }
 
 // NewEngine builds the engine and recovers any scans left "running" by a crash.
-func NewEngine(db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.EnrichClient, rdb *redis.Client) *Engine {
+func NewEngine(ctx context.Context, db *gorm.DB, keys Keys, cfg *config.Config, enrich *threatintel.EnrichClient, rdb *redis.Client) *Engine {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	e := &Engine{
 		db:      db,
 		keys:    keys,
 		cfg:     cfg,
 		enrich:  enrich,
 		cache:   newOsintCache(rdb),
+		baseCtx: ctx,
 		running: make(map[string]context.CancelFunc),
 		scanSem: make(chan struct{}, maxConcurrentScans(cfg)),
 		subs:    make(map[string][]chan string),
@@ -683,7 +688,18 @@ func (e *Engine) runCollector(ctx context.Context, scan *models.OsintScan, row *
 	cctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	findings, err := c.run(cctx, env)
+	// Collectors parse untrusted external JSON/HTML/banners; a panic here (nil map,
+	// index-out-of-range) would otherwise crash the whole process since this runs in
+	// a detached goroutine outside Gin's recovery. Convert it to a failed collector.
+	findings, err := func() (f []models.OsintFinding, rerr error) {
+		defer func() {
+			if r := recover(); r != nil {
+				rerr = fmt.Errorf("collector panic: %v", r)
+				log.Printf("[osint] PANIC recovered in collector %s: %v", c.name, r)
+			}
+		}()
+		return c.run(cctx, env)
+	}()
 	finishedAt := time.Now()
 
 	// Whole scan cancelled - record the collector as skipped, not failed.

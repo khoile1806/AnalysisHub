@@ -420,6 +420,7 @@ func NewRouter(
 		protected.DELETE("/cases/:id", casesHandler.DeleteCase)
 		protected.GET("/cases/:id/summary", casesHandler.GetCaseSummary)
 		protected.GET("/cases/:id/report", casesHandler.CaseReport)
+		protected.GET("/cases/:id/export", casesHandler.CaseExport)
 		protected.POST("/cases/:id/import-offline-report", casesHandler.ImportOfflineReport)
 
 		// Attack Timeline

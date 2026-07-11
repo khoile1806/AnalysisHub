@@ -13,9 +13,13 @@ import (
 
 // Alert represents a triggered Sigma rule against an event.
 type Alert struct {
+	RuleID          string                 `json:"rule_id,omitempty"`
 	RuleTitle       string                 `json:"rule_title"`
 	RuleLevel       string                 `json:"rule_level"`
 	RuleDescription string                 `json:"rule_description"`
+	Tags            []string               `json:"tags,omitempty"`
+	Techniques      []string               `json:"mitre_techniques,omitempty"`
+	Tactics         []string               `json:"mitre_tactics,omitempty"`
 	Event           map[string]interface{} `json:"event"`
 }
 
@@ -97,9 +101,13 @@ func (e *Engine) ScanContext(ctx context.Context, jsonData string) ([]Alert, err
 		for _, rule := range e.rules {
 			if MatchEvent(rule, event) {
 				alerts = append(alerts, Alert{
+					RuleID:          rule.ID,
 					RuleTitle:       rule.Title,
 					RuleLevel:       rule.Level,
 					RuleDescription: rule.Description,
+					Tags:            rule.Tags,
+					Techniques:      rule.Techniques,
+					Tactics:         rule.Tactics,
 					Event:           event,
 				})
 			}

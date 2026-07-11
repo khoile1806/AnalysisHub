@@ -34,7 +34,7 @@ const CHECKLIST_SOURCES: Record<string, { label: string; sections: GuideSection[
   return src
 })()
 import { CategoryBadge, PlatformBadge } from '@/components/StatusBadge'
-import { formatBytes } from '@/lib/utils'
+import { formatBytes, getErrorMessage } from '@/lib/utils'
 
 type Platform = 'windows' | 'linux' | 'both'
 
@@ -158,7 +158,7 @@ export default function OfflineBundles() {
       })
       toast.success('Bundle downloaded!', { id: tid })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to generate bundle', { id: tid })
+      toast.error(getErrorMessage(err), { id: tid })
     } finally {
       setGenerating(false)
     }

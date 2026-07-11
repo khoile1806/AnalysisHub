@@ -9,6 +9,7 @@ import {
 import toast from 'react-hot-toast'
 import { oobApi, type OobClient, type OobPayload, type OobInteraction, type OobProtocol, type OobRule } from '@/api/oob'
 import { decodeApi, type DecodeResult } from '@/api/decode'
+import { getErrorMessage } from '@/lib/utils'
 
 const PROTO_META: Record<OobProtocol, { icon: typeof Globe; color: string; label: string }> = {
   dns:   { icon: Network, color: 'text-sky-400 bg-sky-500/10 border-sky-500/20',         label: 'DNS' },
@@ -121,7 +122,7 @@ export function OobPanel() {
       setPayload(data.payload)
       toast.success('New OOB session created')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to create session'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const remove = useMutation({
@@ -171,19 +172,19 @@ export function OobPanel() {
       headers: textToHeaders(respDraft.headers),
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['oob-clients'] }); toast.success('Response saved') },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to save response'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const updateNotify = useMutation({
     mutationFn: () => oobApi.updateNotify(selected!.id, notifyDraft.trim()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['oob-clients'] }); toast.success('Notification URL saved'); setNotifyOpen(false) },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to save notify URL'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const renameClient = useMutation({
     mutationFn: () => oobApi.rename(selected!.id, { name: nameDraft.trim() }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['oob-clients'] }); setEditingName(false); toast.success('Renamed') },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Rename failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const clearInteractions = useMutation({
@@ -194,7 +195,7 @@ export function OobPanel() {
       setPendingNew(0)
       toast.success('Interactions cleared')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Clear failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const deleteInteraction = useMutation({
@@ -203,7 +204,7 @@ export function OobPanel() {
       qc.invalidateQueries({ queryKey: ['oob-interactions', selectedId] })
       qc.invalidateQueries({ queryKey: ['oob-clients'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Delete failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const patchInteraction = useMutation({
@@ -220,7 +221,7 @@ export function OobPanel() {
   const promoteIOC = useMutation({
     mutationFn: (iid: string) => oobApi.promoteIOC(selected!.id, iid),
     onSuccess: (d) => toast.success(`Added ${d.value} (${d.type}) to IOC store`),
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Promote failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const unseenCount = interactions.filter(i => !i.seen).length
@@ -749,7 +750,7 @@ function RulesModal({ clientId, onClose }: { clientId: string; onClose: () => vo
   const create = useMutation({
     mutationFn: () => oobApi.createRule(clientId, draft),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['oob-rules', clientId] }); setDraft(blank); toast.success('Rule added') },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Add failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
   const del = useMutation({
     mutationFn: (rid: string) => oobApi.deleteRule(clientId, rid),

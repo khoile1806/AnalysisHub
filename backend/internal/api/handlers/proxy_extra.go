@@ -277,34 +277,30 @@ func StartProxyIdentityRefresh(db *gorm.DB, interval time.Duration) {
 	if interval <= 0 {
 		interval = 15 * time.Minute
 	}
-	go func() {
-		t := time.NewTicker(interval)
-		defer t.Stop()
-		for range t.C {
-			checkProxyQuotas(db)
-			var actives []models.ProxyProfile
-			db.Where("is_active = ?", true).Find(&actives)
-			for i := range actives {
-				p := &actives[i]
-				id := egress.ProbeIdentity(p.URL)
-				if id.IP == "" {
-					continue
-				}
-				drift := p.ExitIP != "" && id.IP != p.ExitIP
-				now := id.CheckedAt
-				updates := map[string]interface{}{
-					"exit_ip": id.IP, "exit_country": id.Country, "exit_org": id.Org,
-					"is_tor": id.IsTor, "exit_checked_at": &now, "identity_drift": drift,
-				}
-				if drift {
-					updates["exit_ip_prev"] = p.ExitIP
-					if n := leakNotifier; n != nil && n.Enabled() {
-						go n.Send(context.Background(), "AnalysisHub: proxy exit IP changed",
-							fmt.Sprintf("Proxy %q exit IP changed from %s to %s.", p.Name, p.ExitIP, id.IP))
-					}
-				}
-				db.Model(&models.ProxyProfile{}).Where("id = ?", p.ID).Updates(updates)
+	go runWorker("proxy-identity", interval, func() {
+		checkProxyQuotas(db)
+		var actives []models.ProxyProfile
+		db.Where("is_active = ?", true).Find(&actives)
+		for i := range actives {
+			p := &actives[i]
+			id := egress.ProbeIdentity(p.URL)
+			if id.IP == "" {
+				continue
 			}
+			drift := p.ExitIP != "" && id.IP != p.ExitIP
+			now := id.CheckedAt
+			updates := map[string]interface{}{
+				"exit_ip": id.IP, "exit_country": id.Country, "exit_org": id.Org,
+				"is_tor": id.IsTor, "exit_checked_at": &now, "identity_drift": drift,
+			}
+			if drift {
+				updates["exit_ip_prev"] = p.ExitIP
+				if n := leakNotifier; n != nil && n.Enabled() {
+					go n.Send(context.Background(), "AnalysisHub: proxy exit IP changed",
+						fmt.Sprintf("Proxy %q exit IP changed from %s to %s.", p.Name, p.ExitIP, id.IP))
+				}
+			}
+			db.Model(&models.ProxyProfile{}).Where("id = ?", p.ID).Updates(updates)
 		}
-	}()
+	})
 }

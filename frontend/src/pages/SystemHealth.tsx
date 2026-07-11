@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { systemApi, type ComponentStatus, type ProviderTokenStat, type RecentSession, type ServerResources, type AgentResource, type UpdaterStatus } from '@/api/system'
-import { safeDistanceToNow, safeFormat } from '@/lib/utils'
+import { safeDistanceToNow, safeFormat, getErrorMessage } from '@/lib/utils'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -228,7 +228,7 @@ function EgressProxySection() {
   const save = useMutation({
     mutationFn: () => systemApi.setProxy({ proxy_url: proxyUrl.trim(), no_proxy: noProxy.trim(), fallback_direct: fallback }),
     onSuccess: (d) => { qc.setQueryData(['proxy-status'], d); setEditing(false); toast.success('Proxy updated (no restart needed)') },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Update failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
   const check = useMutation({
     mutationFn: () => systemApi.checkProxy(),
@@ -542,7 +542,7 @@ function AutoUpdateSection() {
       toast.success('Refresh triggered')
       setTimeout(() => qc.invalidateQueries({ queryKey: ['system-updaters'] }), 1500)
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error ?? 'Failed to trigger update'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
   if (updaters.length === 0) {
     return <p className="text-xs text-gray-600">No auto-updaters registered.</p>

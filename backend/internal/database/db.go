@@ -169,6 +169,12 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_oob_inter_raw_trgm ON oob_interactions USING gin (raw_request gin_trgm_ops)`)
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_oob_inter_ua_trgm ON oob_interactions USING gin (user_agent gin_trgm_ops)`)
 
+	// IOC substring search (CVE→related-IOC lookup uses `description LIKE '%CVE-…%'
+	// OR value LIKE '%CVE-…%'`). A leading wildcard can't use a b-tree, so these
+	// pg_trgm GIN indexes turn the otherwise full table scan into an index scan.
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_iocs_description_trgm ON iocs USING gin (description gin_trgm_ops)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_iocs_value_trgm ON iocs USING gin (value gin_trgm_ops)`)
+
 	slog.Info("migrations applied successfully")
 	return db, nil
 }

@@ -25,6 +25,8 @@ const (
 	ttlHashLookup = 7 * 24 * time.Hour // file reputation is effectively static
 	ttlTyposquat  = 12 * time.Hour
 	ttlNVD        = 24 * time.Hour // CVE lists for a fixed product@version change slowly
+	ttlCPE        = 7 * 24 * time.Hour // product→CPE mapping is effectively static
+	ttlEPSS       = 6 * time.Hour      // EPSS scores are recomputed daily
 	ttlReputation = 6 * time.Hour  // abuse.ch / pulsedive / greynoise / abuseipdb verdicts
 	ttlCrtSh      = 6 * time.Hour  // CT-log subdomain set grows slowly
 	ttlWayback    = 24 * time.Hour // archived-URL history is effectively append-only

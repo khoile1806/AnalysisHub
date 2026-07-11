@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -238,7 +238,10 @@ const RISK_BADGE: Record<string, string> = {
 }
 
 function BatchTable({ rows, onOpen }: { rows: TechBatchRow[]; onOpen: (u: string) => void }) {
-  const sorted = [...rows].sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0))
+  const sorted = useMemo(
+    () => [...rows].sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0)),
+    [rows],
+  )
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">

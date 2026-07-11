@@ -199,10 +199,18 @@ func main() {
 	// ------------------------------------------------------------------ //
 	hub := ws.NewHub()
 
+	// Batched, order-preserving writer for streamed job output — one append per
+	// job per flush interval instead of a DB write per line.
+	jobOutput := handlers.NewJobOutputBuffer(db, 0)
+	defer jobOutput.Stop()
+
 	// Wire output persistence: every line streamed from an agent is appended
 	// to the job's output column; when done==true the job is marked complete.
 	hub.OnOutput = func(jobID, data string, done bool) {
 		if done {
+			// Flush any buffered output before finalizing so the transcript is
+			// complete when the job is marked done.
+			jobOutput.Flush(jobID)
 			// Only mark as "done" if the job is still running. A stopped job
 			// (status=stopped) must not be overwritten to done when the
 			// cancelled process's final output flush arrives.
@@ -218,12 +226,7 @@ func main() {
 		if data == "" {
 			return
 		}
-		// Append line to the output text column (PostgreSQL concat).
-		db.Exec(
-			"UPDATE jobs SET output = COALESCE(output, '') || ? WHERE id = ?",
-			data+"\n",
-			jobID,
-		)
+		jobOutput.Append(jobID, data)
 	}
 
 	// When the agent reports a lifecycle transition (ready/stopped), reflect
@@ -235,6 +238,7 @@ func main() {
 				Where("id = ? AND status = ?", jobID, models.JobPending).
 				Update("status", models.JobReady)
 		case "stopped":
+			jobOutput.Flush(jobID)
 			now := time.Now()
 			db.Model(&models.Job{}).
 				Where("id = ?", jobID).
@@ -248,6 +252,17 @@ func main() {
 	go hub.Run()
 	slog.Info("WebSocket hub started")
 
+	// Finalize any work left mid-flight by a previous crash/restart (agent jobs,
+	// fleet collection results, OSINT scans) so nothing is stuck "running" in the
+	// UI. Runs before workers/agents come online to avoid racing live work.
+	handlers.RecoverStuckWork(db)
+
+	// Root lifecycle context for background workers — cancelled on shutdown so
+	// their tick loops stop cleanly instead of racing the DB pool close.
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
+	handlers.SetWorkerContext(workerCtx)
+
 	// ------------------------------------------------------------------ //
 	// 7.5 Start Background Workers
 	// ------------------------------------------------------------------ //
@@ -259,6 +274,7 @@ func main() {
 	// automatically look up IPs, hashes, and domains before sending the
 	// forensic prompt to the AI model.
 	enrichClient := threatintel.New(cfg.VirusTotalKeys, cfg.AbuseIPDBKey, cfg.AlienVaultKey, cfg.ShodanKey)
+	enrichClient.UseRedis(rdb) // shared cache: enrichment survives restarts, shared across instances
 	if enrichClient.Configured() {
 		slog.Info("threat intel client initialised",
 			"vt_keys", len(cfg.VirusTotalKeys), "abuseipdb", cfg.AbuseIPDBKey != "", "otx", cfg.AlienVaultKey != "", "shodan", cfg.ShodanKey != "")
@@ -272,7 +288,7 @@ func main() {
 	if len(cfg.VirusTotalKeys) > 0 {
 		vtKey = cfg.VirusTotalKeys[0]
 	}
-	osintEngine := osint.NewEngine(db, osint.Keys{
+	osintEngine := osint.NewEngine(workerCtx, db, osint.Keys{
 		VirusTotal: vtKey,
 		Shodan:     cfg.ShodanKey,
 		AbuseIPDB:  cfg.AbuseIPDBKey,
@@ -381,6 +397,14 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown error", "error", err)
 	}
+
+	// Stop background workers so their tick loops don't touch the DB/Redis during
+	// the drain and close below.
+	workerCancel()
+
+	// Flush any buffered job output to the DB before the pool is closed (the
+	// deferred Stop would otherwise run after db.Close and lose the final flush).
+	jobOutput.Stop()
 
 	// Stop the OOB interaction listeners (DNS/HTTP/SMTP).
 	oobServer.Shutdown(shutdownCtx)

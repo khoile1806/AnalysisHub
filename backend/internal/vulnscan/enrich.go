@@ -31,13 +31,28 @@ func (e *Engine) enrichAndReport(ctx context.Context, scan *models.VulnScan) {
 		if len(cves) > 0 {
 			intel := e.enricher.EnrichCVEs(ctx, cves)
 			kev := 0
-			for id, in := range intel {
-				e.db.Model(&models.VulnFinding{}).
-					Where("scan_id = ? AND cve_id = ?", scan.ID, id).
-					Updates(map[string]interface{}{"epss_score": in.EPSS, "is_kev": in.KEV})
-				if in.KEV {
-					kev++
+			// Apply all EPSS/KEV updates in a single UPDATE ... FROM (VALUES ...)
+			// statement instead of one round-trip per CVE — a scan can surface
+			// dozens of distinct CVEs.
+			if len(intel) > 0 {
+				var sb strings.Builder
+				args := make([]interface{}, 0, len(intel)*3+1)
+				sb.WriteString("UPDATE vuln_findings AS vf SET epss_score = v.epss, is_kev = v.kev FROM (VALUES ")
+				first := true
+				for id, in := range intel {
+					if !first {
+						sb.WriteString(",")
+					}
+					first = false
+					sb.WriteString("(?::text, ?::double precision, ?::boolean)")
+					args = append(args, id, in.EPSS, in.KEV)
+					if in.KEV {
+						kev++
+					}
 				}
+				sb.WriteString(") AS v(cve, epss, kev) WHERE vf.scan_id = ? AND vf.cve_id = v.cve")
+				args = append(args, scan.ID)
+				e.db.Exec(sb.String(), args...)
 			}
 			msg := fmt.Sprintf("[*] CVE intel: enriched %d CVE(s) with EPSS", len(intel))
 			if kev > 0 {

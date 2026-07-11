@@ -113,6 +113,11 @@ function walkEntry(entry: any, out: File[]): Promise<void> {
   })
 }
 
+// whenVisible returns a react-query refetchInterval function that only polls
+// while the browser tab is visible, so a backgrounded ELK page stops hammering
+// the API with status/index polls.
+const whenVisible = (ms: number) => () => (document.visibilityState === 'visible' ? ms : false)
+
 function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -126,27 +131,31 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const folderInput = useRef<HTMLInputElement>(null)
 
-  const { data: meta } = useQuery({ queryKey: ['logsearch-meta'], queryFn: logsearchApi.meta, refetchInterval: 20000 })
-  const { data: health } = useQuery({ queryKey: ['logsearch-health'], queryFn: logsearchApi.health, refetchInterval: 10000 })
+  const { data: meta } = useQuery({ queryKey: ['logsearch-meta'], queryFn: logsearchApi.meta, refetchInterval: whenVisible(30000), refetchIntervalInBackground: false })
+  const { data: health } = useQuery({ queryKey: ['logsearch-health'], queryFn: logsearchApi.health, refetchInterval: whenVisible(15000), refetchIntervalInBackground: false })
   const { data: cases } = useQuery({ queryKey: ['cases-list'], queryFn: casesApi.list })
   const { data: summary } = useQuery({
     queryKey: ['logsearch-summary', caseName],
     queryFn: () => logsearchApi.summary(caseName.trim() || undefined),
-    refetchInterval: 10000,
+    refetchInterval: whenVisible(15000),
+    refetchIntervalInBackground: false,
   })
   const { data: jobs } = useQuery({
     queryKey: ['logsearch-jobs'],
     queryFn: () => logsearchApi.listJobs(),
     refetchInterval: (q) => {
+      if (document.visibilityState !== 'visible') return false
       const list = (q.state.data as LogIngestJob[] | undefined) ?? []
       return list.some((j) => j.status === 'queued' || j.status === 'running') ? 2000 : false
     },
+    refetchIntervalInBackground: false,
   })
-  const { data: indices } = useQuery({ queryKey: ['logsearch-indices'], queryFn: logsearchApi.listIndices, refetchInterval: 5000 })
+  const { data: indices } = useQuery({ queryKey: ['logsearch-indices'], queryFn: logsearchApi.listIndices, refetchInterval: whenVisible(15000), refetchIntervalInBackground: false })
   const { data: elk } = useQuery({
     queryKey: ['logsearch-elk-status'],
     queryFn: logsearchApi.elkStatus,
-    refetchInterval: 5000,
+    refetchInterval: whenVisible(15000),
+    refetchIntervalInBackground: false,
   })
   const powerMut = useMutation({
     mutationFn: (verb: 'start' | 'stop') => logsearchApi.elkPower(verb),
@@ -154,7 +163,7 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
       toast.success(verb === 'start' ? 'Starting ELK…' : 'Stopping ELK…')
       qc.invalidateQueries({ queryKey: ['logsearch-elk-status'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Action failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const addFiles = (list: FileList | File[], filter: boolean) => {
@@ -191,7 +200,7 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
       if (!d.configured) toast.error('No threat-intel API keys configured (VT/Shodan/AbuseIPDB)')
       else if (d.results.length === 0) toast('No source IPs to enrich yet')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Enrichment failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const uploadMut = useMutation({
@@ -201,13 +210,13 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
       qc.invalidateQueries({ queryKey: ['logsearch-jobs'] })
       toast.success('Upload started — parsing & indexing')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Upload failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   const delMut = useMutation({
     mutationFn: (index: string) => logsearchApi.deleteIndex(index),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['logsearch-indices'] }); toast.success('Index deleted') },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'Delete failed'),
+    onError: (e: any) => toast.error(getErrorMessage(e)),
   })
 
   // Repository: hosts are expanded/collapsed; deleting a host drops all its logs.
@@ -726,7 +735,7 @@ function ELKProfilesList() {
       qc.invalidateQueries({ queryKey: ['elk-config'] })
       toast.success('Profile activated')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to activate'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const del = useMutation({
@@ -736,7 +745,7 @@ function ELKProfilesList() {
       qc.invalidateQueries({ queryKey: ['elk-config'] })
       toast.success('Profile deleted')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to delete'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   return (
@@ -802,7 +811,7 @@ function ELKProfileModal({ profile, onClose }: { profile?: ELKConfig; onClose: (
       toast.success(isEdit ? 'Profile updated' : 'Profile created')
       onClose()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to save'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -911,7 +920,7 @@ function SplunkProfilesList() {
       qc.invalidateQueries({ queryKey: ['splunk-configs'] })
       toast.success('Profile activated')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to activate'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const del = useMutation({
@@ -920,7 +929,7 @@ function SplunkProfilesList() {
       qc.invalidateQueries({ queryKey: ['splunk-configs'] })
       toast.success('Profile deleted')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to delete'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   return (
@@ -984,7 +993,7 @@ function SplunkProfileModal({ profile, onClose }: { profile?: SplunkConfig; onCl
       toast.success(isEdit ? 'Profile updated' : 'Profile created')
       onClose()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to save'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -1093,7 +1102,7 @@ function QRadarProfilesList() {
       qc.invalidateQueries({ queryKey: ['qradar-configs'] })
       toast.success('Profile activated')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to activate'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const del = useMutation({
@@ -1102,7 +1111,7 @@ function QRadarProfilesList() {
       qc.invalidateQueries({ queryKey: ['qradar-configs'] })
       toast.success('Profile deleted')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to delete'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   return (
@@ -1166,7 +1175,7 @@ function QRadarProfileModal({ profile, onClose }: { profile?: QRadarConfig; onCl
       toast.success(isEdit ? 'Profile updated' : 'Profile created')
       onClose()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to save'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -1276,7 +1285,7 @@ function OpenCTIProfilesList() {
       qc.invalidateQueries({ queryKey: ['opencti-config'] })
       toast.success('Profile activated')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to activate'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const del = useMutation({
@@ -1286,7 +1295,7 @@ function OpenCTIProfilesList() {
       qc.invalidateQueries({ queryKey: ['opencti-config'] })
       toast.success('Profile deleted')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to delete'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   return (
@@ -1352,7 +1361,7 @@ function OpenCTIProfileModal({ profile, onClose }: { profile?: OpenCTIConfig; on
       toast.success(isEdit ? 'Profile updated' : 'Profile created')
       onClose()
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to save'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -1502,7 +1511,7 @@ function HuntTab() {
       return elkApi.manualHunt(payload)
     },
     onSuccess: (data) => toast.success(`Manual hunt completed in ${data.took || 0}ms`),
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Hunt failed'),
+    onError: (err: any) => toast.error(getErrorMessage(err)),
   })
 
   const stopAnyStream = () => {
@@ -1561,7 +1570,7 @@ function HuntTab() {
     },
     onError: (err: any) => {
       setParsedFile(null)
-      toast.error(err.response?.data?.error || 'Failed to parse file')
+      toast.error(getErrorMessage(err))
     },
   })
 
@@ -1845,7 +1854,17 @@ function ProgressBlock({ state }: { state: HuntState }) {
   )
 }
 
+// HUNT_RENDER_CAP bounds how many hit cards are mounted at once. Each card holds a
+// JsonViewer, so rendering thousands of hits at once freezes the tab. We render up
+// to the cap and let the operator reveal more in increments.
+const HUNT_RENDER_CAP = 200
+
 function ResultsPanel({ title, hits, totalLabel, tookMs, isLoading }: { title: string; hits: ELKHit[]; totalLabel: string; tookMs?: number; isLoading: boolean }) {
+  const [visible, setVisible] = useState(HUNT_RENDER_CAP)
+  // Reset the render window when a fresh hunt clears the accumulator, so a new
+  // search doesn't inherit a huge window from the previous one.
+  useEffect(() => { if (hits.length === 0) setVisible(HUNT_RENDER_CAP) }, [hits.length])
+  const shown = hits.length > visible ? hits.slice(0, visible) : hits
   return (
     <div className="bg-gray-900/60 border border-gray-800/60 rounded-2xl flex flex-col h-full shadow-sm backdrop-blur-sm overflow-hidden animate-in fade-in duration-300">
       <div className="p-5 bg-gray-950/40 border-b border-gray-800/60 flex flex-wrap justify-between items-center gap-4 shrink-0">
@@ -1874,7 +1893,7 @@ function ResultsPanel({ title, hits, totalLabel, tookMs, isLoading }: { title: s
           </div>
         ) : (
           <div className="space-y-6">
-            {hits.map((hit, idx) => (
+            {shown.map((hit, idx) => (
               <div key={`${hit._index}-${hit._id}-${idx}`} className="bg-gray-900/80 border border-gray-800 hover:border-red-500/40 transition-colors rounded-xl p-0 shadow-sm relative overflow-hidden group">
                 {/* Red side indicator */}
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-red-500 to-red-600/50 opacity-70 group-hover:opacity-100 transition-opacity"></div>
@@ -1892,6 +1911,16 @@ function ResultsPanel({ title, hits, totalLabel, tookMs, isLoading }: { title: s
                 </div>
               </div>
             ))}
+            {hits.length > visible && (
+              <div className="pt-1 pb-2 text-center">
+                <button
+                  onClick={() => setVisible((v) => v + HUNT_RENDER_CAP)}
+                  className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 bg-gray-900/80 border border-gray-700/60 hover:border-emerald-500/40 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Show more — displaying {visible} of {hits.length}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -90,63 +90,66 @@ func activateProfileInternal(db *gorm.DB, p *models.ProxyProfile) {
 func StartProxyPoolAutomation(db *gorm.DB) {
 	go func() {
 		var lastRotate time.Time
-		for {
-			time.Sleep(30 * time.Second)
-			s := loadPoolSetting(db)
-			if s.Mode == "manual" {
-				continue
-			}
-
-			var active models.ProxyProfile
-			hasActive := db.Where("is_active = ?", true).First(&active).Error == nil
-
-			// Failover: probe only the ACTIVE proxy each cycle (cheap). Fan out to
-			// the whole pool to find a replacement ONLY when the active is down or
-			// absent — so N proxies don't cost 2N probes/minute for nothing.
-			if s.Mode == "failover" {
-				if hasActive {
-					updateProfileHealth(db, &active, egress.Probe(active.URL))
-					if active.Healthy {
-						continue // active still up — no pool scan needed
-					}
-				}
-				var all []models.ProxyProfile
-				db.Order("id asc").Find(&all)
-				for i := range all {
-					updateProfileHealth(db, &all[i], egress.Probe(all[i].URL))
-					if all[i].Healthy {
-						activateProfileInternal(db, &all[i])
-						break
-					}
-				}
-				continue
-			}
-
-			// Rotate: every candidate's health must be fresh to pick the next exit.
-			var all []models.ProxyProfile
-			db.Find(&all)
-			for i := range all {
-				updateProfileHealth(db, &all[i], egress.Probe(all[i].URL))
-			}
-			var healthy []models.ProxyProfile
-			db.Where("healthy = ?", true).Order("id asc").Find(&healthy)
-			if len(healthy) == 0 {
-				continue
-			}
-			if time.Since(lastRotate) < time.Duration(s.IntervalSec)*time.Second {
-				continue
-			}
-			next := healthy[0]
-			if hasActive {
-				for i, h := range healthy {
-					if h.ID == active.ID {
-						next = healthy[(i+1)%len(healthy)]
-						break
-					}
-				}
-			}
-			activateProfileInternal(db, &next)
-			lastRotate = time.Now()
-		}
+		runWorker("proxy-pool", 30*time.Second, func() { proxyPoolTick(db, &lastRotate) })
 	}()
+}
+
+// proxyPoolTick runs one failover/rotation cycle. Extracted so the tick can be
+// panic-recovered (a closure can't `continue` an outer loop, so `return` is used
+// to skip a cycle).
+func proxyPoolTick(db *gorm.DB, lastRotate *time.Time) {
+	s := loadPoolSetting(db)
+	if s.Mode == "manual" {
+		return
+	}
+
+	var active models.ProxyProfile
+	hasActive := db.Where("is_active = ?", true).First(&active).Error == nil
+
+	// Failover: probe only the ACTIVE proxy each cycle (cheap). Fan out to the whole
+	// pool to find a replacement ONLY when the active is down or absent.
+	if s.Mode == "failover" {
+		if hasActive {
+			updateProfileHealth(db, &active, egress.Probe(active.URL))
+			if active.Healthy {
+				return // active still up — no pool scan needed
+			}
+		}
+		var all []models.ProxyProfile
+		db.Order("id asc").Find(&all)
+		for i := range all {
+			updateProfileHealth(db, &all[i], egress.Probe(all[i].URL))
+			if all[i].Healthy {
+				activateProfileInternal(db, &all[i])
+				break
+			}
+		}
+		return
+	}
+
+	// Rotate: every candidate's health must be fresh to pick the next exit.
+	var all []models.ProxyProfile
+	db.Find(&all)
+	for i := range all {
+		updateProfileHealth(db, &all[i], egress.Probe(all[i].URL))
+	}
+	var healthy []models.ProxyProfile
+	db.Where("healthy = ?", true).Order("id asc").Find(&healthy)
+	if len(healthy) == 0 {
+		return
+	}
+	if time.Since(*lastRotate) < time.Duration(s.IntervalSec)*time.Second {
+		return
+	}
+	next := healthy[0]
+	if hasActive {
+		for i, h := range healthy {
+			if h.ID == active.ID {
+				next = healthy[(i+1)%len(healthy)]
+				break
+			}
+		}
+	}
+	activateProfileInternal(db, &next)
+	*lastRotate = time.Now()
 }

@@ -1074,12 +1074,8 @@ func StartOobRetentionWorker(db *gorm.DB, retentionDays, maxPerClient int) {
 		return
 	}
 	go func() {
-		ticker := time.NewTicker(time.Hour)
-		defer ticker.Stop()
-		for {
-			oobRetentionSweep(db, retentionDays, maxPerClient)
-			<-ticker.C
-		}
+		safeLoop("oob-retention", func() { oobRetentionSweep(db, retentionDays, maxPerClient) })
+		runWorker("oob-retention", time.Hour, func() { oobRetentionSweep(db, retentionDays, maxPerClient) })
 	}()
 }
 

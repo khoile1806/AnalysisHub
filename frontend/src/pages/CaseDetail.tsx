@@ -82,7 +82,7 @@ function OfflineBundleModal({
       toast.success('Bundle downloaded!', { id: tid })
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed', { id: tid })
+      toast.error(getErrorMessage(err), { id: tid })
     } finally {
       setGenerating(false)
     }
@@ -262,6 +262,26 @@ function ReportActions({ caseId }: { caseId: string }) {
       >
         <Download className="h-3 w-3" /> PDF
       </a>
+      <div className="relative group">
+        <button
+          title="Export machine-readable case data for other tools"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:text-emerald-400 hover:border-emerald-500/40 transition"
+        >
+          <Download className="h-3 w-3" /> Export
+        </button>
+        <div className="absolute right-0 mt-1 hidden group-hover:block z-20 min-w-[9rem] rounded border border-gray-700 bg-gray-900 shadow-lg overflow-hidden">
+          {(['json', 'csv', 'stix'] as const).map((fmt) => (
+            <a
+              key={fmt}
+              href={casesApi.exportUrl(caseId, fmt)}
+              target="_blank" rel="noopener noreferrer"
+              className="block px-3 py-2 text-xs text-gray-300 hover:bg-gray-800 hover:text-emerald-400 transition"
+            >
+              {fmt === 'json' ? 'JSON (full)' : fmt === 'csv' ? 'CSV (timeline)' : 'STIX 2.1 bundle'}
+            </a>
+          ))}
+        </div>
+      </div>
     </>
   )
 }
@@ -277,7 +297,12 @@ export default function CaseDetailPage() {
     queryKey: ['case-summary', id],
     queryFn: () => casesApi.getSummary(id!),
     enabled: !!id,
-    refetchInterval: 3000,
+    // Poll only while the tab is visible, and at a calmer cadence — a case
+    // summary doesn't change several times a second. react-query already pauses
+    // background intervals, this also drops the frequency 5x when focused.
+    refetchInterval: () => (document.visibilityState === 'visible' ? 15000 : false),
+    refetchIntervalInBackground: false,
+    staleTime: 5000,
   })
 
   const toggleStatusMutation = useMutation({

@@ -9,7 +9,7 @@ import { intelApi } from '@/api/intel'
 import { timelineApi, type TimelineSeverity } from '@/api/timeline'
 import { casesApi } from '@/api/cases'
 import { huntingApi, type SigmaAlert } from '@/api/hunting'
-import { copyToClipboard } from '@/lib/utils'
+import { copyToClipboard, getErrorMessage } from '@/lib/utils'
 import IntelLookupModal from '@/components/IntelLookupModal'
 import toast from 'react-hot-toast'
 
@@ -354,7 +354,7 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
       toast.success(`${arr.length} event(s) returned`)
       checkIOCs(arr)
     } catch (err: any) {
-      const m = err.response?.data?.error || err.message || 'Failed to query EVTX'
+      const m = getErrorMessage(err)
       setError(m); toast.error(m)
     } finally { setLoading(false) }
   }
@@ -369,7 +369,7 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
       setSigmaAlerts(alerts)
       alerts.length > 0 ? toast.error(`Found ${alerts.length} Sigma alert(s)!`) : toast.success('No Sigma alerts found.')
     } catch (err: any) {
-      toast.error('Sigma scan failed: ' + (err.message || ''))
+      toast.error('Sigma scan failed: ' + getErrorMessage(err))
     } finally { setScanningSigma(false) }
   }
 
@@ -400,7 +400,7 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
       toast.success(`Saved ${res.events_created} event(s) · ${res.iocs_promoted} new IOC(s)`)
       setSelected(new Set())
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Save failed')
+      toast.error(getErrorMessage(err))
     } finally { setSaving(false) }
   }
 

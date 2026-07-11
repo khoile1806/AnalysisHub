@@ -9,6 +9,7 @@ import {
   type ProxyProfilePayload, type ProxyPoolMode, type ProxyAnalytics, type ProxyLane,
   type ProxyHealthHistory,
 } from '@/api/proxy'
+import { getErrorMessage } from '@/lib/utils'
 
 const emptyForm: ProxyProfilePayload = { name: '', url: '', no_proxy: '', fallback_direct: false, lane: 'default', quota_bytes: 0, quota_hard_stop: false }
 
@@ -35,8 +36,7 @@ function statusColor(s: number): string {
 }
 
 function errText(e: unknown): string {
-  const a = e as { response?: { data?: { error?: string } }; message?: string }
-  return a?.response?.data?.error || a?.message || 'Request failed'
+  return getErrorMessage(e)
 }
 
 export default function ProxyManager() {
