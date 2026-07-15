@@ -511,6 +511,8 @@ function UpdaterRow({ u, onRun, pending }: { u: UpdaterStatus; onRun: () => void
         {u.running ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400 inline" />
           : u.runs === 0 ? <span className="text-gray-600 text-[11px]">idle</span>
           : u.last_success ? <span className="text-emerald-400 text-[11px]">✓ ok</span>
+          : u.next_retry
+            ? <span className="text-amber-400 text-[11px]" title={`Attempt ${u.attempt} · auto-retry ${safeDistanceToNow(u.next_retry, { addSuffix: true })}`}>↻ retrying #{u.attempt}</span>
           : <span className="text-red-400 text-[11px]">✕ failed</span>}
       </td>
       <td className="px-3 py-2 text-[11px] text-gray-400">

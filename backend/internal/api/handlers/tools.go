@@ -114,6 +114,7 @@ func UploadTool(c *gin.Context) {
 		return
 	}
 
+	maxResultMB, _ := strconv.Atoi(c.PostForm("max_result_mb"))
 	tool := models.Tool{
 		ID:             toolID,
 		Name:           name,
@@ -126,6 +127,14 @@ func UploadTool(c *gin.Context) {
 		FileName:       fileHeader.Filename,
 		FileSize:       fileHeader.Size,
 		CreatedBy:      userID,
+		// Result-collection spec (all optional).
+		CollectResult:   c.PostForm("collect_result") == "true",
+		OutputGlobs:     c.PostForm("output_globs"),
+		OutputScope:     c.PostForm("output_scope"),
+		ResultProcessor: c.PostForm("result_processor"),
+		AIDefault:       c.PostForm("ai_default") == "true",
+		AutoAnalyze:     c.PostForm("auto_analyze") == "true",
+		MaxResultMB:     maxResultMB,
 	}
 
 	if err := db.Create(&tool).Error; err != nil {
@@ -189,13 +198,20 @@ func UpdateTool(c *gin.Context) {
 	}
 
 	var body struct {
-		Name           string `json:"name"`
-		Category       string `json:"category"`
-		Platform       string `json:"platform"`
-		Version        string `json:"version"`
-		Description    string `json:"description"`
-		Args           string `json:"args"`
-		ExecutablePath string `json:"executable_path"`
+		Name            string `json:"name"`
+		Category        string `json:"category"`
+		Platform        string `json:"platform"`
+		Version         string `json:"version"`
+		Description     string `json:"description"`
+		Args            string `json:"args"`
+		ExecutablePath  string `json:"executable_path"`
+		CollectResult   bool   `json:"collect_result"`
+		OutputGlobs     string `json:"output_globs"`
+		OutputScope     string `json:"output_scope"`
+		ResultProcessor string `json:"result_processor"`
+		AIDefault       bool   `json:"ai_default"`
+		AutoAnalyze     bool   `json:"auto_analyze"`
+		MaxResultMB     int    `json:"max_result_mb"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid request body"})
@@ -232,13 +248,20 @@ func UpdateTool(c *gin.Context) {
 	}
 
 	updates := map[string]interface{}{
-		"name":        body.Name,
-		"category":    body.Category,
-		"platform":    body.Platform,
-		"version":     body.Version,
-		"description": body.Description,
-		"args":        body.Args,
-		"entrypoint":  body.ExecutablePath,
+		"name":             body.Name,
+		"category":         body.Category,
+		"platform":         body.Platform,
+		"version":          body.Version,
+		"description":      body.Description,
+		"args":             body.Args,
+		"entrypoint":       body.ExecutablePath,
+		"collect_result":   body.CollectResult,
+		"output_globs":     body.OutputGlobs,
+		"output_scope":     body.OutputScope,
+		"result_processor": body.ResultProcessor,
+		"ai_default":       body.AIDefault,
+		"auto_analyze":     body.AutoAnalyze,
+		"max_result_mb":    body.MaxResultMB,
 	}
 	if err := db.Model(&tool).Updates(updates).Error; err != nil {
 		log.Printf("[tools] update error: %v", err)

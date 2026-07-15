@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Download, Clock, Server, Wrench, Calendar, RefreshCw, BrainCircuit, Terminal as TerminalIcon, FileText } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { jobsApi } from '@/api/jobs'
 import { JobStatusBadge } from '@/components/StatusBadge'
 import TerminalOutput from '@/components/Terminal'
@@ -18,6 +19,110 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
       <div className="flex-1 min-w-0">
         <p className="text-xs text-gray-500 mb-0.5">{label}</p>
         <div className="text-sm text-gray-200">{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function ToolResultsPanel({ jobId }: { jobId: string }) {
+  const qc = useQueryClient()
+  const { data: results } = useQuery({
+    queryKey: ['job-results', jobId],
+    queryFn: () => jobsApi.listResults(jobId),
+    enabled: !!jobId,
+    refetchInterval: 5_000,
+  })
+  const aiMut = useMutation({
+    mutationFn: ({ rid, forAI }: { rid: string; forAI: boolean }) => jobsApi.setResultAI(rid, forAI),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['job-results', jobId] }),
+  })
+  const analyzeMut = useMutation({
+    mutationFn: () => jobsApi.analyzeResults(jobId),
+    onSuccess: (d) => {
+      toast.success(d.note ?? `AI: ${d.created} timeline event(s), ${d.iocs_promoted} IOC(s) from ${d.findings} finding(s)`)
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'AI analysis failed'),
+  })
+  const bulkAiMut = useMutation({
+    mutationFn: (forAI: boolean) => jobsApi.setJobResultsAI(jobId, forAI),
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ['job-results', jobId] })
+      toast.success(`${d.for_ai ? 'Flagged' : 'Cleared'} ${d.updated} result(s) for AI`)
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Update failed'),
+  })
+  if (!results || results.length === 0) return null
+  const anyForAI = results.some((r) => r.for_ai && r.process_status === 'done')
+  const allForAI = results.every((r) => r.for_ai)
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h2 className="text-sm font-semibold text-gray-200">
+          Collected Results <span className="text-gray-500 font-normal">({results.length})</span>
+        </h2>
+        <div className="flex items-center gap-2">
+          {results.length > 1 && (
+            <button
+              onClick={() => bulkAiMut.mutate(!allForAI)}
+              disabled={bulkAiMut.isPending}
+              className="px-2 py-1 text-[11px] text-gray-400 hover:text-gray-200 border border-gray-700 rounded-md transition disabled:opacity-50"
+              title="Toggle the for-AI flag on every collected result at once"
+            >
+              {allForAI ? 'Clear all AI' : 'Flag all for AI'}
+            </button>
+          )}
+          {anyForAI && (
+            <button
+              onClick={() => analyzeMut.mutate()}
+              disabled={analyzeMut.isPending}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-violet-900/30 hover:bg-violet-900/50 text-violet-300 border border-violet-500/30 rounded-md transition disabled:opacity-50"
+              title="Run AI over the for-AI results and add findings to the case timeline"
+            >
+              <BrainCircuit className="h-3 w-3" />
+              {analyzeMut.isPending ? 'Analyzing…' : 'Extract findings → timeline'}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {results.map((r) => (
+          <div key={r.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-mono text-gray-200 truncate" title={r.file_name}>{r.file_name}</span>
+              <span className="text-[10px] uppercase tracking-wide text-gray-500 shrink-0">{r.kind}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+              <span className={
+                r.process_status === 'done' ? 'text-emerald-400'
+                  : r.process_status === 'error' ? 'text-red-400'
+                  : 'text-amber-400'
+              } title={r.process_error || ''}>
+                {r.process_status === 'done' ? '● parsed'
+                  : r.process_status === 'error' ? '● error'
+                  : r.process_status === 'processing' ? '◌ processing' : '◌ queued'}
+              </span>
+              <span>· {r.processor || 'none'}</span>
+              {r.row_count > 0 && <span>· {r.row_count} rows</span>}
+              <span>· {(r.size_bytes / 1024).toFixed(0)} KB</span>
+            </div>
+            {r.summary && (
+              <p className="text-[11px] text-gray-500 mt-1 whitespace-pre-wrap line-clamp-3">{r.summary}</p>
+            )}
+            <div className="flex items-center justify-between mt-2">
+              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={r.for_ai}
+                  onChange={(e) => aiMut.mutate({ rid: r.id, forAI: e.target.checked })}
+                />
+                Use for AI
+              </label>
+              <a href={jobsApi.resultDownloadUrl(r.id)} download className="text-[11px] text-emerald-400 hover:underline">
+                Download
+              </a>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -261,17 +366,19 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {/* AI Analysis */}
+          {/* AI narrative report (free-form). For structured findings that go on
+              the case timeline, use "Extract findings → timeline" in Collected
+              Results below. */}
           {isTerminal && (
             <div className="card p-4">
-              <h2 className="text-sm font-semibold text-gray-200 mb-1">AI Analysis</h2>
-              <p className="text-xs text-gray-500 mb-3">Send this job's output and artifact to an AI provider for forensic analysis.</p>
+              <h2 className="text-sm font-semibold text-gray-200 mb-1">AI Narrative Report</h2>
+              <p className="text-xs text-gray-500 mb-3">Open a free-form AI forensic write-up of this job's output. For findings on the case timeline, use "Extract findings → timeline" in Collected Results.</p>
               <button
                 onClick={() => navigate(`/ai-analysis?source=job&id=${job.id}`)}
-                className="flex items-center gap-2 w-full justify-center px-3 py-2 text-sm bg-violet-900/30 hover:bg-violet-900/50 text-violet-300 border border-violet-500/30 rounded-lg transition"
+                className="flex items-center gap-2 w-full justify-center px-3 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg transition"
               >
                 <BrainCircuit className="h-4 w-4" />
-                Analyze with AI
+                Open AI narrative report
               </button>
             </div>
           )}
@@ -296,6 +403,9 @@ export default function JobDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Collected result files (auto-pulled per the tool's output spec) */}
+          <ToolResultsPanel jobId={job.id} />
         </div>
 
         {/* Right: terminal output / report viewer */}

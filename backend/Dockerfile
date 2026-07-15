@@ -132,6 +132,17 @@ RUN git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates /ou
 
 # ─────────────────────────────────────────────────────────────────────────── #
 
+# Stage 1.7: Redline/.mans parser (goauditparser, Apache-2.0) — powers the
+# "redline" tool-result processor. Best-effort: if the build fails, the processor
+# just reports goauditparser as missing and stores Redline results raw.
+FROM golang:1.25-alpine AS goauditparser-builder
+RUN apk add --no-cache git ca-certificates
+RUN mkdir -p /out && \
+    (GOBIN=/out go install github.com/mandiant/goauditparser@latest \
+     || echo "[build] goauditparser build failed — redline result processor will report it missing")
+
+# ─────────────────────────────────────────────────────────────────────────── #
+
 # Stage 2: Minimal runtime image
 FROM alpine:3.19
 
@@ -185,6 +196,10 @@ COPY --from=scanner-tools /out/ /usr/local/bin/
 RUN mv /usr/local/bin/nuclei-templates /app/nuclei-templates 2>/dev/null || mkdir -p /app/nuclei-templates
 # Content-discovery wordlist for the ffuf stage (path matches VULNSCAN_FFUF_WORDLIST).
 COPY --from=scanner-tools /wordlists/ /app/wordlists/
+
+# Redline result parser (goauditparser). Tolerant dir copy so a failed build
+# stage doesn't break the image — the "redline" processor just degrades to raw.
+COPY --from=goauditparser-builder /out/ /usr/local/bin/
 
 # Create required directories and fix ownership
 RUN mkdir -p /app/storage /app/agent-bins /app/defaults \

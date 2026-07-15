@@ -25,6 +25,7 @@ type Spec struct {
 	Timeout     time.Duration // per-run wall-clock budget (default 15m)
 	RunOnStart  bool          // run once shortly after boot
 	StartDelay  time.Duration // stagger from boot before the first run
+	MaxRetries  int           // auto-retry attempts after a failed run (0 = default)
 	Fn          UpdateFunc
 }
 
@@ -42,7 +43,17 @@ type Status struct {
 	LastMessage string     `json:"last_message,omitempty"`
 	LastDurMs   int64      `json:"last_duration_ms"`
 	NextRun     *time.Time `json:"next_run,omitempty"`
+
+	// Self-healing: after a failed run the manager auto-retries with backoff
+	// instead of waiting the full interval. Attempt is the consecutive failure
+	// count (0 when healthy); NextRetry is when the next auto-retry fires.
+	Attempt   int        `json:"attempt"`
+	NextRetry *time.Time `json:"next_retry,omitempty"`
 }
+
+// defaultMaxRetries is the number of backoff retries after a failed run before
+// the manager gives up until the next scheduled interval.
+const defaultMaxRetries = 4
 
 type entry struct {
 	spec    Spec
@@ -132,30 +143,105 @@ func (m *Manager) loop(ctx context.Context, name string, startDelay time.Duratio
 	if e.spec.RunOnStart {
 		startCh = time.After(startDelay)
 	}
+	var retryCh <-chan time.Time // fires when a backoff auto-retry is due
+
+	// freshRun starts a new cycle (boot / interval / manual): reset the retry
+	// counter, run, and arm a retry if it failed.
+	freshRun := func() {
+		m.clearRetry(name)
+		if d, ok := m.runCycle(ctx, name); ok {
+			retryCh = time.After(d)
+		} else {
+			retryCh = nil
+		}
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-startCh:
 			startCh = nil
-			m.execute(ctx, name)
+			freshRun()
 		case <-t.C:
-			m.execute(ctx, name)
+			freshRun()
 			m.setNextRun(name, m.now().Add(e.spec.Interval))
 		case <-e.trigger:
-			m.execute(ctx, name)
+			freshRun()
 			m.setNextRun(name, m.now().Add(e.spec.Interval))
+		case <-retryCh:
+			// A backoff retry — do NOT reset the attempt counter.
+			retryCh = nil
+			if d, ok := m.runCycle(ctx, name); ok {
+				retryCh = time.After(d)
+			}
 		}
 	}
 }
 
-func (m *Manager) execute(ctx context.Context, name string) {
+// runCycle executes one run and, on failure, schedules the next backoff retry.
+// Returns (delay, true) when a retry should be armed, or (0, false) on success
+// or once retries are exhausted.
+func (m *Manager) runCycle(ctx context.Context, name string) (time.Duration, bool) {
+	if m.execute(ctx, name) { // true == failed
+		return m.scheduleRetry(name)
+	}
+	m.clearRetry(name)
+	return 0, false
+}
+
+// scheduleRetry bumps the failure counter and returns the backoff delay, or
+// ok=false once MaxRetries is reached (the component then waits for its next
+// scheduled interval).
+func (m *Manager) scheduleRetry(name string) (time.Duration, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.entries[name]
+	max := e.spec.MaxRetries
+	if max <= 0 {
+		max = defaultMaxRetries
+	}
+	if e.status.Attempt >= max {
+		e.status.NextRetry = nil
+		return 0, false
+	}
+	e.status.Attempt++
+	d := backoffFor(e.status.Attempt)
+	nt := m.now().Add(d)
+	e.status.NextRetry = &nt
+	log.Printf("[updater] %s auto-retry %d/%d in %s", name, e.status.Attempt, max, d)
+	return d, true
+}
+
+// clearRetry resets the retry state (called on success and at the start of each
+// fresh cycle).
+func (m *Manager) clearRetry(name string) {
+	m.mu.Lock()
+	if e, ok := m.entries[name]; ok {
+		e.status.Attempt = 0
+		e.status.NextRetry = nil
+	}
+	m.mu.Unlock()
+}
+
+// backoffFor returns the delay before retry attempt n: 1m, 3m, 9m, 27m … capped.
+func backoffFor(attempt int) time.Duration {
+	d := time.Minute
+	for i := 1; i < attempt; i++ {
+		d *= 3
+	}
+	if d > 30*time.Minute {
+		d = 30 * time.Minute
+	}
+	return d
+}
+
+func (m *Manager) execute(ctx context.Context, name string) (failed bool) {
 	e := m.entries[name]
 
 	m.mu.Lock()
 	if e.status.Running {
 		m.mu.Unlock()
-		return // a run is already in flight (e.g. manual trigger during a scheduled run)
+		return false // a run is already in flight (e.g. manual trigger during a scheduled run)
 	}
 	e.status.Running = true
 	m.mu.Unlock()
@@ -182,6 +268,7 @@ func (m *Manager) execute(ctx context.Context, name string) {
 		log.Printf("[updater] %s ok in %s", name, dur.Round(time.Millisecond))
 	}
 	m.mu.Unlock()
+	return err != nil
 }
 
 // safeRun runs fn, converting a panic into an error so one bad updater can't crash

@@ -163,6 +163,11 @@ func NewRouter(
 		protected.POST("/jobs/:id/stop", handlers.StopJob)
 		protected.GET("/jobs/:id/artifact/download", handlers.DownloadArtifact)
 		protected.GET("/jobs/:id/artifact/content", handlers.GetArtifactContent)
+		// Collected tool result files (auto-pulled per the tool's output spec).
+		protected.GET("/jobs/:id/results", handlers.ListToolResults)
+		protected.PATCH("/jobs/:id/results/for-ai", handlers.SetJobResultsAI)
+		protected.GET("/tool-results/:id/download", handlers.DownloadToolResult)
+		protected.PATCH("/tool-results/:id", handlers.SetToolResultAI)
 
 		// Offline Bundles
 		protected.GET("/offline-bundles", handlers.ListOfflineBundles)
@@ -439,6 +444,10 @@ func NewRouter(
 		evidenceHandler := handlers.NewEvidenceHandler(db, store)
 		protected.POST("/cases/:id/evidence", evidenceHandler.Upload)
 		protected.GET("/cases/:id/evidence", evidenceHandler.List)
+		// Central Evidence Store (global view across cases/agents).
+		protected.GET("/evidence", evidenceHandler.ListAll)
+		protected.POST("/evidence", evidenceHandler.UploadGlobal)
+		protected.GET("/evidence-facets", evidenceHandler.Facets)
 		protected.DELETE("/evidence/:id", evidenceHandler.Delete)
 		protected.GET("/evidence/:id/download", evidenceHandler.Download)
 		protected.GET("/evidence/:id/view", evidenceHandler.View)
@@ -462,6 +471,17 @@ func NewRouter(
 		protected.GET("/ai/sessions/:id", aiHandler.GetSession)
 		protected.GET("/ai/sessions/:id/stream", aiHandler.StreamSession)
 		protected.DELETE("/ai/sessions/:id", aiHandler.DeleteSession)
+		// Map-reduce AI over a job's collected tool results → structured findings
+		// promoted into the case timeline + IOC store.
+		protected.POST("/jobs/:id/analyze-results", aiHandler.AnalyzeJobResults)
+		// Case-level: same analysis across every job in the case (all hosts) → one
+		// correlated timeline.
+		protected.POST("/cases/:id/analyze-results", aiHandler.AnalyzeCaseResults)
+		// AI triage of native agent forensic artifacts (not tied to a tool job) →
+		// findings promoted into the case timeline.
+		protected.POST("/cases/:id/analyze-artifacts", aiHandler.AnalyzeArtifacts)
+		// Per-file AI analysis from the Evidence Store.
+		protected.POST("/evidence/:id/analyze", aiHandler.AnalyzeEvidence)
 		protected.POST("/cases/:id/timeline/ai-extract", aiHandler.ExtractTimeline)
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
 		protected.POST("/cases/:id/report/ai-summary", aiHandler.GenerateCaseSummary)
@@ -566,6 +586,7 @@ func NewRouter(
 	agentProtected.Use(middleware.AgentAuthMiddleware(db), middleware.AuditMiddleware())
 	{
 		agentProtected.POST("/jobs/:id/artifact", handlers.UploadArtifact)
+		agentProtected.POST("/jobs/:id/result", handlers.UploadToolResult)
 		agentProtected.GET("/agent/tools/:id/download", handlers.DownloadTool)
 		agentProtected.GET("/agent/binary/:platform", handlers.DownloadAgentBinary)
 	}

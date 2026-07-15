@@ -163,6 +163,11 @@ func CreateJob(c *gin.Context) {
 		DownloadURL:    downloadURL,
 		Args:           mergeArgs(tool.Args, req.Args),
 		ExecutablePath: tool.ExecutablePath,
+		CollectResult:   tool.CollectResult,
+		OutputGlobs:     tool.OutputGlobs,
+		OutputScope:     tool.OutputScope,
+		ResultProcessor: tool.ResultProcessor,
+		MaxResultMB:     tool.MaxResultMB,
 	}
 	if dispatchErr := hub.SendJobToAgent(agentID.String(), cmd); dispatchErr != nil {
 		log.Printf("[jobs] dispatch to agent %s: %v", agentID, dispatchErr)
@@ -233,6 +238,11 @@ func RunJob(c *gin.Context) {
 		CPULimit:       job.CPULimit,
 		RAMLimit:       job.RAMLimit,
 		Priority:       job.Priority,
+		CollectResult:   job.Tool.CollectResult,
+		OutputGlobs:     job.Tool.OutputGlobs,
+		OutputScope:     job.Tool.OutputScope,
+		ResultProcessor: job.Tool.ResultProcessor,
+		MaxResultMB:     job.Tool.MaxResultMB,
 	}
 	if err := hub.SendJobToAgent(job.AgentID.String(), cmd); err != nil {
 		log.Printf("[jobs] run dispatch error: %v", err)

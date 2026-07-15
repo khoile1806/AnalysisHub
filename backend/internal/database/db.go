@@ -64,6 +64,7 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.Case{},
 		&models.Agent{},
 		&models.Tool{},
+		&models.ToolResult{},
 		&models.HuntingScenario{},
 		&models.HuntingScenarioTool{},
 		&models.HuntingDeployment{},

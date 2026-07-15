@@ -227,6 +227,7 @@ type TabKey = 'timeline' | 'attack' | 'jobs' | 'logs' | 'compliance' | 'osint' |
 // ReportActions — open the self-contained incident report (HTML→PDF) and,
 // optionally, have an AI provider draft the executive narrative into it first.
 function ReportActions({ caseId }: { caseId: string }) {
+  const qc = useQueryClient()
   const { data: providers = [] } = useQuery({ queryKey: ['ai-providers'], queryFn: analysisApi.listProviders })
   const active = providers.filter((p) => p.is_active)
   const aiMut = useMutation({
@@ -234,13 +235,32 @@ function ReportActions({ caseId }: { caseId: string }) {
     onSuccess: () => toast.success('AI summary saved — it now appears in the report'),
     onError: (e) => toast.error(getErrorMessage(e)),
   })
+  // Case-level: AI over all collected agent results in this case → timeline findings.
+  const analyzeMut = useMutation({
+    mutationFn: () => casesApi.analyzeResults(caseId, active[0]?.id),
+    onSuccess: (d) => {
+      qc.invalidateQueries()
+      toast.success(d.note ?? `AI: ${d.created} timeline event(s), ${d.iocs_promoted} IOC(s) from ${d.jobs_analyzed} job(s)`)
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
   return (
     <>
       {active.length > 0 && (
         <button
+          onClick={() => analyzeMut.mutate()}
+          disabled={analyzeMut.isPending}
+          title="Run AI over ALL collected agent results in this case and add findings to the attack timeline (do this before AI Summary)"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border bg-violet-900/20 hover:bg-violet-900/40 text-violet-300 border-violet-500/30 transition disabled:opacity-50"
+        >
+          {analyzeMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <BrainCircuit className="h-3 w-3" />} Analyze Evidence
+        </button>
+      )}
+      {active.length > 0 && (
+        <button
           onClick={() => aiMut.mutate()}
           disabled={aiMut.isPending}
-          title="Draft an AI executive summary into the incident report"
+          title="Draft an AI executive summary of the timeline into the incident report"
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 hover:text-emerald-400 hover:border-emerald-500/40 transition disabled:opacity-50"
         >
           {aiMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI Summary

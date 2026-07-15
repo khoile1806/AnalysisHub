@@ -269,6 +269,7 @@ func main() {
 	handlers.StartCVEUpdateWorker(hub)
 	handlers.StartNewsUpdateWorker(hub)
 	handlers.StartFleetScheduler(db, hub)
+	handlers.StartToolResultWorker(db, store, cfg)
 
 	// Threat intel enrichment client — used by the AI analysis pipeline to
 	// automatically look up IPs, hashes, and domains before sending the

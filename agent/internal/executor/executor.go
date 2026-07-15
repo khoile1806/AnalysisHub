@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -182,6 +183,28 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+// rebaseDownloadURL rewrites the scheme+host of a server-provided download URL
+// to the agent's own ServerURL (the host it connected through), keeping the
+// path and query. This makes tool downloads robust to the backend advertising a
+// PUBLIC_URL/domain the agent cannot reach. Returns the original URL if
+// serverURL is empty or either URL fails to parse.
+func rebaseDownloadURL(rawURL, serverURL string) string {
+	if strings.TrimSpace(serverURL) == "" {
+		return rawURL
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	base, err := url.Parse(serverURL)
+	if err != nil || base.Host == "" {
+		return rawURL
+	}
+	u.Scheme = base.Scheme
+	u.Host = base.Host
+	return u.String()
+}
+
 // ensureTool downloads the tool to toolDir if not already present.
 // Returns the path to the downloaded file.
 func ensureTool(ctx context.Context, req JobRequest, toolDir string, outputCh chan<- string) (string, error) {
@@ -201,7 +224,16 @@ func ensureTool(ctx context.Context, req JobRequest, toolDir string, outputCh ch
 
 	send(ctx, outputCh, fmt.Sprintf("[+] Downloading tool: %s", req.ToolName))
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, req.DownloadURL, nil)
+	// Always download from the server this agent is actually connected to, not
+	// whatever host the backend baked into the URL (its PUBLIC_URL/domain may be
+	// unreachable from the agent, e.g. a LAN agent vs a public domain). We keep
+	// only the path/query and re-base the scheme+host onto our own ServerURL.
+	dlURL := rebaseDownloadURL(req.DownloadURL, req.ServerURL)
+	if dlURL != req.DownloadURL {
+		send(ctx, outputCh, fmt.Sprintf("[i] Re-based download URL to agent server: %s", dlURL))
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, dlURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("executor: build download request: %w", err)
 	}
@@ -209,12 +241,12 @@ func ensureTool(ctx context.Context, req JobRequest, toolDir string, outputCh ch
 
 	resp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
-		return "", fmt.Errorf("executor: download %s: %w", req.DownloadURL, err)
+		return "", fmt.Errorf("executor: download %s: %w", dlURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("executor: download %s: server returned %s", req.DownloadURL, resp.Status)
+		return "", fmt.Errorf("executor: download %s: server returned %s", dlURL, resp.Status)
 	}
 
 	f, err := os.OpenFile(toolPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)

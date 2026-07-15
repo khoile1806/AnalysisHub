@@ -3,6 +3,8 @@ package ws
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,6 +53,13 @@ type inboundMsg struct {
 	CPULimit       int    `json:"cpu_limit,omitempty"`
 	RAMLimit       int    `json:"ram_limit,omitempty"`
 	Priority       string `json:"priority,omitempty"`
+
+	// Result-collection spec (auto-pull tool output files back to the server).
+	CollectResult   bool   `json:"collect_result,omitempty"`
+	OutputGlobs     string `json:"output_globs,omitempty"`
+	OutputScope     string `json:"output_scope,omitempty"`
+	ResultProcessor string `json:"result_processor,omitempty"`
+	MaxResultMB     int    `json:"max_result_mb,omitempty"`
 
 	// Terminal (interactive PTY) fields.
 	SessionID string `json:"session_id,omitempty"`
@@ -445,12 +454,24 @@ func (c *Client) handleJobStart(ctx context.Context, msg inboundMsg) {
 // handleJobRun executes a previously-downloaded tool. A per-job cancellable
 // context is registered in runningJobs so handleJobStop can kill the process.
 func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
+	// Result collection: create a per-job output dir inside the tool dir so a tool
+	// can be told to write to {{OUTDIR}}, and so post-run collection has a root.
+	runToolID := msg.ToolID
+	if runToolID == "" {
+		runToolID = executor.SanitizeFilename(msg.ToolName)
+	}
+	runToolDir := filepath.Join(c.cfg.WorkDir, "tools", runToolID)
+	runOutDir := filepath.Join(runToolDir, "_results", msg.JobID)
+	_ = os.MkdirAll(runOutDir, 0o755)
+	resolvedArgs := strings.ReplaceAll(msg.Args, "{{OUTDIR}}", runOutDir)
+	runStart := time.Now()
+
 	req := executor.JobRequest{
 		JobID:          msg.JobID,
 		ToolID:         msg.ToolID,
 		ToolName:       msg.ToolName,
 		FileName:       msg.FileName,
-		Args:           msg.Args,
+		Args:           resolvedArgs,
 		ExecutablePath: msg.ExecutablePath,
 		CPULimit:       msg.CPULimit,
 		RAMLimit:       msg.RAMLimit,
@@ -590,11 +611,213 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 			}
 		}
 
+		// Generic result collection per the tool's declared output spec.
+		if msg.CollectResult {
+			c.collectResults(runCtx, msg, runToolDir, runOutDir, runStart)
+		}
+
 		if err := c.sendOutput(msg.JobID, "", true); err != nil {
 			log.Printf("[job:%s] send done error: %v", msg.JobID, err)
 		}
 		log.Printf("[job:%s] finished", msg.JobID)
 	}()
+}
+
+// collectResults gathers the tool's output files after a run and uploads each as
+// a ToolResult. Sources: everything under the per-job {{OUTDIR}}, plus any file
+// in the tool dir that matches OutputGlobs and was modified during this run
+// (so pre-bundled tool files are not mistaken for results).
+func (c *Client) collectResults(ctx context.Context, msg inboundMsg, toolDir, outDir string, since time.Time) {
+	maxBytes := int64(msg.MaxResultMB) * 1024 * 1024
+	if maxBytes <= 0 {
+		maxBytes = 200 * 1024 * 1024 // default 200 MB/file
+	}
+	globs := splitGlobs(msg.OutputGlobs)
+	scope := msg.OutputScope
+	if scope == "" {
+		scope = "both"
+	}
+
+	seen := map[string]bool{}
+	var files []string
+	add := func(p string, size int64) {
+		if size > maxBytes {
+			_ = c.sendOutput(msg.JobID, fmt.Sprintf("[!] result %s skipped (%.1f MB exceeds %d MB cap)",
+				filepath.Base(p), float64(size)/(1024*1024), maxBytes/(1024*1024)), false)
+			return
+		}
+		ap, _ := filepath.Abs(p)
+		if seen[ap] {
+			return
+		}
+		seen[ap] = true
+		files = append(files, p)
+	}
+
+	if scope == "both" || scope == "outdir" {
+		_ = filepath.Walk(outDir, func(p string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() {
+				add(p, info.Size())
+			}
+			return nil
+		})
+	}
+	if (scope == "both" || scope == "tooldir") && len(globs) > 0 {
+		resultsRoot := filepath.Join(toolDir, "_results")
+		_ = filepath.Walk(toolDir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+			if info.IsDir() {
+				if strings.HasPrefix(p, resultsRoot) {
+					return filepath.SkipDir // already covered by outDir scan
+				}
+				return nil
+			}
+			if !info.ModTime().After(since.Add(-2 * time.Second)) {
+				return nil // pre-existing bundled file, not a fresh result
+			}
+			if matchGlobs(filepath.Base(p), globs) {
+				add(p, info.Size())
+			}
+			return nil
+		})
+	}
+
+	const maxFiles = 50
+	if len(files) > maxFiles {
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[!] %d result files found; uploading first %d", len(files), maxFiles), false)
+		files = files[:maxFiles]
+	}
+	if len(files) == 0 {
+		_ = c.sendOutput(msg.JobID, "[i] no result files matched the tool output spec", false)
+		return
+	}
+	for _, p := range files {
+		waitStable(p) // ensure the tool finished writing before we ship it
+		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[+] Uploading result: %s", filepath.Base(p)), false)
+		if err := c.uploadResult(ctx, msg.JobID, p, msg.ResultProcessor); err != nil {
+			_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] result upload failed (%s): %v", filepath.Base(p), err), false)
+		}
+	}
+}
+
+// waitStable blocks until a file's size and mtime stop changing across two
+// consecutive samples (so a tool still flushing/writing isn't shipped partial),
+// or a hard timeout elapses.
+func waitStable(path string) {
+	const interval = 1500 * time.Millisecond
+	const maxWait = 30 * time.Second
+	deadline := time.Now().Add(maxWait)
+	var lastSize int64 = -1
+	var lastMod time.Time
+	for time.Now().Before(deadline) {
+		info, err := os.Stat(path)
+		if err != nil {
+			return
+		}
+		if info.Size() == lastSize && info.ModTime().Equal(lastMod) {
+			return // two identical samples ⇒ stable
+		}
+		lastSize = info.Size()
+		lastMod = info.ModTime()
+		time.Sleep(interval)
+	}
+}
+
+// fileSHA256 returns the lowercase hex SHA-256 of a file, or "" on error.
+func fileSHA256(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func splitGlobs(s string) []string {
+	var out []string
+	for _, g := range strings.Split(s, ",") {
+		if g = strings.TrimSpace(g); g != "" {
+			out = append(out, g)
+		}
+	}
+	return out
+}
+
+// matchGlobs matches a base filename against a set of glob patterns. Patterns
+// may include a directory prefix (e.g. "report/*.html"); only the trailing
+// filename pattern is applied to the base name.
+func matchGlobs(name string, globs []string) bool {
+	for _, g := range globs {
+		pat := g
+		if i := strings.LastIndexAny(g, `/\`); i >= 0 {
+			pat = g[i+1:]
+		}
+		if ok, _ := filepath.Match(pat, name); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// uploadResult uploads a single collected result file to the server's
+// per-job result endpoint, tagging it with the processor hint.
+func (c *Client) uploadResult(ctx context.Context, jobID, filePath, processor string) error {
+	sum := fileSHA256(filePath) // integrity hash so the server can reject a truncated transfer
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("open result %s: %w", filePath, err)
+	}
+	defer f.Close()
+
+	pr, pw := io.Pipe()
+	w := multipart.NewWriter(pw)
+	go func() {
+		defer pw.Close()
+		if processor != "" {
+			_ = w.WriteField("processor", processor)
+		}
+		if sum != "" {
+			_ = w.WriteField("sha256", sum)
+		}
+		_ = w.WriteField("filename", filepath.Base(filePath))
+		part, err := w.CreateFormFile("file", filepath.Base(filePath))
+		if err != nil {
+			log.Printf("[result-upload] form file error: %v", err)
+			return
+		}
+		if _, err := io.Copy(part, f); err != nil {
+			log.Printf("[result-upload] copy error: %v", err)
+		}
+		w.Close()
+	}()
+
+	uploadURL := fmt.Sprintf("%s/api/v1/jobs/%s/result", c.cfg.ServerURL, jobID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, pr)
+	if err != nil {
+		return fmt.Errorf("build result upload: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("X-Agent-Token", c.cfg.AgentToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("dispatch result upload: %w", err)
+	}
+	defer resp.Body.Close()
+	// The server queues the result and returns 202 Accepted (async processing);
+	// 200 is also fine. Anything outside 2xx is a real failure.
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("result upload failed: %s: %s", resp.Status, string(body))
+	}
+	return nil
 }
 
 // handleJobStop cancels the running job's context, which kills the child

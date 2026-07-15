@@ -417,6 +417,11 @@ func DeployScenario(c *gin.Context) {
 			DownloadURL:    downloadURL,
 			Args:           tool.Args,
 			ExecutablePath: tool.ExecutablePath,
+			CollectResult:   tool.CollectResult,
+			OutputGlobs:     tool.OutputGlobs,
+			OutputScope:     tool.OutputScope,
+			ResultProcessor: tool.ResultProcessor,
+			MaxResultMB:     tool.MaxResultMB,
 		}
 		if derr := hub.SendJobToAgent(agentID.String(), cmd); derr != nil {
 			log.Printf("[hunting] dispatch %s to agent %s: %v", tool.Name, agentID, derr)

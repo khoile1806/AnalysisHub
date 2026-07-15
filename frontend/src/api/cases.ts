@@ -97,6 +97,28 @@ export const casesApi = {
     return data.data
   },
 
+  // analyzeResults runs AI findings-extraction across every job's collected
+  // results in this case and promotes them into the case timeline (+IOC store).
+  analyzeResults: async (id: string, providerId?: string): Promise<{ jobs_analyzed: number; findings: number; created: number; iocs_promoted: number; note?: string }> => {
+    const { data } = await apiClient.post<ApiResponse<{ jobs_analyzed: number; findings: number; created: number; iocs_promoted: number; note?: string }>>(
+      `/cases/${id}/analyze-results`, providerId ? { provider_id: providerId } : {},
+    )
+    return data.data
+  },
+
+  // analyzeArtifacts runs AI triage over a set of native forensic artifact rows
+  // (e.g. an agent's EdgeForensics scan) and promotes findings into the case
+  // timeline (+IOC store) — for evidence not tied to a tool job.
+  analyzeArtifacts: async (
+    id: string,
+    body: { source: string; host?: string; items: unknown[]; provider_id?: string },
+  ): Promise<{ findings: number; created: number; iocs_promoted: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ findings: number; created: number; iocs_promoted: number }>>(
+      `/cases/${id}/analyze-artifacts`, body,
+    )
+    return data.data
+  },
+
   importOfflineReport: async (id: string, file: File): Promise<ImportOfflineResult> => {
     const form = new FormData()
     form.append('file', file)

@@ -23,6 +23,7 @@ import {
 
 const PROVIDER_PRESETS: Record<string, { label: string; baseURL: string; type: 'openai' | 'anthropic' | 'google'; examples: string[] }> = {
   groq:       { label: 'Groq',        type: 'openai',    baseURL: 'https://api.groq.com/openai/v1',                 examples: ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768'] },
+  deepseek:   { label: 'DeepSeek',    type: 'openai',    baseURL: 'https://api.deepseek.com/v1',                    examples: ['deepseek-chat', 'deepseek-reasoner'] },
   openrouter: { label: 'OpenRouter',  type: 'openai',    baseURL: 'https://openrouter.ai/api/v1',                   examples: ['meta-llama/llama-3.3-70b-instruct:free', 'mistralai/mistral-7b-instruct:free'] },
   together:   { label: 'Together AI', type: 'openai',    baseURL: 'https://api.together.xyz/v1',                    examples: ['meta-llama/Llama-3.3-70B-Instruct-Turbo'] },
   mistral:    { label: 'Mistral AI',  type: 'openai',    baseURL: 'https://api.mistral.ai/v1',                      examples: ['mistral-small-latest', 'open-mistral-7b'] },
@@ -149,7 +150,7 @@ function ProviderFormModal({
 
             <div>
               <label className="label">Model</label>
-              <input className="input font-mono text-xs" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. llama-3.3-70b-versatile" />
+              <input className="input font-mono text-xs" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. deepseek-chat" autoComplete="off" spellCheck={false} />
               {selectedPreset?.examples.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {selectedPreset.examples.map((ex) => (

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   BrainCircuit, Plus, Trash2, Upload,
   FileText, Server, ClipboardList, Search, Settings2,
-  Activity, Package, ArrowLeft,
+  Activity, Package, ArrowLeft, FolderArchive,
 } from 'lucide-react'
 import AIProviderSettings from '@/pages/AIProviderSettings'
 import toast from 'react-hot-toast'
@@ -30,6 +30,7 @@ const SOURCE_ICONS: Record<SessionSourceType, typeof FileText> = {
   elk_result: Search,
   upload: Upload,
   offline_report: Package,
+  evidence: FolderArchive,
 }
 
 const SOURCE_LABELS: Record<SessionSourceType, string> = {
@@ -38,7 +39,12 @@ const SOURCE_LABELS: Record<SessionSourceType, string> = {
   elk_result: 'ELK Hunt Result',
   upload: 'File Upload',
   offline_report: 'Offline Report',
+  evidence: 'Evidence File',
 }
+
+// Sources selectable manually in the New Analysis modal. `evidence` is launched
+// from the Evidence Store (deep-link) with a specific file id, not picked here.
+const PICKER_SOURCES: SessionSourceType[] = ['job', 'checklist_run', 'elk_result', 'upload', 'offline_report']
 
 function statusColor(status: AnalysisSession['status']) {
   switch (status) {
@@ -156,7 +162,7 @@ function NewAnalysisModal({
           <div>
             <label className="label">Source Type *</label>
             <div className="grid grid-cols-4 gap-2">
-              {(Object.keys(SOURCE_LABELS) as SessionSourceType[]).map((t) => {
+              {PICKER_SOURCES.map((t) => {
                 const Icon = SOURCE_ICONS[t]
                 return (
                   <button
@@ -176,6 +182,17 @@ function NewAnalysisModal({
           </div>
 
           {/* Source picker */}
+          {sourceType === 'evidence' && (
+            <div>
+              <label className="label">Evidence File</label>
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-900/10 px-3 py-2 text-xs text-emerald-300">
+                <FolderArchive className="h-4 w-4 shrink-0" />
+                <span className="font-mono truncate">{sourceId || 'launched from the Evidence Store'}</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">Detailed AI analysis of this evidence file. Pick a provider and start.</p>
+            </div>
+          )}
+
           {sourceType === 'job' && (
             <div>
               <label className="label">Select Job *</label>

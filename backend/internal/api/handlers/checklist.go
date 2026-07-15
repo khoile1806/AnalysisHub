@@ -17,6 +17,7 @@ import (
 
 	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/storage"
 	"github.com/analysishub/backend/internal/ws"
 )
 
@@ -51,6 +52,12 @@ func RunChecklist(c *gin.Context) {
 		return
 	}
 	userID, _ := middleware.GetUserID(c)
+
+	// Optional storage handle for writing a checklist evidence marker on completion.
+	var store *storage.LocalStorage
+	if sv, sok := c.Get("storage"); sok {
+		store, _ = sv.(*storage.LocalStorage)
+	}
 
 	var req runChecklistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -180,13 +187,15 @@ func RunChecklist(c *gin.Context) {
 				"finished_at": finishedAt,
 			})
 
-			// Mark run as done when all batches finish.
+			// Mark run as done when all batches finish, and snapshot the whole run
+			// into the Evidence Store as a marked checklist evidence file.
 			var pendingCount int64
 			db.Model(&models.ChecklistBatch{}).
 				Where("run_id = ? AND status NOT IN ('done','failed','stopped')", b.RunID).
 				Count(&pendingCount)
 			if pendingCount == 0 {
 				db.Model(&models.ChecklistRun{}).Where("id = ?", b.RunID).Update("status", "done")
+				recordChecklistEvidence(db, store, b.RunID)
 			}
 		}(batch, ch)
 	}
@@ -214,6 +223,46 @@ func RunChecklist(c *gin.Context) {
 			"batches": batches,
 		},
 	})
+}
+
+// recordChecklistEvidence writes a completed checklist run (all batch outputs)
+// into the Evidence Store as a marked evidence file, attributed to the host.
+func recordChecklistEvidence(db *gorm.DB, store *storage.LocalStorage, runID uuid.UUID) {
+	if store == nil {
+		return
+	}
+	var run models.ChecklistRun
+	if db.Preload("Batches").First(&run, "id = ?", runID).Error != nil {
+		return
+	}
+	var agent models.Agent
+	db.First(&agent, "id = ?", run.AgentID)
+	host := agent.Hostname
+	if host == "" {
+		host = agent.Name
+	}
+
+	label := run.Label
+	if label == "" {
+		label = "checklist"
+	}
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "Checklist run: %s\nHost: %s\nPlatform: %s\nAnalyst: %s\nRun ID: %s\nCompleted: %s\n\n",
+		label, host, run.Platform, run.Analyst, run.ID, time.Now().UTC().Format(time.RFC3339))
+	for _, b := range run.Batches {
+		fmt.Fprintf(&sb, "===== %s %s [%s] =====\n%s\n\n", b.BatchKey, b.BatchLabel, b.Status, b.Output)
+	}
+
+	var caseID *uuid.UUID
+	if run.CaseID != "" {
+		if id, err := uuid.Parse(run.CaseID); err == nil {
+			caseID = &id
+		}
+	}
+	agentID := run.AgentID
+	safeLabel := strings.NewReplacer("\\", "-", "/", "-", " ", "_", ":", "-").Replace(label)
+	fileName := fmt.Sprintf("checklist-%s-%d.txt", safeLabel, time.Now().Unix())
+	recordEvidenceBytes(db, store, caseID, &agentID, host, "checklist", "checklist:"+label, fileName, []byte(sb.String()))
 }
 
 // ListChecklistRuns returns all runs optionally filtered by agent_id.

@@ -22,7 +22,7 @@ export interface ChainStep {
   detail: string
 }
 
-export type SessionSourceType = 'job' | 'checklist_run' | 'elk_result' | 'upload' | 'offline_report'
+export type SessionSourceType = 'job' | 'checklist_run' | 'elk_result' | 'upload' | 'offline_report' | 'evidence'
 
 export interface AnalysisSession {
   id: string

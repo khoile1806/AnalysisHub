@@ -45,12 +45,22 @@ function UploadModal({ open, onClose }: UploadModalProps) {
   const [args, setArgs] = useState('')
   const [executablePath, setExecutablePath] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  // Result-collection spec
+  const [collectResult, setCollectResult] = useState(false)
+  const [outputGlobs, setOutputGlobs] = useState('')
+  const [outputScope, setOutputScope] = useState('both')
+  const [resultProcessor, setResultProcessor] = useState('auto')
+  const [aiDefault, setAiDefault] = useState(true)
+  const [autoAnalyze, setAutoAnalyze] = useState(false)
+  const [maxResultMB, setMaxResultMB] = useState('200')
 
   const isZip = file?.name.toLowerCase().endsWith('.zip') ?? false
 
   const reset = () => {
     setName(''); setCategory('other'); setPlatform('windows')
     setVersion(''); setDescription(''); setArgs(''); setExecutablePath(''); setFile(null)
+    setCollectResult(false); setOutputGlobs(''); setOutputScope('both')
+    setResultProcessor('auto'); setAiDefault(true); setAutoAnalyze(false); setMaxResultMB('200')
   }
 
   const uploadMutation = useMutation({
@@ -75,6 +85,13 @@ function UploadModal({ open, onClose }: UploadModalProps) {
     fd.append('description', description)
     fd.append('args', args)
     fd.append('executable_path', executablePath)
+    fd.append('collect_result', String(collectResult))
+    fd.append('output_globs', outputGlobs)
+    fd.append('output_scope', outputScope)
+    fd.append('result_processor', resultProcessor)
+    fd.append('ai_default', String(aiDefault))
+    fd.append('auto_analyze', String(autoAnalyze))
+    fd.append('max_result_mb', maxResultMB || '0')
     fd.append('file', file)
     uploadMutation.mutate(fd)
   }
@@ -167,6 +184,55 @@ function UploadModal({ open, onClose }: UploadModalProps) {
                 </div>
               )}
 
+              <div className="sm:col-span-2 rounded-lg border border-gray-700 bg-gray-800/40 p-3 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={collectResult} onChange={(e) => setCollectResult(e.target.checked)} />
+                  <span className="text-sm font-medium text-gray-200">Auto-collect result files after run</span>
+                </label>
+                {collectResult && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="label">Output patterns <span className="text-gray-500 font-normal">(comma-separated globs)</span></label>
+                      <input className="input font-mono text-xs" value={outputGlobs} onChange={(e) => setOutputGlobs(e.target.value)} placeholder="*.txt, *.csv, report/*.html" />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Tip: point the tool's output flag at <code className="text-emerald-400">{'{{OUTDIR}}'}</code> in Default Args to collect everything it writes.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="label">Scope</label>
+                      <select className="input" value={outputScope} onChange={(e) => setOutputScope(e.target.value)}>
+                        <option value="both">both</option>
+                        <option value="tooldir">tool dir (glob)</option>
+                        <option value="outdir">{'{{OUTDIR}}'} only</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Processor</label>
+                      <select className="input" value={resultProcessor} onChange={(e) => setResultProcessor(e.target.value)}>
+                        {['auto', 'text', 'csv', 'json', 'loki', 'redline', 'kape', 'none'].map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Max size / file (MB)</label>
+                      <input className="input" type="number" min={0} value={maxResultMB} onChange={(e) => setMaxResultMB(e.target.value)} />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 cursor-pointer pb-2">
+                        <input type="checkbox" checked={aiDefault} onChange={(e) => setAiDefault(e.target.checked)} />
+                        <span className="text-sm text-gray-300">Send to AI by default</span>
+                      </label>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={autoAnalyze} onChange={(e) => setAutoAnalyze(e.target.checked)} disabled={!aiDefault} />
+                        <span className="text-sm text-gray-300">Auto-analyze on finish <span className="text-gray-500 font-normal">(run AI findings → timeline automatically when the job completes)</span></span>
+                      </label>
+                      <p className="text-[11px] text-gray-500 mt-1">Requires an AI provider + the agent linked to a case. Uses tokens per run — leave off for manual control.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           </DialogBody>
           <DialogFooter>
@@ -200,6 +266,13 @@ function EditModal({ tool, onClose }: EditModalProps) {
   const [description, setDescription] = useState('')
   const [args, setArgs] = useState('')
   const [executablePath, setExecutablePath] = useState('')
+  const [collectResult, setCollectResult] = useState(false)
+  const [outputGlobs, setOutputGlobs] = useState('')
+  const [outputScope, setOutputScope] = useState('both')
+  const [resultProcessor, setResultProcessor] = useState('auto')
+  const [aiDefault, setAiDefault] = useState(true)
+  const [autoAnalyze, setAutoAnalyze] = useState(false)
+  const [maxResultMB, setMaxResultMB] = useState('200')
 
   const isZip = tool?.file_name.toLowerCase().endsWith('.zip') ?? false
 
@@ -212,6 +285,13 @@ function EditModal({ tool, onClose }: EditModalProps) {
       setDescription(tool.description ?? '')
       setArgs(tool.args ?? '')
       setExecutablePath(tool.executable_path ?? '')
+      setCollectResult(tool.collect_result ?? false)
+      setOutputGlobs(tool.output_globs ?? '')
+      setOutputScope(tool.output_scope || 'both')
+      setResultProcessor(tool.result_processor || 'auto')
+      setAiDefault(tool.ai_default ?? true)
+      setAutoAnalyze(tool.auto_analyze ?? false)
+      setMaxResultMB(String(tool.max_result_mb ?? 200))
     }
   }, [tool])
 
@@ -232,6 +312,13 @@ function EditModal({ tool, onClose }: EditModalProps) {
     updateMutation.mutate({
       name, category, platform, version, description, args,
       executable_path: executablePath,
+      collect_result: collectResult,
+      output_globs: outputGlobs,
+      output_scope: outputScope,
+      result_processor: resultProcessor,
+      ai_default: aiDefault,
+      auto_analyze: autoAnalyze,
+      max_result_mb: Number(maxResultMB) || 0,
     })
   }
 
@@ -307,6 +394,52 @@ function EditModal({ tool, onClose }: EditModalProps) {
                   </p>
                 </div>
               )}
+
+              <div className="sm:col-span-2 rounded-lg border border-gray-700 bg-gray-800/40 p-3 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={collectResult} onChange={(e) => setCollectResult(e.target.checked)} />
+                  <span className="text-sm font-medium text-gray-200">Auto-collect result files after run</span>
+                </label>
+                {collectResult && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="label">Output patterns <span className="text-gray-500 font-normal">(comma-separated globs)</span></label>
+                      <input className="input font-mono text-xs" value={outputGlobs} onChange={(e) => setOutputGlobs(e.target.value)} placeholder="*.txt, *.csv, report/*.html" />
+                    </div>
+                    <div>
+                      <label className="label">Scope</label>
+                      <select className="input" value={outputScope} onChange={(e) => setOutputScope(e.target.value)}>
+                        <option value="both">both</option>
+                        <option value="tooldir">tool dir (glob)</option>
+                        <option value="outdir">{'{{OUTDIR}}'} only</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Processor</label>
+                      <select className="input" value={resultProcessor} onChange={(e) => setResultProcessor(e.target.value)}>
+                        {['auto', 'text', 'csv', 'json', 'loki', 'redline', 'kape', 'none'].map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Max size / file (MB)</label>
+                      <input className="input" type="number" min={0} value={maxResultMB} onChange={(e) => setMaxResultMB(e.target.value)} />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 cursor-pointer pb-2">
+                        <input type="checkbox" checked={aiDefault} onChange={(e) => setAiDefault(e.target.checked)} />
+                        <span className="text-sm text-gray-300">Send to AI by default</span>
+                      </label>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={autoAnalyze} onChange={(e) => setAutoAnalyze(e.target.checked)} disabled={!aiDefault} />
+                        <span className="text-sm text-gray-300">Auto-analyze on finish <span className="text-gray-500 font-normal">(run AI findings → timeline automatically when the job completes)</span></span>
+                      </label>
+                      <p className="text-[11px] text-gray-500 mt-1">Requires an AI provider + the agent linked to a case. Uses tokens per run — leave off for manual control.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </DialogBody>
           <DialogFooter>

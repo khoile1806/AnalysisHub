@@ -831,8 +831,13 @@ func AgentEvtxParse(c *gin.Context) {
 // awaitEdgeJSONResult waits for an EdgeForensics command's JSON result on outCh
 // and writes the HTTP response. It also polls agent liveness so a mid-scan
 // disconnect fails fast with a clear error instead of hanging until the deadline.
-func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID string) {
+func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID string, kind string) {
 	if data, ok := awaitEdgeJSONBytes(c, hub, outCh, agentID); ok {
+		// Snapshot the scan into the Evidence Store (best-effort, never blocks the
+		// response) so every edge-forensics scan leaves a marked evidence trail.
+		if kind != "" {
+			recordEdgeScanEvidence(c, agentID, kind, data)
+		}
 		c.Data(http.StatusOK, "application/json", data)
 	}
 }
@@ -908,7 +913,7 @@ func AgentMFTParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "mft")
 }
 
 // AgentPrefetchParse triggers the edge_parse_prefetch command on the agent.
@@ -941,7 +946,7 @@ func AgentPrefetchParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "prefetch")
 }
 
 // AgentAutorunsParse triggers a native autostart / persistence enumeration on
@@ -978,7 +983,7 @@ func AgentAutorunsParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "autoruns")
 }
 
 // AgentNetworkParse triggers a native network-connection snapshot on the agent
@@ -1017,7 +1022,7 @@ func AgentNetworkParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "network")
 }
 
 // AgentShimcacheParse triggers an AppCompatCache (Shimcache) parse on the agent
@@ -1048,7 +1053,7 @@ func AgentShimcacheParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "shimcache")
 }
 
 // AgentBrowserParse recovers browser history (Chrome/Edge/Brave/Firefox) across
@@ -1079,7 +1084,7 @@ func AgentBrowserParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "browser")
 }
 
 // AgentTriageCollect runs a 1-click triage collection (KAPE-style): a curated set
@@ -1121,7 +1126,7 @@ func AgentTriageCollect(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "triage")
 }
 
 // AgentKillProcess instructs the agent to terminate a process (containment).
@@ -1220,7 +1225,7 @@ func AgentDllsParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "dlls")
 }
 
 // AgentProcessParse triggers a detailed running-process snapshot on the agent
@@ -1256,5 +1261,5 @@ func AgentProcessParse(c *gin.Context) {
 		return
 	}
 
-	awaitEdgeJSONResult(c, hub, outCh, id.String())
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "processes")
 }

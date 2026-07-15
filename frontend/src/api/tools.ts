@@ -3,6 +3,8 @@ import apiClient from './client'
 export type ToolCategory = 'memory' | 'triage' | 'process' | 'network' | 'disk' | 'log' | 'other'
 export type ToolPlatform = 'windows' | 'linux' | 'both'
 
+export type ResultProcessor = '' | 'auto' | 'text' | 'csv' | 'json' | 'loki' | 'redline' | 'kape' | 'none'
+
 export interface Tool {
   id: string
   name: string
@@ -14,6 +16,14 @@ export interface Tool {
   file_size: number
   args: string
   executable_path: string
+  // Result-collection spec
+  collect_result: boolean
+  output_globs: string
+  output_scope: string
+  result_processor: string
+  ai_default: boolean
+  auto_analyze: boolean
+  max_result_mb: number
   created_at: string
 }
 
@@ -59,6 +69,13 @@ export const toolsApi = {
     description: string
     args: string
     executable_path: string
+    collect_result?: boolean
+    output_globs?: string
+    output_scope?: string
+    result_processor?: string
+    ai_default?: boolean
+    auto_analyze?: boolean
+    max_result_mb?: number
   }): Promise<Tool> => {
     const { data } = await apiClient.put<ApiResponse<Tool>>(`/tools/${id}`, payload)
     return data.data

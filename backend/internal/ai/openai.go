@@ -26,6 +26,19 @@ type openAIMessage struct {
 	Content string `json:"content"`
 }
 
+// isReasoningModel reports whether a model id is a chain-of-thought/reasoning
+// model that rejects `temperature` and `response_format` (DeepSeek-reasoner,
+// OpenAI o1/o3, and *-thinking / *-r1 variants). For these, JSON output must be
+// requested in the prompt and parsed with ExtractJSON.
+func isReasoningModel(model string) bool {
+	m := strings.ToLower(model)
+	return strings.Contains(m, "reasoner") ||
+		strings.Contains(m, "-r1") || strings.HasSuffix(m, "r1") ||
+		strings.Contains(m, "thinking") ||
+		strings.HasPrefix(m, "o1") || strings.HasPrefix(m, "o3") ||
+		strings.Contains(m, "/o1") || strings.Contains(m, "/o3")
+}
+
 func (c *openAIClient) StreamChat(ctx context.Context, msgs []Message, opts Options, out chan<- string) (Usage, error) {
 	var usage Usage
 
@@ -50,10 +63,14 @@ func (c *openAIClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 	if maxTok > 0 {
 		reqBody["max_tokens"] = maxTok
 	}
-	if opts.Temperature > 0 {
+	// Reasoning models (DeepSeek-reasoner, OpenAI o1/o3, *-thinking/*-r1) reject
+	// temperature and response_format; the caller relies on prompt-instructed JSON
+	// + ExtractJSON for those instead.
+	reasoning := isReasoningModel(c.model)
+	if opts.Temperature > 0 && !reasoning {
 		reqBody["temperature"] = opts.Temperature
 	}
-	if opts.JSON {
+	if opts.JSON && !reasoning {
 		reqBody["response_format"] = map[string]string{"type": "json_object"}
 	}
 

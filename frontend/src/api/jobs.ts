@@ -37,6 +37,26 @@ export interface CreateJobData {
   priority?: string
 }
 
+export interface ToolResult {
+  id: string
+  job_id: string
+  agent_id: string
+  tool_id: string
+  tool_name: string
+  file_name: string
+  kind: string
+  processor: string
+  size_bytes: number
+  row_count: number
+  summary: string
+  sha256: string
+  process_status: string
+  process_error: string
+  for_ai: boolean
+  ai_status: string
+  created_at: string
+}
+
 interface ApiResponse<T> {
   success: boolean
   data: T
@@ -88,5 +108,40 @@ export const jobsApi = {
     const token = useAuthStore.getState().token ?? ''
     const baseURL = (apiClient.defaults.baseURL ?? '').replace(/\/$/, '')
     return new EventSource(`${baseURL}/jobs/${jobId}/output?token=${encodeURIComponent(token)}`)
+  },
+
+  // Collected tool result files (auto-pulled per the tool's output spec).
+  listResults: async (jobId: string): Promise<ToolResult[]> => {
+    const { data } = await apiClient.get<ApiResponse<ToolResult[]>>(`/jobs/${jobId}/results`)
+    return data.data
+  },
+
+  setResultAI: async (resultId: string, forAI: boolean): Promise<ToolResult> => {
+    const { data } = await apiClient.patch<ApiResponse<ToolResult>>(`/tool-results/${resultId}`, { for_ai: forAI })
+    return data.data
+  },
+
+  // Bulk-toggle the for-AI flag for every result of a job in one click.
+  setJobResultsAI: async (jobId: string, forAI: boolean): Promise<{ updated: number; for_ai: boolean }> => {
+    const { data } = await apiClient.patch<ApiResponse<{ updated: number; for_ai: boolean }>>(
+      `/jobs/${jobId}/results/for-ai`, { for_ai: forAI },
+    )
+    return data.data
+  },
+
+  analyzeResults: async (
+    jobId: string,
+    body?: { provider_id?: string; case_id?: string },
+  ): Promise<{ findings: number; created: number; iocs_promoted: number; note?: string }> => {
+    const { data } = await apiClient.post<ApiResponse<{ findings: number; created: number; iocs_promoted: number; note?: string }>>(
+      `/jobs/${jobId}/analyze-results`, body ?? {},
+    )
+    return data.data
+  },
+
+  resultDownloadUrl: (resultId: string, parsed = false): string => {
+    const base = (import.meta.env.VITE_API_URL as string | undefined) || window.location.origin
+    const token = useAuthStore.getState().token ?? ''
+    return `${base}/api/v1/tool-results/${resultId}/download?token=${encodeURIComponent(token)}${parsed ? '&parsed=true' : ''}`
   },
 }

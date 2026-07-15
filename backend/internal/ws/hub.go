@@ -21,6 +21,14 @@ type AgentCommand struct {
 	RAMLimit       int    `json:"ram_limit,omitempty"`
 	Priority       string `json:"priority,omitempty"` // "normal" | "idle"
 
+	// Result-collection spec — tells the agent which output files to auto-pull
+	// back after a run (see models.Tool). Empty/false = no auto collection.
+	CollectResult   bool   `json:"collect_result,omitempty"`
+	OutputGlobs     string `json:"output_globs,omitempty"`     // comma-separated globs
+	OutputScope     string `json:"output_scope,omitempty"`     // tooldir|outdir|both
+	ResultProcessor string `json:"result_processor,omitempty"` // server-side parser hint
+	MaxResultMB     int    `json:"max_result_mb,omitempty"`
+
 	// Terminal (interactive PTY) fields.
 	SessionID string `json:"session_id,omitempty"`
 	Shell     string `json:"shell,omitempty"` // "cmd" | "powershell" | "bash" | "sh"

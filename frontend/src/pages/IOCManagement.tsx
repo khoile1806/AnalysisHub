@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
   ShieldAlert, Plus, Trash2, Search, Upload, FileUp, RefreshCw, X, Database, Loader2, Layers,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, FolderArchive, Eye, Download, FileText, BrainCircuit,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { openctiApi, type IOC } from '@/api/opencti'
+import { evidenceApi, type CaseEvidence, IMAGE_EXT } from '@/api/evidence'
 import { getErrorMessage, safeFormat } from '@/lib/utils'
 
 const PAGE_SIZE = 100
@@ -23,6 +25,30 @@ const TYPE_BADGE: Record<string, string> = {
 }
 
 export default function IOCManagement() {
+  const [tab, setTab] = useState<'iocs' | 'evidence'>('iocs')
+  return (
+    <div className="space-y-4 w-full">
+      <div className="flex items-center gap-1 border-b border-gray-800">
+        <StoreTab active={tab === 'iocs'} onClick={() => setTab('iocs')} icon={<Database className="h-4 w-4" />}>IOC Store</StoreTab>
+        <StoreTab active={tab === 'evidence'} onClick={() => setTab('evidence')} icon={<FolderArchive className="h-4 w-4" />}>Evidence Store</StoreTab>
+      </div>
+      {tab === 'iocs' ? <IocStoreTab /> : <EvidenceStoreTab />}
+    </div>
+  )
+}
+
+function StoreTab({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: ReactNode; children: ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition ${
+        active ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-300'
+      }`}>
+      {icon}{children}
+    </button>
+  )
+}
+
+function IocStoreTab() {
   const qc = useQueryClient()
 
   const [searchInput, setSearchInput] = useState('')
@@ -74,14 +100,9 @@ export default function IOCManagement() {
     <div className="space-y-5 w-full">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-100 flex items-center gap-2">
-            <Database className="h-6 w-6 text-emerald-400" /> IOC Store
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kho chỉ dấu xâm phạm tập trung. Thêm/xóa, import hàng loạt từ nhiều nguồn, dùng cho IOC Sweep / đối chiếu scan. (Phân trang server-side — chịu được kho rất lớn.)
-          </p>
-        </div>
+        <p className="text-sm text-gray-500 max-w-2xl">
+          Centralized indicator-of-compromise store. Add/remove, bulk-import from multiple sources, and use for IOC Sweep / scan matching. Server-side pagination scales to very large stores.
+        </p>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => syncMut.mutate()} disabled={syncMut.isPending}
             className="btn-secondary text-sm flex items-center gap-1.5 disabled:opacity-50">
@@ -250,7 +271,7 @@ function BulkImportModal({ onClose, onDone }: { onClose: () => void; onDone: () 
     <Modal title="Bulk import IOCs" onClose={onClose}>
       <div className="space-y-3">
         <p className="text-xs text-gray-500">
-          Dán danh sách (mỗi dòng / phẩy / space) hoặc tải file .txt/.csv. Loại được tự nhận diện (hỗ trợ defang <code className="bg-gray-800 px-1 rounded">1[.]2[.]3[.]4</code>, <code className="bg-gray-800 px-1 rounded">hxxp://</code>). Trùng sẽ bỏ qua.
+          Paste a list (one per line / comma / space) or load a .txt/.csv file. Types are auto-detected (defang supported: <code className="bg-gray-800 px-1 rounded">1[.]2[.]3[.]4</code>, <code className="bg-gray-800 px-1 rounded">hxxp://</code>). Duplicates are skipped.
         </p>
         <textarea className="input font-mono text-xs min-h-[160px]"
           placeholder={'45.77.12.34\nbad-c2[.]com\nhxxps://evil.com/x\n<sha256>\nattacker@mail.com'}
@@ -286,5 +307,226 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         <div className="p-4">{children}</div>
       </div>
     </div>
+  )
+}
+
+// ── Evidence Store tab ────────────────────────────────────────────────────────
+const EVI_PAGE = 100
+
+const KIND_BADGE: Record<string, string> = {
+  'upload': 'text-gray-300 border-gray-600/50 bg-gray-800/40',
+  'tool-result': 'text-cyan-300 border-cyan-700/50 bg-cyan-900/20',
+  'checklist': 'text-amber-300 border-amber-700/50 bg-amber-900/20',
+  'edge-forensics': 'text-purple-300 border-purple-700/50 bg-purple-900/20',
+}
+
+function fmtSize(n: number): string {
+  if (n >= 1 << 30) return (n / (1 << 30)).toFixed(1) + ' GB'
+  if (n >= 1 << 20) return (n / (1 << 20)).toFixed(1) + ' MB'
+  if (n >= 1 << 10) return (n / (1 << 10)).toFixed(0) + ' KB'
+  return n + ' B'
+}
+
+function EvidenceStoreTab() {
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [kindFilter, setKindFilter] = useState('')
+  const [hostFilter, setHostFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [uploadOpen, setUploadOpen] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(0) }, 350)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  const offset = page * EVI_PAGE
+  const { data: pageData, isLoading, isFetching } = useQuery({
+    queryKey: ['evidence-store', search, kindFilter, hostFilter, offset],
+    queryFn: () => evidenceApi.listAll({ search, kind: kindFilter, host: hostFilter, limit: EVI_PAGE, offset }),
+    placeholderData: keepPreviousData,
+  })
+  const { data: facets } = useQuery({ queryKey: ['evidence-facets'], queryFn: evidenceApi.facets })
+
+  const items = pageData?.data ?? []
+  const total = pageData?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / EVI_PAGE))
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['evidence-store'] })
+    qc.invalidateQueries({ queryKey: ['evidence-facets'] })
+  }
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => evidenceApi.remove(id),
+    onSuccess: () => { invalidate(); toast.success('Evidence deleted') },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const kindOpts = facets?.kinds ?? []
+  const hostOpts = facets?.hosts ?? []
+
+  return (
+    <div className="space-y-5 w-full">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <p className="text-sm text-gray-500 max-w-2xl">
+          Centralized evidence store. Auto-collected tool result files and every checklist / edge-forensics scan are recorded here — view, download, delete, or send to AI Analysis directly.
+        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={invalidate} className="btn-secondary text-sm flex items-center gap-1.5">
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+          <button onClick={() => setUploadOpen(true)} className="btn-primary text-sm flex items-center gap-1.5">
+            <Upload className="h-4 w-4" /> Upload evidence
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="px-2.5 py-1 rounded-full border border-gray-700 bg-gray-800 text-gray-300">{(facets?.total ?? 0).toLocaleString()} total</span>
+        {kindOpts.map((k) => (
+          <button key={k.value} onClick={() => { setKindFilter(kindFilter === k.value ? '' : k.value); setPage(0) }}
+            className={`px-2.5 py-1 rounded-full border ${KIND_BADGE[k.value] ?? 'border-gray-700 text-gray-400'} ${kindFilter === k.value ? 'ring-1 ring-emerald-500/60' : ''}`}>
+            {k.count.toLocaleString()} {k.value}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search file / source / host / notes…"
+            className="input pl-9 w-full" />
+          {isFetching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-600" />}
+        </div>
+        <select className="input max-w-[200px]" value={kindFilter} onChange={(e) => { setKindFilter(e.target.value); setPage(0) }}>
+          <option value="">All kinds</option>
+          {kindOpts.map((k) => <option key={k.value} value={k.value}>{k.value} ({k.count})</option>)}
+        </select>
+        <select className="input max-w-[220px]" value={hostFilter} onChange={(e) => { setHostFilter(e.target.value); setPage(0) }}>
+          <option value="">All hosts</option>
+          {hostOpts.map((h) => <option key={h.value} value={h.value}>{h.value} ({h.count})</option>)}
+        </select>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="skeleton h-10 rounded" />)}</div>
+      ) : items.length === 0 ? (
+        <div className="card p-10 text-center flex flex-col items-center">
+          <FolderArchive className="h-10 w-10 text-gray-700 mb-3" />
+          <p className="text-gray-400 font-medium">{(facets?.total ?? 0) === 0 ? 'No evidence yet' : 'No matches for this filter'}</p>
+          <p className="text-xs text-gray-500 mt-1">Run tools/checklist/edge-forensics on agents, or upload a file.</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-auto max-h-[60vh] rounded-lg border border-gray-800">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-gray-900 z-10">
+                <tr className="border-b border-gray-800">
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">File</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Kind</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Source</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Host</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Size</th>
+                  <th className="px-3 py-2 text-left text-gray-500 font-medium">Collected</th>
+                  <th className="px-3 py-2 w-24"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((e: CaseEvidence) => (
+                  <tr key={e.id} className="border-b border-gray-900 hover:bg-white/5 group">
+                    <td className="px-3 py-1.5 font-mono text-gray-200 break-all max-w-[320px]">{e.file_name}</td>
+                    <td className="px-3 py-1.5"><span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${KIND_BADGE[e.kind] ?? 'text-gray-400 border-slate-700'}`}>{e.kind}</span></td>
+                    <td className="px-3 py-1.5 text-gray-400 break-all max-w-[200px]">{e.source || '—'}</td>
+                    <td className="px-3 py-1.5 text-gray-300 whitespace-nowrap">{e.host || '—'}</td>
+                    <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{fmtSize(e.size)}</td>
+                    <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{e.created_at ? safeFormat(e.created_at, 'MMM dd, HH:mm') : '—'}</td>
+                    <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition">
+                        <button onClick={() => navigate(`/ai-analysis?source=evidence&id=${e.id}`)}
+                          title="Analyze with AI — open detailed AI Analysis for this file"
+                          className="text-gray-500 hover:text-violet-400">
+                          <BrainCircuit className="h-3.5 w-3.5" />
+                        </button>
+                        <a href={evidenceApi.viewUrl(e.id)} target="_blank" rel="noreferrer" title="View inline" className="text-gray-500 hover:text-emerald-400">
+                          {IMAGE_EXT.test(e.file_name) ? <Eye className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                        </a>
+                        <a href={evidenceApi.downloadUrl(e.id)} download title="Download" className="text-gray-500 hover:text-cyan-400"><Download className="h-3.5 w-3.5" /></a>
+                        <button onClick={() => { if (confirm(`Delete evidence ${e.file_name}?`)) deleteMut.mutate(e.id) }}
+                          title="Delete" className="text-gray-600 hover:text-red-400"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <span>{(offset + 1).toLocaleString()}–{Math.min(offset + items.length, total).toLocaleString()} of {total.toLocaleString()}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 disabled:opacity-40"><ChevronLeft className="h-3.5 w-3.5" /> Prev</button>
+              <span>Page {page + 1} / {totalPages}</span>
+              <button onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))} disabled={page + 1 >= totalPages}
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 disabled:opacity-40">Next <ChevronRight className="h-3.5 w-3.5" /></button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {uploadOpen && <UploadEvidenceModal onClose={() => setUploadOpen(false)} onDone={invalidate} />}
+    </div>
+  )
+}
+
+function UploadEvidenceModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [host, setHost] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const mut = useMutation({
+    mutationFn: () => {
+      const fd = new FormData()
+      fd.append('file', file as File)
+      fd.append('host', host.trim())
+      fd.append('kind', 'upload')
+      if (notes.trim()) fd.append('notes', notes.trim())
+      return evidenceApi.uploadGlobal(fd)
+    },
+    onSuccess: () => { toast.success('Evidence uploaded'); onDone(); onClose() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <Modal title="Upload evidence" onClose={onClose}>
+      <div className="space-y-3">
+        <div>
+          <label className="label text-xs">File *</label>
+          <input type="file" className="input" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </div>
+        <div>
+          <label className="label text-xs">Host</label>
+          <input className="input" placeholder="HOST01 (optional)" value={host} onChange={(e) => setHost(e.target.value)} />
+        </div>
+        <div>
+          <label className="label text-xs">Notes</label>
+          <input className="input" placeholder="optional context" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <button className="btn-secondary text-sm" onClick={onClose}>Cancel</button>
+          <button className="btn-primary text-sm flex items-center gap-1.5 disabled:opacity-50"
+            disabled={!file || mut.isPending} onClick={() => mut.mutate()}>
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }

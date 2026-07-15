@@ -115,6 +115,8 @@ export interface UpdaterStatus {
   last_error?: string
   last_duration_ms: number
   next_run?: string
+  attempt: number
+  next_retry?: string
 }
 
 interface ApiResponse<T> {

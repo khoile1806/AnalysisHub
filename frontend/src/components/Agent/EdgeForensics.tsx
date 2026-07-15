@@ -5,7 +5,7 @@ import {
   HardDrive, Clock, ShieldAlert, Play, Search, File, Folder, AlertTriangle,
   ChevronRight, Copy, Hash, ShieldQuestion, Database, Save, Cpu, Power,
   Network, Globe, Radio, Server, Crosshair, Zap, Boxes, Ban, History, GitBranch,
-  Archive, X, Loader2, CalendarPlus, Download, ArrowLeft,
+  Archive, X, Loader2, CalendarPlus, Download, ArrowLeft, BrainCircuit,
 } from 'lucide-react'
 import { agentsApi, type Agent, type BrowserEntry, type TriageResult } from '@/api/agents'
 import TraceOriginModal from '@/components/Agent/TraceOriginModal'
@@ -835,6 +835,7 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [saveCaseId, setSaveCaseId] = useState<string>(agent.case_id ?? '')
   const [saving, setSaving] = useState(false)
+  const [aiTriaging, setAiTriaging] = useState(false)
   const [processLive, setProcessLive] = useState(false)
   const [triaging, setTriaging] = useState(false)
   const [driftKeys, setDriftKeys] = useState<Set<string> | null>(null)
@@ -1084,13 +1085,10 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
     } finally { setTriaging(false) }
   }
 
-  // Save selected rows to the chosen case timeline (+ promote to IOC store).
-  const handleSaveToCase = async () => {
-    if (!saveCaseId) { toast.error('Select a case first'); return }
-    if (selected.size === 0) { toast.error('Select at least one row'); return }
-    setSaving(true)
-    try {
-      let items
+  // Build timeline items from the currently-selected rows of the active tab.
+  // Shared by "Save to Case" (direct import) and "AI triage" (findings extraction).
+  const buildSelectedItems = (): any[] => {
+      let items: any[] | undefined
       if (activeTab === 'mft' && mftResults) {
         items = Array.from(selected).map(i => mftResults[i]).filter(Boolean).map(e => {
           const known = [e.sha256, e.md5, e.sha1].some(h => h && iocMatches.has(h.toLowerCase()))
@@ -1180,7 +1178,17 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
           }
         })
       }
-      if (!items || items.length === 0) { toast.error('Nothing to save'); return }
+      return items ?? []
+  }
+
+  // Save selected rows to the chosen case timeline (+ promote to IOC store).
+  const handleSaveToCase = async () => {
+    if (!saveCaseId) { toast.error('Select a case first'); return }
+    if (selected.size === 0) { toast.error('Select at least one row'); return }
+    setSaving(true)
+    try {
+      const items = buildSelectedItems()
+      if (items.length === 0) { toast.error('Nothing to save'); return }
       const res = await timelineApi.importArtifacts(saveCaseId, {
         source: `edge-forensics:${activeTab}`,
         host: agent.hostname || agent.name,
@@ -1191,6 +1199,26 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
     } catch (err: any) {
       toast.error(getErrorMessage(err))
     } finally { setSaving(false) }
+  }
+
+  // AI-triage the selected rows: run findings extraction over the native forensic
+  // evidence and add findings straight to the case timeline (no tool job needed).
+  const handleAiTriage = async () => {
+    if (!saveCaseId) { toast.error('Select a case first'); return }
+    if (selected.size === 0) { toast.error('Select at least one row'); return }
+    setAiTriaging(true)
+    try {
+      const items = buildSelectedItems()
+      if (items.length === 0) { toast.error('Nothing to analyze'); return }
+      const res = await casesApi.analyzeArtifacts(saveCaseId, {
+        source: `edge-forensics:${activeTab}`,
+        host: agent.hostname || agent.name,
+        items,
+      })
+      toast.success(`AI: ${res.created} finding(s) → timeline · ${res.iocs_promoted} IOC(s)`)
+    } catch (err: any) {
+      toast.error(getErrorMessage(err))
+    } finally { setAiTriaging(false) }
   }
 
   const quickPaths = ['C:\\Windows\\System32', 'C:\\Windows\\Temp', 'C:\\Users', 'C:\\ProgramData', 'C:\\Windows\\Tasks']
@@ -1324,6 +1352,12 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg disabled:opacity-50">
                   {saving ? <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   Save to Case + promote IOC
+                </button>
+                <button onClick={handleAiTriage} disabled={aiTriaging || !saveCaseId}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-900/40 hover:bg-violet-900/60 text-violet-200 border border-violet-500/30 rounded-lg disabled:opacity-50"
+                  title="Run AI over the selected forensic rows and add findings to the case timeline">
+                  {aiTriaging ? <span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5" />}
+                  AI triage → timeline
                 </button>
                 <button onClick={() => setSelected(new Set())} className="text-xs text-gray-500 hover:text-gray-300">Clear</button>
               </div>

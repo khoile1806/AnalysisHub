@@ -694,6 +694,7 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 		"elk_result":     "Load IOC hit results",
 		"upload":         "Receive uploaded file",
 		"offline_report": "Read offline agent report",
+		"evidence":       "Read evidence file",
 	}[sourceType]
 	if collectLabel == "" {
 		collectLabel = "Collect data"

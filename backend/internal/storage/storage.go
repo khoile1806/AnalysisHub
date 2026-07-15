@@ -91,6 +91,32 @@ func (s *LocalStorage) GetArtifactByRelPath(relPath string) string {
 	return filepath.Join(s.BasePath, relPath)
 }
 
+// SaveToolResult stores a collected tool result file under
+// tool-results/<jobID>/<resultID>-<basename>. Returns the BasePath-relative path.
+func (s *LocalStorage) SaveToolResult(jobID, resultID, filename string, reader io.Reader) (string, error) {
+	dir := filepath.Join(s.BasePath, "tool-results", jobID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("create tool-result dir for job %s: %w", jobID, err)
+	}
+	safe := resultID + "-" + filepath.Base(filename)
+	dest := filepath.Join(dir, safe)
+	if err := s.writeFile(dest, reader); err != nil {
+		return "", fmt.Errorf("save tool result %s: %w", filename, err)
+	}
+	return filepath.Join("tool-results", jobID, safe), nil
+}
+
+// ToolResultDir returns the absolute directory that holds a job's tool results
+// (used as the parsed-output directory for the processing layer).
+func (s *LocalStorage) ToolResultDir(jobID string) string {
+	return filepath.Join(s.BasePath, "tool-results", jobID)
+}
+
+// AbsPath resolves a BasePath-relative path to an absolute filesystem path.
+func (s *LocalStorage) AbsPath(rel string) string {
+	return filepath.Join(s.BasePath, rel)
+}
+
 // SaveCaseEvidence stores a result/evidence file under
 // case-evidence/<caseID>/<unique>-<filename>. Returns the relative path.
 func (s *LocalStorage) SaveCaseEvidence(caseID, unique, filename string, reader io.Reader) (string, error) {

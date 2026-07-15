@@ -50,9 +50,64 @@ func (p *Pipeline) Collect(source Source) (string, error) {
 		return p.collectUpload(source.UploadPath)
 	case "offline_report":
 		return p.collectOfflineReport(source.UploadPath)
+	case "evidence":
+		return p.collectEvidence(source.ID)
 	default:
 		return "", fmt.Errorf("unknown source type: %q", source.Type)
 	}
+}
+
+// collectEvidence loads a file from the central Evidence Store and returns its
+// text for AI analysis. Binary content is reduced to printable strings; oversized
+// files are capped (the StreamSession is a narrative view, not a full scan).
+func (p *Pipeline) collectEvidence(idStr string) (string, error) {
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return "", fmt.Errorf("invalid evidence ID: %w", err)
+	}
+	var ev models.CaseEvidence
+	if err := p.db.First(&ev, "id = ?", id).Error; err != nil {
+		return "", fmt.Errorf("evidence not found: %w", err)
+	}
+	f, oerr := os.Open(p.store.GetEvidencePath(ev.StoredPath))
+	if oerr != nil {
+		return "", fmt.Errorf("failed to read evidence file: %w", oerr)
+	}
+	defer f.Close()
+
+	const cap = 2 << 20 // 2 MB
+	raw, rerr := io.ReadAll(io.LimitReader(f, cap+1))
+	if rerr != nil {
+		return "", fmt.Errorf("failed to read evidence file: %w", rerr)
+	}
+	truncated := len(raw) > cap
+	if truncated {
+		raw = raw[:cap]
+	}
+	body := string(raw)
+	if strings.IndexByte(body, 0) >= 0 {
+		body = ExtractStrings(body, cap) // binary → printable strings
+	}
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "=== EVIDENCE FILE ===\n")
+	fmt.Fprintf(&sb, "File: %s\n", ev.FileName)
+	fmt.Fprintf(&sb, "Kind: %s\n", ev.Kind)
+	if ev.Source != "" {
+		fmt.Fprintf(&sb, "Source: %s\n", ev.Source)
+	}
+	if ev.Host != "" {
+		fmt.Fprintf(&sb, "Host: %s\n", ev.Host)
+	}
+	if ev.Sha256 != "" {
+		fmt.Fprintf(&sb, "SHA256: %s\n", ev.Sha256)
+	}
+	sb.WriteString("\n=== CONTENT ===\n")
+	sb.WriteString(body)
+	if truncated {
+		sb.WriteString("\n... [truncated]")
+	}
+	return sb.String(), nil
 }
 
 func (p *Pipeline) collectJob(jobIDStr string) (string, error) {
@@ -96,7 +151,190 @@ func (p *Pipeline) collectJob(jobIDStr string) (string, error) {
 			}
 		}
 	}
+
+	// Append collected tool result files flagged for AI (normalized form preferred).
+	p.appendToolResults(&sb, jobID)
 	return sb.String(), nil
+}
+
+// appendToolResults appends the content of a job's ToolResult files that are
+// marked for AI. The parsed/normalized form is used when available, else the raw
+// file; each is capped so one large result can't blow the content budget.
+func (p *Pipeline) appendToolResults(sb *strings.Builder, jobID uuid.UUID) {
+	var results []models.ToolResult
+	if err := p.db.Where("job_id = ? AND for_ai = ? AND process_status = ?", jobID, true, "done").
+		Order("created_at asc").Find(&results).Error; err != nil {
+		return
+	}
+	if len(results) == 0 {
+		return
+	}
+
+	iocSet := p.loadIOCSet()
+	const (
+		readCap      = 4 << 20  // read at most 4 MB of a result file
+		perResultCap = 24 * 1024 // budget of selected text per result
+	)
+	for i := range results {
+		r := &results[i]
+		rel := r.ParsedStoredPath // normalized form preferred; falls back to raw
+		if rel == "" {
+			rel = r.RawStoredPath
+		}
+		if rel == "" {
+			continue
+		}
+		content := readFileCapped(p.store.AbsPath(rel), readCap)
+		if content == "" {
+			continue
+		}
+		// Rule-based pre-filter: keep the header + lines that hit a known IOC or a
+		// DFIR keyword, so a huge result contributes its *interesting* rows instead
+		// of an arbitrary head-truncation that may miss the signal.
+		selected := selectInteresting(content, iocSet, perResultCap)
+
+		fmt.Fprintf(sb, "\n=== TOOL RESULT (%s · %s · %d rows) ===\n", r.FileName, r.Kind, r.RowCount)
+		if r.Summary != "" {
+			fmt.Fprintf(sb, "[summary] %s\n", r.Summary)
+		}
+		sb.WriteString(selected)
+		sb.WriteString("\n")
+	}
+}
+
+// ResultChunk is one for-AI tool result, pre-filtered to its interesting lines,
+// ready to feed a map-reduce analysis.
+type ResultChunk struct {
+	FileName string
+	Kind     string
+	RowCount int
+	Content  string
+}
+
+// ToolResultChunks returns a job's processed, for-AI tool results as pre-filtered
+// chunks (header + IOC/keyword-matching lines) for map-reduce analysis.
+func (p *Pipeline) ToolResultChunks(jobID uuid.UUID) []ResultChunk {
+	var results []models.ToolResult
+	if err := p.db.Where("job_id = ? AND for_ai = ? AND process_status = ?", jobID, true, "done").
+		Order("created_at asc").Find(&results).Error; err != nil {
+		return nil
+	}
+	iocSet := p.loadIOCSet()
+	const readCap = 4 << 20
+	const perResultCap = 24 * 1024
+	var out []ResultChunk
+	for i := range results {
+		r := &results[i]
+		rel := r.ParsedStoredPath
+		if rel == "" {
+			rel = r.RawStoredPath
+		}
+		if rel == "" {
+			continue
+		}
+		content := readFileCapped(p.store.AbsPath(rel), readCap)
+		if content == "" {
+			continue
+		}
+		out = append(out, ResultChunk{
+			FileName: r.FileName,
+			Kind:     r.Kind,
+			RowCount: r.RowCount,
+			Content:  selectInteresting(content, iocSet, perResultCap),
+		})
+	}
+	return out
+}
+
+// loadIOCSet loads a bounded set of lowercased indicator values from the IOC
+// store for the pre-filter. Bounded so a huge store can't blow memory.
+func (p *Pipeline) loadIOCSet() map[string]struct{} {
+	var vals []string
+	p.db.Model(&models.IOC{}).Limit(20000).Pluck("value", &vals)
+	set := make(map[string]struct{}, len(vals))
+	for _, v := range vals {
+		v = strings.ToLower(strings.TrimSpace(v))
+		if len(v) >= 4 { // skip tiny values that would match everything
+			set[v] = struct{}{}
+		}
+	}
+	return set
+}
+
+// dfirKeywords are lowercase markers of security-relevant activity used to
+// surface interesting lines from large tool output before it reaches the LLM.
+var dfirKeywords = []string{
+	"error", "fail", "alert", "warning", "malware", "suspicious", "malicious",
+	"mimikatz", "cobalt", "ransom", "encrypt", "backdoor", "trojan", "exploit",
+	"powershell", "cmd.exe", "rundll32", "regsvr32", "wscript", "cscript",
+	"mshta", "certutil", "bitsadmin", "psexec", "wmic", "schtasks", "at.exe",
+	"downloadstring", "invoke-", "frombase64", "-enc", "iex", "base64",
+	"lateral", "persistence", "privilege", "4625", "4688", "4720", "1102", "7045",
+}
+
+// selectInteresting keeps the header line plus lines that hit a known IOC or a
+// DFIR keyword, up to cap bytes. Falls back to the head of the content when
+// nothing matches (so a clean result still contributes context).
+func selectInteresting(content string, iocSet map[string]struct{}, capBytes int) string {
+	lines := strings.Split(content, "\n")
+	var b strings.Builder
+	start := 0
+	if len(lines) > 0 { // keep header/first line for column context
+		b.WriteString(lines[0])
+		b.WriteByte('\n')
+		start = 1
+	}
+	kept, scanned := 0, 0
+	for _, ln := range lines[start:] {
+		if b.Len() >= capBytes {
+			b.WriteString("... [more interesting lines omitted]\n")
+			break
+		}
+		low := strings.ToLower(ln)
+		if lineMatches(low, iocSet) {
+			b.WriteString(ln)
+			b.WriteByte('\n')
+			kept++
+		}
+		scanned++
+	}
+	// Nothing flagged → give the model the head so it still has context.
+	if kept == 0 {
+		head := content
+		if len(head) > capBytes {
+			head = head[:capBytes] + "\n... [truncated]"
+		}
+		return head
+	}
+	fmt.Fprintf(&b, "[pre-filter] %d interesting line(s) of %d selected by IOC/keyword match\n", kept, scanned)
+	return b.String()
+}
+
+func lineMatches(low string, iocSet map[string]struct{}) bool {
+	for _, kw := range dfirKeywords {
+		if strings.Contains(low, kw) {
+			return true
+		}
+	}
+	for ioc := range iocSet {
+		if strings.Contains(low, ioc) {
+			return true
+		}
+	}
+	return false
+}
+
+// readFileCapped reads at most n bytes of a file (open + limited read), avoiding
+// loading a multi-GB parsed file whole.
+func readFileCapped(path string, n int) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	buf := make([]byte, n)
+	read, _ := io.ReadFull(f, buf)
+	return string(buf[:read])
 }
 
 func (p *Pipeline) collectChecklistRun(runIDStr string) (string, error) {
