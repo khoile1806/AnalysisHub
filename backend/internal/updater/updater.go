@@ -68,6 +68,18 @@ type Manager struct {
 	order   []string
 	started bool
 	now     func() time.Time
+
+	// onResult, when set, is invoked after every run so the app layer can persist
+	// a health event. Kept as a hook so this package needs no DB import.
+	onResult func(name string, success bool, attempt int, detail string)
+}
+
+// OnResult registers a callback invoked after each component run (success or
+// failure). Set once before Start.
+func (m *Manager) OnResult(fn func(name string, success bool, attempt int, detail string)) {
+	m.mu.Lock()
+	m.onResult = fn
+	m.mu.Unlock()
 }
 
 // resultMsg lets an UpdateFunc report a short human message via a sentinel error
@@ -267,7 +279,17 @@ func (m *Manager) execute(ctx context.Context, name string) (failed bool) {
 		e.status.LastError = ""
 		log.Printf("[updater] %s ok in %s", name, dur.Round(time.Millisecond))
 	}
+	hook := m.onResult
+	attempt := e.status.Attempt
 	m.mu.Unlock()
+
+	if hook != nil {
+		detail := ""
+		if err != nil {
+			detail = err.Error()
+		}
+		hook(name, err == nil, attempt, detail)
+	}
 	return err != nil
 }
 

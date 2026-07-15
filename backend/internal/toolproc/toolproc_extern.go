@@ -80,6 +80,89 @@ func processKape(rawAbs, parsedDir string) Outcome {
 	return summarizeCSVDir("kape", csvDir, parsedDir, rawAbs)
 }
 
+// processPcap summarizes a packet capture via tshark's protocol-hierarchy stats
+// (a compact, AI-friendly text overview). Degrades to raw storage if tshark is
+// not on PATH.
+func processPcap(rawAbs, parsedDir string) Outcome {
+	bin, err := exec.LookPath("tshark")
+	if err != nil {
+		return externMissing("pcap", "tshark")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), externTimeout)
+	defer cancel()
+	out, runErr := exec.CommandContext(ctx, bin, "-r", rawAbs, "-q", "-z", "io,phs").CombinedOutput()
+	if runErr != nil {
+		return Outcome{
+			Kind: "pcap", Processor: "pcap", AIWorthy: false, NeedsExtern: true,
+			Summary: truncate("tshark failed: "+runErr.Error()+"\n"+string(out), maxSummaryBytes),
+		}
+	}
+	parsedAbs := filepath.Join(parsedDir, baseNoExt(rawAbs)+".phs.txt")
+	_ = os.WriteFile(parsedAbs, out, 0o644)
+	return Outcome{
+		Kind: "table", Processor: "pcap", ParsedAbs: parsedAbs, RowCount: len(splitLines(out)),
+		Summary: truncate("PCAP protocol hierarchy\n"+string(out), maxSummaryBytes), AIWorthy: true,
+	}
+}
+
+// processSqlite dumps a SQLite database to SQL text (schema + rows) via the
+// sqlite3 CLI so browser/app history DBs become analyzable. Output streams to a
+// file (bounded runtime) so a large DB can't buffer into memory. Degrades to raw
+// storage if sqlite3 is not on PATH.
+func processSqlite(rawAbs, parsedDir string) Outcome {
+	bin, err := exec.LookPath("sqlite3")
+	if err != nil {
+		return externMissing("sqlite", "sqlite3")
+	}
+	parsedAbs := filepath.Join(parsedDir, baseNoExt(rawAbs)+".sql")
+	f, cerr := os.Create(parsedAbs)
+	if cerr != nil {
+		return Outcome{Kind: "sqlite-db", Processor: "sqlite", AIWorthy: false, Summary: "sqlite: cannot create parsed output"}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), externTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, rawAbs, ".dump")
+	cmd.Stdout = f
+	runErr := cmd.Run()
+	f.Close()
+	if runErr != nil {
+		return Outcome{
+			Kind: "sqlite-db", Processor: "sqlite", AIWorthy: false, NeedsExtern: true,
+			Summary: truncate("sqlite3 .dump failed: "+runErr.Error(), maxSummaryBytes),
+		}
+	}
+	lines := splitLines(readCapped(parsedAbs))
+	return Outcome{
+		Kind: "table", Processor: "sqlite", ParsedAbs: parsedAbs, RowCount: len(lines),
+		Summary: truncate("SQLite dump\n"+headSummary(lines), maxSummaryBytes), AIWorthy: true,
+	}
+}
+
+// processRegistry exports a Windows registry hive to .reg text via hivexregedit
+// (cross-platform) so keys/values become analyzable. Degrades to raw storage if
+// the tool is not on PATH.
+func processRegistry(rawAbs, parsedDir string) Outcome {
+	bin, err := exec.LookPath("hivexregedit")
+	if err != nil {
+		return externMissing("registry", "hivexregedit")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), externTimeout)
+	defer cancel()
+	out, runErr := exec.CommandContext(ctx, bin, "--export", rawAbs, `\`).CombinedOutput()
+	if runErr != nil {
+		return Outcome{
+			Kind: "registry", Processor: "registry", AIWorthy: false, NeedsExtern: true,
+			Summary: truncate("hivexregedit failed: "+runErr.Error()+"\n"+string(out), maxSummaryBytes),
+		}
+	}
+	parsedAbs := filepath.Join(parsedDir, baseNoExt(rawAbs)+".reg")
+	_ = os.WriteFile(parsedAbs, out, 0o644)
+	return Outcome{
+		Kind: "text-log", Processor: "registry", ParsedAbs: parsedAbs, RowCount: len(splitLines(out)),
+		Summary: truncate("Registry hive export\n"+headSummary(splitLines(out)), maxSummaryBytes), AIWorthy: true,
+	}
+}
+
 // ezToolFor picks the Eric Zimmerman tool for a collected artifact by name/ext.
 func ezToolFor(path string) string {
 	base := strings.ToLower(filepath.Base(path))

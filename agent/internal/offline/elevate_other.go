@@ -9,3 +9,6 @@ import "fmt"
 func relaunchElevated() error {
 	return fmt.Errorf("re-elevation is only supported on Windows; run with sudo")
 }
+
+// EnsureElevated is a no-op on non-Windows: run the agent with sudo directly.
+func EnsureElevated() bool { return false }

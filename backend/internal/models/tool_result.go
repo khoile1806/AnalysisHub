@@ -34,6 +34,11 @@ type ToolResult struct {
 	ForAI    bool   `                json:"for_ai"`    // include in AI analysis
 	AIStatus string `gorm:"default:'pending'" json:"ai_status"` // pending|done|skipped|error
 
+	// Provenance (chain-of-custody): what produced this file.
+	Cmdline     string `gorm:"type:text" json:"cmdline,omitempty"`      // resolved command the agent ran
+	ExitCode    int    `                 json:"exit_code"`              // 0 = completed, non-zero = executor error
+	ToolVersion string `                 json:"tool_version,omitempty"`  // filled server-side from the Tool record
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

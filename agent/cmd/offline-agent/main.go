@@ -20,6 +20,7 @@ func main() {
 
 	// Parse CLI flags.
 	mode := detectMode()
+	noElevate := false
 	for _, arg := range os.Args[1:] {
 		switch strings.ToLower(arg) {
 		case "--http", "--gui":
@@ -28,10 +29,21 @@ func main() {
 			mode = "cli"
 		case "--info":
 			mode = "info"
+		case "--no-elevate":
+			noElevate = true
 		case "--help", "-h":
 			printUsage()
 			return
 		}
+	}
+
+	// Auto-elevate: most DFIR collectors (DumpIt's kernel driver, Redline's audit,
+	// autoruns/persistence enumeration, …) need Administrator to work at all. Do a
+	// single UAC relaunch up front so every tool inherits the high-integrity token.
+	// The declined-UAC / non-Windows / already-elevated cases fall through and run
+	// at the current level (still usable for tools that don't need admin).
+	if mode != "info" && !noElevate && offline.EnsureElevated() {
+		os.Exit(0) // an elevated instance is taking over
 	}
 
 	// Single self-contained .exe: unpack the bundle (bundle.json + tools/) that
@@ -201,9 +213,10 @@ Usage:
   agent-offline [--gui] [--cli] [--info]
 
 Flags:
-  --gui    Force Desktop GUI mode (native application window)
-  --cli    Force interactive CLI mode (best for SSH/headless)
-  --info   Print the bundled tool list and exit (no UI)
+  --gui         Force Desktop GUI mode (native application window)
+  --cli         Force interactive CLI mode (best for SSH/headless)
+  --info        Print the bundled tool list and exit (no UI)
+  --no-elevate  Do not auto-request Administrator (some tools won't work)
 
 Auto-detection:
   Windows         → native window (Edge WebView2; app-mode browser fallback)

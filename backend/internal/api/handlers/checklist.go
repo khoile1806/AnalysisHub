@@ -466,6 +466,7 @@ func DownloadBatchOutput(c *gin.Context) {
 	filePath := filepath.Join(storagePath, "checklists", batch.ID.String()+".txt")
 
 	if _, err := os.Stat(filePath); err == nil {
+		setInlineSafeHeaders(c) // agent output is untrusted — no MIME-sniff into HTML
 		c.File(filePath)
 		return
 	}

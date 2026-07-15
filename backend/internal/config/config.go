@@ -185,6 +185,16 @@ type Config struct {
 	OOBMaxPerClient    int // max stored interactions per session (default 10000; 0 = unlimited)
 	OOBRetentionDays   int // delete interactions older than this many days (default 30; 0 = keep)
 
+	// ── Data retention / auto-prune ──────────────────────────────────────────
+	// Internal telemetry (resource history, system events) is always pruned with
+	// safe defaults. EVIDENCE pruning is opt-in and dry-run by default because it
+	// deletes DFIR artifacts; it never touches evidence tied to an OPEN case.
+	RetentionEnabled            bool // enable EVIDENCE auto-prune (default false)
+	RetentionDryRun             bool // log what would be pruned without deleting (default true)
+	RetentionEvidenceDays       int  // prune closed/unlinked evidence older than this (default 0 = keep)
+	RetentionEventDays          int  // prune system events older than this (default 90)
+	RetentionResourceSampleDays int  // prune agent resource history older than this (default 14)
+
 	// ── Vulnerability scanner (httpx + nuclei against OSINT-discovered assets) ──
 	// Active/intrusive: admin-gated, scope-checked, routed through a proxy.
 	VulnScanEnabled          bool   // master switch for the feature
@@ -327,6 +337,12 @@ func Load() *Config {
 		OOBRateLimitPerMin: getEnvInt("OOB_RATE_LIMIT_PER_MIN", 600),
 		OOBMaxPerClient:    getEnvInt("OOB_MAX_PER_CLIENT", 10000),
 		OOBRetentionDays:   getEnvInt("OOB_RETENTION_DAYS", 30),
+
+		RetentionEnabled:            getEnv("RETENTION_ENABLED", "false") == "true",
+		RetentionDryRun:             getEnv("RETENTION_DRYRUN", "true") == "true",
+		RetentionEvidenceDays:       getEnvInt("RETENTION_EVIDENCE_DAYS", 0),
+		RetentionEventDays:          getEnvInt("RETENTION_EVENT_DAYS", 90),
+		RetentionResourceSampleDays: getEnvInt("RETENTION_RESOURCE_SAMPLE_DAYS", 14),
 
 		VulnScanEnabled:          getEnv("VULNSCAN_ENABLED", "true") == "true",
 		VulnScanMaxConcurrent:    getEnvInt("VULNSCAN_MAX_CONCURRENT", 2),

@@ -374,5 +374,8 @@ func (h *EvidenceHandler) View(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "evidence not found"})
 		return
 	}
+	// Uploaded evidence is untrusted: sandbox it so a malicious .html/.svg cannot
+	// execute script in the app origin, while images/text still preview inline.
+	setInlineSafeHeaders(c)
 	c.File(h.Store.GetEvidencePath(ev.StoredPath))
 }

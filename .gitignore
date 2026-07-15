@@ -8,6 +8,9 @@
 .env.*
 !.env.example
 
+# ── Local backups (scripts/backup.sh output) ────────────────────────────────
+backups/
+
 # ── Recon tool API key configs (copy from *.example and fill in keys) ──────
 recon-config/amass/config.yaml
 recon-config/subfinder/provider-config.yaml

@@ -19,6 +19,12 @@ import { getErrorMessage } from '@/lib/utils'
 import TerminalOutput from '@/components/Terminal'
 import { useAuthStore } from '@/store/auth'
 
+// Agents that have already had a one-time provisioning "health" job kicked off
+// this page session. Module-level so it survives component remounts (switching
+// the Scanner tab in/out) — otherwise every mount would create another health
+// job, spamming the job list.
+const healthCheckedAgents = new Set<string>()
+
 // Threat-hunt scenarios. The `id` MUST match a rule file stem under the
 // scanner's rules/yara/scenarios/<id>.yar (or be the special 'general'/'all').
 // 'general' = base webshell/malware rules only (default, no --scenario flag).
@@ -172,16 +178,20 @@ export function YaraScanner({ agent }: { agent: Agent }) {
     toast.loading('Preparing scanner environment on agent...', { id: 'test-env', duration: 3000 })
   }
 
-  // Trigger health check automatically when agent changes
+  // Trigger a one-time provisioning health check per agent. Guarded so remounts
+  // (tab switches) / re-renders don't create a new "health" job each time.
   useEffect(() => {
     if (scannerTool && agent.id) {
-      handleTestEnvironment()
+      if (!healthCheckedAgents.has(agent.id)) {
+        healthCheckedAgents.add(agent.id)
+        handleTestEnvironment()
+      }
     } else {
       setIsProvisioning(false)
       setOutput([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agent.id])
+  }, [agent.id, scannerTool?.id])
 
   // Active job status
   const { data: activeJob } = useQuery<Job>({

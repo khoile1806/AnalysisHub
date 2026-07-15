@@ -105,13 +105,15 @@ func AgentWebSocket(c *gin.Context) {
 		log.Printf("[ws] agent %s signals artifact for job %s: %s (%d bytes)", agentIDStr, jobID, filename, size)
 	}
 
-	// OnResourceReport: persist CPU/RAM/Disk telemetry sent by the agent.
+	// OnResourceReport: persist CPU/RAM/Disk telemetry sent by the agent. Runs the
+	// DB write off the per-connection read loop so a slow write can never stall
+	// reading (which would starve ping/pong and flap the connection).
 	client.OnResourceReport = func(cpu float64, memUsed, memTotal int64, diskUsed, diskTotal float64) {
 		agentID, parseErr := uuid.Parse(client.AgentID)
 		if parseErr != nil {
 			return
 		}
-		db.Model(&models.Agent{}).Where("id = ?", agentID).Updates(map[string]interface{}{
+		go db.Model(&models.Agent{}).Where("id = ?", agentID).Updates(map[string]interface{}{
 			"cpu_percent":   cpu,
 			"mem_used_mb":   memUsed,
 			"mem_total_mb":  memTotal,

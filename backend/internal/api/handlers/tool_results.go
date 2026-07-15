@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -77,8 +79,21 @@ func UploadToolResult(c *gin.Context) {
 	}
 	defer f.Close()
 
+	// The agent gzip-compresses the transfer; decompress on the way to disk so the
+	// stored file is the original (and its SHA-256 matches the agent's raw hash).
+	var src io.Reader = f
+	if strings.EqualFold(c.PostForm("content_encoding"), "gzip") {
+		gr, gzErr := gzip.NewReader(f)
+		if gzErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid gzip result upload"})
+			return
+		}
+		defer gr.Close()
+		src = gr
+	}
+
 	resultID := uuid.New()
-	rawRel, err := store.SaveToolResult(jobID.String(), resultID.String(), fileHeader.Filename, f)
+	rawRel, err := store.SaveToolResult(jobID.String(), resultID.String(), fileHeader.Filename, src)
 	if err != nil {
 		log.Printf("[tool-result] save: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to store result file"})
@@ -96,6 +111,24 @@ func UploadToolResult(c *gin.Context) {
 		}
 	}
 
+	// Real (decompressed) size from the stored file — fileHeader.Size is the
+	// gzip-compressed transfer size, not the original.
+	storedSize := fileHeader.Size
+	if fi, statErr := os.Stat(store.AbsPath(rawRel)); statErr == nil {
+		storedSize = fi.Size()
+	}
+
+	// Provenance: what produced this file (chain-of-custody).
+	cmdline := c.PostForm("cmdline")
+	exitCode, _ := strconv.Atoi(c.PostForm("exit_code"))
+	toolVersion := ""
+	if job.ToolID != uuid.Nil {
+		var tool models.Tool
+		if db.Select("version").First(&tool, "id = ?", job.ToolID).Error == nil {
+			toolVersion = tool.Version
+		}
+	}
+
 	// Async: record the result as queued and return immediately. The raw-data
 	// processing step (parse/normalize/summarize) runs off-request in the
 	// tool-result worker so a multi-GB Redline/KAPE parse never blocks the upload.
@@ -108,9 +141,12 @@ func UploadToolResult(c *gin.Context) {
 		FileName:      origName,
 		Kind:          toolproc.QuickKind(origName),
 		Processor:     strings.ToLower(strings.TrimSpace(processor)),
-		SizeBytes:     fileHeader.Size,
+		SizeBytes:     storedSize,
 		Sha256:        claimedHash,
 		RawStoredPath: rawRel,
+		Cmdline:       cmdline,
+		ExitCode:      exitCode,
+		ToolVersion:   toolVersion,
 		ProcessStatus: "queued",
 		AIStatus:      "pending",
 	}
@@ -124,6 +160,111 @@ func UploadToolResult(c *gin.Context) {
 		fmt.Sprintf("result %q collected (%s, queued for processing)", origName, tr.Kind))
 
 	c.JSON(http.StatusAccepted, gin.H{"success": true, "data": tr})
+}
+
+// LinkToolResult lets the agent avoid re-transferring a result file whose exact
+// content the server already stores: if any prior result has the same SHA-256 and
+// a readable raw file, the server clones that file locally for this job and
+// records a queued ToolResult (the worker then dedups the parse). Returns
+// linked=false when there is no match, so the agent uploads normally.
+//
+// POST /api/v1/jobs/:id/result/link   (agent-token)
+func LinkToolResult(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	store, ok := mustGetStorage(c)
+	if !ok {
+		return
+	}
+	agentIDStr := middleware.GetAgentID(c)
+
+	jobID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid job ID"})
+		return
+	}
+	var job models.Job
+	if err := db.First(&job, "id = ?", jobID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "job not found"})
+		return
+	}
+	if job.AgentID.String() != agentIDStr {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "error": "forbidden"})
+		return
+	}
+
+	var body struct {
+		Sha256    string `json:"sha256"`
+		Filename  string `json:"filename"`
+		Processor string `json:"processor"`
+		Cmdline   string `json:"cmdline"`
+		ExitCode  int    `json:"exit_code"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	sum := strings.ToLower(strings.TrimSpace(body.Sha256))
+	if sum == "" {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"linked": false}})
+		return
+	}
+
+	// Find any prior result with the same content that still has a readable raw file.
+	var srcRow models.ToolResult
+	if db.Where("sha256 = ? AND raw_stored_path <> ''", sum).Order("created_at asc").First(&srcRow).Error != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"linked": false}})
+		return
+	}
+	rf, oerr := os.Open(store.AbsPath(srcRow.RawStoredPath))
+	if oerr != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"linked": false}})
+		return
+	}
+	defer rf.Close()
+
+	filename := body.Filename
+	if filename == "" {
+		filename = srcRow.FileName
+	}
+	resultID := uuid.New()
+	rawRel, serr := store.SaveToolResult(jobID.String(), resultID.String(), filename, rf)
+	if serr != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"linked": false}})
+		return
+	}
+
+	toolVersion := ""
+	if job.ToolID != uuid.Nil {
+		var tool models.Tool
+		if db.Select("version").First(&tool, "id = ?", job.ToolID).Error == nil {
+			toolVersion = tool.Version
+		}
+	}
+	agentUUID, _ := uuid.Parse(agentIDStr)
+	tr := models.ToolResult{
+		ID:            resultID,
+		JobID:         jobID,
+		AgentID:       agentUUID,
+		ToolID:        job.ToolID,
+		FileName:      filename,
+		Kind:          toolproc.QuickKind(filename),
+		Processor:     strings.ToLower(strings.TrimSpace(body.Processor)),
+		SizeBytes:     srcRow.SizeBytes,
+		Sha256:        sum,
+		RawStoredPath: rawRel,
+		Cmdline:       body.Cmdline,
+		ExitCode:      body.ExitCode,
+		ToolVersion:   toolVersion,
+		ProcessStatus: "queued",
+		AIStatus:      "pending",
+	}
+	if err := db.Create(&tr).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"linked": false}})
+		return
+	}
+	writeAudit(c, db, nil, &agentUUID, "job.result.link", jobID.String(),
+		fmt.Sprintf("result %q linked by content (sha256 dedup)", filename))
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"linked": true, "id": tr.ID}})
 }
 
 // sha256OfFile returns the lowercase hex SHA-256 of a file, or "" on error.

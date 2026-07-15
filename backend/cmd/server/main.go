@@ -262,6 +262,9 @@ func main() {
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 	defer workerCancel()
 	handlers.SetWorkerContext(workerCtx)
+	// Install the DB handle used by the fire-and-forget system-event recorder so
+	// background health/self-heal signals are persisted.
+	handlers.SetEventDB(db)
 
 	// ------------------------------------------------------------------ //
 	// 7.5 Start Background Workers
@@ -270,6 +273,10 @@ func main() {
 	handlers.StartNewsUpdateWorker(hub)
 	handlers.StartFleetScheduler(db, hub)
 	handlers.StartToolResultWorker(db, store, cfg)
+	handlers.StartStuckJobWatcher(db)
+	handlers.StartWorkerWatchdog(10 * time.Minute)
+	handlers.StartAgentMetricsWorker(db)
+	handlers.StartRetentionWorker(db, store, cfg)
 
 	// Threat intel enrichment client — used by the AI analysis pipeline to
 	// automatically look up IPs, hashes, and domains before sending the
@@ -346,6 +353,17 @@ func main() {
 	//     their own workers; this covers the tool data that used to be static.
 	// ------------------------------------------------------------------ //
 	registerUpdaters(cfg)
+	// Persist a health event whenever an updater fails (or recovers after retries)
+	// so failures survive restart and surface in System Health.
+	updater.Default.OnResult(func(name string, success bool, attempt int, detail string) {
+		if success {
+			if attempt > 0 {
+				handlers.RecordSystemEvent("updater", "info", name, "recovered after auto-retry", "")
+			}
+			return
+		}
+		handlers.RecordSystemEvent("updater", "error", name, "update failed", detail)
+	})
 	updater.Default.Start(context.Background())
 
 	// ------------------------------------------------------------------ //

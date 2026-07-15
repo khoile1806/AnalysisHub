@@ -525,6 +525,8 @@ func NewRouter(
 		protected.GET("/system/health", sysHandler.GetHealth)
 		protected.GET("/system/updaters", handlers.ListUpdaters)
 		protected.POST("/system/updaters/:name/run", handlers.RunUpdater)
+		protected.GET("/system/events", handlers.ListSystemEvents)
+		protected.GET("/system/metrics", sysHandler.GetMetrics)
 		protected.GET("/system/token-stats", sysHandler.GetTokenStats)
 		protected.GET("/system/proxy", sysHandler.GetProxyStatus)
 		protected.PATCH("/system/proxy", sysHandler.SetProxy)
@@ -587,6 +589,7 @@ func NewRouter(
 	{
 		agentProtected.POST("/jobs/:id/artifact", handlers.UploadArtifact)
 		agentProtected.POST("/jobs/:id/result", handlers.UploadToolResult)
+		agentProtected.POST("/jobs/:id/result/link", handlers.LinkToolResult)
 		agentProtected.GET("/agent/tools/:id/download", handlers.DownloadTool)
 		agentProtected.GET("/agent/binary/:platform", handlers.DownloadAgentBinary)
 	}

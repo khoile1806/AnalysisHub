@@ -19,6 +19,17 @@ const COLORS: Record<string, { bg: string; border: string; text: string }> = {
   blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' }
 }
 
+// renderBold HTML-escapes a line first, THEN applies **bold** markup, so playbook
+// text can never inject arbitrary HTML/script (order matters).
+function renderBold(line: string): string {
+  const escaped = line
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+  return escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-200">$1</strong>')
+}
+
 export default function PlaybooksPage() {
   const [selectedPlaybook, setSelectedPlaybook] = useState<Playbook | null>(null)
 
@@ -98,7 +109,7 @@ export default function PlaybooksPage() {
                       <h3 className="text-base font-bold text-gray-200 mb-2 group-hover:text-white transition">{step.title}</h3>
                       <div className="text-sm text-gray-400 leading-relaxed">
                         {step.content.split('\n').map((line, i) => (
-                          <p key={i} className={i > 0 ? 'mt-2' : ''} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-200">$1</strong>') }} />
+                          <p key={i} className={i > 0 ? 'mt-2' : ''} dangerouslySetInnerHTML={{ __html: renderBold(line) }} />
                         ))}
                       </div>
                     </div>

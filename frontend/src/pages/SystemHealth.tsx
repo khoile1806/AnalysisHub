@@ -571,6 +571,42 @@ function AutoUpdateSection() {
   )
 }
 
+const EVENT_SEV: Record<string, string> = {
+  error: 'text-red-400 border-red-700/40 bg-red-900/15',
+  warn: 'text-amber-400 border-amber-700/40 bg-amber-900/15',
+  info: 'text-gray-400 border-gray-700/50 bg-gray-800/40',
+}
+
+function SelfHealSection() {
+  const { data: events = [] } = useQuery({
+    queryKey: ['system-events'],
+    queryFn: () => systemApi.getEvents({ limit: 50 }),
+    refetchInterval: 10000,
+  })
+  if (events.length === 0) {
+    return <p className="text-xs text-gray-600">No health events — nothing to auto-remediate.</p>
+  }
+  return (
+    <div className="rounded-xl border border-gray-800 divide-y divide-gray-800/60 max-h-[320px] overflow-y-auto">
+      {events.map((e) => (
+        <div key={e.id} className="flex items-start gap-3 px-3 py-2 text-xs">
+          <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 rounded border text-[10px] uppercase font-mono ${EVENT_SEV[e.severity] ?? EVENT_SEV.info}`}>{e.severity}</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-gray-200">
+              {e.message}
+              {e.count > 1 && <span className="ml-1.5 text-gray-500">×{e.count}</span>}
+            </div>
+            <div className="text-[11px] text-gray-500 truncate" title={e.detail}>
+              <span className="font-mono">{e.category} · {e.source}</span>{e.detail ? ` — ${e.detail}` : ''}
+            </div>
+          </div>
+          <span className="shrink-0 text-[10px] text-gray-600 whitespace-nowrap">{safeDistanceToNow(e.updated_at, { addSuffix: true })}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function HealthTab() {
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['system-health'],
@@ -724,6 +760,12 @@ function HealthTab() {
           <div>
             <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3">Auto-Update — Tools &amp; Vuln Databases</h3>
             <AutoUpdateSection />
+          </div>
+
+          {/* Self-healing / health events (auto-detected + auto-remediated) */}
+          <div>
+            <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-3">Self-Heal Events</h3>
+            <SelfHealSection />
           </div>
 
           {/* Agent resource telemetry */}

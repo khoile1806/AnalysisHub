@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 )
 
@@ -33,7 +34,9 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 	finalExec, finalArgs, limitWarns := applyResourceLimitsUnix(finalExec, finalArgs, req)
 
 	cmd := exec.CommandContext(ctx, finalExec, finalArgs...)
-	cmd.Dir = toolDir
+	// Run from the executable's own directory so multi-file tools find their
+	// sibling files (single-file tools: this is still toolDir).
+	cmd.Dir = filepath.Dir(execPath)
 	for _, w := range limitWarns {
 		select {
 		case outputCh <- w:

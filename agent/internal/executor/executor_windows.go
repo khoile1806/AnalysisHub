@@ -44,6 +44,19 @@ func isGUIExecutable(path string) bool {
 	return false
 }
 
+// isForcedConsoleTool reports whether a tool that LOOKS like a GUI app (GUI PE
+// subsystem) is actually a headless CLI collector that must run on the console
+// path — captured, waited-on and with its quiet flag — rather than being opened
+// as an interactive window. Memory-acquisition tools are the common case.
+func isForcedConsoleTool(baseName string) bool {
+	for _, p := range []string{"dumpit", "winpmem", "magnetrance", "magnetramcapture", "ramcapture", "fdpro"} {
+		if strings.HasPrefix(baseName, p) {
+			return true
+		}
+	}
+	return false
+}
+
 // launchGUITool opens a GUI tool in its own interactive window via Start-Process
 // (ShellExecute), so it appears on the operator's desktop and — for tools whose
 // manifest requests Administrator — triggers a single UAC instead of failing.
@@ -85,16 +98,23 @@ func launchGUITool(execPath string, args []string, toolDir string, outputCh chan
 // window and to a temp log file; this goroutine tails that log file and
 // streams lines to outputCh so the dashboard receives real-time output.
 func runToolProcess(ctx context.Context, execPath string, args []string, req JobRequest, toolDir string, outputCh chan<- string) error {
+	baseName := strings.ToLower(filepath.Base(execPath))
+
 	// GUI tools (Process Explorer, TCPView/Autoruns GUI, mbar, …) must open their
 	// own window. Detect by PE subsystem and launch detached FIRST — before any
 	// CLI-oriented arg injection (-AcceptEula / /Q), which some GUI tools (e.g.
 	// Autoruns) mistake for an input file and respond to with a usage dialog.
-	if isGUIExecutable(execPath) {
+	//
+	// EXCEPTION: some collectors ship as GUI-subsystem PEs but are really headless
+	// (DumpIt does memory acquisition with /Q and writes a dump file — no window
+	// needed). Route those down the console path (exactly like Loki) so /Q is
+	// added, output is captured and we WAIT for completion; otherwise they take
+	// the GUI path, pop their own interactive window and never finish.
+	if !isForcedConsoleTool(baseName) && isGUIExecutable(execPath) {
 		return launchGUITool(execPath, args, toolDir, outputCh)
 	}
 
 	// Automatically append -AcceptEula for known Sysinternals tools to prevent GUI hangs.
-	baseName := strings.ToLower(filepath.Base(execPath))
 	if isSysinternals(baseName) {
 		hasEula := false
 		for _, a := range args {
@@ -208,7 +228,11 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 	// kills cmd.exe and would orphan powershell/the tool. Instead we kill the
 	// entire tree via TerminateJobObject below.
 	cmd := exec.Command("cmd.exe", "/c", batFile)
-	cmd.Dir = toolDir
+	// Run from the executable's OWN directory, not the tool root. Multi-file tools
+	// (Comae/DumpIt, Redline's RunRedlineAudit.bat, KAPE, …) live in a subfolder
+	// with driver/collector files they reference relatively; running from the tool
+	// root makes them fail instantly. For single-file tools this is still toolDir.
+	cmd.Dir = filepath.Dir(execPath)
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_SUSPENDED}
 
 	if err := cmd.Start(); err != nil {

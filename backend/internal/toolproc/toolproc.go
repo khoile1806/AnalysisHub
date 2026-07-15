@@ -57,8 +57,15 @@ func Process(processor, rawAbs, parsedDir string) Outcome {
 		return processLoki(rawAbs, parsedDir)
 	case "redline":
 		return processRedline(rawAbs, parsedDir)
-	case "kape":
+	case "kape", "evtx":
+		// EVTX is handled by the KAPE path (EvtxECmd is mapped in ezToolFor).
 		return processKape(rawAbs, parsedDir)
+	case "pcap":
+		return processPcap(rawAbs, parsedDir)
+	case "sqlite":
+		return processSqlite(rawAbs, parsedDir)
+	case "registry":
+		return processRegistry(rawAbs, parsedDir)
 	case "image":
 		return Outcome{Kind: "image", Processor: "none", AIWorthy: false,
 			Summary: "Binary image (memory/disk) — stored for offline analysis, not sent to AI."}
@@ -79,6 +86,14 @@ func inferProcessor(path string) string {
 		return "text"
 	case ".mans":
 		return "redline"
+	case ".evtx":
+		return "evtx"
+	case ".pcap", ".pcapng", ".cap":
+		return "pcap"
+	case ".db", ".sqlite", ".sqlite3":
+		return "sqlite"
+	case ".hiv", ".hve":
+		return "registry"
 	case ".raw", ".mem", ".dmp", ".vmem", ".lime":
 		return "image"
 	default:
@@ -102,6 +117,14 @@ func classifyByExt(ext string) string {
 		return "json"
 	case ".txt", ".log":
 		return "text-log"
+	case ".evtx":
+		return "evtx-log"
+	case ".pcap", ".pcapng", ".cap":
+		return "pcap"
+	case ".db", ".sqlite", ".sqlite3":
+		return "sqlite-db"
+	case ".hiv", ".hve":
+		return "registry"
 	case ".raw", ".mem", ".dmp", ".vmem", ".lime":
 		return "image"
 	case ".zip", ".mans", ".7z", ".tar", ".gz", ".vhdx":

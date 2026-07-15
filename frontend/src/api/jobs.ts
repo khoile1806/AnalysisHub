@@ -54,6 +54,9 @@ export interface ToolResult {
   process_error: string
   for_ai: boolean
   ai_status: string
+  cmdline?: string
+  exit_code?: number
+  tool_version?: string
   created_at: string
 }
 

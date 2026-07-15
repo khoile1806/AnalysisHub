@@ -72,30 +72,53 @@ func processOneResult(db *gorm.DB, store *storage.LocalStorage, cfg *config.Conf
 		}
 	}()
 
-	outcome := toolproc.Process(tr.Processor, store.AbsPath(tr.RawStoredPath), store.ToolResultDir(tr.JobID.String()))
+	// Load the tool (name + AI default) once.
+	var tool models.Tool
+	toolName := tr.ToolName
+	haveTool := tr.ToolID != uuid.Nil && db.First(&tool, "id = ?", tr.ToolID).Error == nil
+	if haveTool {
+		toolName = tool.Name
+	}
 
-	parsedRel := ""
-	if outcome.ParsedAbs != "" {
-		if rel, err := filepath.Rel(store.BasePath, outcome.ParsedAbs); err == nil {
-			parsedRel = rel
+	var kind, processor, parsedRel, summary string
+	var rowCount int
+	var forAI bool
+
+	// #1 dedup: if the SAME tool already produced an identical file (same sha256),
+	// reuse its parsed outcome instead of re-parsing — identical content from the
+	// same tool yields an identical result, so this is safe and saves the work.
+	deduped := false
+	if tr.Sha256 != "" && tr.ToolID != uuid.Nil {
+		var twin models.ToolResult
+		if db.Where("sha256 = ? AND tool_id = ? AND process_status = ? AND id <> ?",
+			tr.Sha256, tr.ToolID, "done", tr.ID).Order("created_at asc").First(&twin).Error == nil {
+			kind, processor, parsedRel = twin.Kind, twin.Processor, twin.ParsedStoredPath
+			rowCount, summary, forAI = twin.RowCount, twin.Summary, twin.ForAI
+			deduped = true
 		}
 	}
 
-	forAI := outcome.AIWorthy
-	var tool models.Tool
-	toolName := tr.ToolName
-	if tr.ToolID != uuid.Nil && db.First(&tool, "id = ?", tr.ToolID).Error == nil {
-		forAI = tool.AIDefault && outcome.AIWorthy
-		toolName = tool.Name
+	if !deduped {
+		outcome := toolproc.Process(tr.Processor, store.AbsPath(tr.RawStoredPath), store.ToolResultDir(tr.JobID.String()))
+		if outcome.ParsedAbs != "" {
+			if rel, err := filepath.Rel(store.BasePath, outcome.ParsedAbs); err == nil {
+				parsedRel = rel
+			}
+		}
+		kind, processor, rowCount, summary = outcome.Kind, outcome.Processor, outcome.RowCount, outcome.Summary
+		forAI = outcome.AIWorthy
+		if haveTool {
+			forAI = tool.AIDefault && outcome.AIWorthy
+		}
 	}
 
 	db.Model(&models.ToolResult{}).Where("id = ?", tr.ID).Updates(map[string]interface{}{
 		"tool_name":          toolName,
-		"kind":               outcome.Kind,
-		"processor":          outcome.Processor,
+		"kind":               kind,
+		"processor":          processor,
 		"parsed_stored_path": parsedRel,
-		"row_count":          outcome.RowCount,
-		"summary":            outcome.Summary,
+		"row_count":          rowCount,
+		"summary":            summary,
 		"for_ai":             forAI,
 		"process_status":     "done",
 		"process_error":      "",

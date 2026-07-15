@@ -108,6 +108,13 @@ function ToolResultsPanel({ jobId }: { jobId: string }) {
             {r.summary && (
               <p className="text-[11px] text-gray-500 mt-1 whitespace-pre-wrap line-clamp-3">{r.summary}</p>
             )}
+            {(r.tool_version || r.cmdline || r.exit_code !== undefined) && (
+              <div className="text-[10px] text-gray-600 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                {r.tool_version && <span>v{r.tool_version}</span>}
+                {r.exit_code !== undefined && <span className={r.exit_code === 0 ? '' : 'text-amber-500'}>exit {r.exit_code}</span>}
+                {r.cmdline && <span className="font-mono truncate max-w-[280px]" title={r.cmdline}>$ {r.cmdline}</span>}
+              </div>
+            )}
             <div className="flex items-center justify-between mt-2">
               <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-400">
                 <input

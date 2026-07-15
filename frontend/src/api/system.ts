@@ -119,12 +119,29 @@ export interface UpdaterStatus {
   next_retry?: string
 }
 
+export interface SystemEvent {
+  id: string
+  category: string
+  severity: 'info' | 'warn' | 'error'
+  source: string
+  message: string
+  detail?: string
+  count: number
+  created_at: string
+  updated_at: string
+}
+
 interface ApiResponse<T> {
   success: boolean
   data: T
 }
 
 export const systemApi = {
+  getEvents: async (params?: { category?: string; severity?: string; limit?: number }): Promise<SystemEvent[]> => {
+    const { data } = await apiClient.get<ApiResponse<SystemEvent[]>>('/system/events', { params })
+    return data.data
+  },
+
   getHealth: async (): Promise<HealthData> => {
     const { data } = await apiClient.get<ApiResponse<HealthData>>('/system/health')
     return data.data

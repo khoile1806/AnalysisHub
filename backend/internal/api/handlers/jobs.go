@@ -3,6 +3,7 @@ package handlers
 import (
 	"archive/zip"
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"net/http"
@@ -557,6 +558,29 @@ func UploadArtifact(c *gin.Context) {
 	}
 
 	agentUUID, _ := uuid.Parse(agentIDStr)
+
+	// Register the artifact into the Evidence Store so report-style outputs (e.g.
+	// a YARA/HTML report) appear alongside collected tool results — viewable,
+	// downloadable and AI-analyzable. Deduped by stored path.
+	var agent models.Agent
+	host := ""
+	var caseID *uuid.UUID
+	if db.First(&agent, "id = ?", agentUUID).Error == nil {
+		host = agent.Hostname
+		if host == "" {
+			host = agent.Name
+		}
+		caseID = agent.CaseID
+	}
+	toolName := ""
+	if job.ToolID != uuid.Nil {
+		var tool models.Tool
+		if db.Select("name").First(&tool, "id = ?", job.ToolID).Error == nil {
+			toolName = tool.Name
+		}
+	}
+	registerExistingEvidence(db, caseID, &agentUUID, host, "artifact", toolName, fileHeader.Filename, artifactPath, fileHeader.Size, "")
+
 	writeAudit(c, db, nil, &agentUUID, "job.artifact", id.String(),
 		fmt.Sprintf("artifact uploaded: %s", fileHeader.Filename))
 
@@ -667,8 +691,10 @@ func GetArtifactContent(c *gin.Context) {
 					rc, err := f.Open()
 					if err == nil {
 						defer rc.Close()
+						// Agent-produced HTML is untrusted — sandbox it so it renders
+						// but cannot run script in the app origin.
+						setInlineSafeHeaders(c)
 						c.Header("Content-Type", "text/html")
-						c.Header("X-Content-Type-Options", "nosniff")
 						io.Copy(c.Writer, rc)
 						return
 					}
@@ -677,6 +703,7 @@ func GetArtifactContent(c *gin.Context) {
 		}
 	}
 
+	setInlineSafeHeaders(c)
 	c.File(fullPath)
 }
 
@@ -749,12 +776,13 @@ func GetJobReport(c *gin.Context) {
 	})
 
 	download := c.Query("download") == "true"
-	fname := fmt.Sprintf("job-report-%s-%s.html", agentName, id.String()[:8])
+	fname := fmt.Sprintf("job-report-%s-%s.html", safeFileSlug(agentName), id.String()[:8])
 	if download {
 		c.Header("Content-Disposition", `attachment; filename="`+fname+`"`)
 	} else {
 		c.Header("Content-Disposition", `inline; filename="`+fname+`"`)
 	}
+	setInlineSafeHeaders(c)
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }
 
@@ -780,6 +808,17 @@ func buildJobReportHTML(d jobReportData) string {
 		col = "#6b7280"
 	}
 
+	// Escape every interpolated field: tool name, agent name/hostname and args are
+	// attacker-influenced (an agent registers its own hostname), so raw
+	// concatenation into this inline-rendered HTML is a stored-XSS sink.
+	tool := html.EscapeString(d.ToolName)
+	agentName := html.EscapeString(d.AgentName)
+	args := html.EscapeString(d.Args)
+	status := html.EscapeString(strings.ToUpper(d.Status))
+	started := html.EscapeString(d.StartedAt)
+	finished := html.EscapeString(d.FinishedAt)
+	duration := html.EscapeString(d.Duration)
+
 	var outputHTML strings.Builder
 	for _, line := range d.Lines {
 		escaped := strings.ReplaceAll(line, "&", "&amp;")
@@ -798,7 +837,7 @@ func buildJobReportHTML(d jobReportData) string {
 	}
 
 	return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>Job Report — ` + d.ToolName + `</title>
+<title>Job Report — ` + tool + `</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;font-size:14px}
@@ -812,14 +851,14 @@ h1{font-size:17px;font-weight:700;color:#f8fafc}
 .out{background:#020617;padding:16px 20px;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-all;min-height:400px;margin:16px}
 .out .err{color:#fca5a5}.out .ok{color:#86efac}.out .warn{color:#fde68a}
 </style></head><body>
-<header><h1>` + d.ToolName + ` — Job Report</h1></header>
+<header><h1>` + tool + ` — Job Report</h1></header>
 <div class="meta">
-<div class="m"><span class="ml">Status</span><span class="mv"><span class="badge">` + strings.ToUpper(d.Status) + `</span></span></div>
-<div class="m"><span class="ml">Agent</span><span class="mv">` + d.AgentName + `</span></div>
-<div class="m"><span class="ml">Args</span><span class="mv" style="font-family:monospace;font-size:12px">` + d.Args + `</span></div>
-<div class="m"><span class="ml">Started</span><span class="mv">` + d.StartedAt + `</span></div>
-<div class="m"><span class="ml">Finished</span><span class="mv">` + d.FinishedAt + `</span></div>
-<div class="m"><span class="ml">Duration</span><span class="mv">` + d.Duration + `</span></div>
+<div class="m"><span class="ml">Status</span><span class="mv"><span class="badge">` + status + `</span></span></div>
+<div class="m"><span class="ml">Agent</span><span class="mv">` + agentName + `</span></div>
+<div class="m"><span class="ml">Args</span><span class="mv" style="font-family:monospace;font-size:12px">` + args + `</span></div>
+<div class="m"><span class="ml">Started</span><span class="mv">` + started + `</span></div>
+<div class="m"><span class="ml">Finished</span><span class="mv">` + finished + `</span></div>
+<div class="m"><span class="ml">Duration</span><span class="mv">` + duration + `</span></div>
 <div class="m"><span class="ml">Lines</span><span class="mv">` + fmt.Sprintf("%d", len(d.Lines)) + `</span></div>
 </div>
 <div class="out">` + outputHTML.String() + `</div>

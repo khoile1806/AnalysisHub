@@ -2,6 +2,8 @@ package ws
 
 import (
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -93,6 +95,13 @@ type outboundMsg struct {
 	// Terminal (interactive PTY) fields.
 	SessionID string `json:"session_id,omitempty"`
 	ExitCode  int    `json:"exit_code,omitempty"`
+
+	// Resource telemetry (type=="resource_report").
+	CPUPercent  float64 `json:"cpu_percent,omitempty"`
+	MemUsedMB   int64   `json:"mem_used_mb,omitempty"`
+	MemTotalMB  int64   `json:"mem_total_mb,omitempty"`
+	DiskUsedGB  float64 `json:"disk_used_gb,omitempty"`
+	DiskTotalGB float64 `json:"disk_total_gb,omitempty"`
 
 	// Filesystem browser response fields (type=="fs_response").
 	FsOp        string     `json:"fs_op,omitempty"`
@@ -259,6 +268,8 @@ func (c *Client) connect(ctx context.Context) error {
 	go c.streamRealtime(streamCtx, conn, "netstat", 1*time.Second)
 	go c.streamRealtime(streamCtx, conn, "netconn", 2*time.Second)
 	go c.streamRealtime(streamCtx, conn, "sysinfo", 30*time.Second)
+	go c.reportResources(streamCtx, 30*time.Second)
+	go c.drainResultSpool(streamCtx) // re-ship any results spooled while offline
 	defer cancelStream()
 
 	// Start a ping goroutine that sends WebSocket-level control pings every
@@ -488,6 +499,11 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 
 	go func() {
 		defer func() {
+			// A panic anywhere in job execution/collection must not crash the agent
+			// (which would drop the WS connection and stall future job dispatch).
+			if r := recover(); r != nil {
+				log.Printf("[job:%s] recovered panic: %v", msg.JobID, r)
+			}
 			c.runningJobsMu.Lock()
 			delete(c.runningJobs, msg.JobID)
 			c.runningJobsMu.Unlock()
@@ -613,7 +629,11 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 
 		// Generic result collection per the tool's declared output spec.
 		if msg.CollectResult {
-			c.collectResults(runCtx, msg, runToolDir, runOutDir, runStart)
+			exitCode := 0 // coarse: 0 = executor completed, 1 = executor error
+			if err != nil {
+				exitCode = 1
+			}
+			c.collectResults(runCtx, msg, runToolDir, runOutDir, runStart, resolvedArgs, exitCode)
 		}
 
 		if err := c.sendOutput(msg.JobID, "", true); err != nil {
@@ -627,7 +647,7 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 // a ToolResult. Sources: everything under the per-job {{OUTDIR}}, plus any file
 // in the tool dir that matches OutputGlobs and was modified during this run
 // (so pre-bundled tool files are not mistaken for results).
-func (c *Client) collectResults(ctx context.Context, msg inboundMsg, toolDir, outDir string, since time.Time) {
+func (c *Client) collectResults(ctx context.Context, msg inboundMsg, toolDir, outDir string, since time.Time, cmdline string, exitCode int) {
 	maxBytes := int64(msg.MaxResultMB) * 1024 * 1024
 	if maxBytes <= 0 {
 		maxBytes = 200 * 1024 * 1024 // default 200 MB/file
@@ -693,12 +713,56 @@ func (c *Client) collectResults(ctx context.Context, msg inboundMsg, toolDir, ou
 		_ = c.sendOutput(msg.JobID, "[i] no result files matched the tool output spec", false)
 		return
 	}
+
+	prov := resultProvenance{processor: msg.ResultProcessor, cmdline: cmdline, exitCode: exitCode}
+
+	// Upload with bounded concurrency so many small results ship quickly without
+	// flooding a slow uplink. Each file settles (waitStable) inside its worker so
+	// settling also runs in parallel.
+	const uploadConcurrency = 3
+	sem := make(chan struct{}, uploadConcurrency)
+	var wg sync.WaitGroup
 	for _, p := range files {
-		waitStable(p) // ensure the tool finished writing before we ship it
-		_ = c.sendOutput(msg.JobID, fmt.Sprintf("[+] Uploading result: %s", filepath.Base(p)), false)
-		if err := c.uploadResult(ctx, msg.JobID, p, msg.ResultProcessor); err != nil {
-			_ = c.sendOutput(msg.JobID, fmt.Sprintf("[agent error] result upload failed (%s): %v", filepath.Base(p), err), false)
-		}
+		wg.Add(1)
+		go func(path string) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("[result-upload] recovered for %s: %v", filepath.Base(path), r)
+				}
+			}()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			waitStable(path)
+			_ = c.sendOutput(msg.JobID, fmt.Sprintf("[+] Uploading result: %s", filepath.Base(path)), false)
+			c.shipResult(ctx, msg.JobID, path, prov)
+		}(p)
+	}
+	wg.Wait()
+}
+
+// resultProvenance carries the per-job context attached to every collected file
+// (chain-of-custody): the resolved command line, coarse exit code and requested
+// processor.
+type resultProvenance struct {
+	processor string
+	cmdline   string
+	exitCode  int
+}
+
+// shipResult delivers one result file to the server. It first tries a content
+// LINK (skip the transfer when the server already holds this exact sha256), then
+// falls back to a compressed upload, and finally SPOOLS the file to disk for
+// later retry if the server is unreachable — so a result is never silently lost.
+func (c *Client) shipResult(ctx context.Context, jobID, filePath string, prov resultProvenance) {
+	sum := fileSHA256(filePath)
+	if sum != "" && c.tryLinkResult(ctx, jobID, filePath, sum, prov) {
+		_ = c.sendOutput(jobID, fmt.Sprintf("[+] Result linked (dedup): %s", filepath.Base(filePath)), false)
+		return
+	}
+	if err := c.uploadResult(ctx, jobID, filePath, sum, prov); err != nil {
+		_ = c.sendOutput(jobID, fmt.Sprintf("[agent error] result upload failed (%s): %v — spooled for retry", filepath.Base(filePath), err), false)
+		c.spoolResult(jobID, filePath, sum, prov)
 	}
 }
 
@@ -767,9 +831,37 @@ func matchGlobs(name string, globs []string) bool {
 
 // uploadResult uploads a single collected result file to the server's
 // per-job result endpoint, tagging it with the processor hint.
-func (c *Client) uploadResult(ctx context.Context, jobID, filePath, processor string) error {
-	sum := fileSHA256(filePath) // integrity hash so the server can reject a truncated transfer
+// uploadResult ships one collected result file to the server. The transfer is
+// gzip-compressed (result files are mostly text — logs/CSV/JSON — and compress
+// heavily) and retried with backoff so a transient network drop doesn't lose the
+// evidence. The raw-file SHA-256 is sent so the server can verify integrity after
+// decompression.
+func (c *Client) uploadResult(ctx context.Context, jobID, filePath, sum string, prov resultProvenance) error {
+	if sum == "" {
+		sum = fileSHA256(filePath)
+	}
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		if err := c.uploadResultOnce(ctx, jobID, filePath, sum, prov); err != nil {
+			lastErr = err
+			if ctx.Err() != nil {
+				return err
+			}
+			if attempt < 3 {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(time.Duration(attempt) * 2 * time.Second):
+				}
+			}
+			continue
+		}
+		return nil
+	}
+	return lastErr
+}
 
+func (c *Client) uploadResultOnce(ctx context.Context, jobID, filePath, sum string, prov resultProvenance) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("open result %s: %w", filePath, err)
@@ -779,23 +871,33 @@ func (c *Client) uploadResult(ctx context.Context, jobID, filePath, processor st
 	pr, pw := io.Pipe()
 	w := multipart.NewWriter(pw)
 	go func() {
-		defer pw.Close()
-		if processor != "" {
-			_ = w.WriteField("processor", processor)
+		if prov.processor != "" {
+			_ = w.WriteField("processor", prov.processor)
 		}
 		if sum != "" {
 			_ = w.WriteField("sha256", sum)
 		}
 		_ = w.WriteField("filename", filepath.Base(filePath))
+		_ = w.WriteField("content_encoding", "gzip")
+		if prov.cmdline != "" {
+			_ = w.WriteField("cmdline", prov.cmdline)
+		}
+		_ = w.WriteField("exit_code", fmt.Sprintf("%d", prov.exitCode))
 		part, err := w.CreateFormFile("file", filepath.Base(filePath))
 		if err != nil {
-			log.Printf("[result-upload] form file error: %v", err)
+			pw.CloseWithError(err)
 			return
 		}
-		if _, err := io.Copy(part, f); err != nil {
-			log.Printf("[result-upload] copy error: %v", err)
+		gz := gzip.NewWriter(part)
+		if _, err := io.Copy(gz, f); err != nil {
+			pw.CloseWithError(err)
+			return
 		}
-		w.Close()
+		if err := gz.Close(); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		pw.CloseWithError(w.Close())
 	}()
 
 	uploadURL := fmt.Sprintf("%s/api/v1/jobs/%s/result", c.cfg.ServerURL, jobID)
@@ -818,6 +920,156 @@ func (c *Client) uploadResult(ctx context.Context, jobID, filePath, processor st
 		return fmt.Errorf("result upload failed: %s: %s", resp.Status, string(body))
 	}
 	return nil
+}
+
+// tryLinkResult asks the server to LINK this result by content hash instead of
+// transferring it: if the server already stores an identical file it clones the
+// stored copy + parsed output for this job and returns linked=true, so a large
+// identical file (e.g. a re-collected bundle) is never re-uploaded. Any error or
+// a miss returns false and the caller uploads normally.
+func (c *Client) tryLinkResult(ctx context.Context, jobID, filePath, sum string, prov resultProvenance) bool {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"sha256":    sum,
+		"filename":  filepath.Base(filePath),
+		"processor": prov.processor,
+		"cmdline":   prov.cmdline,
+		"exit_code": prov.exitCode,
+	})
+	url := fmt.Sprintf("%s/api/v1/jobs/%s/result/link", c.cfg.ServerURL, jobID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Agent-Token", c.cfg.AgentToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return false
+	}
+	var out struct {
+		Data struct {
+			Linked bool `json:"linked"`
+		} `json:"data"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&out) != nil {
+		return false
+	}
+	return out.Data.Linked
+}
+
+// ── Durable result spool ─────────────────────────────────────────────────────
+// When a result upload fails outright (server unreachable after retries), the
+// file is copied into a local spool directory with its metadata so it survives an
+// agent restart. A background drainer re-ships spooled results whenever the agent
+// is connected, so a collected result is never silently lost.
+
+type spoolMeta struct {
+	JobID     string `json:"job_id"`
+	FileName  string `json:"file_name"`
+	Sha256    string `json:"sha256"`
+	Processor string `json:"processor"`
+	Cmdline   string `json:"cmdline"`
+	ExitCode  int    `json:"exit_code"`
+}
+
+func (c *Client) resultSpoolDir() string {
+	return filepath.Join(c.cfg.WorkDir, "_result_spool")
+}
+
+func (c *Client) spoolResult(jobID, filePath, sum string, prov resultProvenance) {
+	base := filepath.Join(c.resultSpoolDir(), fmt.Sprintf("%d-%d", time.Now().UnixNano(), rand.Intn(1_000_000)))
+	if err := os.MkdirAll(base, 0o755); err != nil {
+		return
+	}
+	// Copy the file so it outlives cleanup of the tool's output directory.
+	if err := spoolCopyFile(filePath, filepath.Join(base, filepath.Base(filePath))); err != nil {
+		_ = os.RemoveAll(base)
+		return
+	}
+	mb, _ := json.Marshal(spoolMeta{
+		JobID: jobID, FileName: filepath.Base(filePath), Sha256: sum,
+		Processor: prov.processor, Cmdline: prov.cmdline, ExitCode: prov.exitCode,
+	})
+	_ = os.WriteFile(filepath.Join(base, "meta.json"), mb, 0o644)
+}
+
+// drainResultSpool periodically re-ships spooled results while connected.
+func (c *Client) drainResultSpool(ctx context.Context) {
+	drain := func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[result-spool] drain recovered: %v", r)
+			}
+		}()
+		entries, err := os.ReadDir(c.resultSpoolDir())
+		if err != nil {
+			return
+		}
+		for _, e := range entries {
+			if !e.IsDir() {
+				continue
+			}
+			base := filepath.Join(c.resultSpoolDir(), e.Name())
+			mb, rerr := os.ReadFile(filepath.Join(base, "meta.json"))
+			if rerr != nil {
+				continue
+			}
+			var m spoolMeta
+			if json.Unmarshal(mb, &m) != nil {
+				continue
+			}
+			filePath := filepath.Join(base, m.FileName)
+			if _, serr := os.Stat(filePath); serr != nil {
+				_ = os.RemoveAll(base) // file gone — nothing to ship
+				continue
+			}
+			prov := resultProvenance{processor: m.Processor, cmdline: m.Cmdline, exitCode: m.ExitCode}
+			if m.Sha256 != "" && c.tryLinkResult(ctx, m.JobID, filePath, m.Sha256, prov) {
+				_ = os.RemoveAll(base)
+				continue
+			}
+			if uerr := c.uploadResult(ctx, m.JobID, filePath, m.Sha256, prov); uerr == nil {
+				_ = os.RemoveAll(base)
+			}
+		}
+	}
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(10 * time.Second):
+		drain()
+	}
+	t := time.NewTicker(60 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			drain()
+		}
+	}
+}
+
+func spoolCopyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+	return out.Close()
 }
 
 // handleJobStop cancels the running job's context, which kills the child
@@ -853,6 +1105,11 @@ func (c *Client) handleCmdExec(parentCtx context.Context, msg inboundMsg) {
 
 	go func() {
 		defer func() {
+			// A panic anywhere in job execution/collection must not crash the agent
+			// (which would drop the WS connection and stall future job dispatch).
+			if r := recover(); r != nil {
+				log.Printf("[job:%s] recovered panic: %v", msg.JobID, r)
+			}
 			c.runningJobsMu.Lock()
 			delete(c.runningJobs, msg.JobID)
 			c.runningJobsMu.Unlock()
@@ -1590,6 +1847,52 @@ func (c *Client) streamRealtime(ctx context.Context, conn *websocket.Conn, dataT
 				// here causes spurious agent disconnects during terminal use.
 				log.Printf("[monitor] send %s error: %v — dropping frame", dataType, err)
 			}
+		}
+	}
+}
+
+// reportResources samples host CPU / RAM / disk and sends a "resource_report"
+// to the server on an interval so the fleet view shows live agent utilization.
+// Frames are best-effort (dropped on write error) like other realtime telemetry;
+// one is emitted shortly after connect so the UI populates without a full wait.
+func (c *Client) reportResources(ctx context.Context, interval time.Duration) {
+	send := func() {
+		// Native resource syscalls must NEVER crash the agent — a panic here would
+		// kill the process and drop the WS connection. Recover and skip the sample.
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[monitor] resource sample recovered (skipped): %v", r)
+			}
+		}()
+		r := monitor.SampleResource()
+		if err := c.writeRealtimeJSON(outboundMsg{
+			Type:        "resource_report",
+			CPUPercent:  r.CPUPercent,
+			MemUsedMB:   r.MemUsedMB,
+			MemTotalMB:  r.MemTotalMB,
+			DiskUsedGB:  r.DiskUsedGB,
+			DiskTotalGB: r.DiskTotalGB,
+		}); err != nil {
+			log.Printf("[monitor] resource_report send error: %v — dropping frame", err)
+		}
+	}
+
+	// Prompt first report (after a short settle so it doesn't race the register
+	// handshake), then on the interval.
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(2 * time.Second):
+		send()
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			send()
 		}
 	}
 }
