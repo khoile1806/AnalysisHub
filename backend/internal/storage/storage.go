@@ -4,8 +4,28 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 )
+
+// safeBase reduces an untrusted, caller-supplied filename to a bare basename,
+// treating BOTH '/' and '\' as separators regardless of the host OS.
+//
+// filepath.Base alone is NOT sufficient here: this server runs on Linux, where a
+// backslash is an ordinary filename character, so a Windows-style name sent by an
+// agent (e.g. `..\..\..\Windows\System32\evil.dll`) would survive intact. We
+// normalise separators first, then take the slash-only base, and reject the
+// traversal/empty leftovers.
+func safeBase(name string) string {
+	name = strings.ReplaceAll(name, `\`, "/")
+	name = path.Base(name)
+	switch name {
+	case "", ".", "..", "/":
+		return "file"
+	}
+	return name
+}
 
 // LocalStorage manages files (tools and job artifacts) on the local filesystem.
 type LocalStorage struct {
@@ -31,16 +51,16 @@ func New(basePath string) (*LocalStorage, error) {
 // SaveTool writes the contents of reader to the tools directory under filename.
 // It returns the stored filename (which equals the provided filename) or an error.
 func (s *LocalStorage) SaveTool(filename string, reader io.Reader) (string, error) {
-	dest := filepath.Join(s.BasePath, "tools", filepath.Base(filename))
+	dest := filepath.Join(s.BasePath, "tools", safeBase(filename))
 	if err := s.writeFile(dest, reader); err != nil {
 		return "", fmt.Errorf("save tool %s: %w", filename, err)
 	}
-	return filepath.Base(filename), nil
+	return safeBase(filename), nil
 }
 
 // GetToolPath returns the absolute filesystem path for a stored tool file.
 func (s *LocalStorage) GetToolPath(filename string) string {
-	return filepath.Join(s.BasePath, "tools", filepath.Base(filename))
+	return filepath.Join(s.BasePath, "tools", safeBase(filename))
 }
 
 // SaveArtifact writes the contents of reader to a job-specific artifacts directory.
@@ -51,18 +71,18 @@ func (s *LocalStorage) SaveArtifact(jobID string, filename string, reader io.Rea
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create artifact dir for job %s: %w", jobID, err)
 	}
-	dest := filepath.Join(dir, filepath.Base(filename))
+	dest := filepath.Join(dir, safeBase(filename))
 	if err := s.writeFile(dest, reader); err != nil {
 		return "", fmt.Errorf("save artifact %s for job %s: %w", filename, jobID, err)
 	}
 	// Return a path relative to BasePath for storage in the database
-	rel := filepath.Join("artifacts", jobID, filepath.Base(filename))
+	rel := filepath.Join("artifacts", jobID, safeBase(filename))
 	return rel, nil
 }
 
 // GetArtifactPath returns the absolute filesystem path for a stored artifact.
 func (s *LocalStorage) GetArtifactPath(jobID string, filename string) string {
-	return filepath.Join(s.BasePath, "artifacts", jobID, filepath.Base(filename))
+	return filepath.Join(s.BasePath, "artifacts", jobID, safeBase(filename))
 }
 
 // SaveAnalysisUpload stores a user-uploaded file for AI analysis under
@@ -72,7 +92,7 @@ func (s *LocalStorage) SaveAnalysisUpload(sessionID string, filename string, rea
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create upload dir for session %s: %w", sessionID, err)
 	}
-	safe := filepath.Base(filename)
+	safe := safeBase(filename)
 	dest := filepath.Join(dir, safe)
 	if err := s.writeFile(dest, reader); err != nil {
 		return "", fmt.Errorf("save upload %s: %w", filename, err)
@@ -98,7 +118,7 @@ func (s *LocalStorage) SaveToolResult(jobID, resultID, filename string, reader i
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create tool-result dir for job %s: %w", jobID, err)
 	}
-	safe := resultID + "-" + filepath.Base(filename)
+	safe := resultID + "-" + safeBase(filename)
 	dest := filepath.Join(dir, safe)
 	if err := s.writeFile(dest, reader); err != nil {
 		return "", fmt.Errorf("save tool result %s: %w", filename, err)
@@ -124,7 +144,7 @@ func (s *LocalStorage) SaveCaseEvidence(caseID, unique, filename string, reader 
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create evidence dir for case %s: %w", caseID, err)
 	}
-	safe := unique + "-" + filepath.Base(filename)
+	safe := unique + "-" + safeBase(filename)
 	dest := filepath.Join(dir, safe)
 	if err := s.writeFile(dest, reader); err != nil {
 		return "", fmt.Errorf("save evidence %s: %w", filename, err)
@@ -145,7 +165,7 @@ func (s *LocalStorage) SaveLogUpload(jobID, filename string, reader io.Reader) (
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create log-upload dir for job %s: %w", jobID, err)
 	}
-	safe := filepath.Base(filename)
+	safe := safeBase(filename)
 	dest := filepath.Join(dir, safe)
 	if err := s.writeFile(dest, reader); err != nil {
 		return "", fmt.Errorf("save log upload %s: %w", filename, err)
