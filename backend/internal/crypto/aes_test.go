@@ -1,6 +1,9 @@
 package crypto
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
 	"strings"
 	"testing"
 )
@@ -48,20 +51,48 @@ func TestEncrypt_EmptyPlaintext(t *testing.T) {
 	}
 }
 
-func TestEncrypt_RejectsBadKeyLength(t *testing.T) {
-	badKeys := []string{
-		"",                                  // empty
-		"short",                             // too short
-		"0123456789abcdef0123456789abcde",   // 31 bytes
-		"0123456789abcdef0123456789abcdef0", // 33 bytes
+func TestEncrypt_RejectsEmptyKey(t *testing.T) {
+	if _, err := Encrypt("data", ""); err == nil {
+		t.Error("Encrypt with empty key: expected error, got nil")
 	}
-	for _, k := range badKeys {
-		if _, err := Encrypt("data", k); err == nil {
-			t.Errorf("Encrypt with %d-byte key: expected error, got nil", len(k))
+	if _, err := Decrypt("dummy", ""); err == nil {
+		t.Error("Decrypt with empty key: expected error, got nil")
+	}
+}
+
+func TestEncrypt_AnyKeyLengthWorks(t *testing.T) {
+	// Non-empty keys of ANY length are hashed to 32 bytes, so encryption works
+	// (no "must be exactly 32 bytes" failure) and round-trips per key.
+	keys := []string{
+		"short",
+		"0123456789abcdef0123456789abcde",   // 31
+		"0123456789abcdef0123456789abcdef0", // 33
+		strings.Repeat("k", 100),            // long
+	}
+	for _, k := range keys {
+		ct, err := Encrypt("data", k)
+		if err != nil {
+			t.Errorf("Encrypt with %d-char key errored: %v", len(k), err)
+			continue
 		}
-		if _, err := Decrypt("dummy", k); err == nil {
-			t.Errorf("Decrypt with %d-byte key: expected error, got nil", len(k))
+		got, err := Decrypt(ct, k)
+		if err != nil || got != "data" {
+			t.Errorf("round-trip with %d-char key: got (%q, %v), want (\"data\", nil)", len(k), got, err)
 		}
+	}
+}
+
+func TestDecrypt_BackwardCompatRawKey(t *testing.T) {
+	// Data encrypted BEFORE key derivation used the raw 32-byte key directly.
+	// Decrypt must still recover it via the raw-key fallback.
+	block, _ := aes.NewCipher([]byte(key32))
+	gcm, _ := cipher.NewGCM(block)
+	nonce := make([]byte, gcm.NonceSize())
+	legacy := base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, []byte("legacy-secret"), nil))
+
+	got, err := Decrypt(legacy, key32)
+	if err != nil || got != "legacy-secret" {
+		t.Errorf("backward-compat decrypt: got (%q, %v), want (\"legacy-secret\", nil)", got, err)
 	}
 }
 
