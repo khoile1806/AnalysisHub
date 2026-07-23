@@ -5,6 +5,7 @@ package executor
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -98,6 +99,19 @@ func runToolProcess(ctx context.Context, execPath string, args []string, req Job
 		if ctx.Err() != nil {
 			return fmt.Errorf("executor: tool stopped by operator")
 		}
+		// A tool that RAN but exited non-zero is NOT a job failure: many scanners
+		// (YARA / webshell scanner, ClamAV, grep-like tools) use a non-zero exit
+		// code to SIGNAL findings. Record it as informational output and let the
+		// job succeed so the report + findings + collected results are kept.
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			select {
+			case outputCh <- fmt.Sprintf("[i] Tool exited with code %d (a non-zero exit is normal for scanners that report findings).", exitErr.ExitCode()):
+			default:
+			}
+			return nil
+		}
+		// A genuine launch/IO failure — surface it.
 		return fmt.Errorf("executor: tool exited with error: %w", err)
 	}
 	return nil

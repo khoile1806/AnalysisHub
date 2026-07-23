@@ -434,7 +434,16 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 
 	h.db.Model(&session).Update("status", "running")
 
-	ctx := c.Request.Context()
+	// Detach the analysis from the HTTP request. The AI call must NOT be cancelled
+	// when the SSE client disconnects — e.g. when the operator switches to another
+	// session in the UI, that session's EventSource closes. Tying the analysis to
+	// the request context made switching (or running >1 session) fail every
+	// in-flight session. With a detached context each session runs to completion
+	// independently and saves its report even when it isn't the one being viewed.
+	// reqCtx is only used to detect a gone client and stop writing to a dead SSE.
+	reqCtx := c.Request.Context()
+	ctx, cancelAnalysis := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancelAnalysis()
 
 	// Build chain steps and broadcast them immediately so the client renders
 	// the full pipeline before any step starts running.
@@ -577,20 +586,25 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 		aiErrCh <- err
 	}()
 
+	clientGone := false
 	for tok := range tokenCh {
 		resultBuilder.WriteString(tok)
 		tokenCount++
-		h.sendSSE(c, "token", gin.H{"content": tok})
-		// Emit a progress log every ~200 tokens
-		if tokenCount == 50 {
-			setStep(analyzeIdx, "running", "streaming…")
-			h.sendLog(c, "ai", "AI is processing the forensic data...")
-		} else if tokenCount%300 == 0 {
-			h.sendLog(c, "ai", fmt.Sprintf("Received %d tokens...", tokenCount))
+		if !clientGone {
+			h.sendSSE(c, "token", gin.H{"content": tok})
+			// Emit a progress log every ~200 tokens
+			if tokenCount == 50 {
+				setStep(analyzeIdx, "running", "streaming…")
+				h.sendLog(c, "ai", "AI is processing the forensic data...")
+			} else if tokenCount%300 == 0 {
+				h.sendLog(c, "ai", fmt.Sprintf("Received %d tokens...", tokenCount))
+			}
 		}
+		// If the SSE client has left, stop writing to the dead connection but KEEP
+		// consuming tokens so the analysis still completes and the report is saved.
 		select {
-		case <-ctx.Done():
-			goto clientGone
+		case <-reqCtx.Done():
+			clientGone = true
 		default:
 		}
 	}
@@ -633,10 +647,6 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	}
 
 	h.sendSSE(c, "done", gin.H{})
-	return
-
-clientGone:
-	h.db.Model(&session).Update("status", "failed")
 }
 
 // ──────────────────────────────────────────────────────────────

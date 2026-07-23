@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -141,7 +144,35 @@ func (h *EvidenceHandler) Download(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "evidence not found"})
 		return
 	}
-	c.FileAttachment(h.Store.GetEvidencePath(ev.StoredPath), ev.FileName)
+	absPath := h.Store.GetEvidencePath(ev.StoredPath)
+
+	// ?raw=true → the original uncompressed file. Default → a zip, so the
+	// operator's personal download is compressed while the stored evidence keeps
+	// the original, uncompressed bytes.
+	if c.Query("raw") == "true" {
+		c.FileAttachment(absPath, ev.FileName)
+		return
+	}
+
+	src, oerr := os.Open(absPath)
+	if oerr != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "evidence file not found"})
+		return
+	}
+	defer src.Close()
+
+	c.Header("Content-Disposition", `attachment; filename="`+safeFileSlug(ev.FileName)+`.zip"`)
+	c.Header("Content-Type", "application/zip")
+	zw := zip.NewWriter(c.Writer)
+	defer zw.Close()
+	w, werr := zw.Create(ev.FileName)
+	if werr != nil {
+		log.Printf("[evidence] zip create: %v", werr)
+		return
+	}
+	if _, cerr := io.Copy(w, src); cerr != nil {
+		log.Printf("[evidence] zip copy: %v", cerr)
+	}
 }
 
 // ListAll GET /api/v1/evidence — the central Evidence Store view across every

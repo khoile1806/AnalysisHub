@@ -100,12 +100,18 @@ export default function TraceOriginModal({ agent, target, pid, onClose }: {
         setStep(`Collecting ${label}…`)
         try { collected.push({ type, data: await fn() }) } catch (err) { toast.error(`${label}: ${getErrorMessage(err)}`) }
       }
+      // Collect the sources that exist on this agent's OS. Prefetch / Shimcache /
+      // MFT are Windows-only artifacts — skip them on Linux so the trace runs
+      // cleanly (using processes, autoruns and browser) instead of erroring.
+      const isLinux = (agent.os || '').toLowerCase().includes('linux')
       await collect('processes', 'processes', () => agentsApi.parseProcessScan(agent.id))
-      await collect('prefetch', 'prefetch', () => agentsApi.parsePrefetch(agent.id))
-      await collect('shimcache', 'shimcache', () => agentsApi.parseShimcache(agent.id))
       await collect('autoruns', 'autoruns', () => agentsApi.parseAutoruns(agent.id))
       await collect('browser', 'browser', () => agentsApi.parseBrowser(agent.id))
-      if (withMFT) await collect('MFT (slow)', 'mft', () => agentsApi.parseMFT(agent.id))
+      if (!isLinux) {
+        await collect('prefetch', 'prefetch', () => agentsApi.parsePrefetch(agent.id))
+        await collect('shimcache', 'shimcache', () => agentsApi.parseShimcache(agent.id))
+        if (withMFT) await collect('MFT (slow)', 'mft', () => agentsApi.parseMFT(agent.id))
+      }
       setSources(collected)
       setStep('Reconstructing origin…')
       return traceApi.entity(e.target, e.pid, collected)

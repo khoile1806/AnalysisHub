@@ -70,6 +70,16 @@ export const fsApi = {
     )
   },
 
+  // collectToEvidence pulls a file from the agent straight into the central
+  // Evidence Store as the ORIGINAL, uncompressed bytes (not to the browser).
+  // The operator can then download it (zipped) from IOC Store → Evidence Store.
+  collectToEvidence: async (agentId: string, path: string): Promise<{ id: string; file_name: string; size: number }> => {
+    const { data } = await apiClient.post<{ success: boolean; data: { id: string; file_name: string; size: number } }>(
+      `/agents/${agentId}/fs/collect`, undefined, { params: { path }, timeout: 600_000 },
+    )
+    return data.data
+  },
+
   // downloadBundle POSTs a list of paths and triggers a browser download of
   // the resulting zip blob. Returns filename + size for history.
   downloadBundle: async (agentId: string, paths: string[]): Promise<DownloadResult> => {

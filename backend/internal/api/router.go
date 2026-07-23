@@ -124,6 +124,8 @@ func NewRouter(
 		protected.POST("/agents/:id/prefetch", handlers.AgentPrefetchParse)
 		protected.POST("/agents/:id/processes-scan", handlers.AgentProcessParse)
 		protected.POST("/agents/:id/autoruns", handlers.AgentAutorunsParse)
+		protected.POST("/agents/:id/containers", handlers.AgentContainerParse)
+		protected.POST("/agents/:id/linux-triage", handlers.AgentLinuxTriageParse)
 		protected.POST("/agents/:id/netscan", handlers.AgentNetworkParse)
 		protected.POST("/agents/:id/dlls", handlers.AgentDllsParse)
 		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
@@ -137,6 +139,7 @@ func NewRouter(
 		// Filesystem browser — arbitrary remote file read, so admin-only.
 		protected.GET("/agents/:id/fs", middleware.RequireAdmin(), handlers.ListAgentFS)
 		protected.GET("/agents/:id/fs/download", middleware.RequireAdmin(), handlers.DownloadAgentPath)
+		protected.POST("/agents/:id/fs/collect", middleware.RequireAdmin(), handlers.CollectAgentPathToEvidence)
 		protected.POST("/agents/:id/fs/download-bundle", middleware.RequireAdmin(), handlers.DownloadAgentBundle)
 		protected.GET("/agents/binary/:platform", handlers.DownloadAgentBinary)
 

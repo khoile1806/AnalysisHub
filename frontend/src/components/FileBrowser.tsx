@@ -157,22 +157,25 @@ export function FileBrowser({ agent }: { agent: Agent }) {
     else setSelected(new Set(sorted.map(e => e.name)))
   }
 
-  // Single-item download: always packaged as password-protected zip.
+  // Single-item download. A FILE is pulled into the central Evidence Store as the
+  // ORIGINAL (uncompressed) bytes — the operator then downloads it, zipped, from
+  // IOC Store → Evidence Store. A FOLDER is still packaged as a zip to the browser.
   const downloadEntry = async (entry: FsEntry) => {
     const key = entry.name
     if (downloading.has(key)) return
     markDownloading(key, true)
     try {
       const fullPath = joinPath(path, entry.name, sep)
-      const result = await fsApi.downloadBundle(agent.id, [fullPath])
-      downloadHistory.add({
-        agent_id: agent.id,
-        agent_name: agent.name,
-        source_path: fullPath,
-        filename: result.filename,
-        size: result.size,
-        is_archive: true,
-      })
+      if (entry.is_dir) {
+        const result = await fsApi.downloadBundle(agent.id, [fullPath])
+        downloadHistory.add({
+          agent_id: agent.id, agent_name: agent.name, source_path: fullPath,
+          filename: result.filename, size: result.size, is_archive: true,
+        })
+      } else {
+        await fsApi.collectToEvidence(agent.id, fullPath)
+        toast.success(`"${entry.name}" saved to Evidence Store — download it (zipped) from IOC Store → Evidence Store`)
+      }
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {

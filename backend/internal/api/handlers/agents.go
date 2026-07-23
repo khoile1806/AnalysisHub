@@ -216,6 +216,39 @@ func GetAgent(c *gin.Context) {
 // DeleteAgent removes an agent and marks any pending/running jobs as failed.
 //
 // DELETE /api/v1/agents/:id
+// purgeAgentData deletes an agent together with ALL of its dependent records in a
+// single transaction — jobs (and their collected results), hunting deployments,
+// checklist runs/batches, fleet results, baselines and resource samples — so the
+// delete succeeds even when the agent still has completed jobs (foreign keys from
+// jobs.agent_id and hunting_deployments.agent_id would otherwise block it).
+// Case evidence is KEPT (forensic record) and just detached (agent_id → NULL).
+// Deletion order is child → parent to respect the inter-table foreign keys.
+func purgeAgentData(db *gorm.DB, id uuid.UUID) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		steps := []func() error{
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.ToolResult{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.Job{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.HuntingDeployment{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.ChecklistBatch{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.ChecklistRun{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.FleetCollectionResult{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.AgentBaseline{}).Error },
+			func() error { return tx.Where("agent_id = ?", id).Delete(&models.AgentResourceSample{}).Error },
+			// Keep evidence — just detach it from the agent.
+			func() error {
+				return tx.Model(&models.CaseEvidence{}).Where("agent_id = ?", id).Update("agent_id", nil).Error
+			},
+			func() error { return tx.Delete(&models.Agent{}, "id = ?", id).Error },
+		}
+		for _, step := range steps {
+			if err := step(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func DeleteAgent(c *gin.Context) {
 	db, ok := mustGetDB(c)
 	if !ok {
@@ -247,12 +280,10 @@ func DeleteAgent(c *gin.Context) {
 		_ = hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "cleanup"})
 	}
 
-	// Cancel outstanding jobs for this agent.
-	db.Model(&models.Job{}).
-		Where("agent_id = ? AND status IN ?", id, []string{"pending", "running"}).
-		Updates(map[string]interface{}{"status": models.JobFailed, "output": "agent deleted"})
-
-	if err := db.Delete(&agent).Error; err != nil {
+	// Delete the agent and all its dependent data (jobs, results, deployments,
+	// checklist runs, fleet results, baselines, samples) so completed jobs never
+	// block removal.
+	if err := purgeAgentData(db, id); err != nil {
 		log.Printf("[agents] db delete error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to delete agent"})
 		return
@@ -544,13 +575,14 @@ func CleanupAgent(c *gin.Context) {
 		return
 	}
 
-	// Mark any outstanding jobs as failed and remove the agent record. The
-	// agent will not reconnect — it is deleting its own binary.
-	db.Model(&models.Job{}).
-		Where("agent_id = ? AND status IN ?", id, []string{"pending", "running"}).
-		Updates(map[string]interface{}{"status": models.JobFailed, "output": "agent cleaned up"})
-	if err := db.Delete(&agent).Error; err != nil {
+	// Remove the agent and ALL its dependent data (jobs + collected results,
+	// deployments, checklist runs, fleet results, baselines, samples). The agent
+	// will not reconnect — it is deleting its own binary — so completed jobs must
+	// not block its removal.
+	if err := purgeAgentData(db, id); err != nil {
 		log.Printf("[agents] cleanup db delete error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "cleanup dispatched but failed to remove agent data: " + err.Error()})
+		return
 	}
 
 	writeAudit(c, db, &userID, &id, "agent.cleanup", id.String(), fmt.Sprintf("cleanup dispatched to agent %q", agent.Name))
@@ -984,6 +1016,62 @@ func AgentAutorunsParse(c *gin.Context) {
 	}
 
 	awaitEdgeJSONResult(c, hub, outCh, id.String(), "autoruns")
+}
+
+// AgentContainerParse enumerates containers and their misconfiguration on a
+// (Linux) agent — privileged, docker-socket mounts, host namespaces, dangerous
+// capabilities. POST /api/v1/agents/:id/containers
+func AgentContainerParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	if err := hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "edge_parse_containers", JobID: reqID}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "containers")
+}
+
+// AgentLinuxTriageParse gathers Linux persistence / execution-history / privesc
+// artifacts (shell history, cron, SSH keys, ld.so.preload, SUID, kernel modules)
+// on a (Linux) agent. POST /api/v1/agents/:id/linux-triage
+func AgentLinuxTriageParse(c *gin.Context) {
+	hub, ok := mustGetHub(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid agent ID"})
+		return
+	}
+	if !hub.IsAgentOnline(id.String()) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "agent is offline"})
+		return
+	}
+	reqID := uuid.New().String()
+	outCh := hub.SubscribeJobOutput(reqID)
+	defer hub.UnsubscribeJobOutput(reqID, outCh)
+
+	if err := hub.SendJobToAgent(id.String(), ws.AgentCommand{Type: "edge_parse_linux_triage", JobID: reqID}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "failed to send request"})
+		return
+	}
+	awaitEdgeJSONResult(c, hub, outCh, id.String(), "linux-triage")
 }
 
 // AgentNetworkParse triggers a native network-connection snapshot on the agent

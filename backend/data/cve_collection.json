@@ -1,5 +1,2251 @@
 [
   {
+    "id": "GHSA-xfmg-6jq2-vj2x",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-xcm3-8jr8-4m46",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wjhx-5m6h-5x26",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-wc7j-93c4-x4rh",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-w2x3-w5vp-73gh",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-v38p-877j-q2pm",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rjmc-wgvp-8jjg",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-rf26-7hf8-jj9c",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q9m8-pgfw-cff6",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-q6w3-4rvx-qj26",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pp9r-ppc4-25w4",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-pmpp-x56x-f97x",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-m39f-w9q9-9v38",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jvhx-5xgq-jrmp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-jjrp-rj5h-3gxq",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-hc3p-4h64-j8wr",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-f6r3-4c8g-25hx",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-cvg5-68p3-p7qp",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-99f6-8pmj-83xw",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "GHSA-78hf-6c64-9f8q",
+    "description": "",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:32:30Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T13:11:09Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-16399",
+    "description": "Site isolation issue in the DOM: Navigation component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.247",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16400",
+    "description": "Information disclosure in the DOM: Security component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.367",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16401",
+    "description": "Privilege escalation in the Data Loss Prevention component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.470",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16402",
+    "description": "Integer overflow in the Graphics: ImageLib component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.580",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16403",
+    "description": "Spoofing issue in the Address Bar component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.693",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16404",
+    "description": "Spoofing issue in Firefox for Android. This vulnerability was fixed in Firefox 153.",
+    "severity": "high",
+    "cvss_score": 7.4,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.803",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16405",
+    "description": "Information disclosure in the Networking: WebSockets component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00264,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.910",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16406",
+    "description": "Mitigation bypass in the Networking component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00248,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.013",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16407",
+    "description": "Mitigation bypass in the DOM: Service Workers component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.113",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16408",
+    "description": "Integer overflow in the Audio/Video: Playback component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00283,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.220",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16409",
+    "description": "Invalid pointer in the Security: PSM component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.330",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16410",
+    "description": "JIT miscompilation in the JavaScript Engine: JIT component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.433",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16411",
+    "description": "Memory safety bugs present in Thunderbird 152. Some of these bugs showed evidence of memory corruption and we presume that with enough effort some of these could have been exploited to run arbitrary code. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00329,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.530",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16412",
+    "description": "Memory safety bugs present in Thunderbird ESR 140.12 and Thunderbird 152. Some of these bugs showed evidence of memory corruption and we presume that with enough effort some of these could have been exploited to run arbitrary code. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00329,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.630",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16445",
+    "description": "A flaw was found in dracut. A remote attacker on the adjacent network can exploit this vulnerability by providing specially crafted DHCP options, such as a malicious root-path, next-server, or bootfile name, to a system using dracut's NetworkManager-based initrd network module. These options are improperly handled and written into a temporary shell script without proper escaping, leading to command injection. This allows the attacker to achieve root code execution within the initramfs during system boot.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00989,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:16.730",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-59846",
+    "description": "A flaw was found in libssh. A malicious username expanded through %r in ProxyCommand handling can inject shell metacharacters, exposing environment variables and causing unintended shell behavior.",
+    "severity": "low",
+    "cvss_score": 3.9,
+    "epss_score": 0.00104,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:18.143",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-6792",
+    "description": "Missing Authorization vulnerability in Universal Software Inc. FlexCity allows Exploiting Incorrectly Configured Access Control Security Levels.\n\nThis issue affects FlexCity: from 5.536.0 through 11052026.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00201,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:19.043",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8284",
+    "description": "URL redirection to untrusted site ('open redirect') vulnerability in Universal Software Inc. FlexCity allows Input Data Manipulation.\n\nThis issue affects FlexCity: from 5.536.0 through 11052026.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:19.350",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8285",
+    "description": "Improper restriction of excessive authentication attempts vulnerability in Universal Software Inc. FlexCity allows Excessive Allocation.\n\nThis issue affects FlexCity: from 5.536.0 through 11052026.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00236,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:19.473",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-66390",
+    "description": "In Microsoft Azure API Management through 2025-10-17, when self-service signup (username/password Basic Authentication) is enabled in Tenant A, an attacker can reuse the registration flow by changing the hostname or tenant identifier to Tenant B, even when Tenant B has signup disabled at the UI level. In other words, disabling signup in the UI does not disable the underlying API endpoint (which still accepts cross-tenant requests based on the Host header). NOTE: The supplier states that they evaluated the report and determined it did not cross a security boundary (i.e., the observed behavior was a configuration/state issue rather than an exploitable product vulnerability affecting tenant isolation). NOTE: The supplier evaluated this report and determined that it did not cross a security boundary (i.e., the observed behavior was a configuration/state issue rather than an exploitable product vulnerability affecting tenant isolation).",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00176,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T14:16:32.797",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16447",
+    "description": "A vulnerability has been found in D-Link DNS-320 1.0.2. Impacted is an unknown function of the file /web/jquery/uploader/multi_uploadify.php. The manipulation of the argument Filedata[] leads to unrestricted upload. Remote exploitation of the attack is possible. The exploit has been disclosed to the public and may be used.",
+    "severity": "high",
+    "cvss_score": 7.3,
+    "epss_score": 0.00728,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T14:16:33.650",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47121",
+    "description": "Sparkle is a software update framework for macOS. Prior to version 2.9.2, `Autoupdate/SUBinaryDeltaApply.m` enforces `relativePath.pathComponents containsObject:@\"..\"` and rejects writes whose immediate parent directory IS itself a symbolic link, but does not detect symlinks deeper in the relative path. `Autoupdate/SPUSparkleDeltaArchive.m`'s `extractItem:` will create symlinks in the destination tree from archive content (no `..` check on the symlink target), and a subsequent `Extract` item targeting `\u003csymlink\u003e/foo/bar` then escapes the destination tree via `fopen(path, \"wb\")` because the kernel resolves the intermediate symlink during the open call. This is a defense-in-depth issue: exploitation requires a maliciously-crafted `.delta` that passes EdDSA signature verification, i.e. EdDSA private-key compromise. With the AppInstaller running as root for system-domain installs, it gives the holder of a stolen signing key arbitrary file write at root level via the delta-apply path, which is a strictly broader primitive than the \"drop-in replacement bundle\" install they would otherwise have. Version 2.9.2 contains a patch for the issue.",
+    "severity": "medium",
+    "cvss_score": 6.1,
+    "epss_score": 0.00229,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T14:16:34.387",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-59847",
+    "description": "A flaw was found in libssh. Incorrect AES-GCM finalization checks in builds using the OpenSSL backend can effectively remove integrity protection, allowing an in-path attacker to modify plaintext on the wire without detection.",
+    "severity": "medium",
+    "cvss_score": 5.9,
+    "epss_score": 0.00277,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T14:16:34.657",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-59848",
+    "description": "A flaw was found in libssh. A malicious SFTP server can send responses for unknown request IDs that libssh clients keep queued indefinitely, causing unbounded memory growth and client-side denial of service.",
+    "severity": "medium",
+    "cvss_score": 5.3,
+    "epss_score": 0.00285,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T14:16:34.790",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-9499",
+    "description": "An out-of-bounds read (buffer over-read) vulnerability exists in QTextCodec::codecForName() in Qt. When the function is called with a QByteArray that is not NUL-terminated (for example, one created with QByteArray::fromRawData()), the codec-name matching routine reads past the end of the supplied buffer. In most cases this results in an incorrect text codec being selected; in the worst case, if the over-read reaches unmapped memory, the process crashes (denial of service). The over-read is bounded by the length of the longest codec-name candidate, and the out-of-bounds bytes are only compared internally against Qt's fixed list of codec names, so no data is disclosed to an attacker. Applications that do not pass non-NUL-terminated QByteArrays to QTextCodec::codecForName() are not exposed. The affected code resides in the Qt5Compat module from Qt 6.0.0 onward, and in Qt Core (qtbase) in Qt 4.x and Qt 5.x.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00301,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T14:16:35.843",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2024-5300",
+    "description": "An access control bypass and information disclosure vulnerability exists in the base AppArmor security profile configuration of Canonical snapd. The abstraction rules located in /etc/apparmor.d/abstractions/nss-systemd (inherited via ) inadvertently permit strictly confined snap applications, which lack the privileged account-control interface, to interact directly with the io.systemd.Multiplexer and io.systemd.NameServiceSwitch UNIX domain sockets under /run/systemd/userdb/.\nOn systems where the systemd-userdbd service is installed and operational, the service fails to distinguish between an unconfined root user on the host system and a restricted root user running within a snap application's sandbox (such as a daemon or configuration hook). Because systemd-userdbd returns \"complete\" user records—including sensitive hashed user passwords from /etc/shadow—when queried by a process running as root, a compromised or malicious strictly confined snap executing code as root can successfully query the Varlink interface to retrieve all system password hashes, bypassing intended snap sandbox restrictions. This issue is mitigated by the fact that systemd-userdbd is not installed by default on standard Ubuntu deployments.",
+    "severity": "medium",
+    "cvss_score": 5.6,
+    "epss_score": 0.00099,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:29.027",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-11876",
+    "description": "In zenml-io/zenml version 0.94.2, the `GET /api/v1/stack-deployment/stack` endpoint (`get_deployed_stack`) lacks proper RBAC authorization checks, allowing any authenticated user to enumerate all deployed stacks across all users and tenants. This includes stack component details, service connector information, and user IDs of stack owners. The vulnerability arises from two issues: missing endpoint-level RBAC checks and the use of a server-side `Client()` that bypasses the RBAC enforcement layer by directly accessing the database through `SqlZenStore`. This exposes sensitive information such as infrastructure topology, service connector details, stack ownership, and deployment metadata, potentially enabling cross-tenant reconnaissance and further attacks in multi-tenant ZenML Pro/Cloud deployments.",
+    "severity": "medium",
+    "cvss_score": 5,
+    "epss_score": 0.00183,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:30.480",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-15226",
+    "description": "A sandbox confinement bypass vulnerability exists in Canonical snapd within its internal execution environment compiler (snap-confine). The default seccomp security templates generated by the engine to restrict system calls do not filter or reject process operations capable of creating or manipulating file execution flags with set-user-ID attributes.  Consequently, an application running within a strictly confined snap environment can successfully compile or drop binaries and apply setuid properties to them. If a compromised or malicious process inside the snap sandbox executes these generated setuid binaries, it can potentially circumvent architectural sandboxing assumptions, drop intended restriction policies, or execute privileged actions inside the container namespace that should otherwise be strictly blocked. The vulnerability has been resolved by hardening the seccomp template engine to block the execution and creation of setuid executables by sandboxed snap processes.",
+    "severity": "high",
+    "cvss_score": 8.4,
+    "epss_score": 0.00125,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:31.030",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16448",
+    "description": "A vulnerability was found in D-Link DNS-120, DNR-202L, DNS-315L, DNS-320, DNS-320L, DNS-320LW, DNS-321, DNR-322L, DNS-323, DNS-325, DNS-326, DNS-327L, DNR-326, DNS-340L, DNS-343, DNS-345, DNS-726-4, DNS-1100-4, DNS-1200-05 and DNS-1550-04 up to 20260205. The affected element is the function cgi_check_rsync_rw of the file /cgi-bin/remote_backup.cgi. The manipulation of the argument ip results in command injection. The attack can be executed remotely. The exploit has been made public and could be used.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0.01513,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:33.587",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-46681",
+    "description": "@nevware21/ts-utils is a comprehensive TypeScript/JavaScript utility library. Prior to version 0.14.0, the _copyProps function in lib/src/object/copy.ts uses for...in to iterate over source object properties without an Object.hasOwnProperty check, and does not filter dangerous keys (__proto__, constructor, prototype). This allows an attacker to pollute the prototype chain of all objects in the application. Version 0.14.0 patches the issue.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00284,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:35.177",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-47122",
+    "description": "Sparkle is a software update framework for macOS. In versions up to and including 2.9.1, `Autoupdate/AppInstaller.m`'s `shouldAcceptNewConnection:` only enforces `SUCodeSigningVerifier validateConnection:` before stage 1 completes. After `_performedStage1Installation = YES`, new connections to the registered Mach service `\u003cbundleId\u003e-spki` are accepted from any local process without team-ID or code-signing checks. As of time of publication, no known patched versions are available.",
+    "severity": "medium",
+    "cvss_score": 4.2,
+    "epss_score": 0.00078,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:35.327",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56584",
+    "description": "HCL IEM was affected with the Information disclosure nginx server. It may enable attackers to identify outdated software versions and target known vulnerabilities or publicly available exploits.",
+    "severity": "low",
+    "cvss_score": 3.7,
+    "epss_score": 0.00171,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:36.630",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-56587",
+    "description": "HCL IEM was affected with Strict transport security not enforced. It may enable attackers to perform SSL stripping or man-in-the-middle attacks and compromise secure communications.",
+    "severity": "low",
+    "cvss_score": 3.7,
+    "epss_score": 0.00155,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:36.743",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-59849",
+    "description": "A flaw was found in libssh. Logic errors in automatic certificate-based public key authentication can cause libssh clients to loop indefinitely when configured certificates are missing or repeatedly rejected by a server, leading to denial of service.",
+    "severity": "low",
+    "cvss_score": 3.1,
+    "epss_score": 0.00173,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:37.647",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-59850",
+    "description": "A flaw was found in libssh. If data packets are processed after a channel is closed, channel data callbacks can be invoked after the associated data has already been freed, leading to crashes or possible use-after-free conditions.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00255,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:37.773",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-59851",
+    "description": "A flaw was found in libssh. On servers with GSSAPIKeyExchange enabled, the gssapi-keyex path does not verify whether the authenticated Kerberos principal is authorized for the requested local user, allowing authenticated clients to log in as arbitrary users.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00256,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:37.897",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-65048",
+    "description": "Ninja Forms plugin for WordPress versions 3.10.4 through 3.14.9 contains an unauthenticated stored cross-site scripting vulnerability in the Repeatable Fieldset feature where parseSubmissionIndex() accepts arbitrary strings as submission indexes without numeric validation, and admin_form_element() interpolates the index directly into HTML without escaping. An unauthenticated attacker can submit a public form with a crafted repeater child key containing malicious script payloads, which execute in an administrator's browser when viewing submissions in the WordPress admin panel, enabling session-cookie theft, creation of administrator accounts, installation of malicious plugins, and arbitrary modification of site content.",
+    "severity": "critical",
+    "cvss_score": 9.3,
+    "epss_score": 0.00296,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:38.813",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-65049",
+    "description": "Ninja Forms plugin version 3.14.8 and prior for WordPress Multisite contains an incorrect authorization vulnerability that allows a subsite Administrator to trigger network-wide deletion of all Ninja Forms data by exploiting a site-scoped capability check combined with unsafe multisite migration defaults. Attackers can send a crafted POST request to the admin-ajax.php endpoint with the nf_delete_all_data action and a per-site nonce to invoke migration routines that unconditionally iterate all blogs via switch_to_blog(), dropping all nf3_* tables and clearing options and transients across every subsite in the network without requiring super-admin or network-admin privileges.",
+    "severity": "critical",
+    "cvss_score": 9.3,
+    "epss_score": 0.00235,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:38.970",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-65050",
+    "description": "Ninja Forms WordPress plugin version 3.14.8 and prior contains a missing authorization vulnerability in the render callback of the `ninja-forms/submissions-table` Gutenberg block that allows authenticated attackers with Author-level privileges to expose stored form submissions to unauthenticated visitors by embedding the block with an arbitrary formID on a published post. Attackers can retrieve the signed bearer token injected into every page visitor's browser via `wp_localize_script` and use it against the REST API submissions endpoint to access all saved form submission field values, including sensitive personally identifiable information such as names, email addresses, and phone numbers.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00311,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:39.147",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-65051",
+    "description": "Ninja Forms WordPress plugin version 3.14.8 contains a client-side enforcement of server-side security vulnerability that allows unauthenticated attackers to bypass all form validation by merging attacker-controlled field metadata over server-loaded form definitions before validation runs. Attackers can craft a malicious AJAX submission overriding field types, removing required flags, and disabling CAPTCHA checks through the nopriv AJAX endpoint to trigger form actions such as email notifications and database storage with unverified, attacker-controlled content.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00283,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:39.290",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-65052",
+    "description": "Ninja Forms WordPress plugin version 3.14.8 and prior contains an improper input validation vulnerability that allows unauthenticated attackers to inject arbitrary numeric values into form calculations and payment totals by submitting values that do not match any configured option in ListSelect or ListRadio fields. Attackers can tamper with form submission payloads to the ajax submit endpoint, causing the get_calc_value() method to fail open and return attacker-controlled values, enabling manipulation of payment amounts to zero or arbitrary figures and bypassing admin-configured pricing logic.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0033,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:39.430",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-8933",
+    "description": "A local privilege escalation vulnerability exists in snap-confine, a set-capabilities core component used internally by Canonical snapd to construct the secure execution environment for snap applications. This vulnerability uniquely affects versions of snap-confine configured with set-capabilities (rather than standard set-uid-root installations).\nDue to a flaw in how privilege boundaries or security sandboxes are initialized when the binary runs under limited ambient capabilities, a local, unprivileged attacker can exploit this behavior to bypass intended restrictions and execute arbitrary code. Successful exploitation allows the local user to elevate their privileges to full root authority.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00145,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T15:16:39.563",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16449",
+    "description": "A vulnerability was determined in zsadmin2025 ZS-Admin up to b52e14536d59fda11e56e2536a1c32e82a38cead. The impacted element is the function OrderItem.asc/OrderItem.desc of the file /api/system/sys/dept/page of the component com.zs.sys.dept.controller.SysDeptController. This manipulation of the argument orderField causes sql injection. The attack is possible to be carried out remotely. The exploit has been publicly disclosed and may be utilized. This product adopts a rolling release strategy to maintain continuous delivery. Therefore, version details for affected or updated releases cannot be specified. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 6.3,
+    "epss_score": 0.00303,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:07.313",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16450",
+    "description": "A vulnerability was identified in zsadmin2025 ZS-Admin up to b52e14536d59fda11e56e2536a1c32e82a38cead. This affects the function getTenantId of the file /api/system/sys/dept/page of the component MyBatis-Plus Tenant Plugin. Such manipulation of the argument X-Tenant-Id leads to authorization bypass. The attack may be performed from remote. The exploit is publicly available and might be used. This product utilizes a rolling release system for continuous delivery, and as such, version information for affected or updated releases is not disclosed. The project was informed of the problem early through an issue report but has not responded yet.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00358,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:07.493",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28302",
+    "description": "SolarWinds Serv-U is affected by an insecure direct object reference (IDOR) vulnerability that can lead to privilege escalation and remote code execution as root. This issue requires group administrator access. The impact is lower in Windows deployments.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00546,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:07.903",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28304",
+    "description": "SolarWinds Serv-U is affected by a remote code execution vulnerability that, when exploited, can allow the arbitrary execution of code remotely as root. The impact is lower in Windows deployments.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00546,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:08.050",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28305",
+    "description": "SolarWinds Serv-U is affected by an insecure direct object reference (IDOR) vulnerability that can lead to remote code execution as root. A domain account with admin privileges and read and write access to the home directory is required. The impact is lower in Windows deployments.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00546,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:08.180",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28306",
+    "description": "SolarWinds Serv-U is affected by a privilege escalation vulnerability that allows a domain administrator to elevate their privileges to a system administrator. The impact is lower in Windows deployments.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00344,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:08.317",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28307",
+    "description": "SolarWinds Serv-U is affected by a privilege escalation vulnerability that allows a domain user group to be elevated into an administrator group. The impact is lower in Windows deployments.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00344,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:08.443",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-28308",
+    "description": "SolarWinds Serv-U is affected by an insecure direct object reference (IDOR) vulnerability that can lead to remote code execution. Domain administrator access is required. The impact is lower in Windows deployments.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00546,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T16:17:08.577",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T13:10:43Z",
+    "source": "NVD"
+  },
+  {
+    "id": "RLSA-2026:38847",
+    "description": "Important: nginx:1.24 security, bug fix, and enhancement update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-13T12:01:07.269263Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:38504",
+    "description": "Important: container-tools:rhel8 security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-13T12:01:07.269263Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:38501",
+    "description": "Important: freerdp security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-14T06:00:51.502823Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:38487",
+    "description": "Important: xorg-x11-server security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-14T06:00:51.502823Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:38488",
+    "description": "Important: xorg-x11-server-Xwayland security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-14T06:00:51.502823Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:38485",
+    "description": "Important: gegl security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-14T06:00:51.502823Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:37137",
+    "description": "Important: tomcat security, bug fix, and enhancement update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-10T06:00:28.519192Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:37130",
+    "description": "Important: gstreamer1-plugins-bad-free security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-10T06:00:28.519192Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:36215",
+    "description": "Important: compat-openssl10 security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-13T18:01:45.429329Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:43420",
+    "description": "Important: acl security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T06:01:03.884297Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:42733",
+    "description": "Moderate: glibc security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-22T06:00:17.447455Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:42552",
+    "description": "Important: kernel security, bug fix, and enhancement update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-22T06:00:17.447455Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:42090",
+    "description": "Important: glib2 security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T06:00:44.552120Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:39575",
+    "description": "Important: cifs-utils security, bug fix, and enhancement update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-23T12:00:46.971123Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:39320",
+    "description": "Important: python3 security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-15T12:00:47.473663Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:39179",
+    "description": "Important: kernel security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-15T12:00:47.473663Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:38503",
+    "description": "Moderate: openssl security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-14T06:00:42.485918Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "RLSA-2026:36366",
+    "description": "Important: kernel security update",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-11T06:00:16.443974Z",
+    "poc_links": null,
+    "tags": [
+      "auto-synced",
+      "circl"
+    ],
+    "added_at": "2026-07-23T12:41:53Z",
+    "source": "CIRCL"
+  },
+  {
+    "id": "CVE-2026-16349",
+    "description": "Same-origin policy bypass in the DOM: Navigation component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:03.370",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16350",
+    "description": "Incorrect boundary conditions in the Audio/Video: cubeb component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:03.470",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16351",
+    "description": "Sandbox escape due to use-after-free in the DOM: Navigation component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:03.577",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16352",
+    "description": "Sandbox escape due to use-after-free in the Disability Access APIs component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:03.693",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16353",
+    "description": "Invalid pointer in the DOM: Bindings (WebIDL) component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:03.793",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16354",
+    "description": "Information disclosure in the Graphics: ImageLib component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:03.893",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16355",
+    "description": "JIT miscompilation in the JavaScript Engine: JIT component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.000",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16356",
+    "description": "Sandbox escape due to use-after-free in the Disability Access APIs component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.100",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16357",
+    "description": "Incorrect boundary conditions in the Graphics component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.207",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16358",
+    "description": "Site isolation issue in the Graphics: WebRender component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00152,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.310",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16359",
+    "description": "Incorrect boundary conditions in the Audio/Video: GMP component. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00268,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.413",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16360",
+    "description": "Memory safety bugs present in Thunderbird ESR 140.12 and Thunderbird 152. Some of these bugs showed evidence of memory corruption and we presume that with enough effort some of these could have been exploited to run arbitrary code. This vulnerability was fixed in Firefox 153, Firefox ESR 115.38, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00144,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.517",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16361",
+    "description": "Memory safety bugs present in Thunderbird ESR 140.12. Some of these bugs showed evidence of memory corruption and we presume that with enough effort some of these could have been exploited to run arbitrary code. This vulnerability was fixed in Firefox ESR 115.38, Firefox ESR 140.13, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00319,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.637",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16362",
+    "description": "Use-after-free in the WebRTC: Audio/Video component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.733",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16363",
+    "description": "JIT miscompilation in the JavaScript: WebAssembly component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.840",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16364",
+    "description": "Incorrect boundary conditions in the Audio/Video: Playback component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:04.940",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16365",
+    "description": "Privilege escalation in the DOM: Workers component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:05.037",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16366",
+    "description": "Privilege escalation in the DOM: Navigation component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:05.140",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16367",
+    "description": "Sandbox escape due to invalid pointer in the Disability Access APIs component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 10,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:05.240",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16368",
+    "description": "Incorrect boundary conditions in the JavaScript: WebAssembly component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:05.360",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16369",
+    "description": "Integer overflow in the JavaScript: WebAssembly component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:06.707",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16370",
+    "description": "Mitigation bypass in the DOM: Networking component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00149,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:06.860",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16371",
+    "description": "Privilege escalation in the DOM: Navigation component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.270",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16372",
+    "description": "Privilege escalation in the DOM: Content Processes component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.377",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16373",
+    "description": "Information disclosure in the Privacy component in Firefox for Android. This vulnerability was fixed in Firefox 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.473",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16374",
+    "description": "Information disclosure in the Framework component in DevTools. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.573",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16375",
+    "description": "Site isolation issue in the Networking: HTTP component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.677",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16376",
+    "description": "Denial-of-service in the Graphics: WebGPU component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.760",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16377",
+    "description": "Mitigation bypass in the PDF Viewer component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.870",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16378",
+    "description": "Other issue in the DOM: Copy \u0026 Paste and Drag \u0026 Drop component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:12.967",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16379",
+    "description": "Privilege escalation in the DOM: Content Processes component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.067",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16380",
+    "description": "Mitigation bypass in the Networking component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00149,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.163",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16381",
+    "description": "Same-origin policy bypass in the Networking: DNS component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.260",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16382",
+    "description": "Mitigation bypass in the DOM: Service Workers component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00149,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.363",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16383",
+    "description": "Mitigation bypass in the DOM: Networking component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.460",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16384",
+    "description": "Information disclosure due to uninitialized memory in the Graphics: WebGPU component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.560",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16385",
+    "description": "Information disclosure due to uninitialized memory in the Graphics: WebGPU component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.660",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16386",
+    "description": "Information disclosure due to uninitialized memory in the Graphics: WebGPU component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.763",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16387",
+    "description": "Site isolation issue in the Networking component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.863",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16388",
+    "description": "Sandbox escape in the DOM: Networking component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:13.960",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16389",
+    "description": "Incorrect boundary conditions, integer overflow in the Libraries component in NSS. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.063",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16390",
+    "description": "Mitigation bypass in the Enterprise Policies component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00159,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.160",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16391",
+    "description": "Information disclosure in the Storage: IndexedDB component. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.0015,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.290",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16392",
+    "description": "JIT miscompilation in the JavaScript Engine: JIT component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00141,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.400",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16393",
+    "description": "Incorrect boundary conditions in the Graphics: WebGPU component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.500",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16394",
+    "description": "Mitigation bypass in the DOM: Security component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.1,
+    "epss_score": 0.00248,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.620",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16395",
+    "description": "Integer overflow in the Audio/Video component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00283,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.733",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16396",
+    "description": "Privilege escalation in WebExtensions. This vulnerability was fixed in Firefox 153, Firefox ESR 140.13, Thunderbird 153, and Thunderbird 140.13.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00142,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.853",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16397",
+    "description": "Clickjacking issue in the WebExtensions component in Firefox for Android. This vulnerability was fixed in Firefox 153.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00185,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:14.977",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16398",
+    "description": "Site isolation issue in the Graphics component. This vulnerability was fixed in Firefox 153 and Thunderbird 153.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00133,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-21T13:17:15.137",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-23T12:41:28Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-58526",
     "description": "Use after free in Windows Storage allows an authorized attacker to elevate privileges locally.",
     "severity": "high",

@@ -153,6 +153,19 @@ export const agentsApi = {
     return data
   },
 
+  // Container forensics (Linux): running/stopped containers + misconfiguration
+  // (privileged, docker-socket mount, host namespaces, dangerous caps).
+  parseContainers: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/containers`, undefined, { timeout: 600_000 })
+    return data
+  },
+
+  // Linux triage: persistence + execution history + privesc artifacts.
+  parseLinuxTriage: async (id: string): Promise<any> => {
+    const { data } = await apiClient.post(`/agents/${id}/linux-triage`, undefined, { timeout: 600_000 })
+    return data
+  },
+
   // Native network snapshot: TCP/UDP connections w/ owning process + image path
   // + reverse DNS, plus the DNS resolver cache (NetworkMiner-style). No UAC.
   parseNetwork: async (id: string): Promise<any> => {

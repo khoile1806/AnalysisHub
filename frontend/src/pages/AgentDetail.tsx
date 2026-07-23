@@ -45,7 +45,7 @@ function KeepAliveTab({ active, children }: { active: boolean; children: React.R
 }
 
 // ---- Create Job Modal (pre-filled with agentId) ----
-function CreateJobModal({ agentId, open, onClose }: { agentId: string; open: boolean; onClose: () => void }) {
+function CreateJobModal({ agentId, agentOs, open, onClose }: { agentId: string; agentOs: string; open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const [toolId, setToolId] = useState('')
 	const [args, setArgs] = useState('')
@@ -90,8 +90,12 @@ function CreateJobModal({ agentId, open, onClose }: { agentId: string; open: boo
 		})
   }
 
+  // Only offer tools that can actually run on this agent's OS (or cross-platform).
+  const os = (agentOs || '').toLowerCase()
+  const compatibleTools = tools.filter((t) => t.platform === os || t.platform === 'both')
+
   const toolsByCategory = TOOL_CATEGORIES.reduce<Record<string, typeof tools>>((acc, cat) => {
-    const catTools = tools.filter((t) => t.category === cat)
+    const catTools = compatibleTools.filter((t) => t.category === cat)
     if (catTools.length) acc[cat] = catTools
     return acc
   }, {})
@@ -327,7 +331,7 @@ function JobsTab({ agent }: { agent: Agent }) {
         </div>
       </div>
 
-      <CreateJobModal agentId={agent.id} open={newJobOpen} onClose={() => setNewJobOpen(false)} />
+      <CreateJobModal agentId={agent.id} agentOs={agent.os} open={newJobOpen} onClose={() => setNewJobOpen(false)} />
       <DeleteJobModal job={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   )
@@ -841,7 +845,11 @@ export default function AgentDetailPage() {
       {/* Tabs */}
       <div className="border-b border-gray-800">
         <nav className="flex gap-1 -mb-px overflow-x-auto whitespace-nowrap">
-          {TABS.map(({ id: tabId, label, icon: Icon }) => (
+          {TABS.filter(({ id }) => {
+            // Windows-only artifacts: hide on Linux agents.
+            const winOnly = id === 'registry' || id === 'evtx'
+            return !(winOnly && (agent.os || '').toLowerCase().includes('linux'))
+          }).map(({ id: tabId, label, icon: Icon }) => (
             <button
               key={tabId}
               onClick={() => setActiveTab(tabId)}

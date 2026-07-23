@@ -400,6 +400,10 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			go c.handleEdgeParseBrowser(msg)
 		case "edge_parse_triage":
 			go c.handleEdgeParseTriage(msg)
+		case "edge_parse_containers":
+			go c.handleEdgeParseContainers(msg)
+		case "edge_parse_linux_triage":
+			go c.handleEdgeParseLinuxTriage(msg)
 		case "collect_os_logs":
 			go c.handleCollectOSLogs(msg)
 		case "kill_process":
@@ -570,10 +574,14 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 			if toolID == "" {
 				toolID = executor.SanitizeFilename(msg.ToolName)
 			}
-			// The report is generated in toolDir/report/ (default)
-			reportPath := filepath.Join(workDir, "tools", toolID, "report", "report.html")
+			// The report is written to a "report/" dir relative to the scanner's own
+			// folder, which differs per platform (report/, linux/report/,
+			// windows/report/, …). Search the whole tool dir for the freshest
+			// report.html rather than assuming one fixed path.
+			toolDir := filepath.Join(workDir, "tools", toolID)
+			reportPath := findNewestReportHTML(toolDir)
 
-			if _, statErr := os.Stat(reportPath); statErr == nil {
+			if reportPath != "" {
 				log.Printf("[job:%s] uploading yara-scanner report: %s", msg.JobID, reportPath)
 				if upErr := c.uploadArtifact(runCtx, msg.JobID, reportPath); upErr != nil {
 					log.Printf("[job:%s] artifact upload failed: %v", msg.JobID, upErr)
@@ -583,7 +591,7 @@ func (c *Client) handleJobRun(parentCtx context.Context, msg inboundMsg) {
 					_ = c.sendOutput(msg.JobID, "[+] Report uploaded successfully", false)
 				}
 			} else {
-				log.Printf("[job:%s] report not found at %s", msg.JobID, reportPath)
+				log.Printf("[job:%s] report.html not found under %s", msg.JobID, toolDir)
 			}
 		}
 
@@ -1337,7 +1345,28 @@ func (c *Client) runEdgeScan(jobID, name, tmpPrefix, subcmd, extraArg string, in
 		return
 	}
 
-	// Medium-integrity: elevate a child via UAC, read its JSON output.
+	// Non-Windows (Linux/macOS): there is no UAC. Privilege comes from running the
+	// agent as root (systemd service / sudo). Instead of failing, collect
+	// best-effort in-process — many artifacts are readable without root, and each
+	// collector skips the paths it cannot read — while telling the operator that
+	// root is needed for full coverage.
+	if runtime.GOOS != "windows" {
+		_ = c.sendOutput(jobID, "[!] Agent is not running as root — collecting "+name+" with limited privileges. Run the agent as root (or sudo) for full coverage.", false)
+		res, err := inProc()
+		if err != nil {
+			fail("[agent error] %s failed: %v", name, err)
+			return
+		}
+		b, err := json.Marshal(res)
+		if err != nil {
+			fail("[agent error] marshal failed: %v", err)
+			return
+		}
+		finish(b)
+		return
+	}
+
+	// Windows medium-integrity: elevate a child via UAC, read its JSON output.
 	_ = c.sendOutput(jobID, "[*] Requesting Administrator privileges (UAC) for "+name+"...", false)
 	exe, _ := os.Executable()
 	tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("%s_%s.json", tmpPrefix, jobID))
@@ -1386,6 +1415,23 @@ func (c *Client) handleEdgeParseAutoruns(msg inboundMsg) {
 	log.Printf("[edge_autoruns:%s] autoruns scan", msg.JobID)
 	c.runEdgeScan(msg.JobID, "Autoruns scan", "autoruns", "scan-autoruns", "",
 		func() (any, error) { return parser.ScanAutoruns() })
+}
+
+// handleEdgeParseContainers enumerates containers + their misconfiguration
+// (privileged, docker-socket mount, host namespaces, dangerous caps). Linux-only.
+func (c *Client) handleEdgeParseContainers(msg inboundMsg) {
+	log.Printf("[edge_containers:%s] container forensics", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Container forensics", "containers", "scan-containers", "",
+		func() (any, error) { return parser.ScanContainers() })
+}
+
+// handleEdgeParseLinuxTriage gathers Linux persistence / execution-history /
+// privesc artifacts (shell history, cron, ssh keys, ld.so.preload, SUID, kernel
+// modules). Linux-only.
+func (c *Client) handleEdgeParseLinuxTriage(msg inboundMsg) {
+	log.Printf("[edge_linux_triage:%s] linux triage", msg.JobID)
+	c.runEdgeScan(msg.JobID, "Linux triage", "linuxtriage", "scan-linux-triage", "",
+		func() (any, error) { return parser.ScanLinuxTriage() })
 }
 
 // handleEdgeParseDlls enumerates loaded modules across processes (ListDLLs-style)
@@ -1442,9 +1488,14 @@ func (c *Client) handleKillProcess(msg inboundMsg) {
 	}
 	log.Printf("[kill:%s] terminating pid %d", msg.JobID, msg.Pid)
 	var err error
-	if executor.IsElevated() {
+	if executor.IsElevated() || runtime.GOOS != "windows" {
+		// Root/admin (or any Unix agent): kill in-process. A non-root Unix agent
+		// simply gets a permission error, which is the honest result — there is no
+		// per-action elevation on Unix.
 		err = executor.KillProcess(msg.Pid)
 	} else {
+		// Windows medium-integrity: elevate a UAC child to reach other users' /
+		// elevated processes.
 		exe, _ := os.Executable()
 		err = executor.RunElevatedAndWait(exe, fmt.Sprintf("kill %d", msg.Pid))
 	}
@@ -1813,40 +1864,48 @@ func (c *Client) sendRegister() error {
 func (c *Client) streamRealtime(ctx context.Context, conn *websocket.Conn, dataType string, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
+	collectAndSend := func() {
+		var payload string
+		var err error
+		switch dataType {
+		case "processes":
+			payload, err = monitor.CollectProcesses()
+		case "netstat":
+			payload, err = monitor.CollectNetstat()
+		case "sysinfo":
+			payload, err = monitor.CollectSysInfo()
+		case "netconn":
+			payload, err = parser.CollectConnectionsJSON()
+		default:
+			return
+		}
+		if err != nil {
+			log.Printf("[monitor] %s collect error: %v", dataType, err)
+			return
+		}
+		if err := c.writeRealtimeJSON(outboundMsg{
+			Type:     "realtime_data",
+			DataType: dataType,
+			Payload:  payload,
+		}); err != nil {
+			// Realtime frames are best-effort: drop the frame on write error
+			// rather than closing the connection (it may be momentarily congested
+			// by heavy shell output; killing it causes spurious disconnects).
+			log.Printf("[monitor] send %s error: %v — dropping frame", dataType, err)
+		}
+	}
+
+	// Send one frame immediately so slow-interval streams (e.g. sysinfo @30s)
+	// populate the UI right away instead of showing an empty skeleton until the
+	// first tick.
+	collectAndSend()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			var payload string
-			var err error
-			switch dataType {
-			case "processes":
-				payload, err = monitor.CollectProcesses()
-			case "netstat":
-				payload, err = monitor.CollectNetstat()
-			case "sysinfo":
-				payload, err = monitor.CollectSysInfo()
-			case "netconn":
-				payload, err = parser.CollectConnectionsJSON()
-			default:
-				continue
-			}
-			if err != nil {
-				log.Printf("[monitor] %s collect error: %v", dataType, err)
-				continue
-			}
-			if err := c.writeRealtimeJSON(outboundMsg{
-				Type:     "realtime_data",
-				DataType: dataType,
-				Payload:  payload,
-			}); err != nil {
-				// Realtime frames are best-effort: drop the frame on write
-				// error rather than closing the connection. The connection may
-				// be momentarily congested by heavy shell output; killing it
-				// here causes spurious agent disconnects during terminal use.
-				log.Printf("[monitor] send %s error: %v — dropping frame", dataType, err)
-			}
+			collectAndSend()
 		}
 	}
 }
@@ -2030,6 +2089,28 @@ func localIP() string {
 		return localIPFromInterfaces()
 	}
 	return addr.IP.String()
+}
+
+// findNewestReportHTML walks a tool directory and returns the path of the most
+// recently modified file named report.html (case-insensitive), or "" if none.
+// This handles the per-platform layout differences (report/, linux/report/,
+// windows/report/ …) without a hard-coded path.
+func findNewestReportHTML(toolDir string) string {
+	var best string
+	var bestMod time.Time
+	_ = filepath.Walk(toolDir, func(p string, info os.FileInfo, err error) error {
+		if err != nil || info == nil || info.IsDir() {
+			return nil
+		}
+		if strings.EqualFold(info.Name(), "report.html") {
+			if best == "" || info.ModTime().After(bestMod) {
+				best = p
+				bestMod = info.ModTime()
+			}
+		}
+		return nil
+	})
+	return best
 }
 
 // uploadArtifact performs a multipart/form-data upload of a file to the server.
