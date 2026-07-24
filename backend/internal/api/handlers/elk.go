@@ -765,7 +765,11 @@ func elkSearch(baseURL, authHeader, indexPattern string, body []byte, timeout ti
 		return nil, 0, fmt.Errorf("build request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", authHeader)
+	if authHeader != "" {
+		// The built-in log store runs with security disabled; sending an empty
+		// Authorization header to it is at best pointless.
+		req.Header.Set("Authorization", authHeader)
+	}
 
 	client := &http.Client{
 		Timeout: timeout,

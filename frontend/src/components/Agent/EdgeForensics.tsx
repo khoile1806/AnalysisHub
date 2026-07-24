@@ -944,7 +944,9 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
       const arr: any[] = Array.isArray(data) ? data : [data]
       setContainerResults(arr)
       toast.success(`Container scan complete — ${arr.length} container(s)`)
-      checkIOCs(arr.map(c => c.image_id).filter(Boolean) as string[])
+      // Look up the full digests as well: a 12-char short image id can never
+      // match a sha256 indicator held in the IOC store.
+      checkIOCs(arr.flatMap(c => [c.image_digest, c.image_repo_digest, c.image_id]).filter(Boolean) as string[])
     } catch (err: any) {
       toast.error(getErrorMessage(err))
     } finally { setLoading(false) }
@@ -1209,17 +1211,31 @@ export function EdgeForensics({ agent }: { agent: Agent }) {
         })
       } else if (activeTab === 'containers' && containerResults) {
         items = Array.from(selected).map(i => containerResults[i]).filter(Boolean).map((c: any) => {
-          const known = c.image_id && iocMatches.has(String(c.image_id).toLowerCase())
+          const flags = containerFlags(c, iocMatches)
+          const known = flags.includes('IOC-MATCH:image')
+          const drift = c.changes_summary
+          // Only the full digest is a usable indicator; the short id is a
+          // display value and would never match anything downstream.
+          const digest = c.image_digest || c.image_repo_digest
+          const labels = c.labels && Object.keys(c.labels).length
+            ? Object.entries(c.labels).map(([k, v]) => `${k}=${v}`).join(', ')
+            : ''
           return {
             title: `Container: ${c.name || c.id} (${c.image})`,
-            detail: `Image: ${c.image}\nImageID: ${c.image_id || '—'}\nState: ${c.state}\nCommand: ${c.command || '—'}\nUser: ${c.user || '—'}\nPorts: ${(c.ports || []).join(', ') || '—'}\n` +
+            detail: `Image: ${c.image}\nDigest: ${digest || c.image_id || '—'}\nRuntime: ${c.runtime || '—'}\nState: ${c.state}\nCommand: ${c.command || '—'}\nUser: ${c.user || '(root)'}\nPorts: ${(c.ports || []).join(', ') || '—'}\n` +
               `Mounts: ${(c.mounts || []).map((m: any) => `${m.source}→${m.dest}${m.rw ? '(rw)' : ''}`).join('; ') || '—'}\n` +
-              (c.suspicious?.length ? `Risk: ${c.suspicious.join(', ')}` : ''),
-            event_time: undefined,
-            severity: (known || (c.suspicious || []).some((s: string) => /privileged|docker-socket|host-|cap:/i.test(s)) ? 'critical' : c.suspicious?.length ? 'high' : 'info') as TimelineSeverity,
-            value: c.image_id || undefined,
-            ioc_type: c.image_id ? 'File-Hash' : undefined,
-            promote_ioc: !!c.image_id,
+              (labels ? `Attribution: ${labels}\n` : '') +
+              (c.upper_dir ? `Writable layer: ${c.upper_dir}\n` : '') +
+              (drift?.total ? `Filesystem drift: +${drift.added} added, ~${drift.modified} modified, -${drift.deleted} deleted\n` : '') +
+              ((c.changes || []).length ? `Notable changes: ${(c.changes || []).slice(0, 15).map((ch: any) => `${ch.kind === 'added' ? '+' : ch.kind === 'deleted' ? '-' : '~'}${ch.path}`).join(', ')}\n` : '') +
+              (c.secret_env?.length ? `Secret-looking env: ${c.secret_env.join(', ')}\n` : '') +
+              (c.inspect_ok === false ? 'NOTE: inspect unavailable — security fields were not collected for this container\n' : '') +
+              (flags.length ? `Risk: ${flags.join(', ')}` : ''),
+            event_time: c.created_at || undefined,
+            severity: (known || isSevereRisk(flags) ? 'critical' : hasRealRisk(flags) ? 'high' : 'info') as TimelineSeverity,
+            value: digest || c.image_id || undefined,
+            ioc_type: (digest || c.image_id) ? 'File-Hash' : undefined,
+            promote_ioc: !!digest,
           }
         })
       } else if (activeTab === 'linux-triage' && linuxResults) {
@@ -2187,58 +2203,227 @@ function safeFmt(s: string): string {
 }
 
 // ── Container Forensics table (Linux) ────────────────────────────────────────
+// RISK_CONTEXT are container attributes that are the default for perfectly
+// ordinary deployments — nearly every compose stack sets restart: unless-stopped
+// and most images run as root. Rendering them like the escape-class risks made
+// every container look compromised and buried the findings that matter, so they
+// are kept as context but greyed out and excluded from the "risky" count.
+const RISK_CONTEXT = /^(restart-always|runs-as-root|image-no-repo-digest)$/i
+const RISK_SEVERE = /privileged|docker-socket|host-network|host-pid|host-ipc|host-sensitive-mount|cap:|ioc|preload|rootkit|reverse-shell|module-not-on-disk|masked-paths-disabled|device-passthrough|net-container-share|drift-suspicious-write|userns-host/i
+
+const isSevereRisk = (flags: string[]) => flags.some(f => RISK_SEVERE.test(f))
+const hasRealRisk = (flags: string[]) => flags.some(f => !RISK_CONTEXT.test(f))
+
 function RiskChips({ flags }: { flags?: string[] }) {
   if (!flags || flags.length === 0) return <span className="text-gray-600 text-[11px]">—</span>
   return (
     <div className="flex flex-wrap gap-1">
       {flags.map((f, i) => {
-        const red = /privileged|docker-socket|host-|cap:|ioc|preload|rootkit|reverse-shell|module-not-on-disk/i.test(f)
+        if (RISK_CONTEXT.test(f)) {
+          return <span key={i} className="text-[10px] px-1.5 py-0.5 rounded border text-gray-400 border-gray-700/60 bg-gray-800/40">{f}</span>
+        }
+        const red = RISK_SEVERE.test(f)
         return <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border ${red ? 'text-red-300 border-red-700/50 bg-red-900/20' : 'text-amber-300 border-amber-700/40 bg-amber-900/20'}`}>{f}</span>
       })}
     </div>
   )
 }
 
+// containerFlags merges the agent-side risk list with an IOC hit on the image.
+// The full digest is preferred: the short 12-char id can never match a real
+// sha256 indicator.
+function containerFlags(c: any, iocMatches: Set<string>): string[] {
+  const ids = [c.image_digest, c.image_repo_digest, c.image_id].filter(Boolean).map((s: string) => String(s).toLowerCase())
+  const known = ids.some(id => iocMatches.has(id))
+  return [...(c.suspicious ?? []), ...(known ? ['IOC-MATCH:image'] : [])]
+}
+
 function ContainersTable({ data, iocMatches, selected, onToggle }: {
   data: any[]; iocMatches: Set<string>; selected: Set<number>; onToggle: (i: number) => void
 }) {
-  const risky = data.filter(c => (c.suspicious?.length ?? 0) > 0).length
+  const [open, setOpen] = useState<Set<number>>(new Set())
+  const toggleOpen = (i: number) => setOpen(prev => {
+    const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n
+  })
+
+  // Count only containers carrying a real risk — see RISK_CONTEXT above.
+  const risky = data.filter(c => hasRealRisk(c.suspicious ?? [])).length
+  // A row whose inspect failed (or that came from a CLI fallback) has no
+  // security fields at all. Counting it as clean would read as "no risk found"
+  // when the truth is "not analysed".
+  const limited = data.filter(c => c.inspect_ok === false).length
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-gray-400">{data.length} container(s) · <span className="text-red-400">{risky} risky</span></span>
+        <span className="text-xs text-gray-400">
+          {data.length} container(s) · <span className="text-red-400">{risky} risky</span>
+          {limited > 0 && <span className="text-amber-400"> · {limited} not analysed (no inspect access)</span>}
+        </span>
       </div>
       <div className="overflow-auto max-h-[55vh] rounded-lg border border-gray-800">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-gray-900 z-10">
             <tr className="border-b border-gray-800 text-gray-500">
               <th className="px-2 py-2 w-8"></th>
+              <th className="px-2 py-2 w-6"></th>
               <th className="px-2 py-2 text-left">STATE</th>
               <th className="px-2 py-2 text-left">NAME</th>
               <th className="px-2 py-2 text-left">IMAGE</th>
               <th className="px-2 py-2 text-left">PORTS</th>
+              <th className="px-2 py-2 text-left">DRIFT</th>
               <th className="px-2 py-2 text-left">RISK</th>
             </tr>
           </thead>
           <tbody>
             {data.map((c, i) => {
-              const known = c.image_id && iocMatches.has(String(c.image_id).toLowerCase())
-              const flags = [...(c.suspicious ?? []), ...(known ? ['IOC-MATCH:image'] : [])]
-              const danger = flags.some((f: string) => /privileged|docker-socket|host-|cap:|ioc/i.test(f))
+              const flags = containerFlags(c, iocMatches)
+              const danger = isSevereRisk(flags)
+              const drift = c.changes_summary
+              const expanded = open.has(i)
               return (
-                <tr key={c.id || i} className={`border-b border-gray-900 hover:bg-white/5 ${danger ? 'bg-red-950/20' : ''}`}>
-                  <td className="px-2 py-1.5 text-center"><input type="checkbox" checked={selected.has(i)} onChange={() => onToggle(i)} className="accent-emerald-500" /></td>
-                  <td className="px-2 py-1.5"><span className={c.state === 'running' ? 'text-emerald-400' : 'text-gray-500'}>{c.state || '—'}</span></td>
-                  <td className="px-2 py-1.5 text-gray-200 font-mono">{c.name || c.id}</td>
-                  <td className="px-2 py-1.5 text-gray-400 font-mono break-all max-w-[240px]">{c.image}</td>
-                  <td className="px-2 py-1.5 text-gray-500 font-mono">{(c.ports || []).join(', ') || '—'}</td>
-                  <td className="px-2 py-1.5"><RiskChips flags={flags} /></td>
-                </tr>
+                <Fragment key={c.id || i}>
+                  <tr className={`border-b border-gray-900 hover:bg-white/5 ${danger ? 'bg-red-950/20' : ''}`}>
+                    <td className="px-2 py-1.5 text-center"><input type="checkbox" checked={selected.has(i)} onChange={() => onToggle(i)} className="accent-emerald-500" /></td>
+                    <td className="px-2 py-1.5 text-center">
+                      <button onClick={() => toggleOpen(i)} className="text-gray-500 hover:text-gray-200" title="Show forensic detail">
+                        <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                      </button>
+                    </td>
+                    <td className="px-2 py-1.5"><span className={c.state === 'running' ? 'text-emerald-400' : 'text-gray-500'}>{c.state || '—'}</span></td>
+                    <td className="px-2 py-1.5 text-gray-200 font-mono">{c.name || c.id}</td>
+                    <td className="px-2 py-1.5 text-gray-400 font-mono break-all max-w-[240px]">{c.image}</td>
+                    <td className="px-2 py-1.5 text-gray-500 font-mono">{(c.ports || []).join(', ') || '—'}</td>
+                    <td className="px-2 py-1.5 font-mono">
+                      {drift && drift.total > 0
+                        ? <span className={drift.added > 0 ? 'text-amber-400' : 'text-gray-500'}>+{drift.added} ~{drift.modified} -{drift.deleted}</span>
+                        : <span className="text-gray-700">—</span>}
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {c.inspect_ok === false
+                        ? <span className="text-[10px] px-1.5 py-0.5 rounded border text-amber-300 border-amber-700/40 bg-amber-900/20">not analysed</span>
+                        : <RiskChips flags={flags} />}
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr className="border-b border-gray-900 bg-gray-950/60">
+                      <td colSpan={8} className="px-6 py-3">
+                        <ContainerDetail c={c} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               )
             })}
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+// ContainerDetail surfaces the forensic fields that do not fit in the table:
+// the on-host writable layer, filesystem drift, running processes and the
+// attribution labels that tie a container back to a compose project or k8s pod.
+function ContainerDetail({ c }: { c: any }) {
+  const kv = (label: string, value: any) => (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0))
+    ? null
+    : (
+      <div key={label} className="flex gap-2">
+        <span className="text-gray-500 shrink-0 w-32">{label}</span>
+        <span className="text-gray-300 font-mono break-all">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+      </div>
+    )
+
+  const labels = c.labels && Object.keys(c.labels).length
+    ? Object.entries(c.labels).map(([k, v]) => `${k}=${v}`)
+    : []
+  const changes: any[] = c.changes || []
+  const procs: any[] = c.processes || []
+
+  return (
+    <div className="space-y-3 text-[11px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-1">
+        {kv('Image digest', c.image_digest)}
+        {kv('Repo digest', c.image_repo_digest)}
+        {kv('Image created', c.image_created)}
+        {kv('Created', c.created_at)}
+        {kv('Runtime', c.runtime)}
+        {kv('Host PID', c.pid || undefined)}
+        {kv('User', c.user || '(root — image default)')}
+        {kv('Entrypoint', c.entrypoint)}
+        {kv('Cmd', c.cmd)}
+        {kv('Network mode', c.network_mode)}
+        {kv('Networks', c.networks)}
+        {kv('IPs', c.ips)}
+        {kv('Restart policy', c.restart_policy)}
+        {kv('AppArmor', c.apparmor)}
+        {kv('Seccomp', c.seccomp)}
+        {kv('Userns', c.userns_mode)}
+        {kv('Cap add', c.cap_add)}
+        {kv('Cap drop', c.cap_drop)}
+        {kv('Masked paths', c.masked_paths_disabled ? '0 (DISABLED — escape risk)' : c.masked_paths_count)}
+        {kv('Readonly rootfs', c.readonly_rootfs ? 'yes' : undefined)}
+        {kv('Secret env vars', c.secret_env)}
+        {kv('Attribution', labels)}
+        {kv('Log path', c.log_path)}
+        {/* The writable layer is where anything dropped into the container lives
+            on the host — the path an analyst needs to collect or hash. */}
+        {kv('Writable layer', c.upper_dir)}
+        {kv('Exit code', c.state_detail?.exit_code || undefined)}
+        {kv('OOM killed', c.state_detail?.oom_killed ? 'yes' : undefined)}
+        {kv('Started', c.state_detail?.started_at)}
+        {kv('Finished', c.state_detail?.finished_at)}
+      </div>
+
+      {(c.mounts || []).length > 0 && (
+        <div>
+          <div className="text-gray-500 mb-1">Mounts</div>
+          <div className="font-mono text-gray-300 space-y-0.5">
+            {(c.mounts || []).map((m: any, i: number) => (
+              <div key={i} className={/docker\.sock|^\/(etc|root|proc|sys|boot|dev)\b/.test(m.source || '') ? 'text-red-300' : ''}>
+                {m.source} → {m.dest} {m.rw ? '(rw)' : '(ro)'}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {changes.length > 0 && (
+        <div>
+          <div className="text-gray-500 mb-1">
+            Filesystem drift — files changed since the image was built
+            {c.changes_summary?.truncated && <span className="text-amber-400"> (showing the highest-signal {changes.length} of {c.changes_summary.total})</span>}
+          </div>
+          <div className="font-mono text-gray-300 max-h-40 overflow-auto space-y-0.5">
+            {changes.map((ch: any, i: number) => (
+              <div key={i}>
+                <span className={ch.kind === 'added' ? 'text-amber-400' : ch.kind === 'deleted' ? 'text-red-400' : 'text-gray-500'}>
+                  {ch.kind === 'added' ? '+' : ch.kind === 'deleted' ? '-' : '~'}
+                </span>{' '}{ch.path}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {procs.length > 0 && (
+        <div>
+          <div className="text-gray-500 mb-1">Processes inside the container</div>
+          <div className="font-mono text-gray-300 max-h-40 overflow-auto space-y-0.5">
+            {procs.map((p: any, i: number) => (
+              <div key={i}>{String(p.pid).padStart(6)} {p.user ? `${p.user} ` : ''}{p.cmd}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {c.inspect_ok === false && (
+        <div className="text-amber-400">
+          Security fields were not collected for this container — the agent could not inspect it
+          (CLI fallback or insufficient permission). Risk shown as empty does not mean safe.
+        </div>
+      )}
     </div>
   )
 }

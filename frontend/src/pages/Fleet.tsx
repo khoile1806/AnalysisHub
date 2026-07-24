@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Boxes, Play, Clock, Trash2, Tag, Loader2, RefreshCw, Plus } from 'lucide-react'
+import { Boxes, Play, Clock, Trash2, Tag, Loader2, RefreshCw, Plus, ShieldAlert } from 'lucide-react'
 import { agentsApi, type Agent } from '@/api/agents'
 import {
   fleetApi, FLEET_COLLECTIONS,
@@ -40,11 +40,102 @@ export default function FleetPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
+  // Fleet-wide Sigma sweep — runs the whole detection ruleset on every selected
+  // machine and rolls the alerts up per rule, so the answer is "which hosts show
+  // this technique" rather than a per-machine event list.
+  const [sweepHours, setSweepHours] = useState(24)
+  const [sweepRunId, setSweepRunId] = useState<string>('')
+  const sweepMut = useMutation({
+    mutationFn: () => fleetApi.sigmaSweep({ group: scopeGroup || undefined, tag: scopeTag || undefined, hours: sweepHours }),
+    onSuccess: (d) => {
+      setSweepRunId(d.run_id)
+      const ok = d.dispatched.filter((x) => x.status === 'dispatched').length
+      toast.success(`Sigma sweep dispatched to ${ok}/${d.dispatched.length} agent(s) — ${d.rules_count} rule(s)`)
+      qc.invalidateQueries({ queryKey: ['fleet-results'] })
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const { data: sweepSummary } = useQuery({
+    queryKey: ['fleet-sigma-summary', sweepRunId],
+    queryFn: () => fleetApi.sigmaSweepSummary({ scheduled_id: sweepRunId }),
+    enabled: !!sweepRunId,
+    refetchInterval: 5000,
+  })
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-bold text-gray-100"><Boxes className="h-5 w-5 text-emerald-400" /> Fleet</h1>
         <p className="text-sm text-gray-500 mt-0.5">Group endpoints, run a collection across many at once, and schedule recurring collections.</p>
+      </div>
+
+      {/* Fleet-wide Sigma sweep */}
+      <div className="card p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-red-400" /> Sigma sweep across the fleet
+        </h3>
+        <p className="text-xs text-gray-500">
+          Runs the full Sigma ruleset on every selected machine and groups the results by rule — use it to answer
+          &ldquo;which endpoints show this technique&rdquo;. Uses the Group / Tag selected above.
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="text-xs text-gray-400">Time window
+            <select className="input mt-1 block" value={sweepHours} onChange={(e) => setSweepHours(Number(e.target.value))}>
+              <option value={1}>Last 1 hour</option><option value={6}>Last 6 hours</option>
+              <option value={24}>Last 24 hours</option><option value={72}>Last 3 days</option>
+              <option value={168}>Last 7 days</option>
+            </select>
+          </label>
+          <button className="btn-primary flex items-center gap-2 bg-red-600 hover:bg-red-500"
+            disabled={sweepMut.isPending || (!scopeGroup && !scopeTag)}
+            onClick={() => sweepMut.mutate()}
+            title={!scopeGroup && !scopeTag ? 'Pick a group or tag to target' : 'Run the Sigma ruleset across the selected endpoints'}>
+            {sweepMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />} Sweep fleet
+          </button>
+        </div>
+
+        {sweepSummary && (
+          <div className="mt-2 space-y-2">
+            <div className="text-xs text-gray-400">
+              {sweepSummary.summary.done} done · {sweepSummary.summary.error} error ·{' '}
+              {sweepSummary.summary.offline} offline · {sweepSummary.summary.pending} pending ·{' '}
+              {sweepSummary.summary.events_scanned.toLocaleString()} event(s) ·{' '}
+              <span className="text-red-400">{sweepSummary.summary.rules_triggered} rule(s) triggered on {sweepSummary.summary.agents_with_alerts} host(s)</span>
+            </div>
+            {sweepSummary.summary.rules.length > 0 && (
+              <div className="overflow-auto max-h-72 rounded-lg border border-gray-800">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-gray-900">
+                    <tr className="border-b border-gray-800 text-gray-500">
+                      <th className="px-2 py-2 text-left">LEVEL</th>
+                      <th className="px-2 py-2 text-left">RULE</th>
+                      <th className="px-2 py-2 text-left">ATT&amp;CK</th>
+                      <th className="px-2 py-2 text-left">HOSTS</th>
+                      <th className="px-2 py-2 text-left">EVENTS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sweepSummary.summary.rules.map((r, i) => (
+                      <tr key={r.rule_id || r.rule_title || i} className="border-b border-gray-900">
+                        <td className="px-2 py-1.5">
+                          <span className={/critical/i.test(r.rule_level) ? 'text-red-400' : /high/i.test(r.rule_level) ? 'text-orange-400' : 'text-gray-400'}>
+                            {(r.rule_level || 'unrated').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-gray-200">{r.rule_title}</td>
+                        <td className="px-2 py-1.5 text-purple-300 font-mono">{r.mitre_techniques?.join(' ') || '—'}</td>
+                        <td className="px-2 py-1.5 text-gray-400" title={r.hosts.join(', ')}>
+                          {r.agent_count} — {r.hosts.slice(0, 3).join(', ')}{r.hosts.length > 3 ? '…' : ''}
+                        </td>
+                        <td className="px-2 py-1.5 text-gray-500 font-mono">{r.event_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bulk collect */}

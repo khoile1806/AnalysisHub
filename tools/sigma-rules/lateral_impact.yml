@@ -1,0 +1,179 @@
+# Curated lateral-movement and impact rules.
+title: Remote Process Creation via WMI
+id: ah-lat-0001
+status: stable
+description: Detects wmic being used to start a process on another host.
+author: AnalysisHub
+level: high
+tags:
+    - attack.lateral_movement
+    - attack.t1047
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith: '\wmic.exe'
+        CommandLine|contains|all:
+            - '/node:'
+            - 'process'
+            - 'call'
+            - 'create'
+    condition: selection
+falsepositives:
+    - Inventory or software-deployment scripts driving WMI remotely
+
+---
+title: Administrative Share Mounted
+id: ah-lat-0002
+status: experimental
+description: >-
+    Detects a hidden admin share being mapped, which precedes most hands-on
+    lateral movement. Scored medium because backup and imaging tools do the same
+    thing.
+author: AnalysisHub
+level: medium
+tags:
+    - attack.lateral_movement
+    - attack.t1021.002
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith:
+            - '\net.exe'
+            - '\net1.exe'
+        CommandLine|contains: ' use '
+    selection_share:
+        CommandLine|contains:
+            - '$\'
+            - 'admin$'
+            - 'c$'
+            - 'ipc$'
+    condition: selection and selection_share
+falsepositives:
+    - Backup agents and logon scripts that map administrative shares
+
+---
+title: Local Administrator Account Created or Elevated
+id: ah-lat-0003
+status: stable
+description: Detects a new local account being created or added to a privileged group from the command line.
+author: AnalysisHub
+level: high
+tags:
+    - attack.persistence
+    - attack.t1136.001
+    - attack.privilege_escalation
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_add_user:
+        Image|endswith:
+            - '\net.exe'
+            - '\net1.exe'
+        CommandLine|contains|all:
+            - 'user'
+            - '/add'
+    selection_add_group:
+        CommandLine|contains|all:
+            - 'localgroup'
+            - '/add'
+    selection_group_name:
+        CommandLine|contains:
+            - 'administrators'
+            - 'remote desktop users'
+            - 'domain admins'
+    condition: selection_add_user or (selection_add_group and selection_group_name)
+falsepositives:
+    - Provisioning automation creating service accounts
+
+---
+title: Volume Shadow Copies Deleted
+id: ah-imp-0001
+status: stable
+description: >-
+    Detects shadow-copy destruction, the near-universal precursor to ransomware
+    encryption. Extremely high fidelity — legitimate use is rare and deliberate.
+author: AnalysisHub
+level: critical
+tags:
+    - attack.impact
+    - attack.t1490
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_vssadmin:
+        CommandLine|contains|all:
+            - 'shadow'
+            - 'delete'
+    selection_tool:
+        Image|endswith:
+            - '\vssadmin.exe'
+            - '\wmic.exe'
+            - '\diskshadow.exe'
+            - '\powershell.exe'
+    selection_wmi:
+        CommandLine|contains: 'shadowcopy delete'
+    condition: (selection_vssadmin and selection_tool) or selection_wmi
+falsepositives:
+    - Storage maintenance scripts pruning old shadow copies
+
+---
+title: Recovery Options Sabotaged
+id: ah-imp-0002
+status: stable
+description: Detects bcdedit or wbadmin being used to disable recovery and delete backups.
+author: AnalysisHub
+level: critical
+tags:
+    - attack.impact
+    - attack.t1490
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_bcdedit:
+        Image|endswith: '\bcdedit.exe'
+        CommandLine|contains:
+            - 'recoveryenabled no'
+            - 'bootstatuspolicy ignoreallfailures'
+    selection_wbadmin:
+        Image|endswith: '\wbadmin.exe'
+        CommandLine|contains|all:
+            - 'delete'
+            - 'catalog'
+    condition: 1 of selection_*
+falsepositives:
+    - Deliberate reconfiguration of boot recovery on lab machines
+
+---
+title: Domain and Privileged Group Reconnaissance
+id: ah-disc-0001
+status: experimental
+description: >-
+    Detects enumeration of privileged directory groups. Scored medium: a single
+    query is normal for administrators, so treat this as context for a timeline
+    rather than a standalone alert.
+author: AnalysisHub
+level: medium
+tags:
+    - attack.discovery
+    - attack.t1069.002
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        CommandLine|contains:
+            - 'net group "domain admins"'
+            - 'net group "enterprise admins"'
+            - 'net localgroup administrators'
+            - 'Get-ADGroupMember'
+            - 'Get-DomainAdmin'
+    condition: selection
+falsepositives:
+    - Routine administration and auditing scripts

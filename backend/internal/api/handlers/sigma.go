@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -34,16 +36,44 @@ func SigmaScan(c *gin.Context) {
 		return
 	}
 
-	alerts, err := sigma.DefaultEngine.ScanContext(c.Request.Context(), string(body))
+	// Decode once and hand the engine the events directly. Passing string(body)
+	// copied the whole payload a second time before the engine unmarshalled it,
+	// which at the 64 MB cap is 128 MB of peak allocation for nothing.
+	events, err := decodeSigmaEvents(body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	alerts, err := sigma.DefaultEngine.ScanEvents(c.Request.Context(), events)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to scan: " + err.Error()})
 		return
 	}
 
+	// rules_count is the number of rules that can actually fire. load_stats also
+	// reports the ones that parsed but had to be skipped (aggregation
+	// conditions, dangling selection references) so the count is not mistaken
+	// for full coverage of the ruleset on disk.
 	c.JSON(http.StatusOK, gin.H{
 		"alerts":      alerts,
 		"rules_count": sigma.DefaultEngine.RuleCount(),
+		"load_stats":  sigma.DefaultEngine.Stats(),
 	})
+}
+
+// decodeSigmaEvents accepts either a JSON array of events or a single event
+// object, matching what the engine used to do internally.
+func decodeSigmaEvents(body []byte) ([]map[string]interface{}, error) {
+	var events []map[string]interface{}
+	if err := json.Unmarshal(body, &events); err == nil {
+		return events, nil
+	}
+	var single map[string]interface{}
+	if err := json.Unmarshal(body, &single); err != nil {
+		return nil, errors.New("invalid json event data")
+	}
+	return []map[string]interface{}{single}, nil
 }
 
 // SigmaSync downloads the latest community ruleset (SigmaHQ by default, or the

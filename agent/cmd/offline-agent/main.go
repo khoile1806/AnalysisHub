@@ -207,7 +207,8 @@ func openBrowser(url string) {
 }
 
 func printUsage() {
-	fmt.Println(`AnalysisHub Offline Agent
+	// Print, not Println: the raw string already ends with a newline.
+	fmt.Print(`AnalysisHub Offline Agent
 
 Usage:
   agent-offline [--gui] [--cli] [--info]

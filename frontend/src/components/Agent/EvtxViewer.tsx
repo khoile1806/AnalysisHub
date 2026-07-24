@@ -8,7 +8,7 @@ import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 import { intelApi } from '@/api/intel'
 import { timelineApi, type TimelineSeverity } from '@/api/timeline'
 import { casesApi } from '@/api/cases'
-import { huntingApi, type SigmaAlert } from '@/api/hunting'
+import { huntingApi, type SigmaAlert, type SigmaSweepResult } from '@/api/hunting'
 import { copyToClipboard, getErrorMessage } from '@/lib/utils'
 import IntelLookupModal from '@/components/IntelLookupModal'
 import toast from 'react-hot-toast'
@@ -260,7 +260,7 @@ function PresetSelect({ presetKey, onPick }: { presetKey: string; onPick: (k: st
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen(o => !o)}
         className="h-9 w-full flex items-center justify-between gap-2 text-xs bg-gray-950/50 border border-gray-800 rounded-lg px-2.5 text-gray-200 hover:border-purple-500/50 focus:outline-none focus:border-purple-500/60">
-        <span className="truncate">{current ? current.label : 'Select preset…'}</span>
+        <span className="truncate">{current ? current.label : 'Custom (manual log / event IDs)'}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-gray-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -297,6 +297,119 @@ function PresetSelect({ presetKey, onPick }: { presetKey: string; onPick: (k: st
   )
 }
 
+// traceableFromEvent pulls the process identity out of a matched event so the
+// analyst can pivot straight into an origin trace. Field names differ between
+// Sysmon, Security 4688 and the Linux collector, so try each namespace.
+function traceableFromEvent(ev: any): { target: string; pid: number } | null {
+  if (!ev) return null
+  const target = ev.Image || ev.NewProcessName || ev.Executable || ev.ProcessName || ev.ParentProcessName || ev.ParentImage
+  if (!target) return null
+  const raw = ev.NewProcessId ?? ev.ProcessId ?? ev.PID ?? ev.pid
+  // 4688 reports the PID as a hex string ("0x1f4"); parseInt handles both forms.
+  const pid = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), raw && String(raw).startsWith('0x') ? 16 : 10)
+  return { target: String(target), pid: Number.isFinite(pid) ? pid : 0 }
+}
+
+// SigmaAlertRow shows one detection and, expanded, exactly why it fired: the
+// rule's condition, every field comparison that satisfied it (what the rule
+// asked for vs what the event actually held), and a pivot into the origin trace.
+export function SigmaAlertRow({ alert, expanded, onToggle, onTrace }: {
+  // onTrace is omitted for stored/offline logs: the origin trace queries a live
+  // agent, and a dead-box log has no machine to ask.
+  alert: SigmaAlert; expanded: boolean; onToggle: () => void; onTrace?: (target: string, pid: number) => void
+}) {
+  const traceable = onTrace ? traceableFromEvent(alert.event) : null
+  return (
+    <div className="text-xs bg-black/40 rounded border border-red-900/30">
+      <div className="flex items-start gap-2 p-2">
+        <button onClick={onToggle} className="text-gray-500 hover:text-gray-200 mt-0.5 shrink-0" title="Why did this fire?">
+          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <span className={`font-bold ${alert.rule_level ? 'text-red-400' : 'text-gray-400'}`}>[{alert.rule_level?.toUpperCase() || 'UNRATED'}]</span> {alert.rule_title}
+          {(alert.event_count ?? 0) > 1 && <span className="ml-1.5 text-amber-400">×{alert.event_count}</span>}
+          {(alert.mitre_techniques?.length ?? 0) > 0 && (
+            <span className="ml-2 text-[10px] text-purple-300">{alert.mitre_techniques!.join(' ')}</span>
+          )}
+          {(alert.mitre_tactics?.length ?? 0) > 0 && (
+            <span className="ml-1.5 text-[10px] text-gray-500">{alert.mitre_tactics!.join(', ')}</span>
+          )}
+        </div>
+        {traceable && (
+          <button onClick={() => onTrace?.(traceable.target, traceable.pid)}
+            className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded border border-purple-600/40 bg-purple-600/10 text-purple-300 hover:bg-purple-600/20 text-[10px]"
+            title={`Trace where ${traceable.target} came from`}>
+            <GitBranch className="h-3 w-3" /> Trace origin
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="border-t border-red-900/30 px-3 py-2 space-y-2">
+          {alert.rule_description && <p className="text-[11px] text-gray-400">{alert.rule_description}</p>}
+          {alert.condition && (
+            <div className="text-[11px]">
+              <span className="text-gray-500">Condition: </span>
+              <span className="font-mono text-gray-300">{alert.condition}</span>
+            </div>
+          )}
+
+          {alert.matches && alert.matches.length > 0 ? (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Why it matched</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-gray-600 border-b border-gray-800">
+                      <th className="text-left pr-3 py-1 font-normal">SELECTION</th>
+                      <th className="text-left pr-3 py-1 font-normal">FIELD</th>
+                      <th className="text-left pr-3 py-1 font-normal">RULE EXPECTED</th>
+                      <th className="text-left py-1 font-normal">EVENT CONTAINED</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alert.matches.map((m, i) => (
+                      <tr key={i} className="border-b border-gray-900/60 align-top">
+                        <td className="pr-3 py-1 text-gray-500 font-mono whitespace-nowrap">{m.selection}</td>
+                        <td className="pr-3 py-1 text-gray-300 font-mono whitespace-nowrap">
+                          {m.field}{m.modifier && <span className="text-gray-600">|{m.modifier}</span>}
+                        </td>
+                        <td className="pr-3 py-1 text-amber-300 font-mono break-all">{m.expected}</td>
+                        <td className="py-1 text-emerald-300 font-mono break-all">{m.actual}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-500">No field-level explanation available for this alert.</p>
+          )}
+
+          <details>
+            <summary className="text-[10px] uppercase tracking-wider text-gray-500 font-bold cursor-pointer hover:text-gray-300">Raw event</summary>
+            <pre className="mt-1 max-h-52 overflow-auto text-[10px] text-gray-400 font-mono whitespace-pre-wrap break-all">
+              {JSON.stringify(alert.event, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// sigmaSeverity maps a Sigma rule level onto the timeline's severity scale. An
+// unrated rule becomes "info" rather than inheriting a high default.
+function sigmaSeverity(level?: string): TimelineSeverity {
+  switch ((level || '').toLowerCase()) {
+    case 'critical': return 'critical'
+    case 'high': return 'high'
+    case 'medium': return 'medium'
+    case 'low': return 'low'
+    default: return 'info'
+  }
+}
+
 export function EvtxViewer({ agent }: { agent: Agent }) {
   const [presetKey, setPresetKey] = useState('logon')
   const [logName, setLogName] = useState('Security')
@@ -320,6 +433,10 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
 
   const [scanningSigma, setScanningSigma] = useState(false)
   const [sigmaAlerts, setSigmaAlerts] = useState<SigmaAlert[]>([])
+  const [sweeping, setSweeping] = useState(false)
+  const [sweep, setSweep] = useState<SigmaSweepResult | null>(null)
+  const [openAlerts, setOpenAlerts] = useState<Set<number>>(new Set())
+  const toggleAlert = (i: number) => setOpenAlerts(p => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n })
 
   const { data: cases = [] } = useQuery({ queryKey: ['cases'], queryFn: casesApi.list })
 
@@ -359,12 +476,34 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
     } finally { setLoading(false) }
   }
 
+  // runSigmaSweep scans the WHOLE machine instead of only the events currently
+  // on screen: the server derives which channels the loaded ruleset needs, pulls
+  // each from the agent and evaluates them all in one pass.
+  const runSigmaSweep = async () => {
+    if (agent.status !== 'online') { toast.error('Agent is offline'); return }
+    setSweeping(true); setSweep(null); setSigmaAlerts([])
+    try {
+      const res = await huntingApi.sigmaSweep(agent.id, { hours })
+      setSweep(res)
+      setSigmaAlerts(res.alerts || [])
+      const n = res.alerts?.length ?? 0
+      n > 0
+        ? toast.error(`${n} Sigma alert(s) across ${res.events_scanned} event(s)`)
+        : toast.success(`No Sigma alerts — ${res.events_scanned} event(s) scanned with ${res.rules_count} rule(s)`)
+    } catch (err: any) {
+      toast.error('Sigma sweep failed: ' + getErrorMessage(err))
+    } finally { setSweeping(false) }
+  }
+
   const runSigma = async () => {
     if (!events?.length) return
     setScanningSigma(true)
     try {
       // Flatten EventData to top level so Sigma rules can match field names.
-      const sigmaEvents = events.map(e => ({ EventID: e.id, Provider: e.provider, Message: e.message, ...e.data }))
+      // The spread comes first: an EventData element named EventID/Provider/
+      // Message must not overwrite the identity fields that logsource gating
+      // and the rules themselves rely on.
+      const sigmaEvents = events.map(e => ({ ...e.data, EventID: e.id, Provider: e.provider, Message: e.message }))
       const alerts = await huntingApi.scanSigma(sigmaEvents)
       setSigmaAlerts(alerts)
       alerts.length > 0 ? toast.error(`Found ${alerts.length} Sigma alert(s)!`) : toast.success('No Sigma alerts found.')
@@ -404,6 +543,47 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
     } finally { setSaving(false) }
   }
 
+  // Sigma alerts only lived in React state, so a refresh threw away the
+  // detection work. Pushing them onto the case timeline keeps the ATT&CK
+  // mapping the rules already carry, which is what the coverage view reads.
+  const saveAlertsToCase = async () => {
+    if (!saveCaseId || sigmaAlerts.length === 0) return
+    setSaving(true)
+    try {
+      // Alerts are rolled up per rule: only the first row of each rule carries
+      // event_count, the rest are extra samples. Saving one item per rule keeps
+      // the timeline readable instead of repeating the same detection.
+      const items = sigmaAlerts
+        .filter(a => (a.event_count ?? 0) > 0)
+        .map(a => {
+          const ev = a.event || {}
+          const when = ev.TimeCreated || ev.time
+          return {
+            title: `Sigma: ${a.rule_title}${(a.event_count ?? 0) > 1 ? ` (${a.event_count} events)` : ''}`,
+            detail: [
+              a.rule_description,
+              a.rule_id ? `Rule ID: ${a.rule_id}` : '',
+              a.mitre_techniques?.length ? `ATT&CK: ${a.mitre_techniques.join(', ')}` : '',
+              a.mitre_tactics?.length ? `Tactics: ${a.mitre_tactics.join(', ')}` : '',
+              `EventID: ${ev.EventID ?? '—'}  Provider: ${ev.Provider ?? '—'}`,
+              ev.CommandLine || ev.ProcessCommandLine ? `CommandLine: ${ev.CommandLine || ev.ProcessCommandLine}` : '',
+              ev.NewProcessName || ev.Image ? `Image: ${ev.NewProcessName || ev.Image}` : '',
+            ].filter(Boolean).join('\n'),
+            event_time: typeof when === 'string' ? when : undefined,
+            severity: sigmaSeverity(a.rule_level),
+            technique: a.mitre_techniques?.[0],
+            tactic: a.mitre_tactics?.[0],
+          }
+        })
+      const res = await timelineApi.importArtifacts(saveCaseId, {
+        source: 'sigma', host: agent.hostname || agent.name, items,
+      })
+      toast.success(`Saved ${res.events_created} Sigma alert(s) to the case timeline`)
+    } catch (err: any) {
+      toast.error(getErrorMessage(err))
+    } finally { setSaving(false) }
+  }
+
   const shown = (events ?? []).map((e, i) => ({ e, i })).filter(({ e }) => {
     if (!filter) return true
     const f = filter.toLowerCase()
@@ -427,15 +607,21 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
           <div className="lg:col-span-4 flex flex-col gap-1">
             <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Preset <span className="text-gray-600 normal-case font-normal">({PRESETS.length} checks)</span></label>
             <PresetSelect presetKey={presetKey} onPick={applyPreset} />
-            <p className="text-[10px] text-gray-500 leading-tight truncate" title={PRESETS.find(p => p.key === presetKey)?.desc}>{PRESETS.find(p => p.key === presetKey)?.desc}</p>
+            {/* Editing the log or the ID list clears the preset, so the dropdown
+                never claims to describe a query the operator has since changed. */}
+            <p className="text-[10px] text-gray-500 leading-tight truncate" title={PRESETS.find(p => p.key === presetKey)?.desc}>
+              {presetKey ? PRESETS.find(p => p.key === presetKey)?.desc : 'Custom query — edit Log Name and Event IDs freely'}
+            </p>
           </div>
           <div className="lg:col-span-4 flex flex-col gap-1">
             <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Log Name</label>
-            <input value={logName} onChange={e => setLogName(e.target.value)} className="h-9 text-xs font-mono bg-gray-950/50 border border-gray-800 rounded-lg px-2 text-gray-200 focus:outline-none focus:border-purple-500/60" />
+            <input value={logName} onChange={e => { setLogName(e.target.value); setPresetKey('') }} placeholder="Security" className="h-9 text-xs font-mono bg-gray-950/50 border border-gray-800 rounded-lg px-2 text-gray-200 focus:outline-none focus:border-purple-500/60" />
           </div>
           <div className="lg:col-span-4 flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Event IDs (comma)</label>
-            <input value={eventIds} onChange={e => setEventIds(e.target.value)} placeholder="4624, 4625" className="h-9 text-xs font-mono bg-gray-950/50 border border-gray-800 rounded-lg px-2 text-gray-200 focus:outline-none focus:border-purple-500/60" />
+            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+              Event IDs <span className="text-gray-600 normal-case font-normal">— any IDs you want, comma separated; empty = all</span>
+            </label>
+            <input value={eventIds} onChange={e => { setEventIds(e.target.value); setPresetKey('') }} placeholder="e.g. 4688, 4104, 7045 — or leave empty" className="h-9 text-xs font-mono bg-gray-950/50 border border-gray-800 rounded-lg px-2 text-gray-200 focus:outline-none focus:border-purple-500/60" />
           </div>
 
           <div className="lg:col-span-3 flex flex-col gap-1">
@@ -459,10 +645,16 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
               {loading ? 'Querying…' : 'Search'}
             </button>
             {!!events?.length && (
-              <button onClick={runSigma} disabled={scanningSigma} className="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-xs font-medium disabled:opacity-50" title="Run the Sigma rule library against these events">
+              <button onClick={runSigma} disabled={scanningSigma} className="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-xs font-medium disabled:opacity-50" title="Run the Sigma rule library against the events currently listed">
                 <ShieldAlert className="h-3.5 w-3.5" /> {scanningSigma ? '…' : 'Sigma'}
               </button>
             )}
+            <button onClick={runSigmaSweep} disabled={sweeping || agent.status !== 'online'}
+              className="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-red-700 hover:bg-red-600 text-white text-xs font-medium disabled:opacity-50 whitespace-nowrap"
+              title="Scan the whole machine: pulls every log channel the rule library needs and evaluates all of them">
+              {sweeping ? <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <ShieldAlert className="h-3.5 w-3.5" />}
+              {sweeping ? 'Sweeping…' : 'Scan machine'}
+            </button>
           </div>
         </div>
         {agent.status !== 'online' && <p className="text-xs text-orange-300">Agent is offline — EVTX query unavailable.</p>}
@@ -485,11 +677,52 @@ export function EvtxViewer({ agent }: { agent: Agent }) {
           </div>
         )}
 
+        {sweep && (
+          <div className="m-4 mb-0 rounded-lg border border-gray-800 bg-gray-950/40 p-3">
+            <h4 className="text-xs font-bold text-gray-300 mb-2 flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-red-400" />
+              Machine sweep — {sweep.events_scanned} event(s) from {sweep.sources.length} channel(s), {sweep.rules_count} rule(s), {sweep.hours > 0 ? `last ${sweep.hours}h` : 'all time'}
+            </h4>
+            <div className="flex flex-col gap-1 text-[11px] font-mono">
+              {sweep.sources.map((s, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${s.error ? 'bg-gray-600' : s.events > 0 ? 'bg-emerald-500' : 'bg-gray-700'}`} />
+                  <span className="text-gray-300 min-w-0 flex-1 break-all">{s.log_name}</span>
+                  <span className="text-gray-600 shrink-0">{s.event_ids?.length ? s.event_ids.join(',') : 'all ids'}</span>
+                  {/* A channel that is absent on the host (no Sysmon, no PowerShell
+                      operational logging) must not read the same as a clean one. */}
+                  <span className={`shrink-0 ${s.error ? 'text-amber-500' : 'text-gray-400'}`}>
+                    {s.error ? s.error : `${s.events} event(s)`}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {sweep.load_stats && sweep.load_stats.unsupported > 0 && (
+              <p className="mt-2 text-[10px] text-amber-500">
+                {sweep.load_stats.unsupported} rule(s) on disk could not be evaluated (aggregation or correlation conditions) and were not part of this sweep.
+              </p>
+            )}
+          </div>
+        )}
+
         {sigmaAlerts.length > 0 && (
           <div className="m-4 mb-0 rounded-lg border border-red-900/50 bg-red-950/20 p-3">
-            <h4 className="text-xs font-bold text-red-400 mb-2 flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Sigma Alerts ({sigmaAlerts.length})</h4>
-            <div className="flex flex-col gap-1.5 max-h-40 overflow-auto">
-              {sigmaAlerts.map((a, i) => <div key={i} className="text-xs bg-black/40 p-2 rounded border border-red-900/30"><span className="font-bold text-red-400">[{a.rule_level?.toUpperCase() || 'HIGH'}]</span> {a.rule_title}</div>)}
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <h4 className="text-xs font-bold text-red-400 flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Sigma Alerts ({sigmaAlerts.length})</h4>
+              <button onClick={saveAlertsToCase} disabled={saving || !saveCaseId}
+                title={saveCaseId ? 'Save these detections onto the case timeline with their ATT&CK mapping' : 'Pick a case below first'}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg disabled:opacity-40">
+                {saving ? <span className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-3 w-3" />}
+                Save alerts to Case
+              </button>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[420px] overflow-auto">
+              {/* Only the rolled-up row of each rule carries event_count, so the
+                  duplicate sample rows render without a count badge. */}
+              {sigmaAlerts.map((a, i) => (
+                <SigmaAlertRow key={i} alert={a} expanded={openAlerts.has(i)} onToggle={() => toggleAlert(i)}
+                  onTrace={(target, pid) => setTraceTarget({ target, pid })} />
+              ))}
             </div>
           </div>
         )}

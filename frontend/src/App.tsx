@@ -14,6 +14,7 @@ const CaseDetailPage = lazy(() => import('@/pages/CaseDetail'))
 const AgentsPage = lazy(() => import('@/pages/Agents'))
 const AgentDetailPage = lazy(() => import('@/pages/AgentDetail'))
 const FleetPage = lazy(() => import('@/pages/Fleet'))
+const DetectionCoveragePage = lazy(() => import('@/pages/DetectionCoverage'))
 const JobsPage = lazy(() => import('@/pages/Jobs'))
 const JobDetailPage = lazy(() => import('@/pages/JobDetail'))
 const CVEPage = lazy(() => import('@/pages/CVE'))
@@ -265,6 +266,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <IOCManagementPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/detection-coverage"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <DetectionCoveragePage />
               </Suspense>
             </ChunkErrorBoundary>
           }

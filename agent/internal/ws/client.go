@@ -404,6 +404,8 @@ func (c *Client) readLoop(ctx context.Context, conn *websocket.Conn) error {
 			go c.handleEdgeParseContainers(msg)
 		case "edge_parse_linux_triage":
 			go c.handleEdgeParseLinuxTriage(msg)
+		case "edge_parse_linux_events":
+			go c.handleEdgeParseLinuxEvents(msg)
 		case "collect_os_logs":
 			go c.handleCollectOSLogs(msg)
 		case "kill_process":
@@ -1432,6 +1434,21 @@ func (c *Client) handleEdgeParseLinuxTriage(msg inboundMsg) {
 	log.Printf("[edge_linux_triage:%s] linux triage", msg.JobID)
 	c.runEdgeScan(msg.JobID, "Linux triage", "linuxtriage", "scan-linux-triage", "",
 		func() (any, error) { return parser.ScanLinuxTriage() })
+}
+
+// handleEdgeParseLinuxEvents builds a normalized process / security event stream
+// (auditd → journald → auth.log) so the Sigma engine has something to evaluate
+// on Linux hosts. Args carry {"hours":24,"max":2000,"keyword":""}. Linux-only.
+func (c *Client) handleEdgeParseLinuxEvents(msg inboundMsg) {
+	log.Printf("[edge_linux_events:%s] linux event stream (args=%q)", msg.JobID, msg.Args)
+	var opts parser.LinuxEventOptions
+	if args := strings.TrimSpace(msg.Args); args != "" {
+		if err := json.Unmarshal([]byte(args), &opts); err != nil {
+			log.Printf("[edge_linux_events:%s] invalid args %q: %v — using defaults", msg.JobID, args, err)
+		}
+	}
+	c.runEdgeScan(msg.JobID, "Linux event stream", "linuxevents", "scan-linux-events", msg.Args,
+		func() (any, error) { return parser.ScanLinuxEvents(opts) })
 }
 
 // handleEdgeParseDlls enumerates loaded modules across processes (ListDLLs-style)

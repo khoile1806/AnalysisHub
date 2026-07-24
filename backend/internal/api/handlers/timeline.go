@@ -323,13 +323,18 @@ func (h *TimelineHandler) ImportArtifacts(c *gin.Context) {
 		Source string `json:"source"`
 		Host   string `json:"host"`
 		Items  []struct {
-			Title      string     `json:"title"`
-			Detail     string     `json:"detail"`
-			EventTime  *time.Time `json:"event_time"`
-			Severity   string     `json:"severity"`
-			Value      string     `json:"value"`
-			IOCType    string     `json:"ioc_type"`
-			PromoteIOC bool       `json:"promote_ioc"`
+			Title     string     `json:"title"`
+			Detail    string     `json:"detail"`
+			EventTime *time.Time `json:"event_time"`
+			Severity  string     `json:"severity"`
+			// Optional ATT&CK mapping. Detection sources that already know it
+			// (Sigma alerts carry it in the rule tags) should pass it through, or
+			// the case's attack-coverage view cannot see the technique.
+			Technique  string `json:"technique"`
+			Tactic     string `json:"tactic"`
+			Value      string `json:"value"`
+			IOCType    string `json:"ioc_type"`
+			PromoteIOC bool   `json:"promote_ioc"`
 		} `json:"items"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -379,6 +384,8 @@ func (h *TimelineHandler) ImportArtifacts(c *gin.Context) {
 			Severity:  sev,
 			Title:     title,
 			Detail:    it.Detail,
+			Technique: strings.TrimSpace(it.Technique),
+			Tactic:    strings.TrimSpace(it.Tactic),
 			CreatedBy: userUUID,
 		}
 		if !insertAutoTimelineEvent(h.DB, &ev) {

@@ -160,6 +160,10 @@ export const timelineApi = {
         detail?: string
         event_time?: string
         severity?: TimelineSeverity
+        // ATT&CK mapping, when the source already knows it (Sigma rule tags).
+        // Without it the case's attack-coverage view cannot see the finding.
+        technique?: string
+        tactic?: string
         value?: string
         ioc_type?: string
         promote_ioc?: boolean

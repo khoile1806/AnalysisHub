@@ -98,6 +98,12 @@ func NewRouter(
 		protected.POST("/hunting/sigma/scan", handlers.SigmaScan)
 		protected.POST("/hunting/sigma/sync", handlers.SigmaSync)
 
+		// Detection coverage — which loaded rules can actually fire given the
+		// telemetry the endpoints really produce. A rule set that needs Sysmon on
+		// hosts without Sysmon is coverage on paper only.
+		detectionCoverageHandler := handlers.NewDetectionCoverageHandler(db)
+		protected.GET("/detection/coverage", detectionCoverageHandler.GetDetectionCoverage)
+
 		// Entity origin tracing (process/file/app lineage from EdgeForensics/EVTX).
 		protected.POST("/trace/entity", handlers.TraceEntity)
 
@@ -120,12 +126,18 @@ func NewRouter(
 		protected.POST("/agents/:id/cleanup", handlers.CleanupAgent)
 		protected.POST("/agents/:id/registry", handlers.AgentRegistryParse)
 		protected.POST("/agents/:id/evtx", handlers.AgentEvtxParse)
+		// Whole-machine Sigma sweep: pulls every channel the ruleset needs and
+		// evaluates all of them, instead of scanning only what an analyst pulled.
+		protected.POST("/agents/:id/sigma/sweep", handlers.SigmaSweep)
 		protected.POST("/agents/:id/mft", handlers.AgentMFTParse)
 		protected.POST("/agents/:id/prefetch", handlers.AgentPrefetchParse)
 		protected.POST("/agents/:id/processes-scan", handlers.AgentProcessParse)
 		protected.POST("/agents/:id/autoruns", handlers.AgentAutorunsParse)
 		protected.POST("/agents/:id/containers", handlers.AgentContainerParse)
 		protected.POST("/agents/:id/linux-triage", handlers.AgentLinuxTriageParse)
+		// Structured Linux event feed (auditd / journald) — the telemetry Sigma
+		// needs on Linux, where there was previously no event stream at all.
+		protected.POST("/agents/:id/linux-events", handlers.AgentLinuxEventsParse)
 		protected.POST("/agents/:id/netscan", handlers.AgentNetworkParse)
 		protected.POST("/agents/:id/dlls", handlers.AgentDllsParse)
 		protected.POST("/agents/:id/shimcache", handlers.AgentShimcacheParse)
@@ -148,6 +160,11 @@ func NewRouter(
 		protected.GET("/agents/groups", fleetHandler.ListAgentGroups)
 		protected.PATCH("/agents/:id/tags", fleetHandler.SetAgentTags)
 		protected.POST("/agents/bulk/collect", fleetHandler.BulkCollect)
+		// Fleet-wide Sigma sweep: hunt a technique across the estate in one run,
+		// instead of sweeping one machine at a time. Results land as ordinary
+		// fleet results (collection "sigma-sweep") and roll up per rule.
+		protected.POST("/agents/fleet/sigma-sweep", fleetHandler.FleetSigmaSweep)
+		protected.GET("/agents/fleet/sigma-sweep/summary", fleetHandler.FleetSigmaSweepSummary)
 		protected.GET("/agents/fleet/results", fleetHandler.ListFleetResults)
 		protected.GET("/agents/fleet/results/:id", fleetHandler.GetFleetResult)
 		protected.GET("/agents/scheduled-collections", fleetHandler.ListSchedules)
@@ -257,6 +274,10 @@ func NewRouter(
 			protected.GET("/logsearch/jobs", ls.ListJobs)
 			protected.GET("/logsearch/indices", ls.ListIndices)
 			protected.DELETE("/logsearch/indices/:index", middleware.RequireAdmin(), ls.DeleteIndex)
+			// Sigma against logs already in the store (uploaded evtx from a
+			// machine with no agent, or a re-hunt of an older collection).
+			protected.GET("/logsearch/sigma/targets", ls.SigmaTargets)
+			protected.POST("/logsearch/sigma/scan", ls.SigmaOfflineScan)
 			// Per-host log repository (agent-collected + uploaded logs).
 			protected.GET("/logsearch/hosts", ls.Hosts)
 			protected.DELETE("/logsearch/hosts/:host", middleware.RequireAdmin(), ls.DeleteHost)

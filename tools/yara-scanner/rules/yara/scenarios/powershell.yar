@@ -1,10 +1,36 @@
 /*
   Scenario: POWERSHELL / FILELESS
-  Detects offensive PowerShell: encoded commands, download cradles, AMSI / logging
-  bypass, in-memory (reflective) loading, and obfuscation.
+  Encoded commands, download cradles, AMSI / logging bypass, reflective loading
+  and obfuscation.
 
-  Author: AnalysisHub   Updated: 2026-06-26
+  Precision notes:
+   * The YARA engine has no per-language routing, so without a content gate
+     these rules are evaluated against every .php, .js and .py file that quotes
+     a Windows command line. Everything here is gated on ah_is_powershell.
+   * "IEX somewhere in the file" plus "Invoke-WebRequest somewhere in the file"
+     describes a large share of legitimate deployment scripts. The cradle and
+     the encoded command are therefore matched as one expression, both
+     directions, inside a single line.
+
+  Author: AnalysisHub   Updated: 2026-07-24
 */
+
+private rule ah_is_powershell
+{
+    // Shape test, not a parser: a Verb-Noun cmdlet, a .NET type literal, an
+    // explicit interpreter invocation, a PowerShell automatic variable or a
+    // typed param() block.
+    strings:
+        $v = /\b(Get|Set|New|Add|Remove|Invoke|Start|Stop|Register|Unregister|Import|Export|Write|Select|ForEach|ConvertTo|ConvertFrom|Enter|Exit|Copy|Move|Test|Enable|Disable|Out|Join|Split|Compare)-[A-Z][A-Za-z]{2,}\b/
+        $t = /\[[A-Za-z][A-Za-z0-9_.]{2,60}\]\s*::\s*[A-Za-z]/
+        $x = /\b(powershell|pwsh)(\.exe)?\b/ nocase
+        $a = /\$(PSVersionTable|ExecutionContext|PSHome|MyInvocation|env:|null\b|true\b|false\b)/ nocase
+        $i = /\b(IEX|Invoke-Expression)\b/ nocase
+        $p = /\bparam\s*\(\s*\[/ nocase
+        $r = /\[(Ref|System\.[A-Za-z][A-Za-z0-9_.]{2,40})\]\s*\./ nocase
+    condition:
+        any of them
+}
 
 rule PS_Encoded_Command
 {
@@ -15,14 +41,36 @@ rule PS_Encoded_Command
         category    = "powershell"
         reference   = "MITRE T1059.001 / T1027 obfuscation"
     strings:
-        $enc1 = /-e(nc|ncodedcommand)?\s+[A-Za-z0-9+\/]{60,}={0,2}/ nocase
-        $enc2 = /-encodedcommand\s+/ nocase
+        // The interpreter and the blob must be the same command line; "the word
+        // powershell appears in this file" is not a constraint.
+        $enc1 = /(powershell|pwsh)(\.exe)?[^\n]{0,120}\s-e(nc|ncodedcommand|ncoded)?\s+[A-Za-z0-9+\/]{50,}={0,2}/ nocase
+        $enc2 = /(powershell|pwsh)(\.exe)?[^\n]{0,120}-encodedcommand\s/ nocase
+        $enc3 = /-e(nc|ncodedcommand)?\s+[A-Za-z0-9+\/]{120,}={0,2}/ nocase
         $hidden = /-w(indowstyle)?\s+hidden/ nocase
         $nop    = /-nop(rofile)?\b/ nocase
         $bypass = /-ep\s+bypass|-executionpolicy\s+bypass/ nocase
-        $ps     = /powershell(\.exe)?|pwsh(\.exe)?/ nocase
     condition:
-        filesize < 4MB and $ps and ($enc1 or ($enc2 and 1 of ($hidden,$nop,$bypass)))
+        ah_is_powershell and filesize < 4MB and (
+            $enc1 or $enc3 or ($enc2 and 1 of ($hidden,$nop,$bypass))
+        )
+}
+
+rule PS_Suspicious_Invocation_Flags
+{
+    meta:
+        author      = "AnalysisHub"
+        description = "PowerShell launched with a stacked evasion flag set (hidden window + no profile / bypass)"
+        severity    = "medium"
+        category    = "powershell"
+        reference   = "MITRE T1059.001"
+    strings:
+        $a = /(powershell|pwsh)(\.exe)?[^\n]{0,200}-w(indowstyle)?\s+h(idden)?\b[^\n]{0,200}(-nop(rofile)?|-ep\s+bypass|-executionpolicy\s+bypass|-noni|-noninteractive|-e(nc|ncodedcommand)?\s)/ nocase
+        $b = /(powershell|pwsh)(\.exe)?[^\n]{0,200}(-nop(rofile)?|-executionpolicy\s+bypass)[^\n]{0,200}-w(indowstyle)?\s+h(idden)?\b/ nocase
+    condition:
+        // A single -ExecutionPolicy Bypass is ordinary (it is in the header
+        // comment of half the deployment scripts ever written); a hidden window
+        // stacked on top of it is not.
+        ah_is_powershell and filesize < 4MB and any of them
 }
 
 rule PS_Download_Cradle
@@ -34,14 +82,11 @@ rule PS_Download_Cradle
         category    = "powershell"
         reference   = "MITRE T1059.001 / T1105 Ingress Tool Transfer"
     strings:
-        $iex  = /IEX\s*\(|Invoke-Expression/ nocase
-        $dl1  = /New-Object\s+(System\.)?Net\.WebClient/ nocase
-        $dl2  = /\.DownloadString\s*\(/ nocase
-        $dl3  = /\.DownloadFile\s*\(/ nocase
-        $dl4  = /Invoke-WebRequest|Invoke-RestMethod|\biwr\b|\bcurl\b|\bwget\b/ nocase
-        $dl5  = /Net\.WebRequest|Start-BitsTransfer/ nocase
+        $fwd = /\b(IEX|Invoke-Expression)\b[^\n]{0,160}(DownloadString|DownloadData|DownloadFile|Net\.WebClient|Invoke-WebRequest|Invoke-RestMethod|\biwr\b|Net\.WebRequest|Start-BitsTransfer)/ nocase
+        $rev = /(DownloadString|DownloadData|Invoke-WebRequest|Invoke-RestMethod|\biwr\b)[^\n]{0,200}\|\s*(IEX|Invoke-Expression|&)/ nocase
+        $amp = /&\s*\(\s*['"]?(IEX|Invoke-Expression)['"]?\s*\)[^\n]{0,160}(DownloadString|Net\.WebClient)/ nocase
     condition:
-        filesize < 4MB and $iex and (2 of ($dl*) or $dl2 or $dl3)
+        ah_is_powershell and filesize < 4MB and any of them
 }
 
 rule PS_AMSI_Logging_Bypass
@@ -56,14 +101,21 @@ rule PS_AMSI_Logging_Bypass
         $a1 = "amsiInitFailed" nocase
         $a2 = "AmsiUtils" nocase
         $a3 = "AmsiScanBuffer" nocase
-        $a4 = /\[Ref\]\.Assembly\.GetType\(/ nocase
         $a5 = "System.Management.Automation.AmsiUtils" nocase
+        // The tamper primitive: private reflection or a memory patch. Without it
+        // the AMSI names are just what a defensive script greps for.
+        $t1 = /\[Ref\]\.Assembly\.GetType\(/ nocase
+        $t2 = /(GetField|GetProperty)\s*\(\s*['"]amsi/ nocase
+        $t3 = /NonPublic\s*,?\s*Static/ nocase
+        $t4 = /SetValue\s*\(\s*\$?null\s*,\s*\$?(true|1)/ nocase
+        $t5 = "VirtualProtect" nocase
+        $t6 = /GetProcAddress[^\n]{0,60}Amsi/ nocase
         $l1 = "EnableScriptBlockLogging" nocase
         $l2 = "ScriptBlockLogging" nocase
     condition:
-        filesize < 4MB and (
-            (1 of ($a1,$a2,$a3,$a5) and ($a4 or 1 of ($a1,$a2,$a3,$a5))) or
-            ($a4 and 1 of ($a1,$a2,$a3,$l1,$l2))
+        ah_is_powershell and filesize < 4MB and (
+            (1 of ($a*) and 1 of ($t*)) or
+            (1 of ($l*) and 1 of ($t3,$t4) )
         )
 }
 
@@ -78,17 +130,20 @@ rule PS_Reflective_InMemory
     strings:
         $r1 = /\[System\.Reflection\.Assembly\]::Load\s*\(/ nocase
         $r2 = "[Reflection.Assembly]::Load" nocase
+        $r3 = /\[AppDomain\]::CurrentDomain\.Load\s*\(/ nocase
+        // "memset" was dropped from this set: it is a plain C library name and
+        // contributed nothing the other three do not.
         $api1 = "VirtualAlloc" nocase
         $api2 = "CreateThread" nocase
-        $api3 = "memset" nocase
         $api4 = "WriteProcessMemory" nocase
+        $api5 = "NtCreateThreadEx" nocase
         $marshal = /\[Runtime\.InteropServices\.Marshal\]::Copy/ nocase
-        $addtype = /Add-Type\b.{0,200}(kernel32|VirtualAlloc|CreateThread)/ nocase
+        $addtype = /Add-Type\b[^\n]{0,200}(kernel32|VirtualAlloc|CreateThread|NtCreateThreadEx)/ nocase
     condition:
-        filesize < 4MB and (
+        ah_is_powershell and filesize < 4MB and (
             (1 of ($r*) and 1 of ($api*)) or
-            ($addtype) or
-            ($marshal and 1 of ($api1,$api2,$api4))
+            $addtype or
+            ($marshal and 1 of ($api*))
         )
 }
 
@@ -101,13 +156,25 @@ rule PS_Obfuscation_Heavy
         category    = "powershell"
         reference   = "Invoke-Obfuscation patterns"
     strings:
-        $o1 = /\(\s*'[^']{0,5}'\s*,\s*'[^']{0,5}'\s*\)\s*-f/ nocase   // ('{0}{1}' -f ...) style
-        $o2 = /\[char\]\s*(\d{1,3}\s*\+?\s*){5,}/ nocase
-        $o3 = /-join\s*\(/ nocase
-        $o4 = /\[string\]::Join\(/ nocase
-        $o5 = /\$\{.{0,30}\}\s*=\s*/ nocase
-        $o6 = "[Convert]::FromBase64String" nocase
-        $o7 = /\.replace\(['"][^'"]{1,4}['"]\s*,\s*['"]['"]\)/ nocase
+        // $s* are shapes a human does not write; $w* are ordinary language
+        // features that only mean something as company. Three of the weak ones
+        // alone used to be enough, which flagged any script using -join,
+        // [string]::Join and a ${braced} variable.
+        // Format-operator reordering: '{0}{2}{1}' -f 'IE','X','...'. The old
+        // pattern had the operands the wrong way round and never matched.
+        $s1 = /["']\{\d\}[^"'\n]{0,40}["']\s*-f\s*["']/ nocase
+        $s2 = /(\[char\]\s*\d{1,3}\s*\+\s*){4,}/ nocase
+        $s3 = /(\$\w+\[\s*\d+\s*\]\s*\+\s*){4,}/
+        $s4 = /['"]\s*\+\s*['"]\s*\)?\s*\|\s*(IEX|Invoke-Expression)/ nocase
+        $s5 = /\$\{[^}\n]{0,20}[^A-Za-z0-9_}\n][^}\n]{0,20}\}/     // ${w`eird} style names
+        $w1 = /-join\s*\(/ nocase
+        $w2 = /\[string\]::Join\(/ nocase
+        $w3 = "[Convert]::FromBase64String" nocase
+        $w4 = /\.replace\(['"][^'"]{1,4}['"]\s*,\s*['"]['"]\)/ nocase
+        $w5 = /\[Text\.Encoding\]::(UTF8|ASCII|Unicode)\.GetString/ nocase
     condition:
-        filesize < 4MB and 3 of them
+        ah_is_powershell and filesize < 4MB and (
+            (1 of ($s*) and 2 of ($w*)) or
+            2 of ($s*)
+        )
 }

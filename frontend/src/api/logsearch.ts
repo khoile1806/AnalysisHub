@@ -1,4 +1,5 @@
 import api from './client'
+import type { SigmaAlert } from './hunting'
 
 export interface LogIngestJob {
   id: string
@@ -152,6 +153,54 @@ export const logsearchApi = {
     const { data } = await api.post(`/logsearch/agents/${agentId}/collect`, opts ?? {})
     return data
   },
+
+  // Sigma over already-ingested logs — the dead-box path: run the detection
+  // ruleset against an .evtx that was uploaded from a machine with no agent, or
+  // re-hunt logs collected weeks ago.
+  sigmaTargets: async (params: { case_id?: string; host?: string } = {}): Promise<SigmaOfflineTarget[]> => {
+    const { data } = await api.get('/logsearch/sigma/targets', { params })
+    return data.targets ?? []
+  },
+
+  sigmaScanOffline: async (payload: {
+    index?: string
+    job_id?: string
+    case_id?: string
+    host?: string
+    hours?: number
+    max?: number
+    all_events?: boolean
+  }): Promise<SigmaOfflineResult> => {
+    const { data } = await api.post('/logsearch/sigma/scan', payload, { timeout: 600_000 })
+    return data
+  },
+}
+
+export interface SigmaOfflineTarget {
+  job_id: string
+  filename: string
+  host: string
+  case?: string
+  case_id?: string
+  index: string
+  log_type: string
+  docs_indexed: number
+  created_at: string
+}
+
+export interface SigmaOfflineResult {
+  alerts: SigmaAlert[]
+  events_scanned: number
+  index: string
+  indices?: string[]
+  rules_count: number
+  hours?: number
+  filtered?: boolean
+  channels?: string[]
+  // True when the event cap was reached, so the result is a sample rather than
+  // full coverage of the index.
+  truncated?: boolean
+  load_stats?: { files: number; loaded: number; unsupported: number; errors: number }
 }
 
 export interface EnrichFinding {

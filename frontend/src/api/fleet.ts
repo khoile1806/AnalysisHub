@@ -110,4 +110,67 @@ export const fleetApi = {
   deleteSchedule: async (id: string): Promise<void> => {
     await apiClient.delete(`/agents/scheduled-collections/${id}`)
   },
+
+  // Fleet-wide Sigma sweep. Returns as soon as the work is dispatched; per-agent
+  // results arrive asynchronously as ordinary fleet results and are read back
+  // through sigmaSweepSummary.
+  sigmaSweep: async (payload: {
+    agent_ids?: string[]
+    group?: string
+    tag?: string
+    hours?: number
+    max_per_source?: number
+  }): Promise<FleetSigmaDispatch> => {
+    const { data } = await apiClient.post<ApiResponse<FleetSigmaDispatch>>('/agents/fleet/sigma-sweep', payload)
+    return data.data
+  },
+
+  sigmaSweepSummary: async (params: { scheduled_id?: string; since?: string } = {}): Promise<FleetSigmaSummaryResponse> => {
+    const { data } = await apiClient.get<ApiResponse<FleetSigmaSummaryResponse>>('/agents/fleet/sigma-sweep/summary', { params })
+    return data.data
+  },
+}
+
+export interface FleetSigmaDispatch {
+  run_id: string
+  collection: string
+  hours: number
+  max_per_source: number
+  rules_count: number
+  sources: number
+  concurrency: number
+  dispatched: Array<{ agent_id: string; name: string; status: string; result_id?: string }>
+}
+
+// FleetSigmaRule is the point of a fleet sweep: one row per rule, telling you
+// which machines show the technique rather than which events matched.
+export interface FleetSigmaRule {
+  rule_id?: string
+  rule_title: string
+  rule_level: string
+  mitre_techniques?: string[]
+  mitre_tactics?: string[]
+  agent_count: number
+  hosts: string[]
+  event_count: number
+  agents?: Array<{ agent_id: string; agent_name: string; event_count: number }>
+}
+
+export interface FleetSigmaSummaryResponse {
+  scheduled_id?: string
+  since?: string
+  truncated?: boolean
+  summary: {
+    total_agents: number
+    done: number
+    error: number
+    offline: number
+    pending: number
+    timeout: number
+    events_scanned: number
+    agents_with_alerts: number
+    rules_triggered: number
+    total_alerts: number
+    rules: FleetSigmaRule[]
+  }
 }

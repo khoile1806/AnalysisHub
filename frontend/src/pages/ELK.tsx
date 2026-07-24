@@ -24,8 +24,9 @@ import {
 } from 'lucide-react'
 import { JsonViewer } from '@/components/JsonViewer'
 import { getErrorMessage } from '@/lib/utils'
-import { logsearchApi, LogIngestJob, LogIndex, ELKStatus } from '@/api/logsearch'
+import { logsearchApi, LogIngestJob, LogIndex, ELKStatus, type SigmaOfflineResult } from '@/api/logsearch'
 import { casesApi } from '@/api/cases'
+import { SigmaAlertRow } from '@/components/Agent/EvtxViewer'
 
 type TabType = 'hunt' | 'ingest' | 'connections'
 
@@ -469,6 +470,9 @@ function IngestTab({ onGoHunt }: { onGoHunt: () => void }) {
           )}
         </div>
       )}
+
+      {/* Sigma over stored logs — the dead-box path */}
+      <SigmaOfflinePanel caseId={caseId || undefined} />
 
       {/* Repository — logs grouped by source host */}
       <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
@@ -1924,6 +1928,90 @@ function ResultsPanel({ title, hits, totalLabel, tookMs, isLoading }: { title: s
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Sigma over stored logs
+// ---------------------------------------------------------------------------
+
+// SigmaOfflinePanel runs the detection ruleset against logs that are already in
+// the store — an .evtx uploaded from a machine that never had an agent, or logs
+// collected weeks ago that are worth re-hunting after a ruleset update. Until
+// now Sigma could only see events pulled live from an online agent.
+function SigmaOfflinePanel({ caseId }: { caseId?: string }) {
+  const [target, setTarget] = useState('')
+  const [result, setResult] = useState<SigmaOfflineResult | null>(null)
+  const [openAlerts, setOpenAlerts] = useState<Set<number>>(new Set())
+
+  const { data: targets = [] } = useQuery({
+    queryKey: ['sigma-offline-targets', caseId],
+    queryFn: () => logsearchApi.sigmaTargets(caseId ? { case_id: caseId } : {}),
+  })
+
+  const scanMut = useMutation({
+    mutationFn: () => logsearchApi.sigmaScanOffline(
+      target ? { job_id: target } : { case_id: caseId },
+    ),
+    onSuccess: (r) => {
+      setResult(r)
+      const n = r.alerts?.length ?? 0
+      n > 0
+        ? toast.error(`${n} Sigma alert(s) across ${r.events_scanned.toLocaleString()} stored event(s)`)
+        : toast.success(`No Sigma alerts — ${r.events_scanned.toLocaleString()} event(s) scanned with ${r.rules_count} rule(s)`)
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  return (
+    <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <ShieldAlert className="h-4 w-4 text-red-400" />
+        <h3 className="font-semibold text-gray-100 text-sm">Sigma scan on stored logs</h3>
+      </div>
+      <p className="text-xs text-gray-500 mb-3">
+        Runs the Sigma ruleset against logs already in the store — an .evtx uploaded from a machine with no
+        agent, or older logs worth re-hunting after a ruleset update. No agent has to be online.
+      </p>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-xs text-gray-400">Target
+          <select className="input mt-1 block min-w-[320px]" value={target} onChange={(e) => setTarget(e.target.value)}>
+            <option value="">— every indexed log{caseId ? ' in this case' : ''} —</option>
+            {targets.map((t) => (
+              <option key={t.job_id} value={t.job_id}>
+                {t.host} · {t.filename} ({t.docs_indexed.toLocaleString()} docs)
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="btn-primary flex items-center gap-2 bg-red-600 hover:bg-red-500"
+          disabled={scanMut.isPending} onClick={() => scanMut.mutate()}>
+          {scanMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+          {scanMut.isPending ? 'Scanning…' : 'Scan with Sigma'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="mt-3 space-y-2">
+          <div className="text-xs text-gray-400">
+            {result.events_scanned.toLocaleString()} event(s) · {result.rules_count} rule(s) · index{' '}
+            <span className="font-mono text-gray-300">{result.index}</span>
+            {/* A capped scan is a sample, not full coverage — say so rather than
+                letting a clean result imply the whole index was examined. */}
+            {result.truncated && <span className="text-amber-400"> · event cap reached, this is a sample of the index</span>}
+          </div>
+          {result.alerts?.length > 0 ? (
+            <div className="flex flex-col gap-1.5 max-h-[420px] overflow-auto">
+              {result.alerts.map((a, i) => (
+                <SigmaAlertRow key={i} alert={a} expanded={openAlerts.has(i)}
+                  onToggle={() => setOpenAlerts((p) => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n })} />
+              ))}
+            </div>
+          ) : <p className="text-xs text-gray-500">No alerts.</p>}
+        </div>
+      )}
     </div>
   )
 }

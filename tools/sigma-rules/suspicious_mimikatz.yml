@@ -1,11 +1,24 @@
-title: Suspicious Mimikatz Execution
-description: Detects the execution of mimikatz from command line.
+title: Suspicious Mimikatz Reference in a Process Event
+id: ah-cred-0000
+status: stable
+description: >-
+    Broad catch-all for the string "mimikatz" anywhere in a process-creation
+    event, including the renamed-binary case where the command line still carries
+    the name. Kept alongside the narrower ah-cred-0001 because it also fires on
+    fields that rule does not inspect.
+author: AnalysisHub
 level: high
+tags:
+    - attack.credential_access
+    - attack.t1003.001
 logsource:
     product: windows
-    service: sysmon
+    category: process_creation
 detection:
-    selection:
-        EventID: 4688
+    selection_msg:
         Message|contains: 'mimikatz'
-    condition: selection
+    selection_cmd:
+        CommandLine|contains: 'mimikatz'
+    condition: 1 of selection_*
+falsepositives:
+    - Security documentation, detection tests or tooling filenames containing the word

@@ -1,0 +1,225 @@
+# Curated persistence and defense-evasion rules.
+title: Autorun Registry Key Modified From the Command Line
+id: ah-pers-0001
+status: stable
+description: >-
+    Detects reg.exe writing to a Run key or a Winlogon shell value. Installers
+    normally use the API rather than reg.exe, so a command-line write is a
+    meaningful signal on its own.
+author: AnalysisHub
+level: high
+tags:
+    - attack.persistence
+    - attack.t1547.001
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith: '\reg.exe'
+        CommandLine|contains: ' add '
+    selection_key:
+        CommandLine|contains:
+            - '\CurrentVersion\Run'
+            - '\CurrentVersion\RunOnce'
+            - '\Winlogon\Shell'
+            - '\Winlogon\Userinit'
+            - '\Explorer\User Shell Folders'
+            - '\CurrentVersion\Policies\Explorer\Run'
+    condition: selection and selection_key
+falsepositives:
+    - Provisioning scripts that register startup items deliberately
+
+---
+title: Scheduled Task Created From a Suspicious Location
+id: ah-pers-0002
+status: stable
+description: >-
+    Detects schtasks creating a task whose action lives in a user-writable path
+    or invokes a script host. Plain schtasks use is far too common to alert on,
+    hence the second condition.
+author: AnalysisHub
+level: high
+tags:
+    - attack.persistence
+    - attack.t1053.005
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith: '\schtasks.exe'
+        CommandLine|contains|windash: '-create'
+    selection_payload:
+        CommandLine|contains:
+            - '\AppData\'
+            - '\Temp\'
+            - '\Users\Public\'
+            - 'powershell'
+            - 'mshta'
+            - 'wscript'
+            - 'cscript'
+            - 'rundll32'
+            - '-enc'
+    condition: selection and selection_payload
+falsepositives:
+    - Endpoint management software registering update tasks that call PowerShell
+
+---
+title: Suspicious Service Installed
+id: ah-pers-0003
+status: stable
+description: >-
+    Detects a Windows service whose image path is a script host, an encoded
+    command or a user-writable directory. Also catches the PsExec service used
+    for remote execution.
+author: AnalysisHub
+level: high
+tags:
+    - attack.persistence
+    - attack.t1543.003
+    - attack.lateral_movement
+logsource:
+    product: windows
+    service: system
+detection:
+    selection:
+        EventID: '7045'
+    selection_susp:
+        ImagePath|contains:
+            - 'powershell'
+            - 'cmd.exe /c'
+            - 'cmd /c'
+            - 'rundll32'
+            - 'mshta'
+            - '-enc'
+            - '\Temp\'
+            - '\Users\Public\'
+            - '\AppData\'
+    selection_tool:
+        ServiceName|contains:
+            - 'PSEXESVC'
+            - 'PAExec'
+            - 'RemCom'
+    condition: selection and (selection_susp or selection_tool)
+falsepositives:
+    - Administrators intentionally using PsExec for remote maintenance
+
+---
+title: Security Audit Log Cleared
+id: ah-evas-0001
+status: stable
+description: >-
+    Detects the Security audit log being cleared (1102). Split from the other
+    log-clearing rules on purpose: 1102 only ever appears on the Security
+    channel, and a rule that mixes channels makes the sweep planner query each
+    event id on the wrong log.
+author: AnalysisHub
+level: high
+tags:
+    - attack.defense_evasion
+    - attack.t1070.001
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: '1102'
+    condition: selection
+falsepositives:
+    - Log rotation performed deliberately during maintenance
+
+---
+title: Windows Event Log Cleared
+id: ah-evas-0001b
+status: stable
+description: Detects any other event log being cleared (104), which is recorded on the System channel.
+author: AnalysisHub
+level: high
+tags:
+    - attack.defense_evasion
+    - attack.t1070.001
+logsource:
+    product: windows
+    service: system
+detection:
+    selection:
+        EventID: '104'
+    condition: selection
+falsepositives:
+    - Log rotation performed deliberately during maintenance
+
+---
+title: Event Log Cleared From the Command Line
+id: ah-evas-0001c
+status: stable
+description: Detects log clearing driven from a command line, which also catches attempts that failed to produce a clear event.
+author: AnalysisHub
+level: high
+tags:
+    - attack.defense_evasion
+    - attack.t1070.001
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        CommandLine|contains:
+            - 'wevtutil cl'
+            - 'wevtutil.exe cl'
+            - 'Clear-EventLog'
+            - 'Remove-EventLog'
+    condition: selection
+falsepositives:
+    - Maintenance scripts that rotate logs deliberately
+
+---
+title: Windows Defender Protection Disabled or Bypassed
+id: ah-evas-0002
+status: stable
+description: Detects real-time protection being turned off or broad exclusions being added.
+author: AnalysisHub
+level: high
+tags:
+    - attack.defense_evasion
+    - attack.t1562.001
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        CommandLine|contains:
+            - 'Set-MpPreference -DisableRealtimeMonitoring'
+            - 'DisableRealtimeMonitoring $true'
+            - 'Add-MpPreference -ExclusionPath'
+            - 'Add-MpPreference -ExclusionProcess'
+            - 'Set-MpPreference -DisableIOAVProtection'
+            - 'Set-MpPreference -DisableBehaviorMonitoring'
+            - 'sc stop WinDefend'
+            - 'sc.exe stop WinDefend'
+    condition: selection
+falsepositives:
+    - Endpoint security migrations that disable Defender before installing another product
+
+---
+title: Firewall Disabled From the Command Line
+id: ah-evas-0003
+status: stable
+description: Detects netsh being used to turn the host firewall off.
+author: AnalysisHub
+level: medium
+tags:
+    - attack.defense_evasion
+    - attack.t1562.004
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith: '\netsh.exe'
+        CommandLine|contains|all:
+            - 'firewall'
+            - 'state off'
+    condition: selection
+falsepositives:
+    - Troubleshooting steps performed by support staff

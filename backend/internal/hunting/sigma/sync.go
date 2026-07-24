@@ -64,6 +64,12 @@ func SyncFromZipURL(ctx context.Context, url, destDir string) (*SyncResult, erro
 		return nil, fmt.Errorf("open archive: %w", err)
 	}
 
+	// Drop the previous sync's output before extracting. Synced files are the
+	// ones flattened with "__", so curated rules shipped in the image survive.
+	// Without this, rules deleted or renamed upstream lingered forever and the
+	// active ruleset only ever grew.
+	prunePreviousSync(destDir)
+
 	written := 0
 	for _, f := range zr.File {
 		if f.FileInfo().IsDir() {
@@ -77,6 +83,12 @@ func SyncFromZipURL(ctx context.Context, url, destDir string) (*SyncResult, erro
 		// skipping tests/deprecated trees that ship alongside.
 		lower := strings.ToLower(filepath.ToSlash(f.Name))
 		if !strings.Contains(lower, "/rules") && !strings.HasPrefix(lower, "rules") {
+			continue
+		}
+		// rules-placeholder/ holds rules whose values are %placeholders% that no
+		// event can ever match, and rules-compliance/ is policy auditing rather
+		// than detection — both are pure noise in a hunting ruleset.
+		if strings.Contains(lower, "rules-placeholder") || strings.Contains(lower, "rules-compliance") {
 			continue
 		}
 
@@ -104,6 +116,24 @@ func SyncFromZipURL(ctx context.Context, url, destDir string) (*SyncResult, erro
 		res.RulesLoaded = DefaultEngine.Reload(destDir)
 	}
 	return res, nil
+}
+
+// prunePreviousSync removes the flattened files a previous sync wrote, leaving
+// the curated rules that ship with the image untouched.
+func prunePreviousSync(destDir string) {
+	entries, err := os.ReadDir(destDir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.Contains(e.Name(), "__") {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if ext == ".yml" || ext == ".yaml" {
+			os.Remove(filepath.Join(destDir, e.Name()))
+		}
+	}
 }
 
 func extractRuleFile(f *zip.File, out string) error {

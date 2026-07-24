@@ -117,11 +117,57 @@ export const huntingApi = {
     const { data } = await apiClient.post<{alerts: SigmaAlert[]}>('/hunting/sigma/scan', events)
     return data.alerts || []
   },
+
+  // sigmaSweep runs the whole ruleset against a whole machine: the server works
+  // out which channels the rules need, pulls each one from the agent and
+  // evaluates everything in one pass.
+  sigmaSweep: async (agentId: string, opts: { hours?: number; max_per_source?: number } = {}): Promise<SigmaSweepResult> => {
+    const { data } = await apiClient.post<{ data: SigmaSweepResult }>(`/agents/${agentId}/sigma/sweep`, opts, { timeout: 600_000 })
+    return data.data
+  },
+}
+
+export interface SigmaSweepSource {
+  log_name: string
+  event_ids?: number[]
+  events: number
+  rules: number
+  // Set when a channel could not be read — usually it does not exist on the
+  // host (no Sysmon installed). Distinct from "scanned and found nothing".
+  error?: string
+}
+
+export interface SigmaSweepResult {
+  alerts: SigmaAlert[]
+  events_scanned: number
+  sources: SigmaSweepSource[]
+  rules_count: number
+  hours: number
+  load_stats?: { files: number; loaded: number; unsupported: number; errors: number }
 }
 
 export interface SigmaAlert {
+  rule_id?: string
   rule_title: string
   rule_level: string
   rule_description: string
+  tags?: string[]
+  mitre_techniques?: string[]
+  mitre_tactics?: string[]
+  // Alerts are rolled up per rule; the first row of a rule carries how many
+  // events matched it in total.
+  event_count?: number
+  // Why the rule fired: its boolean condition, and the field comparisons that
+  // satisfied it on this event.
+  condition?: string
+  matches?: SigmaFieldMatch[]
   event: any
+}
+
+export interface SigmaFieldMatch {
+  selection: string
+  field: string
+  modifier?: string
+  expected: string
+  actual: string
 }

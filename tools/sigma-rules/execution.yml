@@ -1,0 +1,203 @@
+# Curated execution rules. Each one requires two independent indicators so a
+# single common substring cannot trigger it on its own.
+title: Encoded PowerShell Command Line
+id: ah-exec-0001
+status: stable
+description: >-
+    Detects PowerShell invoked with an encoded command. The windash modifier also
+    covers the /enc and unicode-dash spellings attackers use to dodge naive
+    string matching.
+author: AnalysisHub
+level: high
+tags:
+    - attack.execution
+    - attack.t1059.001
+    - attack.defense_evasion
+    - attack.t1027
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_img:
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    selection_enc:
+        CommandLine|contains|windash:
+            - ' -enc '
+            - ' -encodedcommand'
+            - ' -ec '
+    condition: selection_img and selection_enc
+falsepositives:
+    - Management platforms (SCCM, Ansible, monitoring agents) that legitimately pass encoded payloads
+
+---
+title: PowerShell Download Cradle
+id: ah-exec-0002
+status: stable
+description: >-
+    Detects a remote download combined with in-memory execution in the same
+    command line — the classic fileless stager. Requiring both halves keeps
+    ordinary download scripts out of the results.
+author: AnalysisHub
+level: high
+tags:
+    - attack.execution
+    - attack.t1059.001
+    - attack.command_and_control
+    - attack.t1105
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_download:
+        CommandLine|contains:
+            - 'Net.WebClient'
+            - 'DownloadString('
+            - 'DownloadFile('
+            - 'Invoke-WebRequest'
+            - 'Start-BitsTransfer'
+            - 'Invoke-RestMethod'
+    selection_exec:
+        CommandLine|contains:
+            - 'IEX'
+            - 'Invoke-Expression'
+            - '.Invoke()'
+            - 'iex('
+    condition: selection_download and selection_exec
+falsepositives:
+    - Package bootstrap scripts (chocolatey, scoop) that fetch and evaluate installers
+
+---
+title: Office Application Spawning a Script or Shell Host
+id: ah-exec-0003
+status: stable
+description: >-
+    Detects an Office process launching a shell, script host or LOLBin — the
+    standard maldoc execution chain. Very high precision: Office has no
+    legitimate reason to spawn these directly.
+author: AnalysisHub
+level: high
+tags:
+    - attack.execution
+    - attack.t1204.002
+    - attack.initial_access
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_parent:
+        ParentImage|endswith:
+            - '\winword.exe'
+            - '\excel.exe'
+            - '\powerpnt.exe'
+            - '\outlook.exe'
+            - '\msaccess.exe'
+            - '\visio.exe'
+            - '\onenote.exe'
+    selection_child:
+        Image|endswith:
+            - '\cmd.exe'
+            - '\powershell.exe'
+            - '\pwsh.exe'
+            - '\wscript.exe'
+            - '\cscript.exe'
+            - '\mshta.exe'
+            - '\rundll32.exe'
+            - '\regsvr32.exe'
+            - '\bitsadmin.exe'
+            - '\certutil.exe'
+            - '\curl.exe'
+            - '\schtasks.exe'
+    condition: selection_parent and selection_child
+falsepositives:
+    - Signed Office add-ins or document-automation macros used internally
+
+---
+title: Certutil Used to Download or Decode a Payload
+id: ah-exec-0004
+status: stable
+description: Detects certutil abused as a downloader or as a base64/hex decoder.
+author: AnalysisHub
+level: high
+tags:
+    - attack.command_and_control
+    - attack.t1105
+    - attack.defense_evasion
+    - attack.t1140
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith: '\certutil.exe'
+    selection_flags:
+        CommandLine|contains|windash:
+            - '-urlcache'
+            - '-decode'
+            - '-decodehex'
+            - '-verifyctl'
+    condition: selection and selection_flags
+falsepositives:
+    - PKI administration scripts that legitimately verify certificate trust lists
+
+---
+title: MSHTA Executing Remote or Inline Script
+id: ah-exec-0005
+status: stable
+description: Detects mshta.exe fetching a remote HTA or running an inline script protocol handler.
+author: AnalysisHub
+level: high
+tags:
+    - attack.defense_evasion
+    - attack.t1218.005
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|endswith: '\mshta.exe'
+    selection_remote:
+        CommandLine|contains:
+            - 'http://'
+            - 'https://'
+            - 'javascript:'
+            - 'vbscript:'
+            - '\\\\'
+    condition: selection and selection_remote
+falsepositives:
+    - Legacy line-of-business applications delivered as HTA over an intranet URL
+
+---
+title: Process Executed From a User-Writable Staging Directory
+id: ah-exec-0006
+status: experimental
+description: >-
+    Detects executables launched from temp, public or download folders. Alone
+    this is only a lead, so it is scored medium and excludes the installer paths
+    that generate most of the benign volume.
+author: AnalysisHub
+level: medium
+tags:
+    - attack.execution
+    - attack.t1204.002
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        Image|contains:
+            - '\AppData\Local\Temp\'
+            - '\Windows\Temp\'
+            - '\Users\Public\'
+            - '\Downloads\'
+            - '\$Recycle.Bin\'
+    filter_installers:
+        Image|endswith:
+            - '\setup.exe'
+            - '\vcredist_x64.exe'
+            - '\vcredist_x86.exe'
+            - '\msiexec.exe'
+    condition: selection and not filter_installers
+falsepositives:
+    - Software installers and updaters that unpack into %TEMP% before running

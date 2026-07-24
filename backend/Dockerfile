@@ -185,6 +185,12 @@ COPY --from=agent-builder /agent/agent-offline-linux    /app/defaults/agent-offl
 # Copy internal data like cve_collection.json
 COPY --from=builder /build/data /app/data
 
+# Sigma detection rules. sigma.Init() resolves "tools/sigma-rules" relative to
+# WORKDIR, so without this the container starts with an empty ruleset while
+# still logging a successful load. Rules pulled later by the SigmaHQ sync land
+# here too and are re-synced after a container recreate.
+COPY ./tools/sigma-rules /app/tools/sigma-rules
+
 # Default integrated tools (e.g. YARA Scanner bundle, WinPmem)
 COPY --from=scanner-bundler /app/defaults/yara-scanner.zip /app/defaults/yara-scanner.zip
 COPY --from=scanner-bundler /app/defaults/winpmem.exe      /app/defaults/winpmem.exe

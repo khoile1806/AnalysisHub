@@ -94,7 +94,12 @@ func (c *openAIClient) StreamChat(ctx context.Context, msgs []Message, opts Opti
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return usage, fmt.Errorf("provider returned %d: %s", resp.StatusCode, truncate(string(body), 300))
+		// Name the endpoint: a "model not found" is almost always the request
+		// having gone somewhere other than where the operator thinks it did, and
+		// the provider's reply never mentions the host.
+		return usage, fmt.Errorf("provider returned %d from %s: %s%s",
+			resp.StatusCode, hostOf(c.baseURL), truncate(string(body), 300),
+			endpointHint(c.baseURL, c.model))
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
