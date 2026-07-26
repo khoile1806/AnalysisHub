@@ -1,5 +1,805 @@
 [
   {
+    "id": "CVE-2026-48032",
+    "description": "Hulumi is an open-source toolkit that ships secure-by-default cloud and platform infrastructure components for Pulumi. Prior to version 1.4.0, IAM-role policy checks can be bypassed when the role trusts multiple OIDC providers. This issue has been patched in version 1.4.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00309,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:58.190",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48033",
+    "description": "Hulumi is an open-source toolkit that ships secure-by-default cloud and platform infrastructure components for Pulumi. Prior to version 1.4.0, policy packs can be bypassed by a forged Pulumi-URN logical name. This issue has been patched in version 1.4.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00275,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:58.340",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48034",
+    "description": "Hulumi is an open-source toolkit that ships secure-by-default cloud and platform infrastructure components for Pulumi. Prior to version 1.4.0, there is a bypass via decoy sibling resources targeting a different bucket. This issue has been patched in version 1.4.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00258,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:58.477",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48035",
+    "description": "Hulumi is an open-source toolkit that ships secure-by-default cloud and platform infrastructure components for Pulumi. Prior to version 1.4.0, consumers using AccountFoundation could ship an AWS account whose CloudTrail / Config audit logs were deletable by any S3-delete-capable principal — while believing the startup-hardened tier guaranteed tamper-resistance. Sandbox-tier deployments had no audit immutability at all (defects 1 and 3 compounded). This issue has been patched in version 1.4.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00259,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:58.617",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48036",
+    "description": "Hulumi is an open-source toolkit that ships secure-by-default cloud and platform infrastructure components for Pulumi. Prior to version 1.4.0, consumers running drift detection in CI / cron could see transient adapter failures silently cached as \"all clear\" — masking real attacks for up to six hours — or see ordinary provider-version churn falsely promoted to incident severity. Either way, the verdict source was unreliable for downstream incident workflows that gate on it. This issue has been patched in version 1.4.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00294,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:58.753",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-48037",
+    "description": "Hulumi is an open-source toolkit that ships secure-by-default cloud and platform infrastructure components for Pulumi. Prior to version 1.4.0, AccountFoundation reuse paths silently downgrade GuardDuty / Security Hub posture. This issue has been patched in version 1.4.0.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00259,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:58.897",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-54342",
+    "description": "In epa4all, prior to version 2026-05-20, an attacker on the network path between epa4all and any backend (ePA Aktensystem, Konnektor, IDP, TSS) can present a self-signed TLS certificate and intercept the connection. For non-VAU connections (Konnektor, IDP), this allows direct read and modification of the inner traffic, including smartcard operations and OIDC authentication exchanges. For the ePA backend, the disabled TLS verification is the transport-level enabler for the VAU MITM described in GHSA-vvh7-x6c7-46gh. This issue has been patched in version 2026-05-20.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00125,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T19:16:59.200",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57530",
+    "description": "Milkdown before 7.21.3 contains a stored cross-site scripting vulnerability in the @milkdown/preset-commonmark and @milkdown/components packages that allows attackers with document write access to execute arbitrary JavaScript in the browser context of any user who opens the document or clicks a rendered link. The parseMarkdown runner stores raw URL values from the remark AST as href mark attributes without URL scheme validation, and the ineffective DOMPurify.sanitize call in edit-view.ts treats the bare URL string as a text node and returns it unchanged, allowing javascript: payloads to pass through the link-tooltip preview component and read-only mode anchor elements unmodified.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00178,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:02.893",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-57531",
+    "description": "Milkdown before 7.21.3 contains a DOM cross-site scripting vulnerability in the @milkdown/plugin-emoji package that allows unauthenticated attackers to execute arbitrary JavaScript in the host application's origin by causing a victim to paste attacker-controlled content. The parseDOM.getAttrs handler stores raw innerHTML of pasted span elements with data-type=\"emoji\" without sanitization, and the toMarkdown runner subsequently assigns this unsanitized value directly to a live DOM element's innerHTML, bypassing the DOMPurify sanitization used in the toDOM path, causing payload execution on every markdown serialization cycle.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00249,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:03.530",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-62835",
+    "description": "Improper authorization in Azure Portal allows an unauthorized attacker to disclose information over a network.",
+    "severity": "critical",
+    "cvss_score": 9.3,
+    "epss_score": 0.01035,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:19.410",
+    "poc_links": [],
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66036",
+    "description": "FFmpeg through 8.1.2, fixed in commit 5d7112c, contains a heap out-of-bounds write vulnerability in the vf_hqdn3d filter that allows attackers to corrupt heap memory by supplying a crafted video whose frame resolution increases between frames when filtergraph reinitialization is disabled via the -reinit_filter 0 option. Attackers can provide a malicious video input where vf_hqdn3d.config_input() allocates undersized per-plane line-history buffers based on the initial frame width, and subsequent larger frames cause denoise_spatial() to write beyond the allocation boundary, resulting in heap memory corruption.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00288,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:20.433",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66037",
+    "description": "FFmpeg through 8.1.2, fixed in commit 5d7112c, contains an uncontrolled resource consumption vulnerability in the IAMF demuxer that allows an unauthenticated attacker to cause multi-gigabyte memory allocation from a 17-byte input file by supplying a crafted count_label field. The mix_presentation_obu() function in libavformat/iamf_parse.c calls av_calloc(count_label, sizeof(*language_label)) with an attacker-controlled value before validating available OBU data, enabling an allocation amplification of approximately 126 million bytes per input byte that exhausts process memory or triggers an OOM-kill during format probing.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00282,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:20.573",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66038",
+    "description": "FFmpeg through 8.1.2, fixed in commit 8670835, contains an information disclosure vulnerability in the LCL/ZLIB video decoder that allows attackers to expose uninitialized heap memory by supplying a valid zlib stream that inflates to fewer bytes than the expected frame size. The zlib_decomp() function in lcldec.c treats short decompression as non-fatal and continues to the RGB24 conversion path, which copies a full frame's worth of rows from the allocation buffer using original frame dimensions, causing uninitialized heap contents including pointer-derived allocator bytes to be copied into the attacker-observable AVFrame output and potentially defeating ASLR in long-lived media processing services.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00256,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:20.727",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66039",
+    "description": "FFmpeg through 8.1.2, fixed in commit aafb5c6, contains a signed integer overflow vulnerability in the MACE6 audio decoder that allows attackers to corrupt heap memory by supplying a crafted CAF file with a malicious bytes_per_packet value. Attackers can craft a CAF file with oversized bytes_per_packet and frames_per_packet values in the desc chunk to trigger an integer overflow in mace_decode_frame() during output sample count computation, resulting in an undersized buffer allocation and heap out-of-bounds write that could enable code execution.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00423,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:20.880",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66040",
+    "description": "FFmpeg through 8.1.2, fixed in commit b506faf, contains a heap out-of-bounds write vulnerability in the native PNG and APNG encoders that allows remote attackers to corrupt heap memory by supplying a crafted PNG image with a malicious eXIf chunk. Attackers can craft an eXIf chunk where multiple IFD entries reference the same large value payload, causing canonical serialization to expand the output far beyond the undersized allocation estimated by add_exif_profile_size(), resulting in png_write_chunk() writing tens of thousands of bytes past the buffer boundary, leading to deterministic heap corruption, process crash, and potentially arbitrary code execution.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00546,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:21.063",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66041",
+    "description": "FFmpeg 7.0 through 8.1.2, fixed in commit 4da9812, contains a heap out-of-bounds write vulnerability in the vf_quirc filter that allows an attacker to corrupt heap memory by supplying a crafted PGS/SUP subtitle file with mismatched frame dimensions. Attackers can provide a subtitle file whose second presentation has larger dimensions than its first, causing av_image_copy_plane() to copy data exceeding the initial allocation size into the undersized libquirc grayscale image buffer, resulting in heap corruption and process crash with potential for code execution.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00423,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T20:18:21.240",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2025-71408",
+    "description": "NLTK (Natural Language Toolkit) before version 3.9.3 contains an eval injection vulnerability in the nltk.collocations module that allows an attacker who controls command-line arguments to execute arbitrary Python code. When collocations.py is invoked directly, the __main__ block passes command-line arguments directly to eval() as suffixes of BigramAssocMeasures without allowlist validation or sanitization, enabling an attacker to supply a Python expression that escapes the intended attribute lookup and executes arbitrary code including OS commands via the os module.",
+    "severity": "high",
+    "cvss_score": 7.8,
+    "epss_score": 0.00158,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T22:16:50.063",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-55985",
+    "description": "The web management interface in \nTycon Systems TPDIN-Monitor-WEB2\n\nstores and displays system credentials in cleartext on a certain configuration page accessible to authenticated users. Any party with access to the administrative dashboard can immediately read these credentials, which may be used to compromise other systems on the local network.",
+    "severity": "medium",
+    "cvss_score": 4.3,
+    "epss_score": 0.00149,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T22:16:50.807",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-61884",
+    "description": "The web management interface of Tycon Systems TPDIN-Monitor-WEB2\n\n does not perform server-side validation of credentials during the login process. By submitting empty values for both credential fields, an unauthenticated remote attacker can bypass the authentication check and establish a valid administrative session. This grants full access to device controls including power relay management, device reboot, remote access service configuration, and network settings, which could allow an attacker to disrupt connected infrastructure or cause physical damage to equipment.",
+    "severity": "critical",
+    "cvss_score": 9.8,
+    "epss_score": 0.00664,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T22:16:50.963",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16280",
+    "description": "An integer overflow when calculating physical offsets for sparse PMRs may result in 32-bit truncation of address computations for PMRs larger than 4 GB. This can lead to incorrect GPU MMU mappings and may allow a non-privileged user to trigger access to unintended physical memory, resulting in memory corruption or information disclosure.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0014,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:50.393",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-60134",
+    "description": "Weintek cMT3092X HMI allows a non-privileged user to modify cookies to gain elevated privileges.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00315,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:50.890",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-60135",
+    "description": "An attacker can modify data that should be restricted to read‑only access.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00213,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:51.037",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-61886",
+    "description": "Weintek cMT3092X HMI stores user account passwords in plaintext.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00231,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:51.197",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-61892",
+    "description": "Weintek cMT3092X HMI allows a non-privileged user to modify tokens to escalate privileges.",
+    "severity": "high",
+    "cvss_score": 8.8,
+    "epss_score": 0.00274,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:51.333",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66337",
+    "description": "A flaw was found in libsoup. An unsigned integer underflow in the soup_filter_input_stream_read_until() function causes a heap buffer over-read when parsing multipart HTTP responses. A malicious HTTP server can exploit this by sending a crafted multipart response, potentially causing the client application to crash or disclose sensitive heap memory.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00229,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:51.760",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66338",
+    "description": "A flaw was found in libsoup. The chunked transfer encoding parser uses a permissive parsing function for chunk sizes that silently accepts inputs violating RFC 9112, including leading whitespace, plus sign prefixes, and trailing invalid characters. When libsoup operates behind a strict frontend proxy, this parsing differential can be exploited to smuggle HTTP requests.",
+    "severity": "medium",
+    "cvss_score": 5.4,
+    "epss_score": 0.00174,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:52.040",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66339",
+    "description": "A flaw was found in libsoup. After a CONNECT tunnel is established through an HTTP proxy, libsoup incorrectly attaches the Proxy-Authorization header to subsequent HTTPS requests sent through that tunnel to the destination server. This allows the destination server to capture proxy credentials, leading to information disclosure.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00229,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-24T23:16:52.187",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66373",
+    "description": "Redis before 8.8.0, in the unusual case where an authenticated attacker can execute RESTORE, allows remote code execution via a RESTORE payload where the same NACK (pending entry) is referenced by more than one consumer, because deleting both consumers via XGROUP DELCONSUMER leads to a double free. NOTE: this issue exists because of an incomplete fix for CVE-2026-25243.",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "epss_score": 0.00472,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T01:16:26.277",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-66374",
+    "description": "Knot Resolver before 6.4.1 allows remote code execution via a heap-based buffer overflow in the DoQ (DNS-over-QUIC) receive path.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.00389,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T01:16:26.423",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-10818",
+    "description": "The WPForms Pro plugin for WordPress is vulnerable to Arbitrary File Upload in all versions up to, and including, 1.10.1.1 via the ajax_chunk_upload_finalize function. This is due to the file type validation occurring after chunk metadata and file contents have already been written to disk, and the assembled file not being deleted upon validation failure. This makes it possible for unauthenticated attackers to upload files that may be executable, which makes remote code execution possible.",
+    "severity": "high",
+    "cvss_score": 8.1,
+    "epss_score": 0.0042,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T07:17:08.880",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-14955",
+    "description": "The Checkout Field Editor for WooCommerce (Pro) plugin for WordPress is vulnerable to Directory Traversal in all versions up to, and including, 3.7.7 via the 'thwcfe_legacy_file' parameter. This makes it possible for authenticated attackers, with subscriber-level access and above, to read the contents of arbitrary files on the server, which can contain sensitive information.",
+    "severity": "medium",
+    "cvss_score": 6.5,
+    "epss_score": 0.00526,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T07:17:09.753",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-15425",
+    "description": "The Yoast SEO – Advanced SEO with real-time guidance and built-in AI plugin for WordPress is vulnerable to Stored Cross-Site Scripting via Post Slug (post_name) in all versions up to, and including, 28.0 due to insufficient input sanitization and output escaping. This makes it possible for authenticated attackers, with author-level access and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page. This requires pretty permalinks to be enabled, as the exploit chain depends on get_permalink() embedding the stored percent-encoded post_name in the generated URL.",
+    "severity": "medium",
+    "cvss_score": 6.4,
+    "epss_score": 0.00201,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T07:17:09.897",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-16766",
+    "description": "Catalyst::View::Wkhtmltopdf versions before 0.6.1 for Perl allow shell command injection (RCE) via PDF render options.\n\nOptions are passed directly to the wkhtmltopdf command without sanitization.\n\nAny web application that passes user-controlled options such as the page_size, orientation or margins without validation allows shell command injection.\n\nVersion 0.6.0 was released with an incomplete fix for this issue.\n\nNote that the wkhtmltopdf project is no longer being developed, and users of this package should migrate to alternative solutions.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00671,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T09:16:32.000",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64256",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nxfs: don't wrap around quota ids in dqiterate\n\nLOLLM noticed that q_id is an unsigned 32-bit variable.  If it happens\nto be set to XFS_DQ_ID_MAX due to a filesystem that actually has a dquot\nfor ID_MAX, then this addition will truncate to zero and the iteration\nstarts over.  Fix this by casting to u64.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00209,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:04.630",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64257",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nsmb: client: reject overlapping data areas in SMB2 responses\n\nCommit 53b7c271f06b (\"smb: client: restrict implied bcc[0] exemption to\nresponses without data area\") restricted the implied bcc[0] length\nexception to responses without a data area. However, the overlap\nhandling in __smb2_calc_size() clears data_length, which can make an\ninvalid response appear to have no data area and so qualify for the\nexception.\n\nTrack data area overlap separately and reject such responses before\napplying the length compatibility exceptions.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00215,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:05.817",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64258",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: remove request-less entries from ent_w_req_queue to fix NULL deref\n\nIf a copy into the userspace ring buffer fails, a request will be\nterminated and fuse_uring_req_end() will set ent-\u003efuse_req to NULL but\nit will leave the entry on ent_w_req_queue in FRRS_FUSE_REQ state. This\ncan lead to a NULL deref if the request expiration logic scans\nent_w_req_queue in the window before the entry is moved off it.\n\nFix this by taking the entry off ent_w_req_queue and changing its state\nfrom FRRS_FUSE_REQ to FRRS_INVALID before terminating the request.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:05.930",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64259",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: make a fuse_req on SQE commit only findable after memcpy\n\nBad userspace might try to trick us and send commit SQEs request\nunique / commit-id of requests that are not even send to\nfuse-server (io_uring_cmd_done() not called) yet.\n\nfuse_uring_commit_fetch() ends the fuse request when the ring entry\nhas a wrong state, but that could have caused a use-after-free\nwith the memcpy operations in fuse_uring_send_in_task().\nIn order to avoid such races the call of fuse_uring_add_to_pq()\nis moved after the copy operations and just before completing\nthe io-uring request - malicious userspace cannot find the request\nanymore until all prepration work in fuse-client/kernel is completed.\n\nThis also moves fuse_uring_add_to_pq() a bit up in the code to\navoid a forward declaration. Also not with a preparation commit,\nto make it easier to back port to older kernels.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.033",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64260",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: Avoid queue-\u003estopped races and set/read that value under lock\n\nThere are several readers of queue-\u003estopped that check the value\nunder lock, but fuse_uring_commit_fetch() did not and actually\nthe value was not set under the lock in fuse_uring_abort_end_requests()\neither. Especially in fuse_uring_commit_fetch it is important\nto check under a lock, because due to races 'struct fuse_req'\nmight be freed with fuse_request_end, but another thread/cpu\nmight already do teardown work.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.137",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64261",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: Avoid use-after-free in fuse_uring_async_stop_queues\n\nfuse_uring_async_stop_queues() might run when the last reference\non ring-\u003equeue_refs was already dropped.\n\nIn order to avoid an early destruction a reference on struct fuse_conn\nis now taken before starting fuse_uring_async_stop_queues() and that\nreference is only released when that delayed work queue terminates.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.243",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64262",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: end fuse_req on io-uring cancel task work\n\nWhen io_uring delivers task work with tw.cancel set (PF_EXITING,\nPF_KTHREAD fallback, or percpu_ref_is_dying on the ring context),\nfuse_uring_send_in_task() takes the cancel branch, assigns\n-ECANCELED, and falls through to fuse_uring_send(). That path only\nflips the entry to FRRS_USERSPACE and completes the io_uring cmd;\nit never discharges the ring entry's owning reference to the\nfuse_req that fuse_uring_add_req_to_ring_ent() handed it at\ndispatch time.\n\n    fuse_uring_send_in_task()\n      tw.cancel == true\n        err = -ECANCELED\n      fuse_uring_send(ent, cmd, err, issue_flags)\n        ent-\u003estate = FRRS_USERSPACE\n        list_move(\u0026ent-\u003elist, \u0026queue-\u003eent_in_userspace)\n        ent-\u003ecmd = NULL\n        io_uring_cmd_done(-ECANCELED)\n        /* ent-\u003efuse_req still set, req still hashed */\n\nThe fuse_req stays linked on fpq-\u003eprocessing[hash] and\nfuse_request_end() is never invoked. The originating syscall\nthread blocks in D-state in request_wait_answer() until\nfuse_abort_conn() runs, which can be the entire connection\nlifetime. For FR_BACKGROUND requests fc-\u003enum_background is never\ndecremented either, so repeated cancels inflate the counter until\nmax_background is hit and all later background ops stall. tw.cancel does\nnot imply a connection abort (e.g. a single io_uring worker thread exits\nwhile the fuse connection stays up), so this cannot be left for\nfuse_abort_conn() to clean up.\n\nEnding the req but still routing the entry through fuse_uring_send()\nis not enough: that leaves a req-less entry on ent_in_userspace, and\nent_list_request_expired() dereferences ent-\u003efuse_req unconditionally\non the head of that list, which would then NULL-deref.\n\nFix the cancel branch to release the entry directly. Remove it from the\nqueue, complete the io_uring cmd, end the fuse_req, free the entry, and\ndrop its queue_refs (waking the teardown waiter if it was the last).",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.350",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64263",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: fix moving cancelled entry to ent_in_userspace list\n\nfuse_uring_cancel() moves entries that are available (these have no reqs\nattached) to the ent_in_userspace list. ent_list_request_expired()\nchecks the first entry on ent_in_userspace and dereferences\nent-\u003efuse_req unconditionally, which will crash on a cancelled entry\nthat was moved to this list.\n\nFix this by freeing the entry and dropping queue_refs directly in\nfuse_uring_cancel(). This is safe because cancel is the cancel handler\nitself - after io_uring_cmd_done(), no more cancels will be dispatched\nfor this command, and teardown serializes with cancel via queue-\u003elock.\n\nSince cancel now decrements queue_refs, fuse_uring_abort() must no\nlonger gate fuse_uring_abort_end_requests() on queue_refs \u003e 0, as\ncancelled entries may have already dropped queue_refs while requests are\nstill queued. Remove the gate so abort always flushes requests and stops\nqueues.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.460",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64264",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse-uring: fix EFAULT clobber in fuse_uring_commit\n\ncopy_from_user() returns the number of bytes not copied as an unsigned\nresidual on failure (1..sizeof(struct fuse_out_header)). fuse_uring_commit\nstores that residual in ssize_t err, sets req-\u003eout.h.error to -EFAULT,\nthen jumps to out: with err still holding the positive residual.\n\n    err = copy_from_user(\u0026req-\u003eout.h, \u0026ent-\u003eheaders-\u003ein_out,\n                         sizeof(req-\u003eout.h));\n    if (err) {\n        req-\u003eout.h.error = -EFAULT;\n        goto out;          /* err is the positive residual */\n    }\n    ...\n    out:\n        fuse_uring_req_end(ent, req, err);\n\nfuse_uring_req_end() then runs\n\n    if (error)\n        req-\u003eout.h.error = error;\n\nwhich overwrites the just-assigned -EFAULT with the positive residual.\nFUSE callers such as fuse_simple_request() test err \u003c 0 to detect\nfailure, so the positive value is interpreted as success and the\ncaller proceeds with an uninitialised or partial req-\u003eout.args.\n\nFix by assigning err = -EFAULT in the failure branch before jumping\nto out, so fuse_uring_req_end() receives a negative errno and sets\nreq-\u003eout.h.error to -EFAULT.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.563",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64265",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse: clear intr_entry in fuse_resend and fuse_remove_pending_req\n\nWhen fuse_resend() moves a request from fpq-\u003eprocessing back to\nfiq-\u003epending, it sets FR_PENDING and clears FR_SENT but does not\nremove the requests intr_entry from fiq-\u003einterrupts.  If the\nrequest had FR_INTERRUPTED set from a prior signal, intr_entry\nremains dangling on fiq-\u003einterrupts.  When the requesting task\nthen receives a fatal signal, fuse_remove_pending_req() sees\nFR_PENDING=1, removes the request from fiq-\u003epending and frees it\nvia the refcount path, also without cleaning intr_entry.  The\nstale intr_entry causes use-after-free when fuse_read_interrupt()\niterates fiq-\u003einterrupts:\n  - list_del_init(\u0026req-\u003eintr_entry) -\u003e UAF write on freed slab\n  - req-\u003ein.h.unique -\u003e UAF read, data leaked to userspace\n\nRemove intr_entry from fiq-\u003einterrupts in fuse_resend() for\ninterrupted requests before they are placed back on fiq-\u003epending.\n\nAdd a WARN_ON if the intr_entry is not empty on request destruction.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00209,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.667",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64266",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse: re-lock request before returning from fuse_ref_folio()\n\nfuse_ref_folio() unlocks the request but does not re-lock it before\nreturning. fuse_chan_abort() can end the request and the async end\ncallback (eg fuse_writepage_free()) can free the args while the\nsubsequent copy chain logic after fuse_ref_folio() accesses them,\nleading to use-after-free issues.\n\nFix this by locking the request in fuse_ref_folio() before returning.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0022,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.783",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64267",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nfuse: avoid 32-bit prune notification count wrap\n\nFUSE_NOTIFY_PRUNE validates the nodeid payload length with:\n\n    size - sizeof(outarg) != outarg.count * sizeof(u64)\n\nOn 32-bit kernels, size_t is also 32 bits, so the daemon-controlled\ncount multiplication can wrap.  A prune notification with count\n0x20000000 and no nodeid payload passes the check, enters the copy\nloop, and asks the device copy path to read nodeids that are not\npresent in the userspace write buffer.  In QEMU this reaches the\nfuse_copy_fill() BUG_ON(!err) path.\n\nValidate the payload length with array_size() instead.  That accepts\nexactly the same valid messages, but avoids wrapping arithmetic before\nthe copy loop consumes the count.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00206,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:06.910",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64268",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nRDMA/siw: bound Read Response placement to the RREAD length\n\nIn drivers/infiniband/sw/siw/siw_qp_rx.c, siw_proc_rresp() places each\ninbound Read Response DDP segment at sge-\u003eladdr + wqe-\u003eprocessed and then\naccumulates wqe-\u003eprocessed, but it never checks the running total against\nthe sink buffer length on continuation segments. siw_check_sge() resolves\nand validates the sink memory only on the first fragment (the if (!*mem)\nbranch), and siw_rresp_check_ntoh() compares the cumulative length against\nwqe-\u003ebytes only on the final segment (the !frx-\u003emore_ddp_segs guard).\n\nA connected siw peer that answers an outstanding RREAD with Read Response\nsegments that keep the DDP Last flag clear, carrying more total payload\nthan the RREAD requested, drives wqe-\u003eprocessed past the validated sink\nbuffer; the next siw_rx_data() call writes out of bounds at\nsge-\u003eladdr + wqe-\u003eprocessed. siw runs iWARP over ordinary routable TCP,\nso the peer is the remote end of an established RDMA connection and needs\nno local privilege.\n\nBound every segment before placement, exactly as siw_proc_send() and\nsiw_proc_write() already do for their tagged and untagged paths, and\nterminate the connection with a base-or-bounds DDP error when the\nRead Response would overrun the sink buffer.\n\nThis is the second receive-path length fix for this file. A separate\nchange rejects an MPA FPDU length that underflows the per-fragment\nremainder in the header decode; that guard does not cover this case,\nbecause here each individual segment length is self-consistent and only\nthe accumulated placement offset overruns the buffer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0022,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:07.013",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64269",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nRDMA/rtrs-srv: Bound RDMA-Write length to chunk size in rdma_write_sg\n\nWhen the server answers an RTRS READ, rdma_write_sg() builds the source\nscatter/gather entry for the IB_WR_RDMA_WRITE that returns data to the\npeer. Its length is taken directly from the wire descriptor:\n\n  plist-\u003elength = le32_to_cpu(id-\u003erd_msg-\u003edesc[0].len);\n\nrd_msg points into the chunk buffer that the remote peer filled via\nRDMA-WRITE-WITH-IMM (rtrs_srv_rdma_done() -\u003e process_io_req() -\u003e\nprocess_read()), so desc[0].len is attacker-controlled and, before this\nchange, was only rejected when zero. The source address is the fixed\nchunk start (dma_addr[msg_id]) and the source lkey is the PD-wide\nlocal_dma_lkey, which is not tied to the chunk's MR mapping, so the verbs\nlayer does not constrain the transfer length to max_chunk_size. msg_id\nand off are bounded against queue_depth and max_chunk_size in\nrtrs_srv_rdma_done(), but desc[0].len is a separate field that was not\nchecked against the chunk size.\n\nA peer that advertises desc[0].len larger than max_chunk_size can make\nthe posted RDMA write read past the chunk's mapped region. The resulting\nbehaviour depends on the IOMMU configuration: with no IOMMU or in\npassthrough mode the read may extend into memory adjacent to the chunk\nand be returned to the peer, which can disclose host memory; with a\ntranslating IOMMU the out-of-range access is expected to fault and abort\nthe connection. In either case the transfer exceeds what the protocol\npermits and is driven by a remote peer.\n\nReject a descriptor length above max_chunk_size, mirroring the existing\noff \u003e= max_chunk_size bound in rtrs_srv_rdma_done(). Legitimate clients\ndo not exceed it: the client sets desc[0].len to its MR length, which is\ncapped at the negotiated max_io_size (max_chunk_size - MAX_HDR_SIZE).",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00215,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:07.160",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64270",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nInput: mms114 - reject an oversized device packet size\n\nmms114_interrupt() reads a packet of touch data from the device into a\nfixed-size on-stack buffer\n\n\tstruct mms114_touch touch[MMS114_MAX_TOUCH];\n\nwhich holds MMS114_MAX_TOUCH (10) events of MMS114_EVENT_SIZE (8) bytes,\ni.e. 80 bytes. The length of the I2C read into it is taken verbatim from\nthe device:\n\n\tpacket_size = mms114_read_reg(data, MMS114_PACKET_SIZE);\n\tif (packet_size \u003c= 0)\n\t\tgoto out;\n\t...\n\terror = __mms114_read_reg(data, MMS114_INFORMATION, packet_size,\n\t\t\t(u8 *)touch);\n\npacket_size is a single device register byte (0x0F) and the only check\nis the lower bound packet_size \u003c= 0; it is never bounded against the\nsize of touch[]. A malfunctioning, malicious or counterfeit controller\n(or an attacker tampering with the I2C bus) can report a packet_size of\nup to 255, so __mms114_read_reg() writes up to 175 bytes past the end of\ntouch[] on the IRQ-thread stack: a stack out-of-bounds write that can\noverwrite the stack canary, saved registers and the return address.\n\nA well-formed device never reports more than the buffer holds, so reject\nan oversized packet and drop the report, consistent with the handler's\nother error paths, rather than reading past the buffer.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00209,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:07.293",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64271",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nInput: touchwin - reset the packet index on every complete packet\n\ntw_interrupt() accumulates each non-zero serial byte into a fixed\nthree-byte buffer with a running index that is only reset once a full\npacket has been received *and* the device's two Y bytes agree:\n\n\ttw-\u003edata[tw-\u003eidx++] = data;\n\tif (tw-\u003eidx == TW_LENGTH \u0026\u0026 tw-\u003edata[1] == tw-\u003edata[2]) {\n\t\t...\n\t\ttw-\u003eidx = 0;\n\t}\n\nThe reset is gated on tw-\u003edata[1] == tw-\u003edata[2], a value the device\ncontrols.  A malicious, malfunctioning or counterfeit Touchwindow\nperipheral can stream non-zero bytes whose 2nd and 3rd bytes differ: the\nindex reaches TW_LENGTH without the equality holding, is never reset, and\nkeeps growing, so tw-\u003edata[tw-\u003eidx++] walks off the end of the three-byte\narray and the rest of the heap-allocated struct tw, one attacker-chosen\nbyte at a time -- an unbounded, device-driven heap out-of-bounds write.\n\nReset the index on every completed packet and report an event only when\nthe two Y bytes match, like the other serio touchscreen drivers do.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.0022,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:07.410",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
+    "id": "CVE-2026-64272",
+    "description": "In the Linux kernel, the following vulnerability has been resolved:\n\nInput: mms114 - fix touch indexing for MMS134S and MMS136\n\nThe MMS134S and MMS136 touch controllers have an event size of 6 bytes\nrather than 8 bytes. When __mms114_read_reg() reads the touch data\npacket from the device into the touch buffer, the events are packed\ntightly at 6-byte intervals. However, the driver iterates through the\nevents using standard C array indexing (touch[index]), where each\nelement is sizeof(struct mms114_touch) (8 bytes) apart. As a result, any\ntouch events beyond the first one are read from incorrect offsets and\nparsed improperly.\n\nFix this by explicitly calculating the byte offset for each touch event\nbased on the device's specific event size.",
+    "severity": "none",
+    "cvss_score": 0,
+    "epss_score": 0.00209,
+    "is_kev": false,
+    "exploit_status": "",
+    "published_date": "2026-07-25T10:17:07.550",
+    "poc_links": null,
+    "tags": [
+      "auto-synced"
+    ],
+    "added_at": "2026-07-26T08:28:18Z",
+    "source": "NVD"
+  },
+  {
     "id": "CVE-2026-64220",
     "description": "In the Linux kernel, the following vulnerability has been resolved:\n\ndevice property: set fwnode-\u003esecondary to NULL in fwnode_init()\n\nIf a firmware node is allocated on the stack (for instance: temporary\nsoftware node whose life-time we control) or on the heap - but using a\nnon-zeroing allocation function - and initialized using fwnode_init(),\nits secondary pointer will contain uninitalized memory which likely will\nbe neither NULL nor IS_ERR() and so may end up being dereferenced (for\nexample: in dev_to_swnode()). Set fwnode-\u003esecondary to NULL on\ninitialization.",
     "severity": "none",

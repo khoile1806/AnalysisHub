@@ -56,7 +56,6 @@ const NAV_GROUPS = [
       { to: '/agents',          icon: Server,  label: 'Agents' },
       { to: '/fleet',           icon: Boxes,   label: 'Fleet' },
       { to: '/tools',           icon: Wrench,  label: 'Tools' },
-      { to: '/recipe',          icon: Wand2,   label: 'Decoder / Recipe' },
       { to: '/offline-bundles', icon: Package, label: 'Offline Bundles' },
     ]
   },
@@ -83,6 +82,7 @@ const NAV_GROUPS = [
       { to: '/cve',            icon: Bug,         label: 'Vulnerability Search' },
       { to: '/cve-collection', icon: LibraryBig,  label: 'Threat Intelligence' },
       { to: '/ioc-store',      icon: Database,    label: 'IOC Store' },
+      { to: '/recipe',         icon: Wand2,       label: 'Decoder / Recipe' },
       { to: '/osint',          icon: Fingerprint, label: 'OSINT' },
     ]
   },
