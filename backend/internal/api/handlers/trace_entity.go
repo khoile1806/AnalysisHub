@@ -76,6 +76,7 @@ func TraceEntity(c *gin.Context) {
 		return
 	}
 	res := buildEntityTrace(strings.TrimSpace(body.Target), body.PID, body.Sources)
+	auditEdgeAction(c, "", "trace.entity", fmt.Sprintf("target=%s pid=%d", body.Target, body.PID))
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": res})
 }
 

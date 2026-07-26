@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -145,6 +146,17 @@ func (h *EvidenceHandler) Download(c *gin.Context) {
 		return
 	}
 	absPath := h.Store.GetEvidencePath(ev.StoredPath)
+
+	// Downloading evidence to an operator's machine is the moment data leaves the
+	// platform's custody, so it must be provable after the fact: who took which
+	// file (by hash), from which agent, when.
+	uid, _ := middleware.GetUserID(c)
+	format := "zip"
+	if c.Query("raw") == "true" {
+		format = "raw"
+	}
+	writeAudit(c, h.DB, &uid, ev.AgentID, "evidence.download", ev.ID.String(),
+		fmt.Sprintf("file=%s sha256=%s size=%d format=%s host=%s", ev.FileName, ev.Sha256, ev.Size, format, ev.Host))
 
 	// ?raw=true → the original uncompressed file. Default → a zip, so the
 	// operator's personal download is compressed while the stored evidence keeps

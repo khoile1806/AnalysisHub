@@ -15,5 +15,10 @@ type AuditLog struct {
 	Resource  string     `                                json:"resource"`
 	Detail    string     `gorm:"type:text"                json:"detail"`
 	IP        string     `                                json:"ip"`
+	// UserAgent identifies the client the action came from (browser/tool), and
+	// Forwarded preserves the raw X-Forwarded-For chain so the real origin is
+	// recoverable even when a proxy sits in front and IP resolves to the gateway.
+	UserAgent string     `gorm:"type:text"                json:"user_agent,omitempty"`
+	Forwarded string     `                                json:"forwarded,omitempty"`
 	CreatedAt time.Time  `                                json:"created_at"`
 }

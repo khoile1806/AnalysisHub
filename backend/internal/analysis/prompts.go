@@ -42,7 +42,47 @@ var dfirSourceLabels = map[string]string{
 // content and the analysis instructions; pass "" to omit it. Content budgeting
 // is the pipeline's responsibility — pass already-capped content here, and set
 // truncated when it was shortened.
+// buildUserActivityPrompt frames a user's audit trail as an accountability
+// briefing in Vietnamese, grounded strictly in the recorded actions. The output
+// is a flowing narrative — when did they log in, what did they do and how many
+// times, what data did they take — not a malware verdict.
+func buildUserActivityPrompt(content string, truncated bool) string {
+	truncateNote := ""
+	if truncated {
+		truncateNote = "\n\n⚠️ *Nhật ký đã bị cắt bớt do giới hạn token — chỉ phần gần nhất được phân tích.*"
+	}
+	return fmt.Sprintf(`Bạn là trợ lý bảo mật và tuân thủ cho một nền tảng DFIR. Một quản trị viên đang xem lại hoạt động của một người dùng để trả lời câu hỏi trách nhiệm: "người này đã làm những gì trên hệ thống".
+
+Dưới đây là NHẬT KÝ HOẠT ĐỘNG của người dùng đó, mỗi dòng một hành động (thời gian UTC, tên hành động, agent đích, tài nguyên, chi tiết, IP nguồn). Đây là NGUỒN SỰ THẬT DUY NHẤT — tuyệt đối không bịa, không suy diễn, không thêm bất cứ điều gì không có trong nhật ký.%s
+
+%s
+
+---
+
+Hãy viết một bản mô tả bằng TIẾNG VIỆT, dạng văn xuôi mạch lạc dễ đọc (dùng Markdown), theo cấu trúc sau:
+
+## Tổng quan
+Một đoạn văn 3-5 câu: người dùng này đăng nhập lần đầu lúc mấy giờ, hoạt động trong khoảng thời gian nào, và nhìn chung đã làm gì. Nêu tổng số hành động.
+
+## Diễn biến hoạt động
+Thuật lại theo trình tự thời gian những gì người dùng đã làm, nhóm các hành động lặp lại và **nêu rõ số lần** (ví dụ: "chạy quét YARA trên agent linux-test 3 lần", "thu thập 5 file bằng chứng từ velociraptor"). Nêu đích danh tên agent và tên tính năng.
+
+## Dữ liệu đã truy cập / lấy đi
+Liệt kê cụ thể: đã đụng tới máy agent nào, đã xem/duyệt file gì, đã thu thập hoặc **tải bằng chứng nào ra khỏi hệ thống** (kèm hash nếu có trong nhật ký). Đây là phần quan trọng nhất cho trách nhiệm dữ liệu.
+
+## Điểm cần lưu ý
+Những gì người soát an toàn dữ liệu nên kiểm tra kỹ: bằng chứng tải về máy cá nhân, thao tác xóa, thay đổi cấu hình/thông tin xác thực, truy cập nhiều máy. Nếu không có gì bất thường, hãy nói thẳng — KHÔNG được tạo ra mối lo không có thật.
+
+Yêu cầu: trình bày chính xác, trích đúng tên agent và số lượng từ nhật ký. Không đưa vào hành động không có trong nhật ký.`, truncateNote, content)
+}
+
 func BuildDFIRPrompt(sourceType, content, enrichSummary string, truncated bool) string {
+	// A user-activity trail is an accountability review, not a malware analysis,
+	// so it gets its own prompt rather than the threat-hunting structure below.
+	if sourceType == "user_activity" {
+		return buildUserActivityPrompt(content, truncated)
+	}
+
 	sourceLabel := dfirSourceLabels[sourceType]
 	if sourceLabel == "" {
 		sourceLabel = "dữ liệu forensic"

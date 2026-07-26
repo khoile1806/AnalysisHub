@@ -95,6 +95,11 @@ func NewRouter(
 	protected.Use(middleware.AuthMiddleware(jwtSecret, db), middleware.AuditMiddleware())
 	{
 		// Hunting (Sigma Engine)
+		// Transform workbench (CyberChef-style): a chained recipe of encode/decode/
+		// crypto operations over a string. Pure compute, no DB.
+		protected.GET("/tools/transform/operations", handlers.ListForgeOperations)
+		protected.POST("/tools/transform", handlers.RunForgeRecipe)
+
 		protected.POST("/hunting/sigma/scan", handlers.SigmaScan)
 		protected.POST("/hunting/sigma/sync", handlers.SigmaSync)
 
@@ -150,9 +155,11 @@ func NewRouter(
 
 		// Filesystem browser — arbitrary remote file read, so admin-only.
 		protected.GET("/agents/:id/fs", middleware.RequireAdmin(), handlers.ListAgentFS)
-		protected.GET("/agents/:id/fs/download", middleware.RequireAdmin(), handlers.DownloadAgentPath)
+		// Agent files are collected into the Evidence Store, never streamed to the
+		// operator's browser — the direct-download and zip-bundle endpoints were a
+		// provenance bypass and have been removed. Personal-machine downloads
+		// happen only from the Evidence Store, where they are audited.
 		protected.POST("/agents/:id/fs/collect", middleware.RequireAdmin(), handlers.CollectAgentPathToEvidence)
-		protected.POST("/agents/:id/fs/download-bundle", middleware.RequireAdmin(), handlers.DownloadAgentBundle)
 		protected.GET("/agents/binary/:platform", handlers.DownloadAgentBinary)
 
 		// Fleet management — groups/tags, bulk collection, scheduled collections.
@@ -509,6 +516,9 @@ func NewRouter(
 		protected.POST("/cases/:id/timeline/ai-extract", aiHandler.ExtractTimeline)
 		protected.POST("/cases/:id/timeline/ai-rebuild", aiHandler.RebuildTimeline)
 		protected.POST("/cases/:id/report/ai-summary", aiHandler.GenerateCaseSummary)
+		// AI summary of a user's audit trail — "what has this operator done".
+		// Admin-only, alongside the audit read routes.
+		protected.POST("/audit/summarize", middleware.RequireAdmin(), aiHandler.SummarizeUserActivity)
 		protected.POST("/cases/:id/evidence/:evidenceId/extract-timeline", aiHandler.ExtractTimelineFromEvidence)
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
 		// AI triage of an OSINT footprint (defensive summary + pivots)
@@ -550,6 +560,13 @@ func NewRouter(
 		protected.GET("/system/updaters", handlers.ListUpdaters)
 		protected.POST("/system/updaters/:name/run", handlers.RunUpdater)
 		protected.GET("/system/events", handlers.ListSystemEvents)
+
+		// User activity / accountability trail. Admin-only: an analyst should not
+		// be able to review everyone else's actions. Reads the AuditLog table that
+		// ~55 handlers already write to.
+		protected.GET("/audit", middleware.RequireAdmin(), handlers.ListAudit)
+		protected.GET("/audit/summary", middleware.RequireAdmin(), handlers.AuditUserSummary)
+		protected.GET("/audit/actions", middleware.RequireAdmin(), handlers.AuditActions)
 		protected.GET("/system/metrics", sysHandler.GetMetrics)
 		protected.GET("/system/token-stats", sysHandler.GetTokenStats)
 		protected.GET("/system/proxy", sysHandler.GetProxyStatus)

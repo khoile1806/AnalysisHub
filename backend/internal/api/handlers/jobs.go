@@ -156,14 +156,14 @@ func CreateJob(c *gin.Context) {
 
 	// Dispatch to agent — best-effort (agent may reconnect and poll).
 	cmd := ws.AgentCommand{
-		Type:           "job_start",
-		JobID:          job.ID.String(),
-		ToolID:         tool.ID.String(),
-		ToolName:       tool.Name,
-		FileName:       tool.FileName,
-		DownloadURL:    downloadURL,
-		Args:           mergeArgs(tool.Args, req.Args),
-		ExecutablePath: tool.ExecutablePath,
+		Type:            "job_start",
+		JobID:           job.ID.String(),
+		ToolID:          tool.ID.String(),
+		ToolName:        tool.Name,
+		FileName:        tool.FileName,
+		DownloadURL:     downloadURL,
+		Args:            mergeArgs(tool.Args, req.Args),
+		ExecutablePath:  tool.ExecutablePath,
 		CollectResult:   tool.CollectResult,
 		OutputGlobs:     tool.OutputGlobs,
 		OutputScope:     tool.OutputScope,
@@ -229,16 +229,16 @@ func RunJob(c *gin.Context) {
 	}
 
 	cmd := ws.AgentCommand{
-		Type:           "job_run",
-		JobID:          job.ID.String(),
-		ToolID:         job.Tool.ID.String(),
-		ToolName:       job.Tool.Name,
-		FileName:       job.Tool.FileName,
-		Args:           mergeArgs(job.Tool.Args, job.Args),
-		ExecutablePath: job.Tool.ExecutablePath,
-		CPULimit:       job.CPULimit,
-		RAMLimit:       job.RAMLimit,
-		Priority:       job.Priority,
+		Type:            "job_run",
+		JobID:           job.ID.String(),
+		ToolID:          job.Tool.ID.String(),
+		ToolName:        job.Tool.Name,
+		FileName:        job.Tool.FileName,
+		Args:            mergeArgs(job.Tool.Args, job.Args),
+		ExecutablePath:  job.Tool.ExecutablePath,
+		CPULimit:        job.CPULimit,
+		RAMLimit:        job.RAMLimit,
+		Priority:        job.Priority,
 		CollectResult:   job.Tool.CollectResult,
 		OutputGlobs:     job.Tool.OutputGlobs,
 		OutputScope:     job.Tool.OutputScope,
@@ -640,6 +640,14 @@ func DownloadArtifact(c *gin.Context) {
 	ext := filepath.Ext(fullPath)
 	customName := fmt.Sprintf("%s_%s%s", job.Agent.Name, job.CreatedAt.Format("20060102_150405"), ext)
 
+	// Downloading a job artifact takes tool output off the platform, so record
+	// who took which job's artifact from which agent.
+	if uid, ok := middleware.GetUserID(c); ok {
+		agentID := job.AgentID
+		writeAudit(c, db, &uid, &agentID, "job.artifact.download", job.ID.String(),
+			fmt.Sprintf("file=%s agent=%s", customName, job.Agent.Name))
+	}
+
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", customName))
@@ -673,6 +681,13 @@ func GetArtifactContent(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "internal server error"})
 		return
+	}
+
+	// Viewing is throttled: the report iframe re-requests this on every render,
+	// so one "viewed" row per 10-minute window keeps the trail meaningful.
+	if uid, ok := middleware.GetUserID(c); ok && job.ArtifactPath != "" {
+		agentID := job.AgentID
+		writeAuditThrottled(c, db, &uid, &agentID, "job.artifact.view", job.ID.String(), "", 10*time.Minute)
 	}
 
 	if job.ArtifactPath == "" {

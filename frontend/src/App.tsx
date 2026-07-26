@@ -30,10 +30,12 @@ const AIAnalysisPage = lazy(() => import('@/pages/AIAnalysis'))
 const AIProviderSettingsPage = lazy(() => import('@/pages/AIProviderSettings'))
 const TestCasesPage = lazy(() => import('@/pages/TestCases'))
 const SystemHealthPage = lazy(() => import('@/pages/SystemHealth'))
+const UserActivityPage = lazy(() => import('@/pages/UserActivity'))
 const ProxyManagerPage = lazy(() => import('@/pages/ProxyManager'))
 const OfflineBundlesPage = lazy(() => import('@/pages/OfflineBundles'))
 const PlaybooksPage = lazy(() => import('@/pages/Playbooks'))
 const SandboxAnalysisPage = lazy(() => import('@/pages/SandboxAnalysis'))
+const RecipePage = lazy(() => import('@/pages/Recipe'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -186,6 +188,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <SandboxAnalysisPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/recipe"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <RecipePage />
               </Suspense>
             </ChunkErrorBoundary>
           }
@@ -376,6 +388,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <SystemHealthPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/user-activity"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <UserActivityPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

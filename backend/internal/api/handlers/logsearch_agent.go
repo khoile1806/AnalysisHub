@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -83,6 +84,13 @@ func (h *LogSearchHandler) CollectLogs(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to dispatch: " + err.Error()})
 		return
 	}
+	// Pulling a host's OS logs off it is a collection action — record who did it,
+	// against which agent, and for which case.
+	if uid, ok := middleware.GetUserID(c); ok {
+		writeAudit(c, h.DB, &uid, &aid, "agent.logs.collect", jobID,
+			fmt.Sprintf("case=%s days=%d host=%s", caseName, days, agent.Hostname))
+	}
+
 	c.JSON(http.StatusAccepted, gin.H{
 		"ok":     true,
 		"job_id": jobID,
@@ -150,7 +158,7 @@ type hostSummary struct {
 	DocsIndexed  int        `json:"docs_indexed"`
 	Running      int        `json:"running"`
 	Errors       int        `json:"errors"`
-	Sources      []string   `json:"sources"`     // upload|agent
+	Sources      []string   `json:"sources"` // upload|agent
 	LastActivity *time.Time `json:"last_activity"`
 }
 

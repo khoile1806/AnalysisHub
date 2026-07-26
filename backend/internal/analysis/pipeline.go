@@ -52,9 +52,88 @@ func (p *Pipeline) Collect(source Source) (string, error) {
 		return p.collectOfflineReport(source.UploadPath)
 	case "evidence":
 		return p.collectEvidence(source.ID)
+	case "user_activity":
+		return p.collectUserActivity(source.ID)
 	default:
 		return "", fmt.Errorf("unknown source type: %q", source.Type)
 	}
+}
+
+// userActivityMaxRows bounds how many audit rows feed the summary. Newest-first,
+// so a busy operator's recent activity is what the AI narrates.
+const userActivityMaxRows = 800
+
+// collectUserActivity renders one user's audit trail as text for the AI to
+// narrate — the "what has this operator done" briefing, produced through the
+// same session pipeline as evidence analysis so it lands in AI Analysis. An
+// empty ID means the system/automated actor.
+func (p *Pipeline) collectUserActivity(userID string) (string, error) {
+	q := p.db.Table("audit_logs AS a").
+		Select(`a.action, a.resource, a.detail, a.ip, a.created_at,
+			COALESCE(u.email, '') AS user_email,
+			COALESCE(ag.hostname, '') AS agent_host`).
+		Joins("LEFT JOIN users u ON u.id = a.user_id").
+		Joins("LEFT JOIN agents ag ON ag.id = a.agent_id")
+	if strings.TrimSpace(userID) != "" {
+		q = q.Where("a.user_id = ?", userID)
+	} else {
+		q = q.Where("a.user_id IS NULL")
+	}
+
+	type actRow struct {
+		Action    string
+		Resource  string
+		Detail    string
+		IP        string
+		UserEmail string
+		AgentHost string
+		CreatedAt time.Time
+	}
+	var rows []actRow
+	q.Order("a.id desc").Limit(userActivityMaxRows).Scan(&rows)
+	if len(rows) == 0 {
+		return "", fmt.Errorf("no recorded activity for this user")
+	}
+
+	who := rows[0].UserEmail
+	if who == "" {
+		who = "system / automated"
+	}
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "=== USER ACTIVITY AUDIT TRAIL ===\n")
+	fmt.Fprintf(&sb, "Operator: %s\n", who)
+	fmt.Fprintf(&sb, "Actions: %d (from %s to %s UTC)\n",
+		len(rows),
+		rows[len(rows)-1].CreatedAt.UTC().Format("2006-01-02 15:04"),
+		rows[0].CreatedAt.UTC().Format("2006-01-02 15:04"))
+	sb.WriteString("\n=== ACTIONS (oldest first) ===\n")
+	// Oldest-first so the narrative reads forward through time.
+	for i := len(rows) - 1; i >= 0; i-- {
+		r := rows[i]
+		fmt.Fprintf(&sb, "%s  %s", r.CreatedAt.UTC().Format("2006-01-02 15:04:05"), r.Action)
+		if r.AgentHost != "" {
+			fmt.Fprintf(&sb, "  agent=%s", r.AgentHost)
+		}
+		if r.Resource != "" {
+			fmt.Fprintf(&sb, "  resource=%s", truncStr(r.Resource, 80))
+		}
+		if r.Detail != "" {
+			fmt.Fprintf(&sb, "  %s", truncStr(r.Detail, 160))
+		}
+		if r.IP != "" {
+			fmt.Fprintf(&sb, "  ip=%s", r.IP)
+		}
+		sb.WriteByte('\n')
+	}
+	return sb.String(), nil
+}
+
+func truncStr(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
 }
 
 // collectEvidence loads a file from the central Evidence Store and returns its

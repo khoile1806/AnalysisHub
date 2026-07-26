@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/hunting/sigma"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/ws"
@@ -182,6 +183,19 @@ func finishSweep(c *gin.Context, engine *sigma.Engine, allEvents []map[string]in
 	// marked trail every other scan does.
 	if snapshot, mErr := json.Marshal(out); mErr == nil {
 		recordEdgeScanEvidence(c, agentID, "sigma-sweep", snapshot)
+	}
+
+	// Record who ran the sweep against which machine — a whole-host scan is an
+	// action an operator should be answerable for.
+	if dbAny, ok := c.Get("db"); ok {
+		if db, ok := dbAny.(*gorm.DB); ok {
+			if uid, uok := middleware.GetUserID(c); uok {
+				if aid, perr := uuid.Parse(agentID); perr == nil {
+					writeAudit(c, db, &uid, &aid, "agent.sigma.sweep", agentID,
+						fmt.Sprintf("events=%d rules=%d hours=%d alerts=%d", len(allEvents), engine.RuleCount(), hours, len(alerts)))
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": out})

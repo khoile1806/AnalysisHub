@@ -683,13 +683,26 @@ echo ""
 # 1. Create install directory
 mkdir -p "$INSTALL_DIR"
 
-# 2. Download agent binary
+# 2. Stop any previous instance. Linux refuses to overwrite a running executable
+# (ETXTBSY), so re-running the installer over a live agent fails with curl 23
+# unless we stop it first.
+if command -v systemctl &>/dev/null; then
+    systemctl stop analysishub-agent.service 2>/dev/null || true
+fi
+pkill -f "$INSTALL_DIR/analysishub-agent" 2>/dev/null || true
+
+# 3. Download to a temp file, then atomically move it into place. The rename
+# replaces the directory entry with a fresh inode, so it works even if an old
+# binary is still held open — no ETXTBSY, no half-written binary on a failed
+# download.
 echo "[*] Downloading agent binary..."
-curl -fsSL "${BINARY_URL}?token=${AGENT_TOKEN}" -o "$INSTALL_DIR/analysishub-agent"
-chmod +x "$INSTALL_DIR/analysishub-agent"
+TMP_BIN="$INSTALL_DIR/analysishub-agent.new.$$"
+curl -fsSL "${BINARY_URL}?token=${AGENT_TOKEN}" -o "$TMP_BIN"
+chmod +x "$TMP_BIN"
+mv -f "$TMP_BIN" "$INSTALL_DIR/analysishub-agent"
 echo "[+] Binary saved to $INSTALL_DIR/analysishub-agent"
 
-# 3. Write configuration
+# 4. Write configuration
 cat > "$INSTALL_DIR/analysishub-agent.conf" << CONF
 SERVER_URL={{.ServerURL}}
 AGENT_TOKEN={{.Token}}
@@ -697,7 +710,7 @@ AGENT_NAME={{.AgentName}}
 CONF
 echo "[+] Configuration written to $INSTALL_DIR/analysishub-agent.conf"
 
-# 4. Start agent — prefer systemd (auto-restart on crash/reboot), fall back to nohup
+# 5. Start agent — prefer systemd (auto-restart on crash/reboot), fall back to nohup
 echo "[*] Starting agent..."
 if command -v systemctl &>/dev/null && [ "$(id -u)" -eq 0 ]; then
     cat > /etc/systemd/system/analysishub-agent.service << SERVICE
@@ -777,6 +790,7 @@ func AgentRegistryParse(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": strings.TrimPrefix(result, "[agent error] ")})
 			return
 		}
+		auditEdgeAction(c, id.String(), "agent.registry.query", req.Root+"\\"+req.Path)
 		c.Data(http.StatusOK, "application/json", []byte(result))
 	case <-c.Request.Context().Done():
 		c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
@@ -854,6 +868,8 @@ func AgentEvtxParse(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": strings.TrimPrefix(result, "[agent error] ")})
 			return
 		}
+		auditEdgeAction(c, id.String(), "agent.evtx.query",
+			fmt.Sprintf("log=%s ids=%v hours=%d", req.LogName, ids, req.Hours))
 		c.Data(http.StatusOK, "application/json", []byte(result))
 	case <-c.Request.Context().Done():
 		c.JSON(http.StatusRequestTimeout, gin.H{"success": false, "error": "request timed out"})
@@ -870,8 +886,36 @@ func awaitEdgeJSONResult(c *gin.Context, hub *ws.Hub, outCh chan string, agentID
 		if kind != "" {
 			recordEdgeScanEvidence(c, agentID, kind, data)
 		}
+		// Every edge-forensics scan runs a collection tool on the endpoint, so it
+		// is an action the operator should be answerable for. This single choke
+		// point covers all of them (mft/prefetch/processes/autoruns/containers/
+		// linux-triage/linux-events/network/dlls/shimcache/browser/triage).
+		auditEdgeAction(c, agentID, "agent.edge."+kind, kind+" scan")
 		c.Data(http.StatusOK, "application/json", data)
 	}
+}
+
+// auditEdgeAction records an agent action, resolving the DB and actor from the
+// request context. Shared by the edge-forensics handlers and the ones that await
+// their result directly instead of through awaitEdgeJSONResult.
+func auditEdgeAction(c *gin.Context, agentID, action, detail string) {
+	dbAny, ok := c.Get("db")
+	if !ok {
+		return
+	}
+	db, ok := dbAny.(*gorm.DB)
+	if !ok {
+		return
+	}
+	uid, ok := middleware.GetUserID(c)
+	if !ok {
+		return
+	}
+	var aidPtr *uuid.UUID
+	if aid, err := uuid.Parse(agentID); err == nil {
+		aidPtr = &aid
+	}
+	writeAudit(c, db, &uid, aidPtr, action, agentID, detail)
 }
 
 // awaitEdgeJSONBytes waits for the agent's edge-scan artifact and RETURNS the raw

@@ -8,8 +8,6 @@ import toast from 'react-hot-toast'
 import type { Agent } from '@/api/agents'
 import { fsApi, type FsEntry } from '@/api/fs'
 import { getErrorMessage } from '@/lib/utils'
-import { downloadHistory } from '@/lib/downloadHistory'
-import { DownloadedFilesPanel } from './DownloadedFilesPanel'
 import TraceOriginModal from '@/components/Agent/TraceOriginModal'
 
 type Sep = '/' | '\\'
@@ -157,25 +155,56 @@ export function FileBrowser({ agent }: { agent: Agent }) {
     else setSelected(new Set(sorted.map(e => e.name)))
   }
 
-  // Single-item download. A FILE is pulled into the central Evidence Store as the
-  // ORIGINAL (uncompressed) bytes — the operator then downloads it, zipped, from
-  // IOC Store → Evidence Store. A FOLDER is still packaged as a zip to the browser.
+  // Every download from an agent's filesystem must go through the Evidence Store
+  // — pulling data straight to the operator's machine as a zip left no evidence
+  // record and no audit of what was taken, which is a provenance bypass. So a
+  // file is collected as its original uncompressed bytes, and a folder is walked
+  // and each file inside it collected the same way. Zipping happens only later,
+  // when the operator downloads FROM the Evidence Store (which is audited).
+  const COLLECT_MAX_FILES = 500
+  const COLLECT_MAX_DEPTH = 8
+
+  type CollectCounter = { files: number; capped: boolean }
+
+  // collectTree sends a file, or every file under a folder, into the Evidence
+  // Store. Bounded in breadth and depth so selecting a huge tree cannot spawn an
+  // unbounded pull; the cap is surfaced rather than silently truncated.
+  const collectTree = async (fullPath: string, isDir: boolean, depth: number, counter: CollectCounter): Promise<void> => {
+    if (counter.files >= COLLECT_MAX_FILES) { counter.capped = true; return }
+    if (!isDir) {
+      await fsApi.collectToEvidence(agent.id, fullPath)
+      counter.files++
+      return
+    }
+    if (depth >= COLLECT_MAX_DEPTH) { counter.capped = true; return }
+    const listing = await fsApi.list(agent.id, fullPath)
+    for (const child of listing.entries ?? []) {
+      if (counter.files >= COLLECT_MAX_FILES) { counter.capped = true; break }
+      await collectTree(joinPath(fullPath, child.name, sep), child.is_dir, depth + 1, counter)
+    }
+  }
+
+  // reportCollected shows the result of a collect run pointing at the Evidence Store.
+  const reportCollected = (counter: CollectCounter) => {
+    if (counter.files === 0) {
+      toast.error('Nothing collected — no files found')
+      return
+    }
+    const capNote = counter.capped ? ` (capped at ${COLLECT_MAX_FILES} — collect deeper folders separately)` : ''
+    toast.success(`${counter.files} file(s) sent to Evidence Store${capNote} — download from IOC Store → Evidence Store`)
+  }
+
+  // Single-item download. A file or a folder is collected into the Evidence Store
+  // as original, uncompressed bytes — never zipped to the operator's machine.
   const downloadEntry = async (entry: FsEntry) => {
     const key = entry.name
     if (downloading.has(key)) return
     markDownloading(key, true)
     try {
       const fullPath = joinPath(path, entry.name, sep)
-      if (entry.is_dir) {
-        const result = await fsApi.downloadBundle(agent.id, [fullPath])
-        downloadHistory.add({
-          agent_id: agent.id, agent_name: agent.name, source_path: fullPath,
-          filename: result.filename, size: result.size, is_archive: true,
-        })
-      } else {
-        await fsApi.collectToEvidence(agent.id, fullPath)
-        toast.success(`"${entry.name}" saved to Evidence Store — download it (zipped) from IOC Store → Evidence Store`)
-      }
+      const counter: CollectCounter = { files: 0, capped: false }
+      await collectTree(fullPath, entry.is_dir, 0, counter)
+      reportCollected(counter)
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -183,20 +212,14 @@ export function FileBrowser({ agent }: { agent: Agent }) {
     }
   }
 
-  // Download the current folder as zip (shortcut button).
+  // Collect every file in the current folder into the Evidence Store.
   const downloadCurrentFolder = async () => {
     if (downloading.has(FOLDER_KEY)) return
     markDownloading(FOLDER_KEY, true)
     try {
-      const result = await fsApi.downloadBundle(agent.id, [path])
-      downloadHistory.add({
-        agent_id: agent.id,
-        agent_name: agent.name,
-        source_path: path,
-        filename: result.filename,
-        size: result.size,
-        is_archive: true,
-      })
+      const counter: CollectCounter = { files: 0, capped: false }
+      await collectTree(path, true, 0, counter)
+      reportCollected(counter)
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -204,21 +227,24 @@ export function FileBrowser({ agent }: { agent: Agent }) {
     }
   }
 
+  // Multi-select: send each selected file (and each file inside selected folders)
+  // to the Evidence Store individually, uncompressed. This closes the bypass where
+  // selecting many files zipped them straight to the operator's machine.
   const downloadSelected = async () => {
     const names = [...selected]
     if (names.length === 0) return
     setBundling(true)
     try {
-      const paths = names.map(n => joinPath(path, n, sep))
-      const result = await fsApi.downloadBundle(agent.id, paths)
-      downloadHistory.add({
-        agent_id: agent.id,
-        agent_name: agent.name,
-        source_path: names.length === 1 ? paths[0] : `${paths.length} items from ${path}`,
-        filename: result.filename,
-        size: result.size,
-        is_archive: true,
-      })
+      const counter: CollectCounter = { files: 0, capped: false }
+      const byName = new Map(entries.map(e => [e.name, e]))
+      for (const n of names) {
+        if (counter.files >= COLLECT_MAX_FILES) { counter.capped = true; break }
+        // is_dir is known from the current listing; fall back to file if unknown.
+        const isDir = byName.get(n)?.is_dir ?? false
+        await collectTree(joinPath(path, n, sep), isDir, 0, counter)
+      }
+      reportCollected(counter)
+      setSelected(new Set())
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -235,7 +261,6 @@ export function FileBrowser({ agent }: { agent: Agent }) {
           <Inbox className="h-10 w-10 mb-3 opacity-30" />
           <p className="text-sm">Agent is offline — file browser requires an active connection.</p>
         </div>
-        <DownloadedFilesPanel agentId={agent.id} agentName={agent.name} agentOnline={false} />
       </div>
     )
   }
@@ -307,23 +332,24 @@ export function FileBrowser({ agent }: { agent: Agent }) {
             onClick={downloadCurrentFolder}
             disabled={folderDownloading}
             className="btn-secondary text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Download the entire current folder as a tar.gz archive"
+            title="Send every file in this folder to the Evidence Store (uncompressed)"
           >
             {folderDownloading
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : <FolderArchive className="h-3.5 w-3.5" />}
-            {folderDownloading ? 'Preparing…' : 'Download folder (.zip)'}
+            {folderDownloading ? 'Collecting…' : 'Collect folder → Evidence'}
           </button>
           <button
             type="button"
             onClick={downloadSelected}
             disabled={selected.size === 0 || bundling}
             className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Send each selected file to the Evidence Store (uncompressed, one record each)"
           >
             {bundling
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : <Download className="h-3.5 w-3.5" />}
-            {bundling ? 'Bundling…' : `Download selected (${selected.size})`}
+            {bundling ? 'Collecting…' : `Collect selected → Evidence (${selected.size})`}
           </button>
         </div>
       </div>
@@ -395,7 +421,7 @@ export function FileBrowser({ agent }: { agent: Agent }) {
                             e.is_dir ? 'text-emerald-400 hover:text-emerald-300' : 'text-gray-200 hover:text-white'
                           } text-left`}
                           onClick={() => e.is_dir ? navigateInto(e) : downloadEntry(e)}
-                          title={e.is_dir ? 'Open folder' : 'Download file'}
+                          title={e.is_dir ? 'Open folder' : 'Collect file to Evidence Store'}
                         >
                           {e.is_dir
                             ? <Folder className="h-4 w-4 shrink-0" />
@@ -423,7 +449,7 @@ export function FileBrowser({ agent }: { agent: Agent }) {
                           onClick={() => downloadEntry(e)}
                           disabled={isDownloading}
                           className="p-1.5 text-gray-400 hover:text-emerald-400 hover:bg-emerald-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={e.is_dir ? 'Download folder as zip' : 'Download file'}
+                          title={e.is_dir ? 'Collect folder to Evidence Store' : 'Collect file to Evidence Store'}
                         >
                           {isDownloading
                             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -442,8 +468,6 @@ export function FileBrowser({ agent }: { agent: Agent }) {
       <p className="text-xs text-gray-600">
         Files / folders up to 1 GB · symlinks recorded as-is, never followed · audit log captures every list and download.
       </p>
-
-      <DownloadedFilesPanel agentId={agent.id} agentName={agent.name} agentOnline={isOnline} />
 
       {traceTarget && <TraceOriginModal agent={agent} target={traceTarget.target} pid={traceTarget.pid} onClose={() => setTraceTarget(null)} />}
     </div>

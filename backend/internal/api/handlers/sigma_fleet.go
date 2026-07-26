@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/hunting/sigma"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/ws"
@@ -177,6 +179,13 @@ func (h *FleetHandler) FleetSigmaSweep(c *gin.Context) {
 		// long before the sweeps do, and a request-scoped context would cancel
 		// every one of them the moment the response is written.
 		go runFleetSigmaSweep(h.DB, hub, pending, sources, body.Hours, body.MaxPerSource)
+	}
+
+	// A fleet-wide scan touches many machines at once; record who launched it and
+	// how wide it reached. Per-agent results are already persisted as fleet rows.
+	if uid, ok := middleware.GetUserID(c); ok {
+		writeAudit(c, h.DB, &uid, nil, "fleet.sigma.sweep", runID.String(),
+			fmt.Sprintf("agents=%d group=%q tag=%q hours=%d", len(agents), body.Group, body.Tag, body.Hours))
 	}
 
 	c.JSON(http.StatusAccepted, gin.H{"success": true, "data": gin.H{

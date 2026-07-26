@@ -167,7 +167,8 @@ func (h *AIHandler) AnalyzeCaseResults(c *gin.Context) {
 // This lets AI triage native agent forensics — not only uploaded-tool results.
 //
 // POST /api/v1/cases/:id/analyze-artifacts
-//   { "source":"processes|autoruns|...", "host":"HOST01", "items":[...], "provider_id"?:"..." }
+//
+//	{ "source":"processes|autoruns|...", "host":"HOST01", "items":[...], "provider_id"?:"..." }
 func (h *AIHandler) AnalyzeArtifacts(c *gin.Context) {
 	caseID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -301,11 +302,11 @@ func (h *AIHandler) AnalyzeEvidence(c *gin.Context) {
 
 // Budgets for chunked evidence analysis.
 const (
-	evidenceReadCap  = 4 << 20    // hard cap on bytes read into memory for analysis (~4 MB of text)
-	evChunkSize      = 96 * 1024  // size of each MAP chunk
-	evReduceBudget   = 48 * 1024  // max evidence/summary text fed to a single REDUCE call
-	evMapConcurrency = 6          // parallel MAP calls
-	evMapSummaryMax  = 1024       // output tokens per MAP summary
+	evidenceReadCap  = 4 << 20   // hard cap on bytes read into memory for analysis (~4 MB of text)
+	evChunkSize      = 96 * 1024 // size of each MAP chunk
+	evReduceBudget   = 48 * 1024 // max evidence/summary text fed to a single REDUCE call
+	evMapConcurrency = 6         // parallel MAP calls
+	evMapSummaryMax  = 1024      // output tokens per MAP summary
 )
 
 // analyzeTextContent extracts findings from arbitrary evidence text. Small content

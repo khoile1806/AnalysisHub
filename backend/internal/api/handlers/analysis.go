@@ -102,6 +102,11 @@ func (h *AIHandler) CreateProvider(c *gin.Context) {
 		return
 	}
 
+	// Provider config holds an encrypted API key; a change to it is
+	// security-relevant, so record who created it (never the key itself).
+	writeAudit(c, h.db, &userID, nil, "ai.provider.create", p.ID.String(),
+		fmt.Sprintf("name=%s type=%s model=%s", p.Name, p.ProviderType, p.Model))
+
 	p.HasKey = p.APIKey != ""
 	p.APIKey = ""
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": p})
@@ -167,6 +172,16 @@ func (h *AIHandler) UpdateProvider(c *gin.Context) {
 		h.db.Model(&p).Updates(updates)
 	}
 
+	// Note the fields that changed (never the key value); a rotated key shows as
+	// "api_key" in the change set so a config change is attributable.
+	uid, _ := middleware.GetUserID(c)
+	changed := make([]string, 0, len(updates))
+	for k := range updates {
+		changed = append(changed, k)
+	}
+	writeAudit(c, h.db, &uid, nil, "ai.provider.update", id.String(),
+		"changed="+strings.Join(changed, ","))
+
 	h.db.First(&p, "id = ?", id)
 	p.HasKey = p.APIKey != ""
 	p.APIKey = ""
@@ -181,6 +196,8 @@ func (h *AIHandler) DeleteProvider(c *gin.Context) {
 		return
 	}
 	h.db.Delete(&models.AIProvider{}, "id = ?", id)
+	uid, _ := middleware.GetUserID(c)
+	writeAudit(c, h.db, &uid, nil, "ai.provider.delete", id.String(), "")
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
@@ -363,6 +380,9 @@ func (h *AIHandler) CreateSession(c *gin.Context) {
 		}
 	}
 
+	writeAudit(c, h.db, &userID, nil, "ai.session.create", session.ID.String(),
+		fmt.Sprintf("source=%s source_id=%s", sourceType, sourceID))
+
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": session})
 }
 
@@ -445,6 +465,17 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	ctx, cancelAnalysis := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancelAnalysis()
 
+	// A panic anywhere in the pipeline must mark the session failed, not leave it
+	// stuck on "running" forever with no error — a zombie session is worse than a
+	// visible failure the operator can retry.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[analysis] session %s panicked: %v", session.ID, r)
+			h.db.Model(&session).Update("status", "failed")
+			h.sendSSE(c, "error", gin.H{"message": "analysis crashed - please retry"})
+		}
+	}()
+
 	// Build chain steps and broadcast them immediately so the client renders
 	// the full pipeline before any step starts running.
 	steps := h.buildChainSteps(session.SourceType, session.UploadPath)
@@ -455,6 +486,12 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 
 	// Helper to update and emit a step.
 	setStep := func(idx int, status, detail string) {
+		// A step that isn't in this source's chain resolves to -1; updating it
+		// used to panic and hang the stream on "running". Skip it instead — the
+		// step simply isn't shown for this source type.
+		if idx < 0 || idx >= len(steps) {
+			return
+		}
 		steps[idx].Status = status
 		steps[idx].Detail = detail
 		h.saveSteps(session.ID, steps)
@@ -510,8 +547,11 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 	}
 
 	// ── Step: extract_iocs + enrich (threat intel) ────────────
+	// Must match buildChainSteps: it omits these steps for user_activity, so the
+	// runtime has to skip the block too — otherwise stepIndex returns -1 and
+	// setStep(-1) panics, killing the stream with the session stuck on "running".
 	var enrichSummary string
-	if h.enrich != nil && h.enrich.Configured() {
+	if h.enrich != nil && h.enrich.Configured() && session.SourceType != "user_activity" {
 		iocIdx := h.stepIndex(steps, "extract_iocs")
 		setStep(iocIdx, "running", "")
 		h.sendLog(c, "info", "Extracting IOCs from data (IP, hash, domain)...")
@@ -705,6 +745,7 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 		"upload":         "Receive uploaded file",
 		"offline_report": "Read offline agent report",
 		"evidence":       "Read evidence file",
+		"user_activity":  "Read user activity log",
 	}[sourceType]
 	if collectLabel == "" {
 		collectLabel = "Collect data"
@@ -733,16 +774,22 @@ func (h *AIHandler) buildChainSteps(sourceType, uploadPath string) []models.Chai
 		steps = append(steps, models.ChainStep{ID: "aggregate", Label: "Aggregate batch results", Status: "pending"})
 	}
 
-	// Threat intel enrichment steps — only shown when keys are configured
-	if h.enrich != nil && h.enrich.Configured() {
+	// Threat intel enrichment steps — only shown when keys are configured, and
+	// never for a user-activity review: enriching the agent IPs in an audit
+	// trail is noise, not accountability.
+	if h.enrich != nil && h.enrich.Configured() && sourceType != "user_activity" {
 		steps = append(steps,
 			models.ChainStep{ID: "extract_iocs", Label: "Extract IOCs", Status: "pending"},
 			models.ChainStep{ID: "enrich", Label: "Enrich Threat Intel", Status: "pending"},
 		)
 	}
 
+	promptLabel := "Build DFIR prompt"
+	if sourceType == "user_activity" {
+		promptLabel = "Build activity summary prompt"
+	}
 	steps = append(steps,
-		models.ChainStep{ID: "context", Label: "Build DFIR prompt", Status: "pending"},
+		models.ChainStep{ID: "context", Label: promptLabel, Status: "pending"},
 		models.ChainStep{ID: "analyze", Label: "AI analysis", Status: "pending"},
 		models.ChainStep{ID: "save", Label: "Save report", Status: "pending"},
 	)

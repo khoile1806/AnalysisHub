@@ -409,14 +409,14 @@ func DeployScenario(c *gin.Context) {
 
 		downloadURL := fmt.Sprintf("%s/api/v1/agent/tools/%s/download", serverURL, tool.ID)
 		cmd := ws.AgentCommand{
-			Type:           "job_start",
-			JobID:          job.ID.String(),
-			ToolID:         tool.ID.String(),
-			ToolName:       tool.Name,
-			FileName:       tool.FileName,
-			DownloadURL:    downloadURL,
-			Args:           tool.Args,
-			ExecutablePath: tool.ExecutablePath,
+			Type:            "job_start",
+			JobID:           job.ID.String(),
+			ToolID:          tool.ID.String(),
+			ToolName:        tool.Name,
+			FileName:        tool.FileName,
+			DownloadURL:     downloadURL,
+			Args:            tool.Args,
+			ExecutablePath:  tool.ExecutablePath,
 			CollectResult:   tool.CollectResult,
 			OutputGlobs:     tool.OutputGlobs,
 			OutputScope:     tool.OutputScope,

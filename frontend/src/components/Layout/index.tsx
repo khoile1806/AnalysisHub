@@ -30,6 +30,8 @@ import {
   Boxes,
   ArrowRightLeft,
   Radar,
+  ScrollText,
+  Wand2,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
@@ -54,6 +56,7 @@ const NAV_GROUPS = [
       { to: '/agents',          icon: Server,  label: 'Agents' },
       { to: '/fleet',           icon: Boxes,   label: 'Fleet' },
       { to: '/tools',           icon: Wrench,  label: 'Tools' },
+      { to: '/recipe',          icon: Wand2,   label: 'Decoder / Recipe' },
       { to: '/offline-bundles', icon: Package, label: 'Offline Bundles' },
     ]
   },
@@ -87,6 +90,7 @@ const NAV_GROUPS = [
     label: 'System',
     items: [
       { to: '/system-health', icon: Activity,       label: 'System Health' },
+      { to: '/user-activity', icon: ScrollText,     label: 'User Activity' },
       { to: '/proxy-manager', icon: ArrowRightLeft, label: 'Proxy Manager' },
       { to: '/test-cases',    icon: FlaskConical,   label: 'Test Cases' },
     ]
@@ -97,6 +101,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   dashboard: 'Dashboard',
   cases:     'Case Manager',
   tools:     'Tool Library',
+  recipe:    'Decoder / Recipe',
   agents:    'Agent Management',
   jobs:      'Jobs',
   cve:       'Vulnerability Search',
@@ -115,6 +120,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   'ai-providers': 'AI Providers',
   'test-cases':     'Test Cases',
   'system-health':  'System Health',
+  'user-activity':  'User Activity',
   'proxy-manager':  'Proxy Manager',
 }
 

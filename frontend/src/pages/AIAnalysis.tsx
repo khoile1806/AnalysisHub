@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   BrainCircuit, Plus, Trash2, Upload,
   FileText, Server, ClipboardList, Search, Settings2,
-  Activity, Package, ArrowLeft, FolderArchive,
+  Activity, Package, ArrowLeft, FolderArchive, ScrollText, Download,
 } from 'lucide-react'
 import AIProviderSettings from '@/pages/AIProviderSettings'
 import toast from 'react-hot-toast'
@@ -15,6 +15,7 @@ import {
 import { jobsApi } from '@/api/jobs'
 import { checklistApi } from '@/api/checklist'
 import { getErrorMessage, safeDistanceToNow } from '@/lib/utils'
+import { printMarkdownAsPdf } from '@/lib/reportPdf'
 import AnalysisChain from '@/components/analysis/AnalysisChain'
 import AnalysisStream from '@/components/analysis/AnalysisStream'
 import {
@@ -31,6 +32,7 @@ const SOURCE_ICONS: Record<SessionSourceType, typeof FileText> = {
   upload: Upload,
   offline_report: Package,
   evidence: FolderArchive,
+  user_activity: ScrollText,
 }
 
 const SOURCE_LABELS: Record<SessionSourceType, string> = {
@@ -40,11 +42,37 @@ const SOURCE_LABELS: Record<SessionSourceType, string> = {
   upload: 'File Upload',
   offline_report: 'Offline Report',
   evidence: 'Evidence File',
+  user_activity: 'User Activity',
 }
 
 // Sources selectable manually in the New Analysis modal. `evidence` is launched
 // from the Evidence Store (deep-link) with a specific file id, not picked here.
 const PICKER_SOURCES: SessionSourceType[] = ['job', 'checklist_run', 'elk_result', 'upload', 'offline_report']
+
+// downloadSessionReport saves a session's AI report as a PDF, with a provenance
+// header so the document says which session, source and provider produced it —
+// a report detached from that context is not evidence.
+function downloadSessionReport(session: AnalysisSession, result: string) {
+  const header = [
+    `# AI Analysis Report`,
+    ``,
+    `- **Title:** ${session.title || session.id}`,
+    `- **Source:** ${SOURCE_LABELS[session.source_type]}`,
+    `- **Provider:** ${session.provider?.name ?? 'AI Provider'}`,
+    `- **Session ID:** ${session.id}`,
+    `- **Status:** ${session.status}`,
+    `- **Generated:** ${new Date().toISOString()}`,
+    ``,
+    `---`,
+    ``,
+  ].join('\n')
+  const slug = (session.title || session.id).replace(/[^a-z0-9-_]+/gi, '_').slice(0, 60)
+  try {
+    printMarkdownAsPdf(`ai-report-${slug}`, header + result)
+  } catch (e) {
+    toast.error(getErrorMessage(e))
+  }
+}
 
 function statusColor(status: AnalysisSession['status']) {
   switch (status) {
@@ -190,6 +218,17 @@ function NewAnalysisModal({
                 <span className="font-mono truncate">{sourceId || 'launched from the Evidence Store'}</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1">Detailed AI analysis of this evidence file. Pick a provider and start.</p>
+            </div>
+          )}
+
+          {sourceType === 'user_activity' && (
+            <div>
+              <label className="label">User Activity</label>
+              <div className="flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-900/10 px-3 py-2 text-xs text-violet-300">
+                <ScrollText className="h-4 w-4 shrink-0" />
+                <span className="font-mono truncate">{sourceId || 'launched from User Activity'}</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">AI narrates this operator's audit trail — when they logged in, what they did and how many times, and what data they took. Pick a provider and start.</p>
             </div>
           )}
 
@@ -567,6 +606,15 @@ function SessionPanel({ session, onDeleted }: { session: AnalysisSession; onDele
           {session.status === 'failed' && (
             <button onClick={startStream} className="px-3 py-1.5 text-xs bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 rounded border border-blue-700/40 transition">
               Retry
+            </button>
+          )}
+          {/* Save the finished report. Disabled while empty/streaming so an
+              operator never downloads a half-written report. */}
+          {result && !isStreaming && (
+            <button onClick={() => downloadSessionReport(session, result)}
+              title="Download this report as a PDF"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-300 rounded border border-emerald-700/40 transition">
+              <Download className="h-3.5 w-3.5" /> Download PDF
             </button>
           )}
           <button onClick={() => { if (confirm('Delete this session?')) deleteMutation.mutate() }}

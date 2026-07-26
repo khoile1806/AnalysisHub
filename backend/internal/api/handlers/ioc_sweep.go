@@ -155,6 +155,8 @@ func AgentIOCSweep(c *gin.Context) {
 	}
 
 	matches, scanned := matchIOCsInBundle(data, inds)
+	auditEdgeAction(c, id.String(), "agent.ioc.sweep",
+		fmt.Sprintf("indicators=%d use_store=%v matches=%d", len(inds), body.UseStore, len(matches)))
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
 		"indicators":    len(inds),
 		"store_matched": storeMatched, // store indicators that were present on the endpoint

@@ -145,17 +145,40 @@ func requestBaseURL(c *gin.Context) string {
 // writeAudit persists an audit log entry. Errors are logged but do not abort
 // the request to keep audit logging non-blocking.
 func writeAudit(c *gin.Context, db *gorm.DB, userID *uuid.UUID, agentID *uuid.UUID, action, resource, detail string) {
+	fwd := strings.TrimSpace(c.GetHeader("X-Forwarded-For"))
 	entry := models.AuditLog{
 		UserID:    userID,
 		AgentID:   agentID,
 		Action:    action,
 		Resource:  resource,
 		Detail:    detail,
-		IP:        c.ClientIP(),
+		IP:        clientRealIP(c),
+		UserAgent: c.Request.UserAgent(),
+		Forwarded: fwd,
 		CreatedAt: time.Now(),
 	}
 	if err := db.Create(&entry).Error; err != nil {
 		// Non-fatal — just log.
 		_ = err
 	}
+}
+
+// clientRealIP resolves the operator's address, preferring the headers a reverse
+// proxy sets over the direct peer. In a Docker deployment the direct peer is the
+// bridge gateway (e.g. 172.20.0.1) for every browser request, so without this the
+// audit log would attribute every action to the same gateway address. When no
+// proxy is in front, these headers are absent and it falls back to gin's
+// ClientIP (the real peer).
+func clientRealIP(c *gin.Context) string {
+	if xr := strings.TrimSpace(c.GetHeader("X-Real-IP")); xr != "" {
+		return xr
+	}
+	if xff := strings.TrimSpace(c.GetHeader("X-Forwarded-For")); xff != "" {
+		// The left-most entry is the original client; the rest are proxies.
+		if i := strings.IndexByte(xff, ','); i >= 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return xff
+	}
+	return c.ClientIP()
 }

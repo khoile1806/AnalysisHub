@@ -327,10 +327,22 @@ func DownloadToolResult(c *gin.Context) {
 	}
 	path := store.AbsPath(tr.RawStoredPath)
 	name := tr.FileName
+	variant := "raw"
 	if c.Query("parsed") == "true" && tr.ParsedStoredPath != "" {
 		path = store.AbsPath(tr.ParsedStoredPath)
 		name = filepath.Base(tr.ParsedStoredPath)
+		variant = "parsed"
 	}
+
+	// A tool result is collected output from an endpoint; downloading it takes
+	// that data off the platform, so record who took which result (by hash) from
+	// which agent.
+	if uid, ok := middleware.GetUserID(c); ok {
+		agentID := tr.AgentID
+		writeAudit(c, db, &uid, &agentID, "tool_result.download", tr.ID.String(),
+			fmt.Sprintf("file=%s sha256=%s variant=%s", tr.FileName, tr.Sha256, variant))
+	}
+
 	c.FileAttachment(path, name)
 }
 
