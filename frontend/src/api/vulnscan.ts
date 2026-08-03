@@ -54,6 +54,8 @@ export interface VulnFinding {
   cve_id?: string
   epss_score?: number
   is_kev?: boolean
+  poc_count?: number
+  poc_url?: string
   confirmed?: boolean
   status?: 'open' | 'confirmed' | 'false_positive' | 'fixed'
   note?: string
@@ -68,6 +70,7 @@ export function priorityScore(f: VulnFinding): number {
   let s = sevBase[f.severity] ?? 5
   if (f.is_kev) s += 40
   if (typeof f.epss_score === 'number') s += Math.round(f.epss_score * 30)
+  if (f.poc_count && f.poc_count > 0) s += 15 // a public exploit exists → prioritise
   if (f.confirmed) s += 10
   return s
 }
@@ -101,6 +104,7 @@ export interface CreateVulnScanRequest {
   tags?: string
   proxy_choice?: 'tor' | 'direct'
   allow_private?: boolean // allow scanning private/loopback/LAN targets (internal scan)
+  auth_headers?: string[] // "Name: Value" headers for authenticated scans (session/token)
 }
 
 export interface AdHocNucleiRequest {

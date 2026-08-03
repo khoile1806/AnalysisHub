@@ -1,0 +1,292 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net"
+	"regexp"
+	"sort"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/analysishub/backend/internal/models"
+)
+
+// osint_attacksurface.go — the per-host attack-surface roll-up for an OSINT
+// investigation. It folds everything the recon + vuln pipelines already produced
+// (open services, security posture, subdomain-takeover exposure, and the vuln-
+// scan findings linked to the investigation) into one host-keyed table scored by
+// risk — the view a pentester opens first to pick the juiciest target.
+
+// SurfaceHost is one row of the attack surface: a host and its aggregated risk.
+type SurfaceHost struct {
+	Host         string   `json:"host"`
+	Kind         string   `json:"kind"` // domain | ip
+	Services     []string `json:"services,omitempty"`
+	PostureGrade string   `json:"posture_grade,omitempty"`
+	Takeover     bool     `json:"takeover"`
+	VulnCount    int      `json:"vuln_count"`
+	MaxSeverity  string   `json:"max_severity,omitempty"`
+	KEVCount     int      `json:"kev_count"`
+	PocCount     int      `json:"poc_count"`
+	CVEs         []string `json:"cves,omitempty"`
+	RiskScore    int      `json:"risk_score"`
+	RiskLabel    string   `json:"risk_label"`
+}
+
+// AttackSurface is the response: the scored host rows plus roll-up totals.
+type AttackSurface struct {
+	Hosts       []SurfaceHost `json:"hosts"`
+	TotalHosts  int           `json:"total_hosts"`
+	TotalVulns  int           `json:"total_vulns"`
+	TotalKEV    int           `json:"total_kev"`
+	TotalPoC    int           `json:"total_poc"`
+	Takeovers   int           `json:"takeovers"`
+}
+
+var gradeInValue = regexp.MustCompile(`(?i)grade ([A-F])`)
+
+// GetOsintAttackSurface aggregates the investigation's whole pivot tree into a
+// risk-scored, per-host attack-surface table.
+//
+// GET /api/v1/osint/:id/attack-surface
+func GetOsintAttackSurface(c *gin.Context) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"success": false, "error": "invalid scan id"})
+		return
+	}
+	var scan models.OsintScan
+	if err := db.First(&scan, "id = ?", id).Error; err != nil {
+		c.JSON(404, gin.H{"success": false, "error": "scan not found"})
+		return
+	}
+	root := scan.ID
+	if scan.RootScanID != nil {
+		root = *scan.RootScanID
+	}
+
+	// All scans in the investigation tree + a scanID → target lookup.
+	var scans []models.OsintScan
+	db.Where("root_scan_id = ? OR id = ?", root, root).Find(&scans)
+	scanIDs := make([]uuid.UUID, 0, len(scans))
+	scanTarget := make(map[uuid.UUID]string, len(scans))
+	for _, s := range scans {
+		scanIDs = append(scanIDs, s.ID)
+		scanTarget[s.ID] = strings.ToLower(strings.TrimSpace(s.Target))
+	}
+
+	buckets := map[string]*SurfaceHost{}
+	host := func(h string) *SurfaceHost {
+		h = normHostKey(h)
+		if h == "" {
+			return nil
+		}
+		b := buckets[h]
+		if b == nil {
+			b = &SurfaceHost{Host: h, Kind: hostKind(h)}
+			buckets[h] = b
+		}
+		return b
+	}
+
+	// ── OSINT findings: services, posture, takeover ───────────────────────────
+	var findings []models.OsintFinding
+	if len(scanIDs) > 0 {
+		db.Where("scan_id IN ?", scanIDs).Find(&findings)
+	}
+	for i := range findings {
+		f := &findings[i]
+		switch f.Category {
+		case "ports":
+			if b := host(scanTarget[f.ScanID]); b != nil {
+				if v := strings.TrimSpace(f.Value); v != "" && len(b.Services) < 12 {
+					b.Services = appendUniq(b.Services, v)
+				}
+			}
+		case "posture":
+			if b := host(scanTarget[f.ScanID]); b != nil {
+				if g := gradeInValue.FindStringSubmatch(f.Value); g != nil {
+					b.PostureGrade = worseGrade(b.PostureGrade, strings.ToUpper(g[1]))
+				}
+			}
+		case "takeover":
+			for _, h := range relatedHosts(f.RelatedEntities) {
+				if b := host(h); b != nil {
+					b.Takeover = true
+				}
+			}
+		}
+	}
+
+	// ── Vuln findings linked to this investigation ────────────────────────────
+	var vulnScanIDs []uuid.UUID
+	db.Model(&models.VulnScan{}).Where("source_scan_id IN ?", scanIDs).Pluck("id", &vulnScanIDs)
+	var vulns []models.VulnFinding
+	if len(vulnScanIDs) > 0 {
+		db.Where("scan_id IN ?", vulnScanIDs).Find(&vulns)
+	}
+	for i := range vulns {
+		v := &vulns[i]
+		b := host(cleanHostStr(v.Host))
+		if b == nil {
+			continue
+		}
+		if v.Severity == "info" && v.CVEID == "" {
+			continue // a bare "live service" info row isn't a vuln
+		}
+		b.VulnCount++
+		b.MaxSeverity = worseSeverity(b.MaxSeverity, v.Severity)
+		if v.IsKEV {
+			b.KEVCount++
+		}
+		if v.PocCount > 0 {
+			b.PocCount += v.PocCount
+		}
+		if v.CVEID != "" {
+			b.CVEs = appendUniq(b.CVEs, v.CVEID)
+		}
+	}
+
+	// ── Score + assemble ──────────────────────────────────────────────────────
+	// Initialise Hosts to a non-nil slice so the JSON is [] (not null) — the UI
+	// checks .length and would crash on a null.
+	out := AttackSurface{Hosts: []SurfaceHost{}}
+	for _, b := range buckets {
+		b.RiskScore, b.RiskLabel = surfaceRisk(b)
+		if len(b.CVEs) > 20 {
+			b.CVEs = b.CVEs[:20]
+		}
+		out.Hosts = append(out.Hosts, *b)
+		out.TotalVulns += b.VulnCount
+		out.TotalKEV += b.KEVCount
+		out.TotalPoC += b.PocCount
+		if b.Takeover {
+			out.Takeovers++
+		}
+	}
+	out.TotalHosts = len(out.Hosts)
+	sort.Slice(out.Hosts, func(i, j int) bool {
+		if out.Hosts[i].RiskScore != out.Hosts[j].RiskScore {
+			return out.Hosts[i].RiskScore > out.Hosts[j].RiskScore
+		}
+		return out.Hosts[i].Host < out.Hosts[j].Host
+	})
+
+	c.JSON(200, gin.H{"success": true, "data": out})
+}
+
+// surfaceRisk folds a host's aggregated signals into a 0–100 score + label.
+func surfaceRisk(b *SurfaceHost) (int, string) {
+	score := map[string]int{"critical": 60, "high": 40, "medium": 20, "low": 8, "info": 2}[b.MaxSeverity]
+	if b.KEVCount > 0 {
+		score += 25
+	}
+	if b.PocCount > 0 {
+		score += 15
+	}
+	if b.Takeover {
+		score += 30
+	}
+	switch b.PostureGrade {
+	case "F":
+		score += 20
+	case "D":
+		score += 10
+	}
+	if score > 100 {
+		score = 100
+	}
+	switch {
+	case score >= 70:
+		return score, "critical"
+	case score >= 45:
+		return score, "high"
+	case score >= 20:
+		return score, "medium"
+	default:
+		return score, "low"
+	}
+}
+
+// relatedHosts pulls domain/ip values out of a finding's RelatedEntities JSON.
+func relatedHosts(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var rels []struct {
+		Type  string `json:"type"`
+		Value string `json:"value"`
+	}
+	if json.Unmarshal([]byte(raw), &rels) != nil {
+		return nil
+	}
+	var out []string
+	for _, r := range rels {
+		if r.Type == "domain" || r.Type == "ip" {
+			out = append(out, r.Value)
+		}
+	}
+	return out
+}
+
+func normHostKey(h string) string {
+	h = strings.ToLower(strings.TrimSpace(h))
+	if i := strings.Index(h, "://"); i >= 0 {
+		h = h[i+3:]
+	}
+	if i := strings.IndexAny(h, "/?#"); i >= 0 {
+		h = h[:i]
+	}
+	if hh, _, err := net.SplitHostPort(h); err == nil {
+		h = hh
+	}
+	return strings.TrimSuffix(h, ".")
+}
+
+func hostKind(h string) string {
+	if net.ParseIP(h) != nil {
+		return "ip"
+	}
+	return "domain"
+}
+
+// cleanHostStr mirrors the vuln engine's host cleanup for cross-referencing.
+func cleanHostStr(h string) string { return normHostKey(h) }
+
+func appendUniq(s []string, v string) []string {
+	for _, e := range s {
+		if e == v {
+			return s
+		}
+	}
+	return append(s, v)
+}
+
+var severityOrder = map[string]int{"info": 1, "low": 2, "medium": 3, "high": 4, "critical": 5}
+
+func worseSeverity(a, b string) string {
+	if severityOrder[b] > severityOrder[a] {
+		return b
+	}
+	return a
+}
+
+// worseGrade returns the lower (worse) of two A–F grades.
+func worseGrade(a, b string) string {
+	if a == "" {
+		return b
+	}
+	if b == "" {
+		return a
+	}
+	if b > a { // 'F' > 'A' lexically → worse
+		return b
+	}
+	return a
+}

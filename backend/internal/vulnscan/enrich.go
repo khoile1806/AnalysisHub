@@ -54,9 +54,23 @@ func (e *Engine) enrichAndReport(ctx context.Context, scan *models.VulnScan) {
 				args = append(args, scan.ID)
 				e.db.Exec(sb.String(), args...)
 			}
+			// PoC availability is sparse (only exploitable CVEs are looked up), so
+			// apply it per-CVE rather than bloating the batched VALUES update.
+			pocs := 0
+			for id, in := range intel {
+				if in.PocCount == 0 {
+					continue
+				}
+				e.db.Exec("UPDATE vuln_findings SET poc_count = ?, poc_url = ? WHERE scan_id = ? AND cve_id = ?",
+					in.PocCount, in.PocURL, scan.ID, id)
+				pocs++
+			}
 			msg := fmt.Sprintf("[*] CVE intel: enriched %d CVE(s) with EPSS", len(intel))
 			if kev > 0 {
 				msg += fmt.Sprintf("; %d KNOWN-EXPLOITED (CISA-KEV)", kev)
+			}
+			if pocs > 0 {
+				msg += fmt.Sprintf("; %d with public PoC", pocs)
 			}
 			e.emit(scanID, msg)
 		}

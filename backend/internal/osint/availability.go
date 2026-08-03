@@ -17,6 +17,8 @@ func (k Keys) keyGatedCollector(name string) (gated, available bool) {
 		return true, k.NumVerify != ""
 	case "pulsedive":
 		return true, k.Pulsedive != ""
+	case "opencorporates":
+		return true, k.OpenCorp != ""
 	}
 	return false, true
 }

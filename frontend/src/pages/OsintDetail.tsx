@@ -674,6 +674,86 @@ function aggregateRelatedEntities(findings: OsintFinding[], target: string): Rec
   return out
 }
 
+// AttackSurfacePanel rolls the whole investigation into a risk-scored per-host
+// table (services + posture + takeover + linked vuln findings). Self-hides when
+// nothing has been aggregated yet.
+function AttackSurfacePanel({ scanId, isRunning }: { scanId: string; isRunning: boolean }) {
+  const { data } = useQuery({
+    queryKey: ['osint-attack-surface', scanId],
+    queryFn: () => osintApi.attackSurface(scanId),
+    refetchInterval: isRunning ? 6000 : false,
+  })
+  if (!data || !data.hosts || data.hosts.length === 0) return null
+
+  const riskCls = (label: string) =>
+    label === 'critical' ? 'bg-red-500/15 text-red-400 border-red-500/40'
+      : label === 'high' ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+      : label === 'medium' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+      : 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+  const gradeCls = (g?: string) =>
+    !g ? 'text-gray-600'
+      : g === 'A' ? 'text-emerald-400' : g === 'B' ? 'text-lime-400'
+      : g === 'C' ? 'text-yellow-400' : g === 'D' ? 'text-orange-400' : 'text-red-400'
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2 mb-3">
+        <Network className="h-4 w-4 text-emerald-400" />
+        <h3 className="text-sm font-semibold text-gray-200">Attack Surface</h3>
+        <div className="ml-auto flex flex-wrap gap-1.5 text-[10px]">
+          <span className="px-1.5 py-0.5 rounded border border-slate-700 text-gray-400">{data.total_hosts} hosts</span>
+          {data.total_vulns > 0 && <span className="px-1.5 py-0.5 rounded border border-slate-700 text-gray-400">{data.total_vulns} vulns</span>}
+          {data.total_kev > 0 && <span className="px-1.5 py-0.5 rounded border border-red-500/40 text-red-300">{data.total_kev} KEV</span>}
+          {data.total_poc > 0 && <span className="px-1.5 py-0.5 rounded border border-fuchsia-500/40 text-fuchsia-300">{data.total_poc} PoC</span>}
+          {data.takeovers > 0 && <span className="px-1.5 py-0.5 rounded border border-red-500/40 text-red-300">{data.takeovers} takeover</span>}
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="text-gray-600 border-b border-slate-800">
+              <th className="text-left font-medium py-1.5 px-2">Host</th>
+              <th className="text-left font-medium py-1.5 px-2">Risk</th>
+              <th className="text-left font-medium py-1.5 px-2">Services</th>
+              <th className="text-center font-medium py-1.5 px-2">Posture</th>
+              <th className="text-center font-medium py-1.5 px-2">Vulns</th>
+              <th className="text-center font-medium py-1.5 px-2">Flags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.hosts.map(h => (
+              <tr key={h.host} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                <td className="py-1.5 px-2 font-mono text-gray-200 break-all">{h.host}
+                  <span className="ml-1 text-[9px] text-gray-600 uppercase">{h.kind}</span>
+                </td>
+                <td className="py-1.5 px-2">
+                  <span className={`px-1.5 py-0.5 rounded border font-mono ${riskCls(h.risk_label)}`}>{h.risk_score}</span>
+                </td>
+                <td className="py-1.5 px-2 text-gray-500 font-mono max-w-[180px] truncate" title={(h.services ?? []).join(' | ')}>
+                  {(h.services ?? []).join(', ') || '—'}
+                </td>
+                <td className="py-1.5 px-2 text-center font-mono font-semibold">
+                  <span className={gradeCls(h.posture_grade)}>{h.posture_grade ?? '—'}</span>
+                </td>
+                <td className="py-1.5 px-2 text-center text-gray-300">
+                  {h.vuln_count > 0 ? <span title={(h.cves ?? []).join(', ')}>{h.vuln_count}{h.max_severity ? ` (${h.max_severity})` : ''}</span> : '—'}
+                </td>
+                <td className="py-1.5 px-2 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    {h.takeover && <span className="text-red-400" title="Subdomain takeover">⚠</span>}
+                    {h.kev_count > 0 && <span className="text-red-300 font-mono" title="Known-exploited">KEV</span>}
+                    {h.poc_count > 0 && <span className="text-fuchsia-300" title="Public PoC">💥</span>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function RelatedEntitiesPanel({ scanId, target, isRunning }: { scanId: string; target: string; isRunning: boolean }) {
   const navigate = useNavigate()
   const [view, setView] = useState<EntityKind>('ip')
@@ -1370,6 +1450,9 @@ export default function OsintDetailPage() {
 
       {/* Related entities (IPs / domains / accounts) — self-hides when empty */}
       <RelatedEntitiesPanel scanId={scan.id} target={scan.target} isRunning={isRunning} />
+
+      {/* Attack-surface roll-up (per-host risk across recon + vuln) — self-hides when empty */}
+      <AttackSurfacePanel scanId={scan.id} isRunning={isRunning} />
 
       {/* Geolocation — self-hides when no geo coordinates were resolved */}
       <GeolocationPanel scanId={scan.id} isRunning={isRunning} />

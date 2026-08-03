@@ -320,6 +320,44 @@ export interface ReverseImageResult {
   note?: string
 }
 
+// WebTriageResult is the screenshot + security-posture triage of one web host.
+export interface WebTriageResult {
+  url: string
+  status?: number
+  title?: string
+  server?: string
+  header_grade?: string
+  missing_headers?: string[]
+  tls_grade?: string
+  tls_detail?: string
+  screenshot_b64?: string
+  screenshot_error?: string
+}
+
+// SurfaceHost is one risk-scored host in the attack-surface roll-up.
+export interface SurfaceHost {
+  host: string
+  kind: 'domain' | 'ip'
+  services?: string[]
+  posture_grade?: string
+  takeover: boolean
+  vuln_count: number
+  max_severity?: string
+  kev_count: number
+  poc_count: number
+  cves?: string[]
+  risk_score: number
+  risk_label: string
+}
+export interface AttackSurface {
+  hosts: SurfaceHost[]
+  total_hosts: number
+  total_vulns: number
+  total_kev: number
+  total_poc: number
+  takeovers: number
+}
+
 // IdentityConfidence scores how strongly the graph corroborates one identity.
 export interface IdentitySignal { key: string; label: string; weight: number; detail?: string }
 export interface IdentityConfidence {
@@ -343,6 +381,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   cloud_exposure: 'Cloud Storage Exposure',
   exposure:     'Public Exposure (Code / Paste)',
   reputation:   'Reputation / Threat Intel',
+  posture:      'Security Posture (headers / TLS)',
+  takeover:     'Subdomain Takeover',
+  sanctions:    'Sanctions (OFAC)',
   ransomware:   'Ransomware Leak-Site',
   darkweb:      'Dark-Web Exposure',
   breach:       'Breach Exposure',
@@ -380,6 +421,8 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   social_profile:    'Social Profile Enrichment',
   passive_dns:       'Passive DNS (history)',
   wallet_label:      'Wallet Labeling / Abuse',
+  sanctions:         'OFAC Sanctions Screening',
+  opencorporates:    'OpenCorporates (officer records)',
   codeleak:          'Public-Code Secret Exposure',
   paste:             'Paste-Site Monitoring',
   breach_leak:       'Breach / Paste Leak',
@@ -398,6 +441,8 @@ export const COLLECTOR_LABELS: Record<string, string> = {
   favicon:           'Favicon Hash Pivot (Shodan)',
   host_search:       'Subdomain Search',
   subbrute:          'Subdomain Brute-force (DNS)',
+  takeover:          'Subdomain Takeover Check',
+  webgrade:          'Security Posture Grade',
   typosquat:         'Look-alike / Typosquat Domains',
   cloud:             'Cloud Storage Exposure (S3/GCS/Azure)',
   hashlookup:        'CIRCL Hashlookup (NSRL)',
@@ -728,6 +773,20 @@ export const osintApi = {
     const { data } = await apiClient.post<ApiResponse<ReverseImageResult>>('/osint/reverse-image', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+    return data.data
+  },
+
+  // webTriage captures a headless screenshot of a host's web root plus its
+  // security-header and TLS grade (admin-only; actively fetches the target).
+  webTriage: async (host: string): Promise<WebTriageResult> => {
+    const { data } = await apiClient.post<ApiResponse<WebTriageResult>>('/osint/webtriage', { host })
+    return data.data
+  },
+
+  // attackSurface rolls the investigation's whole pivot tree into a risk-scored,
+  // per-host table (services + posture + takeover + linked vuln findings).
+  attackSurface: async (id: string): Promise<AttackSurface> => {
+    const { data } = await apiClient.get<ApiResponse<AttackSurface>>(`/osint/${id}/attack-surface`)
     return data.data
   },
 

@@ -29,8 +29,10 @@ const historyTTL = 15 * time.Minute
 
 // CVEIntel is the exploit-likelihood intel for a CVE id.
 type CVEIntel struct {
-	EPSS float64 // 0..1 exploit probability (EPSS)
-	KEV  bool    // listed in CISA Known-Exploited Vulnerabilities
+	EPSS     float64 // 0..1 exploit probability (EPSS)
+	KEV      bool    // listed in CISA Known-Exploited Vulnerabilities
+	PocCount int     // number of public GitHub PoC repositories found
+	PocURL   string  // link to the most-starred public PoC (if any)
 }
 
 // Enricher resolves EPSS + KEV intel for CVE ids. Implemented in the handlers

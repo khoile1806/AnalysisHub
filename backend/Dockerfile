@@ -163,6 +163,12 @@ RUN apk add --no-cache python3 py3-pip py3-lxml py3-aiohttp py3-requests && \
 # Best-effort — the nmap stage reports "not installed" if this fails.
 RUN apk add --no-cache nmap nmap-scripts || echo "[build] nmap install failed — nmap stage will skip"
 
+# Headless Chromium — powers the OSINT "Web Triage" screenshot capture. Best-
+# effort: if it fails the triage endpoint still returns header/TLS grades and just
+# reports the screenshot as unavailable. font-noto gives non-Latin pages glyphs.
+RUN apk add --no-cache chromium font-noto font-noto-cjk \
+    || echo "[build] chromium install failed — OSINT web-triage screenshots will be unavailable"
+
 # wpscan (optional, "full/aggressive": WordPress core/plugin/theme vulns). Ruby +
 # gem; best-effort so a failure never breaks the image — the stage just skips.
 RUN apk add --no-cache ruby ruby-dev build-base libcurl && \

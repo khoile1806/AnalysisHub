@@ -39,6 +39,8 @@ var activeCollectors = map[string]bool{
 	"webtech":  true, // GETs the target web root to fingerprint the stack
 	"portscan": true, // raw-TCP port sweep of the target (also intrusive)
 	"subbrute": true, // resolves guessed subdomains against the target's DNS zone
+	"takeover": true, // resolves host CNAMEs and GETs those pointing at takeover-prone services
+	"webgrade": true, // GETs the target web root to grade security headers + TLS
 }
 
 // intrusiveCollectors are active collectors whose traffic is unmistakably a scan

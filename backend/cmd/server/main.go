@@ -307,6 +307,7 @@ func main() {
 		AbuseCh:    cfg.AbuseChKey,
 		Pulsedive:  cfg.PulsediveKey,
 		GreyNoise:  cfg.GreyNoiseKey,
+		OpenCorp:   cfg.OsintOpenCorpKey,
 	}, cfg, enrichClient, rdb)
 	slog.Info("osint engine initialised")
 

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/osint"
 )
@@ -179,6 +180,50 @@ func ReverseImage(c *gin.Context) {
 		"engines":      osint.ReverseImageLinks(u),
 		"face_engines": osint.FaceSearchEngines(),
 	}})
+}
+
+// WebTriage captures a headless screenshot of a host's web root plus its
+// security-header and TLS grade — the "look at it + score its posture" step a
+// pentester runs first. It actively fetches the target, so it is admin-gated
+// (like vuln scanning), validates the target is a public domain/IP, and is
+// audited.
+//
+// POST /api/v1/osint/webtriage  { "host": "example.com" }
+func WebTriage(c *gin.Context) {
+	if !requireVulnAdmin(c) {
+		return
+	}
+	var body struct {
+		Host string `json:"host" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	host := strings.TrimSpace(body.Host)
+	tt, err := osint.DetectTargetType(host)
+	if err != nil || (tt != osint.TargetDomain && tt != osint.TargetIP) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "provide a public domain or IP to triage"})
+		return
+	}
+	if err := osint.ValidateTarget(host, tt); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 75*time.Second)
+	defer cancel()
+	res, err := osint.WebTriage(ctx, host)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	if db, ok := mustGetDBSilent(c); ok {
+		userID, _ := middleware.GetUserID(c)
+		writeAudit(c, db, &userID, nil, "osint.webtriage", host, "web screenshot + posture grade")
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": res})
 }
 
 func dedupeNonEmpty(vals ...string) []string {

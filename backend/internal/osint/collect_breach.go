@@ -76,8 +76,61 @@ func collectGitHubIntel(ctx context.Context, env *collectorEnv) ([]models.OsintF
 		return githubByUsername(ctx, env)
 	case TargetEmail:
 		return githubByEmail(ctx, env)
+	case TargetName:
+		return githubByName(ctx, env)
 	}
 	return nil, nil
+}
+
+// githubByName searches GitHub for accounts whose profile name matches a person's
+// full name, turning a bare name into resolvable developer identities the graph
+// can pivot on (each login → a full username investigation). Uses GITHUB_TOKEN to
+// raise the (otherwise very low) search rate limit; still runs unauthenticated.
+func githubByName(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
+	name := strings.TrimSpace(env.target)
+	if name == "" {
+		return nil, nil
+	}
+	q := url.QueryEscape(`"` + name + `" in:name`)
+	body, status, err := githubAPIGet(ctx, rlGitHub, env.keys.GitHub,
+		"https://api.github.com/search/users?per_page=5&q="+q, "application/vnd.github+json")
+	if err != nil {
+		return nil, err
+	}
+	if status == 403 {
+		return nil, fmt.Errorf("GitHub search rate-limited (set GITHUB_TOKEN to raise the limit)")
+	}
+	if status < 200 || status >= 300 {
+		return nil, fmt.Errorf("GitHub search returned HTTP %d", status)
+	}
+	var res struct {
+		Items []struct {
+			Login   string `json:"login"`
+			HTMLURL string `json:"html_url"`
+		} `json:"items"`
+	}
+	if json.Unmarshal(body, &res) != nil {
+		return nil, fmt.Errorf("could not decode GitHub search results")
+	}
+	if len(res.Items) == 0 {
+		env.emit("[*] github_intel: no GitHub account matches this name")
+		return nil, nil
+	}
+
+	var out []models.OsintFinding
+	for _, it := range res.Items {
+		if strings.TrimSpace(it.Login) == "" {
+			continue
+		}
+		f := newFinding("github_intel", "identity", "GitHub account matching name", "@"+it.Login)
+		f.Severity = "low"
+		f.Confidence = "unverified"
+		f.VerifyNote = "Name-based GitHub match; open the profile to confirm it is the same person."
+		f = withRelated(withSource(f, it.HTMLURL), RelatedEntity{Type: TargetUsername, Value: it.Login})
+		out = append(out, f)
+	}
+	env.emit(fmt.Sprintf("[*] github_intel: %d GitHub account(s) match this name", len(out)))
+	return out, nil
 }
 
 type githubUser struct {

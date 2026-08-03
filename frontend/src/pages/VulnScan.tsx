@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   ShieldAlert, Loader2, Play, Square, Trash2, ChevronRight, AlertTriangle,
-  Radio, Server, Terminal, Download, Search, ExternalLink, ChevronDown, Code2, Copy, ArrowDownToLine,
+  Radio, Server, Terminal, Download, Search, ExternalLink, ChevronDown, Code2, Copy, ArrowDownToLine, FileText,
 } from 'lucide-react'
 
 import {
@@ -12,8 +12,80 @@ import {
 } from '@/api/vulnscan'
 import { useAuthStore } from '@/store/auth'
 import { safeDistanceToNow, getErrorMessage } from '@/lib/utils'
+import { printMarkdownAsPdf } from '@/lib/reportPdf'
 
 const ALL_SEV = ['critical', 'high', 'medium', 'low', 'info']
+
+// REMEDIATION_HINTS maps a finding's tags/type keywords to a short fix guidance
+// line, so the pentest report carries actionable remediation, not just findings.
+const REMEDIATION_HINTS: { match: RegExp; hint: string }[] = [
+  { match: /sqli|sql-injection/i, hint: 'Use parameterised queries / prepared statements; validate and escape all user input.' },
+  { match: /xss|cross-site/i, hint: 'Context-encode all output; set a strict Content-Security-Policy; sanitise HTML input.' },
+  { match: /rce|command-injection|deserial/i, hint: 'Patch immediately; avoid passing untrusted input to interpreters; apply strict input allow-lists.' },
+  { match: /lfi|path-traversal|file-inclusion/i, hint: 'Canonicalise and allow-list file paths; never build filesystem paths from user input.' },
+  { match: /ssrf/i, hint: 'Allow-list outbound destinations; block internal/metadata IP ranges; disable unused URL schemes.' },
+  { match: /takeover/i, hint: 'Remove the dangling DNS record or reclaim the third-party resource it points to.' },
+  { match: /exposure|misconfig|default-login|exposed/i, hint: 'Restrict access, remove default credentials, and disable the exposed panel/endpoint.' },
+  { match: /cve-/i, hint: 'Apply the vendor patch or upgrade to a fixed version; if unavailable, apply the documented mitigation.' },
+  { match: /tls|ssl|certificate/i, hint: 'Renew/replace the certificate; disable legacy TLS versions and weak ciphers.' },
+]
+
+function remediationFor(f: VulnFinding): string {
+  const hay = `${f.tags ?? ''} ${f.type ?? ''} ${f.template_id ?? ''} ${f.cve_id ?? ''} ${f.name}`
+  for (const r of REMEDIATION_HINTS) if (r.match.test(hay)) return r.hint
+  return 'Review the affected component, apply vendor guidance, and re-test after remediation.'
+}
+
+// buildPentestReport renders a scan + its findings into a pentest-style Markdown
+// report (executive summary + findings by severity + remediation), fed to the
+// shared print-to-PDF renderer.
+function buildPentestReport(scan: VulnScan, findings: VulnFinding[]): string {
+  const now = new Date().toLocaleString()
+  const bySev: Record<string, VulnFinding[]> = {}
+  for (const f of findings) (bySev[f.severity] ??= []).push(f)
+  const kev = findings.filter((f) => f.is_kev).length
+  const poc = findings.filter((f) => (f.poc_count ?? 0) > 0).length
+  const verified = findings.filter((f) => f.confirmed).length
+
+  const lines: string[] = []
+  lines.push(`# Penetration Test Report — ${scan.name || 'Vulnerability Scan'}`, '')
+  lines.push(`**Generated:** ${now}  `)
+  lines.push(`**Targets:** ${scan.target_count ?? '—'}  **Profile:** ${scan.profile || 'quick'}  **Egress:** ${scan.proxy_mode || scan.proxy_choice || '—'}  `)
+  lines.push('')
+  lines.push('## Executive Summary', '')
+  lines.push('| Severity | Findings |', '| --- | --- |')
+  for (const s of SEVERITY_ORDER) lines.push(`| ${s} | ${bySev[s]?.length ?? 0} |`)
+  lines.push('')
+  lines.push(`- **Known-exploited (CISA-KEV):** ${kev}`)
+  lines.push(`- **Public exploit / PoC available:** ${poc}`)
+  lines.push(`- **Independently verified:** ${verified}`)
+  lines.push('')
+  lines.push('## Findings', '')
+  const order = SEVERITY_ORDER.filter((s) => bySev[s]?.length)
+  if (order.length === 0) lines.push('_No findings were recorded for this scan._', '')
+  for (const s of order) {
+    lines.push(`### ${s.toUpperCase()} (${bySev[s].length})`, '')
+    const sorted = [...bySev[s]].sort((a, b) => priorityScore(b) - priorityScore(a))
+    for (const f of sorted) {
+      lines.push(`#### ${f.name}`)
+      lines.push(`- **Host:** ${f.host || '—'}`)
+      if (f.cve_id) {
+        const tags = [f.is_kev ? 'KEV' : '', typeof f.epss_score === 'number' && f.epss_score > 0 ? `EPSS ${(f.epss_score * 100).toFixed(0)}%` : '', (f.poc_count ?? 0) > 0 ? `${f.poc_count} PoC` : ''].filter(Boolean).join(', ')
+        lines.push(`- **CVE:** ${f.cve_id}${tags ? ` (${tags})` : ''}`)
+      }
+      if (f.poc_url) lines.push(`- **Public PoC:** ${f.poc_url}`)
+      if (f.matched_at) lines.push(`- **Location:** ${f.matched_at}`)
+      if (f.tool) lines.push(`- **Detected by:** ${f.tool}${f.confirmed ? ' (verified)' : ''}`)
+      if (f.description) lines.push(`- **Details:** ${f.description.replace(/\s+/g, ' ').trim()}`)
+      if (f.reference) lines.push(`- **Reference:** ${f.reference}`)
+      lines.push(`- **Remediation:** ${remediationFor(f)}`)
+      lines.push('')
+    }
+  }
+  lines.push('## Remediation Summary', '')
+  lines.push('Prioritise findings that are **known-exploited (KEV)** or have a **public PoC**, then by severity. Patch or mitigate, then re-scan to confirm closure.', '')
+  return lines.join('\n')
+}
 
 function StatusDot({ status }: { status: string }) {
   const c =
@@ -229,6 +301,17 @@ function FindingCard({ f, scanId }: { f: VulnFinding; scanId: string }) {
           </a>
         )}
         {f.template_id && !f.cve_id && <span className="text-gray-500 font-mono">{f.template_id}</span>}
+        {f.poc_count && f.poc_count > 0 && (
+          f.poc_url ? (
+            <a href={f.poc_url} target="_blank" rel="noreferrer"
+              className="px-1.5 py-0.5 rounded border border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-300 font-mono hover:underline inline-flex items-center gap-0.5"
+              title="Public exploit / proof-of-concept found on GitHub">
+              💥 {f.poc_count} PoC<ExternalLink className="h-2.5 w-2.5" />
+            </a>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded border border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-300 font-mono" title="Public exploit / proof-of-concept available">💥 {f.poc_count} PoC</span>
+          )
+        )}
       </div>
 
       <div className="mt-1 text-[11px] text-emerald-400/80 font-mono break-all">{f.matched_at || f.host}</div>
@@ -507,6 +590,7 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
         tags: tags.trim() || undefined,
         proxy_choice: direct ? 'direct' : 'tor',
         allow_private: allowPrivate,
+        auth_headers: headers.split('\n').map((h) => h.trim()).filter(Boolean),
       }),
     onSuccess: (s) => { toast.success('Scan started'); setOpen(false); setTargets(''); setName(''); onCreated(s.id) },
     onError: (e: any) => toast.error(getErrorMessage(e)),
@@ -578,6 +662,13 @@ function NewScanForm({ onCreated }: { onCreated: (id: string) => void }) {
               <option value="aggressive">Aggressive — Deep + nmap NSE + intrusive templates</option>
             </select>
           </div>
+          <details className="text-xs">
+            <summary className="cursor-pointer text-gray-400 hover:text-gray-200">Authenticated scan (optional)</summary>
+            <textarea className="input w-full text-xs font-mono h-16 mt-1.5"
+              placeholder="Custom headers — one per line (scan behind a login).&#10;Cookie: session=abc123&#10;Authorization: Bearer eyJ..."
+              value={headers} onChange={(e) => setHeaders(e.target.value)} />
+            <p className="text-[10px] text-gray-600">Injected into httpx + nuclei so the pipeline scans authenticated pages.</p>
+          </details>
         </>
       ) : (
         <>
@@ -866,6 +957,15 @@ function ScanDetail({ scanId, isAdmin, onDeleted }: { scanId: string; isAdmin: b
             >
               <Download className="h-3.5 w-3.5" /> CSV
             </a>
+            {scan && (
+              <button
+                className="btn-secondary text-[11px] py-0.5 inline-flex items-center gap-1"
+                onClick={() => printMarkdownAsPdf(`pentest-report-${scan.name || scanId}`, buildPentestReport(scan, findings))}
+                title="Pentest report (executive summary + findings + remediation) as PDF"
+              >
+                <FileText className="h-3.5 w-3.5" /> Report (PDF)
+              </button>
+            )}
             <span className="text-[11px] text-gray-600 w-full sm:w-auto">{visibleCount}/{findings.length} shown</span>
           </div>
         )}

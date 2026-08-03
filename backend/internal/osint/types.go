@@ -57,6 +57,7 @@ type Keys struct {
 	AbuseCh    string // abuse.ch Auth-Key (ThreatFox / URLhaus / MalwareBazaar)
 	Pulsedive  string
 	GreyNoise  string
+	OpenCorp   string // OpenCorporates (name → corporate-officer records)
 }
 
 // collectorEnv is the read-only context handed to every collector run. It is
@@ -175,6 +176,8 @@ func buildCollectors(targetType string) []collector {
 			{"passive_dns", collectPassiveDNS},
 			{"crtsh", collectCrtSh},
 			{"subbrute", collectSubBrute},
+			{"takeover", collectTakeover},
+			{"webgrade", collectWebGrade},
 			{"host_search", collectHostSearch},
 			{"favicon", collectFavicon},
 			{"typosquat", collectTyposquat},
@@ -228,6 +231,7 @@ func buildCollectors(targetType string) []collector {
 	case TargetWallet:
 		return []collector{
 			{"blockchain", collectBlockchain},
+			{"sanctions", collectSanctions},
 			{"wallet_label", collectWalletLabel},
 			{"local_intel", collectLocalThreatIntel},
 		}
@@ -255,9 +259,14 @@ func buildCollectors(targetType string) []collector {
 			{"search_links", collectSearchLinks},
 		}
 	case TargetName:
-		// A full name has no API-resolvable identifier; it is investigated
-		// through assisted searches (web + social dorks) the analyst opens.
+		// A full name has no single API-resolvable identifier, but a few sources
+		// still turn it into structured leads: OFAC sanctions screening, corporate
+		// officer records (OpenCorporates), and name-matched developer accounts
+		// (GitHub) — the rest stays assisted search + dark-web.
 		return []collector{
+			{"sanctions", collectSanctions},
+			{"opencorporates", collectOpenCorporates},
+			{"github_intel", collectGitHubIntel},
 			{"search_links", collectSearchLinks},
 			{"darkweb", collectDarkWeb},
 		}

@@ -45,6 +45,8 @@ func OsintSources(c *gin.Context) {
 		{"abuse.ch (ThreatFox/URLhaus/MalwareBazaar)", "reputation", "ABUSE_CH_API_KEY", cfg.AbuseChKey != "", "Malware/C2 IOC feeds — Auth-Key increases limits"},
 		{"Pulsedive", "reputation", "PULSEDIVE_API_KEY", cfg.PulsediveKey != "", "Indicator risk enrichment"},
 		{"GreyNoise", "reputation", "GREYNOISE_API_KEY", cfg.GreyNoiseKey != "", "Internet background-noise / scanner classification"},
+		{"Dehashed", "breach", "DEHASHED_API_KEY", cfg.OsintDehashedKey != "", "Leaked-credential search — returns matching breach records (email/username)"},
+		{"OpenCorporates", "search", "OSINT_OPENCORPORATES_API_KEY", cfg.OsintOpenCorpKey != "", "Person name → corporate-officer / director records across jurisdictions"},
 	}
 
 	configured := 0

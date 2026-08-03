@@ -665,6 +665,33 @@ type httpxLine struct {
 // runHTTPx probes the assets for live HTTP(S) services and returns the live URLs
 // for nuclei. If httpx isn't installed it degrades to feeding the raw assets
 // (both schemes) downstream so nuclei still runs.
+// authHeaderArgs turns a scan's stored auth headers (JSON array of "Name: Value")
+// into repeatable -H flags for httpx/nuclei, so the pipeline can scan behind a
+// login. Bounded and sanitised: blank/oversized/newline-bearing entries dropped,
+// capped at 20, so a malformed value can't smuggle extra CLI flags.
+func authHeaderArgs(scan *models.VulnScan) []string {
+	raw := strings.TrimSpace(scan.AuthHeaders)
+	if raw == "" {
+		return nil
+	}
+	var hdrs []string
+	if json.Unmarshal([]byte(raw), &hdrs) != nil {
+		return nil
+	}
+	out := make([]string, 0, len(hdrs)*2)
+	for _, h := range hdrs {
+		h = strings.TrimSpace(h)
+		if h == "" || len(h) > 4096 || strings.ContainsAny(h, "\r\n") || !strings.Contains(h, ":") {
+			continue
+		}
+		out = append(out, "-H", h)
+		if len(out) >= 40 { // 20 headers
+			break
+		}
+	}
+	return out
+}
+
 func (e *Engine) runHTTPx(ctx context.Context, scan *models.VulnScan, tool *models.VulnTool, targets []string, proxyURL string) []string {
 	scanID := scan.ID.String()
 	bin, err := exec.LookPath("httpx")
@@ -702,6 +729,10 @@ func (e *Engine) runHTTPx(ctx context.Context, scan *models.VulnScan, tool *mode
 	args = append(args, "-ports", "80,443,8080,8443,8000,8888,8081,9000")
 	if proxyURL != "" {
 		args = append(args, "-proxy", proxyURL)
+	}
+	if hdrs := authHeaderArgs(scan); len(hdrs) > 0 {
+		args = append(args, hdrs...)
+		e.emit(scanID, fmt.Sprintf("[*] httpx — authenticated scan: %d custom header(s) injected", len(hdrs)/2))
 	}
 	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)
@@ -966,6 +997,10 @@ func (e *Engine) runNuclei(ctx context.Context, scan *models.VulnScan, tool *mod
 	}
 	if tdir := e.nucleiTemplatesDir(); tdir != "" {
 		args = append(args, "-templates", tdir)
+	}
+	if hdrs := authHeaderArgs(scan); len(hdrs) > 0 {
+		args = append(args, hdrs...)
+		e.emit(scanID, fmt.Sprintf("[*] nuclei — authenticated scan: %d custom header(s) injected", len(hdrs)/2))
 	}
 	cmd := e.commandFor(tool, cctx, bin, args...)
 	cmd.Env = proxyEnv(proxyURL)

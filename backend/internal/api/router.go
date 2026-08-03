@@ -342,6 +342,7 @@ func NewRouter(
 		protected.GET("/osint/:id/graph", handlers.GetOsintGraph)
 		protected.GET("/osint/:id/graph/export", handlers.ExportOsintGraph)
 		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
+		protected.GET("/osint/:id/attack-surface", handlers.GetOsintAttackSurface)
 		// Investigation ↔ vuln-scan integration: vuln scans + per-host vuln
 		// aggregates scoped to this OSINT investigation's whole pivot tree.
 		protected.GET("/osint/:id/vulnscans", handlers.ListOsintVulnScans)
@@ -353,6 +354,7 @@ func NewRouter(
 		protected.POST("/osint/extract-doc-meta", handlers.ExtractDocMeta)
 		protected.POST("/osint/email-permute", handlers.EmailPermute)
 		protected.POST("/osint/reverse-image", handlers.ReverseImage)
+		protected.POST("/osint/webtriage", handlers.WebTriage)
 		protected.POST("/osint/techstack", handlers.OsintTechStack)
 		protected.POST("/osint/techstack/batch", handlers.OsintTechStackBatch)
 		protected.GET("/osint/techstack/sessions", handlers.ListTechStackSessions)

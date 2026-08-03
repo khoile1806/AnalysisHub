@@ -42,6 +42,35 @@ func requireVulnAdmin(c *gin.Context) bool {
 	return true
 }
 
+// sanitizeAuthHeaders validates user-supplied auth headers and returns them as a
+// JSON array for storage (or "" if none valid). Each must be a well-formed
+// "Name: Value" with no CR/LF (header injection) and a sane length; capped at 20.
+func sanitizeAuthHeaders(in []string) string {
+	clean := make([]string, 0, len(in))
+	for _, h := range in {
+		h = strings.TrimSpace(h)
+		if h == "" || len(h) > 4096 || strings.ContainsAny(h, "\r\n") {
+			continue
+		}
+		i := strings.Index(h, ":")
+		if i <= 0 || strings.TrimSpace(h[:i]) == "" {
+			continue // need a non-empty header name before the colon
+		}
+		clean = append(clean, h)
+		if len(clean) >= 20 {
+			break
+		}
+	}
+	if len(clean) == 0 {
+		return ""
+	}
+	b, err := json.Marshal(clean)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
 func vulnScanEnabled(c *gin.Context) bool {
 	if v, ok := c.Get("config"); ok {
 		if cfg, ok := v.(*config.Config); ok {
@@ -90,6 +119,7 @@ func CreateVulnScan(c *gin.Context) {
 		Tags         string   `json:"tags"`          // extra nuclei tags (CSV)
 		ProxyChoice  string   `json:"proxy_choice"`  // tor (default) | direct
 		AllowPrivate bool     `json:"allow_private"` // allow private/loopback/LAN targets
+		AuthHeaders  []string `json:"auth_headers"`  // "Name: Value" headers for authenticated scans
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
@@ -114,6 +144,7 @@ func CreateVulnScan(c *gin.Context) {
 		Tags:         strings.TrimSpace(req.Tags),
 		ProxyChoice:  proxyChoice,
 		AllowPrivate: req.AllowPrivate,
+		AuthHeaders:  sanitizeAuthHeaders(req.AuthHeaders),
 	}
 	if uid, ok := middleware.GetUserID(c); ok {
 		scan.CreatedBy = uid

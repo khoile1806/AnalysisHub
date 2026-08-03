@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Trash2, Loader2, CheckCircle, XCircle, Clock, StopCircle,
   ChevronRight, Fingerprint, Globe, Server, Mail, Phone, Search, AtSign, Hash, Wallet, User, RadioTower,
-  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert, ShieldCheck, Layers, KeyRound,
+  Image as ImageIcon, Upload, ScanSearch, Link2, Wrench, FileText, ExternalLink, Radio, ShieldAlert, ShieldCheck, Layers, KeyRound, Camera,
 } from 'lucide-react'
 import { WatchlistPanel } from './OsintWatchlist'
 import { CanaryPanel } from './CanaryTokens'
@@ -521,13 +521,24 @@ function ImageExtractModal({ open, onClose }: { open: boolean; onClose: () => vo
 
 // ---- OSINT Tools Modal (email finder · doc metadata · reverse image) --------
 
-type ToolTab = 'email' | 'doc' | 'image'
+type ToolTab = 'email' | 'doc' | 'image' | 'triage'
 
 const EMAIL_STATUS_CLS: Record<string, string> = {
   deliverable: 'text-emerald-300 bg-emerald-900/30 border-emerald-800/40',
   catch_all:   'text-yellow-300 bg-yellow-900/30 border-yellow-800/40',
   rejected:    'text-gray-500 bg-gray-800 border-slate-700',
   unverified:  'text-gray-400 bg-gray-800 border-slate-700',
+}
+
+// GRADE_CLS colours an A–F posture grade badge (green→red).
+function GRADE_CLS(grade: string): string {
+  switch (grade) {
+    case 'A': return 'border-emerald-700 text-emerald-400'
+    case 'B': return 'border-lime-700 text-lime-400'
+    case 'C': return 'border-yellow-700 text-yellow-400'
+    case 'D': return 'border-orange-700 text-orange-400'
+    default:  return 'border-red-700 text-red-400'
+  }
 }
 
 function ToolsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -563,6 +574,15 @@ function ToolsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     onError: (err) => toast.error(getErrorMessage(err)),
   })
 
+  // Web triage (screenshot + posture grade)
+  const [triageHost, setTriageHost] = useState('')
+  const [triageResult, setTriageResult] = useState<import('@/api/osint').WebTriageResult | null>(null)
+  const triageMut = useMutation({
+    mutationFn: () => osintApi.webTriage(triageHost.trim()),
+    onSuccess: (d) => setTriageResult(d),
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+
   const scanMut = useMutation({
     mutationFn: (target: string) => osintApi.create({ target }),
     onSuccess: (scan) => { toast.success('Investigation started'); onClose(); navigate(`/osint/${scan.id}`) },
@@ -572,21 +592,22 @@ function ToolsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const reset = () => {
     setEmName(''); setEmDomain(''); setEmResult(null)
     setDocFile(null); setDocResult(null); setImgURL(''); setImgFile(null); setImgResult(null)
+    setTriageHost(''); setTriageResult(null)
   }
   const handleClose = () => { reset(); onClose() }
 
-  const busy = emailMut.isPending || docMut.isPending || imgMut.isPending
+  const busy = emailMut.isPending || docMut.isPending || imgMut.isPending || triageMut.isPending
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>OSINT Tools</DialogTitle>
-          <DialogDescription>Standalone lookups: find a work e-mail, read a document's author metadata, or reverse-search an image.</DialogDescription>
+          <DialogDescription>Standalone lookups: find a work e-mail, read a document's author metadata, reverse-search an image, or screenshot + grade a web host.</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1 border-b border-slate-800 px-1">
-          {([['email', 'Email Finder', Mail], ['doc', 'Doc Metadata', FileText], ['image', 'Reverse Image', ImageIcon]] as const).map(([k, label, Icon]) => (
+          {([['email', 'Email Finder', Mail], ['doc', 'Doc Metadata', FileText], ['image', 'Reverse Image', ImageIcon], ['triage', 'Web Triage', Camera]] as const).map(([k, label, Icon]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
                 tab === k ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
@@ -707,6 +728,44 @@ function ToolsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                     </a>
                   ))}
                   {imgResult.note && <p className="text-[10px] text-gray-600">{imgResult.note}</p>}
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'triage' && (
+            <>
+              <div>
+                <label className="label">Host (domain or IP)</label>
+                <input className="input w-full font-mono" placeholder="example.com"
+                  value={triageHost} onChange={e => { setTriageHost(e.target.value); setTriageResult(null) }}
+                  onKeyDown={e => { if (e.key === 'Enter' && triageHost.trim()) triageMut.mutate() }} />
+                <p className="text-[10px] text-gray-600 mt-1">Actively fetches the target's web root (admin-only) — screenshot + security-header/TLS grade.</p>
+              </div>
+              <button className="btn-primary w-full flex items-center justify-center gap-2"
+                disabled={!triageHost.trim() || triageMut.isPending} onClick={() => { setTriageResult(null); triageMut.mutate() }}>
+                {triageMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {triageMut.isPending ? 'Capturing…' : 'Capture + grade'}
+              </button>
+              {triageResult && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                    <span className="font-mono text-gray-300 truncate">{triageResult.url}</span>
+                    {triageResult.status ? <span className="text-gray-500">HTTP {triageResult.status}</span> : null}
+                    {triageResult.header_grade && <span className={`px-1.5 py-0.5 rounded border font-mono ${GRADE_CLS(triageResult.header_grade)}`}>Headers {triageResult.header_grade}</span>}
+                    {triageResult.tls_grade && <span className={`px-1.5 py-0.5 rounded border font-mono ${GRADE_CLS(triageResult.tls_grade)}`}>TLS {triageResult.tls_grade}</span>}
+                  </div>
+                  {triageResult.title && <p className="text-xs text-gray-400 truncate">Title: <span className="text-gray-200">{triageResult.title}</span></p>}
+                  {triageResult.tls_detail && <p className="text-[10px] text-gray-600 font-mono">{triageResult.tls_detail}</p>}
+                  {triageResult.missing_headers && triageResult.missing_headers.length > 0 && (
+                    <p className="text-[10px] text-amber-500/80">Missing: {triageResult.missing_headers.join(', ')}</p>
+                  )}
+                  {triageResult.screenshot_b64 ? (
+                    <img src={`data:image/png;base64,${triageResult.screenshot_b64}`} alt="screenshot"
+                      className="w-full rounded border border-slate-700" />
+                  ) : (
+                    <p className="text-[10px] text-gray-600">Screenshot unavailable{triageResult.screenshot_error ? `: ${triageResult.screenshot_error}` : ''}</p>
+                  )}
                 </div>
               )}
             </>

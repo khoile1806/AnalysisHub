@@ -81,6 +81,8 @@ type Config struct {
 	OsintHIBPKey      string // Have I Been Pwned (email breach exposure)
 	OsintDehashedKey  string // Dehashed (data leak exposure)
 	OsintNumVerifyKey string // NumVerify (phone metadata)
+	OsintOpenCorpKey  string // OpenCorporates (name → corporate-officer records)
+	OsintOFACSDNURL   string // override for the OFAC SDN list download URL (keyless)
 	// Active port scan (the "portscan" collector) tuning. By default the scanner
 	// sweeps the FULL TCP range (1-65535) so nothing is missed; operators on slow
 	// links can shrink the range or concurrency to throttle it.
@@ -296,6 +298,8 @@ func Load() *Config {
 		OsintHIBPKey:             getEnv("HIBP_API_KEY", ""),
 		OsintDehashedKey:         getEnv("DEHASHED_API_KEY", ""),
 		OsintNumVerifyKey:        getEnv("OSINT_NUMVERIFY_API_KEY", ""),
+		OsintOpenCorpKey:         getEnv("OSINT_OPENCORPORATES_API_KEY", ""),
+		OsintOFACSDNURL:          getEnv("OSINT_OFAC_SDN_URL", ""),
 		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),
 		OsintPortScanConcurrency: getEnvInt("OSINT_PORTSCAN_CONCURRENCY", 800),
 		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),

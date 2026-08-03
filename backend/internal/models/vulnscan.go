@@ -69,6 +69,10 @@ type VulnScan struct {
 	AllowPrivate bool `json:"allow_private,omitempty"`
 	// ProxyMode records how egress was ACTUALLY routed: tor | configured | outbound | direct.
 	ProxyMode string `json:"proxy_mode,omitempty"`
+	// AuthHeaders is a JSON array of raw HTTP headers ("Name: Value") injected into
+	// httpx/nuclei so the pipeline can scan behind a login (session cookie, bearer
+	// token, API key). Empty for an unauthenticated scan. Redacted from list APIs.
+	AuthHeaders string `gorm:"type:text" json:"-"`
 
 	// Summary is a JSON object of severity → count, computed on finalize for fast
 	// list rendering without scanning the findings table.
@@ -121,6 +125,12 @@ type VulnFinding struct {
 	CVEID     string  `gorm:"index" json:"cve_id,omitempty"`
 	EPSSScore float64 `             json:"epss_score,omitempty"` // 0..1 exploit probability
 	IsKEV     bool    `gorm:"index" json:"is_kev"`               // in CISA Known-Exploited catalog
+	// Public exploit / PoC availability, discovered by cross-referencing the CVE
+	// against public GitHub PoC repositories during enrichment (looked up only for
+	// exploitable CVEs — KEV or high-EPSS — to stay within API limits). Turns
+	// "here's a CVE" into "here's a CVE with N public exploits, top one here".
+	PocCount int    `json:"poc_count,omitempty"`
+	PocURL   string `json:"poc_url,omitempty"`
 
 	// Confirmed is set by the automated verification pass (the template re-matched
 	// on a second independent run) — distinguishes a corroborated finding from a
