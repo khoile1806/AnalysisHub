@@ -8,7 +8,7 @@ import {
   LogOut,
   ChevronRight,
   Shield,
-  Bug,
+  Bug, Microscope,
   ShieldAlert,
   LibraryBig,
   Database,
@@ -72,6 +72,7 @@ const NAV_GROUPS = [
     label: 'Analysis',
     items: [
       { to: '/sandbox',     icon: Cpu,          label: 'Sandbox Analysis' },
+      { to: '/malware',     icon: Microscope,   label: 'Malware Analysis' },
       { to: '/ai-analysis', icon: BrainCircuit, label: 'AI Analysis' },
       { to: '/elk',         icon: ShieldAlert,  label: 'ELK' },
     ]

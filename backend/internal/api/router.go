@@ -528,6 +528,19 @@ func NewRouter(
 		// OCR → pivot: extract IOCs from an uploaded image (ransom note, screenshot)
 		protected.POST("/osint/extract-image", aiHandler.ExtractOsintFromImage)
 
+		// Malware analysis (static feature extraction + AI verdict). Admin-gated in
+		// the handler — the upload is, by definition, potentially malicious.
+		malwareHandler := handlers.NewMalwareHandler(db, store, cfg, enrich, aiHandler)
+		protected.GET("/malware/config", malwareHandler.Config)
+		protected.POST("/malware/analyze", malwareHandler.Analyze)
+		protected.GET("/malware", malwareHandler.List)
+		protected.GET("/malware/:id", malwareHandler.Get)
+		protected.POST("/malware/:id/detonate", malwareHandler.Detonate)
+		protected.POST("/malware/:id/reverse", malwareHandler.Reverse)
+		protected.GET("/malware/:id/diff/:other", malwareHandler.Diff)
+		protected.POST("/malware/:id/retrohunt", malwareHandler.RetroHunt)
+		protected.DELETE("/malware/:id", malwareHandler.Delete)
+
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)
 		protected.GET("/cases/:id/compliance/findings", complianceHandler.ListFindings)

@@ -83,6 +83,31 @@ type Config struct {
 	OsintNumVerifyKey string // NumVerify (phone metadata)
 	OsintOpenCorpKey  string // OpenCorporates (name → corporate-officer records)
 	OsintOFACSDNURL   string // override for the OFAC SDN list download URL (keyless)
+	// Malware analysis — Phase 2 dynamic detonation via an external CAPEv2 sandbox
+	// appliance. Empty CapeAPIURL disables detonation (static+AI still works).
+	CapeAPIURL   string
+	CapeAPIToken string
+	// MalwareEmulatorURL points at the local emulation sidecar (speakeasy) — the
+	// "dynamic analysis without CAPE/VM" path. Empty disables it. Set by compose to
+	// the internal service URL when the malware_emulator service is running.
+	MalwareEmulatorURL string
+	// MalwareLocalOnly, when true, is STRICT offline: no internet lookup at all
+	// (no hash/URL/IOC reputation). Default FALSE — the sample FILE is never
+	// uploaded anywhere (invariant), but IOCs discovered during analysis (the file
+	// hash, callback URLs/domains, dropped-file hashes) MAY be checked against
+	// threat intel. Set true to forbid even those IOC lookups.
+	MalwareLocalOnly bool
+	// MalwareYaraRules is the directory of .yar rules scanned locally against an
+	// uploaded sample. Empty / no rules / no `yara` binary → the YARA step skips.
+	MalwareYaraRules string
+	// MalwareMaxUploadMB caps a single uploaded malware sample (and each expanded
+	// archive member) in MB. Held in memory for static extraction, so raising it
+	// raises peak memory per analysis. Default 1024 (1 GB).
+	MalwareMaxUploadMB int
+	// MalwareBazaarKey is an optional abuse.ch MalwareBazaar Auth-Key for hash
+	// lookups (only the hash is sent, never the file). Empty still works against
+	// open deployments; skipped entirely in local-only mode.
+	MalwareBazaarKey string
 	// Active port scan (the "portscan" collector) tuning. By default the scanner
 	// sweeps the FULL TCP range (1-65535) so nothing is missed; operators on slow
 	// links can shrink the range or concurrency to throttle it.
@@ -300,6 +325,13 @@ func Load() *Config {
 		OsintNumVerifyKey:        getEnv("OSINT_NUMVERIFY_API_KEY", ""),
 		OsintOpenCorpKey:         getEnv("OSINT_OPENCORPORATES_API_KEY", ""),
 		OsintOFACSDNURL:          getEnv("OSINT_OFAC_SDN_URL", ""),
+		CapeAPIURL:               getEnv("CAPE_API_URL", ""),
+		CapeAPIToken:             getEnv("CAPE_API_TOKEN", ""),
+		MalwareEmulatorURL:       getEnv("MALWARE_EMULATOR_URL", ""),
+		MalwareLocalOnly:         getEnv("MALWARE_LOCAL_ONLY", "false") == "true",
+		MalwareYaraRules:         getEnv("MALWARE_YARA_RULES", "/app/yara-rules"),
+		MalwareMaxUploadMB:       getEnvInt("MALWARE_MAX_UPLOAD_MB", 1024),
+		MalwareBazaarKey:         getEnv("MALWARE_BAZAAR_KEY", ""),
 		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),
 		OsintPortScanConcurrency: getEnvInt("OSINT_PORTSCAN_CONCURRENCY", 800),
 		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),

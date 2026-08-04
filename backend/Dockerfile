@@ -169,6 +169,16 @@ RUN apk add --no-cache nmap nmap-scripts || echo "[build] nmap install failed �
 RUN apk add --no-cache chromium font-noto font-noto-cjk \
     || echo "[build] chromium install failed — OSINT web-triage screenshots will be unavailable"
 
+# YARA CLI — powers LOCAL server-side YARA scanning of uploaded malware samples
+# (MALWARE_YARA_RULES). Fully offline. Best-effort: without it the YARA step just
+# skips. The rules dir is created empty; drop/mount .yar rules there (or bake your
+# own) — an empty dir means the YARA step reports "not configured".
+RUN apk add --no-cache yara || echo "[build] yara install failed — local YARA scan will be unavailable"
+RUN mkdir -p /app/yara-rules
+# Bundled malware YARA ruleset (scanned against uploaded files). Operators can
+# mount/add more .yar files into this directory.
+COPY ./tools/malware-yara/ /app/yara-rules/
+
 # wpscan (optional, "full/aggressive": WordPress core/plugin/theme vulns). Ruby +
 # gem; best-effort so a failure never breaks the image — the stage just skips.
 RUN apk add --no-cache ruby ruby-dev build-base libcurl && \

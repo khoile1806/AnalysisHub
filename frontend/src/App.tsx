@@ -35,6 +35,7 @@ const ProxyManagerPage = lazy(() => import('@/pages/ProxyManager'))
 const OfflineBundlesPage = lazy(() => import('@/pages/OfflineBundles'))
 const PlaybooksPage = lazy(() => import('@/pages/Playbooks'))
 const SandboxAnalysisPage = lazy(() => import('@/pages/SandboxAnalysis'))
+const MalwareAnalysisPage = lazy(() => import('@/pages/MalwareAnalysis'))
 const RecipePage = lazy(() => import('@/pages/Recipe'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -188,6 +189,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <SandboxAnalysisPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/malware"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <MalwareAnalysisPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

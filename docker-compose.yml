@@ -193,6 +193,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
       - JWT_SECRET=${JWT_SECRET:-change_this_jwt_secret_in_production}
       - STORAGE_PATH=/app/storage
+      # Local malware dynamic analysis via the emulator sidecar (no CAPE/VM). Points
+      # at the internal service; the feature self-disables if the service is down.
+      - MALWARE_EMULATOR_URL=${MALWARE_EMULATOR_URL:-http://malware_emulator:8091}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@analysishub.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
       - PUBLIC_URL=${PUBLIC_URL:-}
@@ -282,6 +285,24 @@ services:
     depends_on:
       tor:
         condition: service_started
+    restart: unless-stopped
+
+  # Local malware EMULATION sandbox (Mandiant speakeasy). Provides dynamic
+  # behaviour analysis WITHOUT a VM or an external CAPE appliance: it emulates the
+  # sample's CPU + Win32 API calls (nothing is really executed), so it is safe and
+  # fully local. The backend reverse-calls it on the internal network; no host
+  # port is published. Stateless — restarting it loses nothing.
+  malware_emulator:
+    build:
+      # Repo root so the Dockerfile can also COPY the bundled YARA ruleset (tools/).
+      context: .
+      dockerfile: emulator/Dockerfile
+    container_name: analysishub_malware_emulator
+    expose:
+      - "8091"
+    # No network egress needed — emulation is entirely local. (Docker has no
+    # per-service "disable network" here without a custom network; the service
+    # simply never makes outbound calls.)
     restart: unless-stopped
 
   frontend:
