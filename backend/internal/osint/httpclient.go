@@ -186,12 +186,18 @@ func (r *rateLimiter) wait(ctx context.Context) error {
 	}
 }
 
-// Per-API limiters - sized to each provider's free-tier budget.
+// Per-API limiters - sized to each provider's free-tier budget. A wide auto-pivot
+// graph can hit these providers once PER node, so an unlimited call would burst
+// them into 429/ban — every hot third-party endpoint gets a spacing limiter.
 var (
-	rlCrtSh = newRateLimiter(3 * time.Second)         // crt.sh is slow & rate-limited
-	rlRDAP  = newRateLimiter(1 * time.Second)         // rdap.org is a redirector to many registries
-	rlIPAPI = newRateLimiter(1500 * time.Millisecond) // ip-api.com free ~ 45 req/min
-	rlVT    = newRateLimiter(16 * time.Second)        // VirusTotal free ~ 4 req/min
+	rlCrtSh     = newRateLimiter(3 * time.Second)         // crt.sh is slow & rate-limited
+	rlRDAP      = newRateLimiter(1 * time.Second)         // rdap.org is a redirector to many registries
+	rlIPAPI     = newRateLimiter(1500 * time.Millisecond) // ip-api.com free ~ 45 req/min
+	rlVT        = newRateLimiter(16 * time.Second)        // VirusTotal free ~ 4 req/min
+	rlShodan    = newRateLimiter(1200 * time.Millisecond) // Shodan InternetDB + host API
+	rlAbuseIPDB = newRateLimiter(1500 * time.Millisecond) // AbuseIPDB free ~ 1000/day
+	rlWayback   = newRateLimiter(2 * time.Second)         // web.archive.org is easily throttled
+	rlBGP       = newRateLimiter(1 * time.Second)         // BGPView / RIPEstat
 )
 
 // httpGetBody performs a rate-limited GET and returns the (capped) body and

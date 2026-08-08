@@ -1,13 +1,17 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Boxes, Play, Clock, Trash2, Tag, Loader2, RefreshCw, Plus, ShieldAlert } from 'lucide-react'
+import { Boxes, Play, Clock, Trash2, Tag, Loader2, RefreshCw, Plus, ShieldAlert, Radar } from 'lucide-react'
 import { agentsApi, type Agent } from '@/api/agents'
 import {
   fleetApi, FLEET_COLLECTIONS,
   type FleetCollection, type ScheduledCollection,
 } from '@/api/fleet'
 import { getErrorMessage, safeFormat } from '@/lib/utils'
+import DetectionCoveragePage from './DetectionCoverage'
+
+type FleetTab = 'ops' | 'coverage'
 
 function parseTags(json?: string): string[] {
   if (!json) return []
@@ -20,6 +24,10 @@ const RESULT_CLS: Record<string, string> = {
 }
 
 export default function FleetPage() {
+  const [params, setParams] = useSearchParams()
+  const tab: FleetTab = params.get('tab') === 'coverage' ? 'coverage' : 'ops'
+  const setTab = (t: FleetTab) => setParams(t === 'coverage' ? { tab: 'coverage' } : {}, { replace: true })
+
   const qc = useQueryClient()
   const { data: agents = [] } = useQuery({ queryKey: ['agents'], queryFn: agentsApi.list, refetchInterval: 10000 })
   const { data: groups } = useQuery({ queryKey: ['fleet-groups'], queryFn: fleetApi.groups })
@@ -66,8 +74,24 @@ export default function FleetPage() {
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-bold text-gray-100"><Boxes className="h-5 w-5 text-emerald-400" /> Fleet</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Group endpoints, run a collection across many at once, and schedule recurring collections.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Manage endpoints and run detection across the estate — dispatch collections &amp; Sigma sweeps, then read the detection-coverage posture they produce.</p>
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-800">
+        <button className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px flex items-center gap-1.5 ${tab === 'ops' ? 'border-emerald-500 text-emerald-300' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+          onClick={() => setTab('ops')}>
+          <Boxes className="h-4 w-4" /> Endpoints &amp; sweep
+        </button>
+        <button className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px flex items-center gap-1.5 ${tab === 'coverage' ? 'border-emerald-500 text-emerald-300' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+          onClick={() => setTab('coverage')}>
+          <Radar className="h-4 w-4" /> Detection coverage
+        </button>
+      </div>
+
+      {tab === 'coverage' && <DetectionCoveragePage embedded />}
+
+      {tab === 'ops' && (<>
 
       {/* Fleet-wide Sigma sweep */}
       <div className="card p-4 space-y-3">
@@ -211,6 +235,8 @@ export default function FleetPage() {
           </table>
         </div>
       </div>
+
+      </>)}
     </div>
   )
 }

@@ -30,6 +30,8 @@ const (
 	ttlReputation = 6 * time.Hour  // abuse.ch / pulsedive / greynoise / abuseipdb verdicts
 	ttlCrtSh      = 6 * time.Hour  // CT-log subdomain set grows slowly
 	ttlWayback    = 24 * time.Hour // archived-URL history is effectively append-only
+	ttlASN        = 12 * time.Hour // ASN/prefix allocations change slowly
+	ttlWebProbe   = 6 * time.Hour  // exposed-file / header probes
 )
 
 // osintCache is a thin TTL cache over Redis for idempotent third-party lookups

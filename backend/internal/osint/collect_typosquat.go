@@ -51,13 +51,24 @@ func collectTyposquat(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 		variants = variants[:maxTypoVariants]
 	}
 
+	resolver := &net.Resolver{}
+	// Wildcard / NXDOMAIN-hijack guard: if a definitely-non-existent sibling name
+	// resolves, the resolver or registry answers EVERYTHING, so LookupHost cannot
+	// distinguish a registered look-alike from an unregistered one — every variant
+	// would resolve and flood the report + STIX with false positives. Bail out.
+	for _, probe := range []string{"zqx9v7q3nonexistentprobe." + tld, "qh3z8w1x9probe." + name + "." + tld} {
+		if addrs, err := resolver.LookupHost(ctx, probe); err == nil && len(addrs) > 0 {
+			env.emit("[*] typosquat: resolver/registry answers non-existent names (wildcard / NXDOMAIN hijack) — skipping to avoid false positives")
+			return nil, nil
+		}
+	}
+
 	var (
 		mu         sync.Mutex
 		registered []string
 	)
 	sem := make(chan struct{}, 10)
 	var wg sync.WaitGroup
-	resolver := &net.Resolver{}
 	for _, v := range variants {
 		if v == host {
 			continue

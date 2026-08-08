@@ -86,6 +86,105 @@ func (h *AIHandler) TriageOsintScan(c *gin.Context) {
 	}})
 }
 
+// ExtractOsintIOCs runs a SEPARATE, JSON-mode AI pass over the footprint that
+// returns the noteworthy indicators as a typed, deduplicated list (with a reason
+// + malicious flag), so the UI can one-click bulk-promote the AI-selected ones
+// into the IOC store — instead of the analyst re-reading the markdown triage.
+//
+// POST /api/v1/osint/:id/extract-iocs
+func (h *AIHandler) ExtractOsintIOCs(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid scan id"})
+		return
+	}
+	var input struct {
+		ProviderID string `json:"provider_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+	providerID, err := uuid.Parse(input.ProviderID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid provider_id"})
+		return
+	}
+	var provider models.AIProvider
+	if err := h.db.First(&provider, "id = ?", providerID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "provider not found"})
+		return
+	}
+	client, clientErr := h.newDecryptedClient(&provider)
+	if clientErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": clientErr.Error()})
+		return
+	}
+	var scan models.OsintScan
+	if err := h.db.First(&scan, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "scan not found"})
+		return
+	}
+	var findings []models.OsintFinding
+	h.db.Where("scan_id = ?", id).Order("category, severity").Find(&findings)
+	if len(findings) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "scan has no findings"})
+		return
+	}
+
+	prompt := "You are a DFIR analyst. From the OSINT footprint of " + scan.TargetType + " \"" + scan.Target +
+		"\" below, extract the NOTEWORTHY indicators worth adding to a threat-intel watchlist. " +
+		"Respond with ONLY a JSON object (no prose, no code fence): " +
+		"{\"iocs\":[{\"type\":\"ip|domain|url|email|hash|wallet\",\"value\":\"...\",\"malicious\":true|false,\"reason\":\"short\"}]}. " +
+		"Include only real, defanged-or-not indicators actually present in the data; skip benign infrastructure of the target itself unless it is the pivot of interest.\n\n=== FOOTPRINT ===\n" +
+		formatOsintFindings(findings)
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 180*time.Second)
+	defer cancel()
+	out, usage, aiErr := analysis.Chat(ctx, client, prompt, ai.Options{MaxTokens: provider.MaxTokens})
+	if aiErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "AI error: " + aiErr.Error()})
+		return
+	}
+
+	var parsed struct {
+		IOCs []struct {
+			Type      string `json:"type"`
+			Value     string `json:"value"`
+			Malicious bool   `json:"malicious"`
+			Reason    string `json:"reason"`
+		} `json:"iocs"`
+	}
+	if perr := json.Unmarshal([]byte(ai.ExtractJSON(out)), &parsed); perr != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "error": "could not parse AI JSON", "raw": truncateStr(out, 600)})
+		return
+	}
+
+	type iocOut struct {
+		Type      string `json:"type"`
+		Value     string `json:"value"`
+		Malicious bool   `json:"malicious"`
+		Reason    string `json:"reason"`
+	}
+	seen := map[string]bool{}
+	res := make([]iocOut, 0, len(parsed.IOCs))
+	for _, x := range parsed.IOCs {
+		v := strings.TrimSpace(x.Value)
+		if v == "" || seen[strings.ToLower(v)] {
+			continue
+		}
+		// Validate through the target detector so only real, scannable indicators
+		// (authoritative type) are returned.
+		ttype, derr := osint.DetectTargetType(v)
+		if derr != nil || osint.ValidateTarget(v, ttype) != nil {
+			continue
+		}
+		seen[strings.ToLower(v)] = true
+		res = append(res, iocOut{Type: ttype, Value: v, Malicious: x.Malicious, Reason: strings.TrimSpace(x.Reason)})
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"iocs": res, "tokens": usage.Total()}})
+}
+
 // -- OCR → pivot (image IOC extraction) ---------------------------------------
 
 // imageExtractMaxBytes caps the uploaded image size. Anthropic's vision API
@@ -190,7 +289,15 @@ func parseImageExtraction(modelReply string) (string, []imageCandidate) {
 			Value string `json:"value"`
 		} `json:"indicators"`
 	}
-	_ = json.Unmarshal([]byte(ai.ExtractJSON(modelReply)), &parsed)
+	if err := json.Unmarshal([]byte(ai.ExtractJSON(modelReply)), &parsed); err != nil {
+		// Surface a diagnostic instead of silently returning an empty result — a
+		// malformed/streamed vision reply otherwise looks like "no indicators found".
+		note := strings.TrimSpace(modelReply)
+		if len(note) > 600 {
+			note = note[:600] + "…"
+		}
+		return "⚠ Could not parse the model's JSON reply. Raw output:\n\n" + note, nil
+	}
 
 	seen := map[string]bool{}
 	candidates := make([]imageCandidate, 0, len(parsed.Indicators))

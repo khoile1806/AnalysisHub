@@ -500,7 +500,7 @@ func (h *SystemHandler) GetTokenStats(c *gin.Context) {
 		FinishedAt *time.Time `json:"finished_at"`
 		ProviderID string     `json:"provider_id"`
 	}
-	var recent []recentRow
+	recent := []recentRow{} // never nil → serialises as [] not null when there are no sessions
 	h.db.Raw(`
 		SELECT
 			id::text,

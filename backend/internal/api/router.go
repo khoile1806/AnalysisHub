@@ -343,6 +343,7 @@ func NewRouter(
 		protected.GET("/osint/:id/graph/export", handlers.ExportOsintGraph)
 		protected.GET("/osint/:id/correlations", handlers.GetOsintCorrelations)
 		protected.GET("/osint/:id/attack-surface", handlers.GetOsintAttackSurface)
+		protected.GET("/osint/:id/attack-surface/diff/:other", handlers.DiffOsintAttackSurface)
 		// Investigation ↔ vuln-scan integration: vuln scans + per-host vuln
 		// aggregates scoped to this OSINT investigation's whole pivot tree.
 		protected.GET("/osint/:id/vulnscans", handlers.ListOsintVulnScans)
@@ -525,6 +526,7 @@ func NewRouter(
 		protected.POST("/cases/:id/compliance/assess", aiHandler.AssessCompliance)
 		// AI triage of an OSINT footprint (defensive summary + pivots)
 		protected.POST("/osint/:id/triage", aiHandler.TriageOsintScan)
+		protected.POST("/osint/:id/extract-iocs", aiHandler.ExtractOsintIOCs)
 		// OCR → pivot: extract IOCs from an uploaded image (ransom note, screenshot)
 		protected.POST("/osint/extract-image", aiHandler.ExtractOsintFromImage)
 

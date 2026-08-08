@@ -168,9 +168,19 @@ func (e *Engine) diffWatch(scan *models.OsintScan) {
 		e.db.Model(&models.OsintScan{}).Select("id").
 			Where("root_scan_id = ? OR id = ?", prevRoot, prevRoot)).
 		Find(&prevFindings)
-	seen := make(map[string]bool, len(prevFindings))
+	// Track the prior severity per trace, so an ESCALATION on an already-seen trace
+	// (e.g. low→critical on the same host) still alerts — the change that matters
+	// most was previously silently swallowed by the "already seen" check.
+	prevSev := make(map[string]int, len(prevFindings))
 	for i := range prevFindings {
-		seen[traceKey(&prevFindings[i])] = true
+		k := traceKey(&prevFindings[i])
+		if r := severityRank(prevFindings[i].Severity); r > prevSev[k] {
+			prevSev[k] = r
+		}
+	}
+	seen := make(map[string]bool, len(prevFindings))
+	for k := range prevSev {
+		seen[k] = true
 	}
 
 	// Walk the current graph's findings; alert on new significant ones.
@@ -187,15 +197,21 @@ func (e *Engine) diffWatch(scan *models.OsintScan) {
 		if !significantSeverity(f.Severity) {
 			continue
 		}
-		if seen[traceKey(f)] {
-			continue
+		k := traceKey(f)
+		escalated := seen[k] && severityRank(f.Severity) > prevSev[k]
+		if seen[k] && !escalated {
+			continue // unchanged trace
+		}
+		title := f.Title
+		if escalated {
+			title = "Severity escalated: " + f.Title
 		}
 		alert := models.OsintWatchAlert{
 			WatchID:    watchID,
 			ScanID:     scan.ID,
 			Category:   f.Category,
 			Source:     f.Source,
-			Title:      f.Title,
+			Title:      title,
 			Value:      f.Value,
 			Severity:   f.Severity,
 			Confidence: f.Confidence,

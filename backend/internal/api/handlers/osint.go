@@ -13,6 +13,7 @@ import (
 	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/osint"
+	"github.com/analysishub/backend/internal/report"
 )
 
 // mustGetOsintEngine retrieves the *osint.Engine from the Gin context.
@@ -440,8 +441,20 @@ func OsintReport(c *gin.Context) {
 		}
 		return '-'
 	}, scan.Name)
-	filename := fmt.Sprintf("osint-%s-%s.html", safe, scan.CreatedAt.Format("2006-01-02"))
 
+	// ?format=pdf renders the same report to PDF via headless Chromium (already in
+	// the image), reusing the shared cases-report renderer.
+	if strings.EqualFold(c.Query("format"), "pdf") {
+		if pdf, perr := report.RenderPDF(c.Request.Context(), html); perr == nil && len(pdf) > 0 {
+			filename := fmt.Sprintf("osint-%s-%s.pdf", safe, scan.CreatedAt.Format("2006-01-02"))
+			c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+			c.Data(http.StatusOK, "application/pdf", pdf)
+			return
+		}
+		// fall through to HTML if PDF rendering is unavailable
+	}
+
+	filename := fmt.Sprintf("osint-%s-%s.html", safe, scan.CreatedAt.Format("2006-01-02"))
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }

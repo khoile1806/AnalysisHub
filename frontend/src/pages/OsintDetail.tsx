@@ -9,8 +9,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import AiMarkdown from '@/components/AiMarkdown'
 import {
   osintApi, CATEGORY_LABELS, COLLECTOR_LABELS, parseRelated,
   type OsintScan, type OsintCollector, type OsintFinding, type RelatedEntity, type OsintTargetType,
@@ -31,9 +30,16 @@ function OsintAiTriage({ scanId }: { scanId: string }) {
   const { data: providers = [] } = useQuery({ queryKey: ['ai-providers'], queryFn: analysisApi.listProviders })
   const active = providers.filter((p) => p.is_active)
 
+  const [iocs, setIocs] = useState<{ type: string; value: string; malicious: boolean; reason: string }[] | null>(null)
+
   const mut = useMutation({
     mutationFn: () => osintApi.triage(scanId, providerId),
     onSuccess: (d) => { setSummary(d.summary); toast.success(`AI triage done (${d.tokens} tokens)`) },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  })
+  const iocMut = useMutation({
+    mutationFn: () => osintApi.extractIOCs(scanId, providerId),
+    onSuccess: (d) => { setIocs(d.iocs); toast.success(`Extracted ${d.iocs.length} IOC(s)`) },
     onError: (err) => toast.error(getErrorMessage(err)),
   })
 
@@ -57,6 +63,14 @@ function OsintAiTriage({ scanId }: { scanId: string }) {
             </select>
           )}
           <button
+            className="btn-secondary text-xs disabled:opacity-50"
+            disabled={!providerId || iocMut.isPending}
+            onClick={() => iocMut.mutate()}
+            title="Ask AI to extract the noteworthy indicators as a typed list"
+          >
+            {iocMut.isPending ? 'Extracting…' : 'Extract IOCs'}
+          </button>
+          <button
             className="btn-primary text-xs disabled:opacity-50"
             disabled={!providerId || mut.isPending}
             onClick={() => mut.mutate()}
@@ -65,10 +79,22 @@ function OsintAiTriage({ scanId }: { scanId: string }) {
           </button>
         </div>
       </div>
-      {summary ? (
-        <div className="prose prose-invert prose-sm max-w-none text-gray-300 prose-headings:text-emerald-400 prose-strong:text-gray-100">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+      {iocs && (
+        <div className="rounded border border-slate-700 bg-gray-900/40 p-2 space-y-1">
+          <p className="text-[11px] text-gray-500 uppercase tracking-wide">AI-extracted indicators ({iocs.length})</p>
+          {iocs.length === 0 ? (
+            <p className="text-xs text-gray-500">No noteworthy indicators found.</p>
+          ) : iocs.map((x, i) => (
+            <div key={i} className="flex items-center gap-2 text-[11px]">
+              <span className={`px-1.5 py-0.5 rounded border text-[9px] uppercase ${x.malicious ? 'border-red-500/40 text-red-300' : 'border-slate-600 text-gray-400'}`}>{x.type}</span>
+              <span className="font-mono text-gray-200 break-all">{x.value}</span>
+              {x.reason && <span className="text-gray-500 truncate">— {x.reason}</span>}
+            </div>
+          ))}
         </div>
+      )}
+      {summary ? (
+        <AiMarkdown content={summary} />
       ) : (
         <p className="text-xs text-gray-500">Let AI summarize this footprint: what the entity is, malicious or not, related infrastructure, and recommended DFIR next steps.</p>
       )}
@@ -1389,6 +1415,17 @@ export default function OsintDetailPage() {
             >
               <Download className="h-4 w-4" />
               Report
+            </a>
+          )}
+          {scan.status !== 'pending' && (
+            <a
+              href={osintApi.reportUrl(scan.id, 'pdf')}
+              download
+              className="btn-secondary flex items-center gap-2"
+              title="Download the report as PDF"
+            >
+              <Download className="h-4 w-4" />
+              PDF
             </a>
           )}
           {scan.status !== 'pending' && (

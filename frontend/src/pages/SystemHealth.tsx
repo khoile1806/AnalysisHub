@@ -822,16 +822,18 @@ function TokenUsageTab() {
     staleTime: 60_000,
   })
 
-  const maxTokens = (data?.by_provider ?? []).reduce((m, p) => Math.max(m, p.total_tokens), 0)
+  // The API may return null (not []) for these arrays when there are no sessions
+  // yet; normalise so downstream .length/.map never dereference null.
+  const byProvider = data?.by_provider ?? []
+  const recent = data?.recent ?? []
+  const maxTokens = byProvider.reduce((m, p) => Math.max(m, p.total_tokens), 0)
 
   const providerBarColors = [
     'bg-violet-500', 'bg-sky-500', 'bg-emerald-500',
     'bg-amber-500', 'bg-rose-500', 'bg-teal-500',
   ]
 
-  const recentVisible = showAll
-    ? (data?.recent ?? [])
-    : (data?.recent ?? []).slice(0, 5)
+  const recentVisible = showAll ? recent : recent.slice(0, 5)
 
   return (
     <div className="space-y-5">
@@ -883,7 +885,7 @@ function TokenUsageTab() {
               <div>
                 <div className="text-2xl font-bold text-sky-300">{data.total_sessions}</div>
                 <div className="text-[11px] text-gray-500">Analysis Sessions</div>
-                <div className="text-[10px] text-gray-700">{data.by_provider.length} provider(s) used</div>
+                <div className="text-[10px] text-gray-700">{byProvider.length} provider(s) used</div>
               </div>
             </div>
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex items-center gap-4">
@@ -902,14 +904,14 @@ function TokenUsageTab() {
           </div>
 
           {/* Per-provider breakdown */}
-          {data.by_provider.length > 0 && (
+          {byProvider.length > 0 && (
             <div className="rounded-xl border border-gray-800/60 overflow-hidden">
               <div className="px-5 py-3 bg-gray-900/60 border-b border-gray-800/60 flex items-center gap-2">
                 <BrainCircuit className="h-4 w-4 text-violet-400" />
                 <span className="text-sm font-semibold text-gray-200">Theo Provider</span>
               </div>
               <div className="divide-y divide-gray-800/60">
-                {data.by_provider.map((row: ProviderTokenStat, idx) => (
+                {byProvider.map((row: ProviderTokenStat, idx) => (
                   <div key={row.provider_id} className="px-5 py-4">
                     <div className="flex items-start gap-4 mb-2.5">
                       {/* Index */}
@@ -965,7 +967,7 @@ function TokenUsageTab() {
             </div>
           )}
 
-          {data.by_provider.length === 0 && (
+          {byProvider.length === 0 && (
             <div className="rounded-xl border border-gray-800/60 bg-gray-900/40 px-5 py-10 text-center">
               <BrainCircuit className="h-8 w-8 text-gray-700 mx-auto mb-3" />
               <p className="text-sm text-gray-600">No completed sessions yet.</p>
@@ -974,13 +976,13 @@ function TokenUsageTab() {
           )}
 
           {/* Recent sessions */}
-          {data.recent.length > 0 && (
+          {recent.length > 0 && (
             <div className="rounded-xl border border-gray-800/60 overflow-hidden">
               <div className="px-5 py-3 bg-gray-900/60 border-b border-gray-800/60 flex items-center gap-2">
                 <History className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-semibold text-gray-200">Recent history</span>
                 <span className="text-[10px] text-gray-600 ml-auto">
-                  {showAll ? data.recent.length : Math.min(5, data.recent.length)} / {data.recent.length}
+                  {showAll ? recent.length : Math.min(5, recent.length)} / {recent.length}
                 </span>
               </div>
               <div className="divide-y divide-gray-800/40">
@@ -1002,14 +1004,14 @@ function TokenUsageTab() {
                   </div>
                 ))}
               </div>
-              {data.recent.length > 5 && (
+              {recent.length > 5 && (
                 <button
                   onClick={() => setShowAll(s => !s)}
                   className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800/30 border-t border-gray-800/40 transition-colors"
                 >
                   {showAll
                     ? <><ChevronUp className="h-3.5 w-3.5" /> Collapse</>
-                    : <><ChevronDown className="h-3.5 w-3.5" /> Show {data.recent.length - 5} more session(s)</>
+                    : <><ChevronDown className="h-3.5 w-3.5" /> Show {recent.length - 5} more session(s)</>
                   }
                 </button>
               )}

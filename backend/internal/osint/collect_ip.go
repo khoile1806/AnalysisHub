@@ -226,7 +226,7 @@ type internetDBResponse struct {
 func collectShodanInternetDB(ctx context.Context, env *collectorEnv) ([]models.OsintFinding, error) {
 	u := "https://internetdb.shodan.io/" + url.PathEscape(env.target)
 	var r internetDBResponse
-	status, err := cachedGetJSON(ctx, env.cache, "internetdb:ip:"+env.target, nil, u, nil, &r, ttlInternetDB)
+	status, err := cachedGetJSON(ctx, env.cache, "internetdb:ip:"+env.target, rlShodan, u, nil, &r, ttlInternetDB)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +298,7 @@ func collectShodan(ctx context.Context, env *collectorEnv) ([]models.OsintFindin
 		"?key=" + url.QueryEscape(env.keys.Shodan)
 	var r shodanHostResponse
 	// Cache key excludes the API key in the URL so the secret is never stored.
-	status, err := cachedGetJSON(ctx, env.cache, "shodan:ip:"+env.target, nil, u, nil, &r, ttlShodan)
+	status, err := cachedGetJSON(ctx, env.cache, "shodan:ip:"+env.target, rlShodan, u, nil, &r, ttlShodan)
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +435,7 @@ func collectAbuseIPDB(ctx context.Context, env *collectorEnv) ([]models.OsintFin
 	u := "https://api.abuseipdb.com/api/v2/check?maxAgeInDays=90&ipAddress=" +
 		url.QueryEscape(env.target)
 	var r abuseIPDBResponse
-	status, err := cachedGetJSON(ctx, env.cache, "abuseipdb:"+env.target, nil, u, map[string]string{
+	status, err := cachedGetJSON(ctx, env.cache, "abuseipdb:"+env.target, rlAbuseIPDB, u, map[string]string{
 		"Key":    env.keys.AbuseIPDB,
 		"Accept": "application/json",
 	}, &r, ttlReputation)

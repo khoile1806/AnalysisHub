@@ -29,7 +29,6 @@ import {
   PanelLeftOpen,
   Boxes,
   ArrowRightLeft,
-  Radar,
   ScrollText,
   Wand2,
 } from 'lucide-react'
@@ -63,7 +62,6 @@ const NAV_GROUPS = [
     label: 'Collection & Hunting',
     items: [
       { to: '/hunting',              icon: Crosshair,     label: 'Scenario Hunting' },
-      { to: '/detection-coverage',   icon: Radar,         label: 'Detection Coverage' },
       { to: '/collection-checklist', icon: ClipboardList, label: 'Evidence & Compliance' },
       { to: '/playbooks',            icon: BookOpen,      label: 'Playbooks' },
     ]
@@ -110,7 +108,6 @@ const BREADCRUMB_MAP: Record<string, string> = {
   kibana:    'Kibana',
   'yara-scanner': 'YARA Scanner',
   'hunting': 'Scenario Hunting',
-  'detection-coverage': 'Detection Coverage',
   'cve-collection': 'Threat Intelligence',
   'ioc-store': 'IOC Store',
   'osint': 'OSINT',

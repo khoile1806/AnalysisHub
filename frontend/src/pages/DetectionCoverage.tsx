@@ -63,7 +63,9 @@ function hostCoverageLabel(h: CoverageHost): string {
   return h.measured ? `${h.coverage_percent.toFixed(1)}%` : '—'
 }
 
-export default function DetectionCoveragePage() {
+// embedded = rendered inside the Fleet page's "Detection coverage" tab (the big
+// page title is dropped since the Fleet header already frames it).
+export default function DetectionCoveragePage({ embedded = false }: { embedded?: boolean }) {
   const [days, setDays] = useState(7)
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['detection-coverage', days],
@@ -72,17 +74,19 @@ export default function DetectionCoveragePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold text-gray-100">
-            <Radar className="h-5 w-5 text-emerald-400" /> Detection Coverage
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Which loaded detection rules can actually fire, measured against the log channels the
-            endpoints really produce — not against the rule count.
-          </p>
-        </div>
-        <label className="text-xs text-gray-400">Evidence window
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {!embedded && (
+          <div>
+            <h1 className="flex items-center gap-2 text-xl font-bold text-gray-100">
+              <Radar className="h-5 w-5 text-emerald-400" /> Detection Coverage
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Which loaded detection rules can actually fire, measured against the log channels the
+              endpoints really produce — not against the rule count.
+            </p>
+          </div>
+        )}
+        <label className={`text-xs text-gray-400 ${embedded ? 'ml-auto' : ''}`}>Evidence window
           <select className="input mt-1 block" value={days} onChange={(e) => setDays(Number(e.target.value))}>
             {DAY_OPTIONS.map((d) => <option key={d} value={d}>Last {d} day{d > 1 ? 's' : ''}</option>)}
           </select>
@@ -112,7 +116,7 @@ export default function DetectionCoveragePage() {
                   <div className="text-lg font-semibold text-amber-300">Coverage has never been measured</div>
                   <p className="text-sm text-gray-400 mt-1">
                     No fleet Sigma sweep produced results in this window, so nothing below is evidence of
-                    telemetry — it is the absence of evidence. Run a sweep from the Fleet page, then come back.
+                    telemetry — it is the absence of evidence. Run a sweep from the <b className="text-gray-300">Endpoints &amp; sweep</b> tab, then come back.
                   </p>
                 </div>
               </div>

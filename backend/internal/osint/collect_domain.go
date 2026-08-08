@@ -425,7 +425,7 @@ func collectWayback(ctx context.Context, env *collectorEnv) ([]models.OsintFindi
 	q.Set("fl", "original,timestamp,statuscode")
 	u := env.cfg.APIWebArchiveURL + "?" + q.Encode()
 
-	body, status, err := cachedGetBody(ctx, env.cache, "wayback:"+strings.ToLower(env.target), nil, u, nil, ttlWayback)
+	body, status, err := cachedGetBody(ctx, env.cache, "wayback:"+strings.ToLower(env.target), rlWayback, u, nil, ttlWayback)
 	if err != nil {
 		return nil, err
 	}

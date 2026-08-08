@@ -134,3 +134,5 @@ coverage.html
 ._*
 *.swp
 *~
+# ── Local docs (not pushed) ─────────────────────────────────────────────────
+docs/

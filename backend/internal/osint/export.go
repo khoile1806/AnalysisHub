@@ -162,9 +162,11 @@ func collectObservables(scan *models.OsintScan, findings []models.OsintFinding) 
 		f := &findings[i]
 		mal := (f.Category == "reputation" || f.Category == "ransomware") &&
 			(f.Severity == "high" || f.Severity == "critical")
-		// Look-alike domains are inherently noteworthy indicators.
+		// A look-alike domain is a LEAD, not confirmed-malicious infrastructure —
+		// exporting every typosquat as a malicious indicator poisons downstream TIP
+		// blocklists. It is still exported as an observable, just not flagged malicious.
 		if f.Source == "typosquat" {
-			mal = true
+			mal = false
 		}
 		for _, r := range parseRelatedEntities(f.RelatedEntities) {
 			if t := stixObservableType(r.Type); t != "" {

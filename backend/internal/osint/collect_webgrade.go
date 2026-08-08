@@ -77,6 +77,34 @@ func collectWebGrade(ctx context.Context, env *collectorEnv) ([]models.OsintFind
 		tf.Confidence = "verified"
 		out = append(out, tf)
 	}
+
+	// ── CORS misconfiguration ────────────────────────────────────────────────
+	// `Access-Control-Allow-Origin: *` together with credentials is the classic
+	// exploitable CORS mistake; a reflected/permissive ACAO is worth flagging.
+	acao := strings.TrimSpace(resp.Header.Get("Access-Control-Allow-Origin"))
+	acac := strings.EqualFold(strings.TrimSpace(resp.Header.Get("Access-Control-Allow-Credentials")), "true")
+	if acao == "*" && acac {
+		cf := newFinding("webgrade", "posture", "CORS misconfiguration", "Access-Control-Allow-Origin: * with credentials — exploitable cross-origin access")
+		cf.Severity = "high"
+		cf.Confidence = "verified"
+		out = append(out, cf)
+	} else if acao == "*" {
+		cf := newFinding("webgrade", "posture", "Permissive CORS", "Access-Control-Allow-Origin: * (no credentials)")
+		cf.Severity = "low"
+		cf.Confidence = "verified"
+		out = append(out, cf)
+	}
+
+	// ── Clickjacking ─────────────────────────────────────────────────────────
+	xfo := strings.TrimSpace(resp.Header.Get("X-Frame-Options"))
+	csp := strings.ToLower(resp.Header.Get("Content-Security-Policy"))
+	if xfo == "" && !strings.Contains(csp, "frame-ancestors") {
+		jf := newFinding("webgrade", "posture", "Clickjacking exposure", "no X-Frame-Options and no CSP frame-ancestors — page can be framed")
+		jf.Severity = "medium"
+		jf.Confidence = "verified"
+		out = append(out, jf)
+	}
+
 	env.emit("[+] webgrade: header grade " + grade)
 	return out, nil
 }

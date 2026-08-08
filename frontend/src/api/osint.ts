@@ -796,10 +796,17 @@ export const osintApi = {
     return `${base}/api/v1/osint/${id}/stream?token=${encodeURIComponent(token)}`
   },
 
-  reportUrl: (id: string): string => {
+  reportUrl: (id: string, format?: 'pdf'): string => {
     const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
     const token = useAuthStore.getState().token ?? ''
-    return `${base}/api/v1/osint/${id}/report?token=${encodeURIComponent(token)}`
+    const fmt = format ? `&format=${format}` : ''
+    return `${base}/api/v1/osint/${id}/report?token=${encodeURIComponent(token)}${fmt}`
+  },
+
+  // extractIOCs runs the AI structured-IOC pass and returns typed indicators.
+  extractIOCs: async (id: string, providerId: string): Promise<{ iocs: { type: string; value: string; malicious: boolean; reason: string }[]; tokens: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ iocs: { type: string; value: string; malicious: boolean; reason: string }[]; tokens: number }>>(`/osint/${id}/extract-iocs`, { provider_id: providerId })
+    return data.data
   },
 
   // exportUrl builds a download link for the machine-readable export of a scan's

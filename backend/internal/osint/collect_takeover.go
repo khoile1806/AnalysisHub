@@ -183,9 +183,12 @@ func confirmTakeover(ctx context.Context, host, cname string, sig takeoverSig) (
 	}
 
 	// Try HTTPS then HTTP; a 404-with-fingerprint is exactly the signal, so a
-	// non-2xx status is not treated as an error here.
+	// non-2xx status is not treated as an error here. Each fetch gets its own short
+	// timeout so a single hanging candidate can't consume the whole collector budget.
 	for _, scheme := range []string{"https://", "http://"} {
-		body, _, err := httpGetBody(ctx, nil, scheme+host+"/", nil)
+		fctx, fcancel := context.WithTimeout(ctx, 8*time.Second)
+		body, _, err := httpGetBody(fctx, nil, scheme+host+"/", nil)
+		fcancel()
 		if err != nil || len(body) == 0 {
 			continue
 		}
