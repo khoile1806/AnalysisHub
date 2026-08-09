@@ -117,6 +117,15 @@ func (h *NetworkHandler) Analyze(c *gin.Context) {
 		return
 	}
 
+	// Optional SSLKEYLOG for decrypting TLS (bounded — it is only key lines).
+	var keylog []byte
+	if kf, kerr := c.FormFile("keylog"); kerr == nil && kf.Size > 0 && kf.Size < 4<<20 {
+		if kfh, oerr := kf.Open(); oerr == nil {
+			keylog, _ = io.ReadAll(io.LimitReader(kfh, 4<<20))
+			kfh.Close()
+		}
+	}
+
 	sum := sha256.Sum256(data)
 	sha := hex.EncodeToString(sum[:])
 
@@ -153,8 +162,8 @@ func (h *NetworkHandler) Analyze(c *gin.Context) {
 		}
 	}
 
-	go h.engine.Analyze(context.Background(), scan.ID.String(), data, name, client, maxTokens)
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"scan_id": scan.ID}})
+	go h.engine.Analyze(context.Background(), scan.ID.String(), data, name, keylog, client, maxTokens)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"scan_id": scan.ID, "decrypt": len(keylog) > 0}})
 }
 
 // List returns recent pcap analyses.

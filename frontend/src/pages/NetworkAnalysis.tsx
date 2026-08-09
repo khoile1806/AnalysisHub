@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { ReactFlow, Background, Controls, MiniMap, MarkerType, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import {
   Upload, Loader2, Trash2, Network, ShieldAlert, ShieldCheck, ShieldQuestion, AlertTriangle,
   Globe, Boxes, Radar, FileWarning, Loader, Brain, Sparkles, Activity, ArrowUpDown, Layers,
-  Eye, Download, Bug, X, FileText, MessagesSquare,
+  Eye, Download, Bug, X, FileText, MessagesSquare, FileDown, Clock,
 } from 'lucide-react'
 import {
   networkApi, nsafeParse,
@@ -238,6 +239,53 @@ function ZeekPanel({ result }: { result: NetworkResult }) {
               </tr>
             ))}</tbody>
           </table></div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// TimelineCard shows traffic volume over the capture (area chart) plus a Gantt of
+// when each conversation was active — bursts and beaconing become visible.
+function TimelineCard({ result }: { result: NetworkResult }) {
+  const tl = result.timeline
+  if (!tl || !tl.buckets?.length) return null
+  const data = tl.buckets.map((b) => ({ t: b.t, bytes: b.bytes, flows: b.flows }))
+  const startMs = Date.parse(tl.start_ts.replace(' ', 'T') + 'Z')
+  const totalMs = (tl.duration_sec || 1) * 1000
+  const convs = (result.conversations ?? []).slice(0, 20)
+  return (
+    <Card title="Traffic timeline" icon={Clock} right={<span className="text-[10px] text-gray-500">{tl.start_ts} · {fmtDuration(tl.duration_sec)}</span>}>
+      <div style={{ height: 170 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+            <XAxis dataKey="t" tick={{ fontSize: 9, fill: '#64748b' }} tickFormatter={(v) => '+' + v + 's'} />
+            <YAxis tick={{ fontSize: 9, fill: '#64748b' }} tickFormatter={(v) => fmtBytes(v)} width={46} />
+            <Tooltip contentStyle={{ background: '#0b0f17', border: '1px solid #334155', fontSize: 11 }} labelFormatter={(v) => '+' + v + 's from start'} formatter={(v: any, n: any) => [n === 'bytes' ? fmtBytesFull(Number(v)) : v, n]} />
+            <Area type="monotone" dataKey="bytes" stroke="#34d399" fill="#34d39933" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      {convs.length > 0 && !isNaN(startMs) && (
+        <div className="mt-2">
+          <div className="text-[10px] text-gray-500 mb-1">Conversation activity</div>
+          <div className="space-y-0.5">
+            {convs.map((c, i) => {
+              const s = c.first_seen ? Date.parse(c.first_seen.replace(' ', 'T') + 'Z') : startMs
+              const e = c.last_seen ? Date.parse(c.last_seen.replace(' ', 'T') + 'Z') : s
+              const left = Math.min(99, Math.max(0, ((s - startMs) / totalMs) * 100))
+              const width = Math.min(100 - left, Math.max(1.5, ((e - s) / totalMs) * 100))
+              return (
+                <div key={i} className="flex items-center gap-2 text-[9px]">
+                  <span className="w-36 shrink-0 truncate font-mono text-gray-400" title={`${c.a} → ${c.b}`}>{c.a}→{c.b}</span>
+                  <div className="flex-1 h-2 rounded bg-slate-800/70 relative">
+                    <div className="absolute h-2 rounded bg-sky-500/70" style={{ left: left + '%', width: width + '%' }} title={`${c.first_seen || ''} → ${c.last_seen || ''}`} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </Card>
@@ -598,6 +646,7 @@ function Detail({ id }: { id: string }) {
             <div className="text-sm text-gray-200/90 font-medium break-all mt-0.5">{scan.file_name}</div>
             <div className="text-[11px] text-gray-400 mt-0.5">{scan.summary}</div>
           </div>
+          {scan.status === 'done' && <button className="btn-secondary text-[11px] py-1 px-2" title="Export HTML report (print → PDF)" onClick={() => networkApi.openReport(scan.id).catch((e) => toast.error(getErrorMessage(e)))}><FileDown className="h-3.5 w-3.5" /></button>}
           <button className="btn-secondary text-[11px] py-1 px-2" onClick={() => del.mutate()}><Trash2 className="h-3.5 w-3.5" /></button>
         </div>
         <div className="mt-3 flex gap-4 flex-wrap text-[11px] text-gray-400">
@@ -620,6 +669,7 @@ function Detail({ id }: { id: string }) {
       </Card>
 
       {result && <StatsOverview result={result} />}
+      {result && <TimelineCard result={result} />}
       {result && <ConversationsCard result={result} />}
       {result && <TopTalkers result={result} />}
       {result && <ProtocolTree result={result} />}
@@ -707,6 +757,21 @@ function Detail({ id }: { id: string }) {
           </table></div>
         </Card>
       )}
+      {!!result?.decrypted_http?.length && (
+        <Card title={`Decrypted HTTPS requests (${result.decrypted_http.length})`} icon={ShieldCheck} right={<span className="text-[10px] px-1.5 py-0.5 rounded border border-violet-500/40 text-violet-300">TLS decrypted</span>}>
+          <div className="overflow-x-auto max-h-56 overflow-y-auto"><table className="w-full text-[10px]">
+            <thead className="sticky top-0 bg-gray-900"><tr className="text-gray-500 text-left"><th className="pr-2 py-1">Method</th><th className="pr-2">Host / URL</th><th className="pr-2">Dst</th><th className="pr-2">User-Agent</th></tr></thead>
+            <tbody>{result.decrypted_http.slice(0, 200).map((h, i) => (
+              <tr key={i} className="border-t border-slate-800/50">
+                <td className="pr-2 text-gray-300">{h.method}</td>
+                <td className="pr-2 text-gray-200 break-all">{h.host}{h.url}</td>
+                <td className="pr-2 font-mono text-gray-500">{h.dst}</td>
+                <td className="pr-2 text-gray-600 break-all">{h.ua || '—'}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </Card>
+      )}
       {!!result?.files?.length && (
         <Card title={`Files transferred (${result.files.length})`} icon={FileWarning}>
           <div className="overflow-x-auto max-h-56 overflow-y-auto"><table className="w-full text-[10px]">
@@ -718,6 +783,7 @@ function Detail({ id }: { id: string }) {
                   <td className="pr-2 text-gray-300 break-all">
                     {f.filename || '(unnamed)'}
                     {carved && <span className="ml-1 text-[8px] px-1 rounded bg-sky-500/20 text-sky-300">carved</span>}
+                    {f.decrypted && <span className="ml-1 text-[8px] px-1 rounded bg-violet-500/20 text-violet-300">decrypted</span>}
                     {!!f.yara?.length && <span className="ml-1 text-[8px] px-1 rounded bg-red-500/20 text-red-300" title={f.yara.join(', ')}>⚠ YARA: {f.yara.join(', ')}</span>}
                   </td>
                   <td className="pr-2 text-gray-500 break-all">{f.magic || '—'}</td>
@@ -738,6 +804,7 @@ function Detail({ id }: { id: string }) {
 export default function NetworkAnalysisPage() {
   const qc = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
+  const [keylog, setKeylog] = useState<File | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const { data: cfg } = useQuery({ queryKey: ['network-config'], queryFn: () => networkApi.config() })
   const { data: scans = [] } = useQuery({
@@ -745,8 +812,8 @@ export default function NetworkAnalysisPage() {
     refetchInterval: (q) => ((q.state.data as NetworkScan[] | undefined)?.some((s) => s.status === 'running' || s.status === 'pending') ? 2500 : false),
   })
   const analyze = useMutation({
-    mutationFn: () => networkApi.analyze(file!),
-    onSuccess: (r) => { toast.success('PCAP analysis started'); setFile(null); qc.invalidateQueries({ queryKey: ['network-list'] }); setSelected(r.scan_id) },
+    mutationFn: () => networkApi.analyze(file!, undefined, keylog),
+    onSuccess: (r) => { toast.success(r.decrypt ? 'PCAP analysis started (TLS decryption on)' : 'PCAP analysis started'); setFile(null); setKeylog(null); qc.invalidateQueries({ queryKey: ['network-list'] }); setSelected(r.scan_id) },
     onError: (e) => toast.error(getErrorMessage(e)),
   })
 
@@ -767,11 +834,17 @@ export default function NetworkAnalysisPage() {
           <span className="text-sm text-gray-300 truncate">{file ? file.name : 'Choose a capture (.pcap / .pcapng / .cap)'}</span>
           <input type="file" accept=".pcap,.pcapng,.cap" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
+        <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-dashed border-slate-800 bg-gray-950/40 px-4 py-2 hover:border-sky-800 transition-colors">
+          <ShieldCheck className="h-4 w-4 text-gray-600" />
+          <span className="text-[11px] text-gray-400 truncate">{keylog ? keylog.name : 'Optional: SSLKEYLOG file to decrypt TLS (HTTPS) and carve encrypted files'}</span>
+          <input type="file" accept=".log,.txt,.keys,.keylog" className="hidden" onChange={(e) => setKeylog(e.target.files?.[0] ?? null)} />
+          {keylog && <button className="ml-auto text-gray-500 hover:text-gray-300" onClick={(e) => { e.preventDefault(); setKeylog(null) }}><X className="h-3.5 w-3.5" /></button>}
+        </label>
         <div className="flex items-center gap-2">
           <button className="btn-primary inline-flex items-center gap-2" disabled={!file || analyze.isPending || !cfg?.available} onClick={() => analyze.mutate()}>
             {analyze.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Network className="h-4 w-4" />} Analyse pcap
           </button>
-          <p className="text-[10px] text-gray-600">Admin-only. The raw pcap is saved to the Evidence Store (download audited).</p>
+          <p className="text-[10px] text-gray-600">Admin-only. Raw pcap → Evidence Store (audited). Provide an SSLKEYLOG to see inside encrypted TLS traffic.</p>
         </div>
       </div>
 

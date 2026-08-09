@@ -560,6 +560,7 @@ func NewRouter(
 		protected.GET("/network", networkHandler.List)
 		protected.GET("/network/:id", networkHandler.Get)
 		protected.POST("/network/:id/ai-analyze", networkHandler.AIAnalyze)
+		protected.GET("/network/:id/report", networkHandler.Report)
 		// Carved-file inspection: preview (type/hex/strings), download, and pivot
 		// into Malware Analysis. Admin-gated in the handlers.
 		protected.GET("/network/:id/files/:sha/preview", networkHandler.PreviewCarvedFile)

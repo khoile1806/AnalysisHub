@@ -1,0 +1,104 @@
+package handlers
+
+import (
+	"encoding/json"
+	"html/template"
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/analysishub/backend/internal/models"
+	"github.com/analysishub/backend/internal/netscan"
+)
+
+// network_report.go — a self-contained HTML report for a capture analysis
+// (verdict, analyst summary, conversations, findings, IOCs). It is print-friendly
+// so an analyst can Ctrl+P → PDF and attach it to a case.
+
+// Report renders the standalone HTML report for a completed capture.
+// GET /api/v1/network/:id/report
+func (h *NetworkHandler) Report(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id"})
+		return
+	}
+	var scan models.NetworkScan
+	if h.DB.First(&scan, "id = ?", id).Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "not found"})
+		return
+	}
+	var res netscan.NetworkResult
+	_ = json.Unmarshal([]byte(scan.Result), &res)
+	var findings []netscan.NetworkFinding
+	_ = json.Unmarshal([]byte(scan.Findings), &findings)
+
+	geoLabel := func(ip string) string {
+		if g, ok := res.Geo[ip]; ok {
+			return strings.TrimSpace(g.CC + " AS" + g.ASN + " " + g.Org)
+		}
+		return ""
+	}
+	data := map[string]interface{}{
+		"Scan":     scan,
+		"Res":      res,
+		"Findings": findings,
+		"Created":  scan.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC"),
+		"Geo":      geoLabel,
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := netReportTmpl.Execute(c.Writer, data); err != nil {
+		c.String(http.StatusInternalServerError, "report render error: %v", err)
+	}
+}
+
+var netReportTmpl = template.Must(template.New("netreport").Funcs(template.FuncMap{
+	"upper": strings.ToUpper,
+}).Parse(`<!doctype html><html><head><meta charset="utf-8">
+<title>Network Analysis Report — {{.Scan.FileName}}</title>
+<style>
+ body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;max-width:960px;margin:24px auto;padding:0 20px;line-height:1.5}
+ h1{font-size:22px;margin:0 0 4px} h2{font-size:15px;margin:22px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+ .muted{color:#666;font-size:12px} .verdict{display:inline-block;padding:4px 10px;border-radius:6px;font-weight:700;font-size:13px}
+ .malicious{background:#fde2e1;color:#a01813} .suspicious{background:#fdf0d5;color:#8a5a00}
+ .benign{background:#dff5e3;color:#1a6b34} .unknown{background:#eee;color:#555}
+ table{border-collapse:collapse;width:100%;font-size:11px;margin:6px 0} th,td{border:1px solid #e2e2e2;padding:4px 6px;text-align:left;vertical-align:top}
+ th{background:#f6f6f6} .sev-high,.sev-critical{color:#a01813;font-weight:600} .sev-medium{color:#8a5a00} code{font-family:ui-monospace,Consolas,monospace}
+ .summary{background:#f8f9fb;border:1px solid #e2e6ee;border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap}
+ @media print{body{margin:0}}
+</style></head><body>
+<h1>Network Traffic Analysis Report</h1>
+<div class="muted">{{.Scan.FileName}} &middot; sha256 <code>{{.Scan.Sha256}}</code> &middot; analysed {{.Created}}</div>
+<p style="margin:12px 0">
+ <span class="verdict {{.Scan.Verdict}}">{{upper .Scan.Verdict}}</span>
+ &nbsp; Threat score <b>{{.Scan.ThreatScore}}/100</b>
+ &nbsp; {{.Scan.FlowCount}} flows &middot; {{.Scan.AlertCount}} alerts &middot; {{.Scan.C2Count}} C2/malicious
+</p>
+
+{{if .Scan.AutoSummary}}<h2>Analyst summary{{if eq .Scan.AutoSummaryKind "ai"}} (AI-generated){{end}}</h2>
+<div class="summary">{{.Scan.AutoSummary}}</div>{{end}}
+
+{{if .Res.Conversations}}<h2>Conversations</h2>
+<table><tr><th>Initiator → Responder</th><th>Geo / ASN</th><th>Times</th><th>Bytes</th><th>Protocols</th><th>First → Last (UTC)</th></tr>
+{{range .Res.Conversations}}<tr><td><code>{{.A}} → {{.B}}</code></td><td>{{call $.Geo .B}}</td><td>{{.Count}}</td><td>{{.Bytes}}</td><td>{{range .Protos}}{{.}} {{end}}</td><td>{{.FirstSeen}}{{if .LastSeen}} → {{.LastSeen}}{{end}}</td></tr>
+{{end}}</table>{{end}}
+
+{{if .Findings}}<h2>Findings ({{len .Findings}})</h2>
+<table><tr><th>Severity</th><th>Category</th><th>Title</th><th>Detail</th></tr>
+{{range .Findings}}<tr><td class="sev-{{.Severity}}">{{.Severity}}</td><td>{{.Category}}</td><td>{{.Title}}</td><td>{{.Detail}}</td></tr>
+{{end}}</table>{{end}}
+
+{{if .Res.Files}}<h2>Files transferred</h2>
+<table><tr><th>Filename</th><th>Type</th><th>Size</th><th>SHA256</th><th>YARA</th></tr>
+{{range .Res.Files}}<tr><td>{{.Filename}}</td><td>{{.Magic}}</td><td>{{.Size}}</td><td><code>{{.SHA256}}</code></td><td class="sev-high">{{range .Yara}}{{.}} {{end}}</td></tr>
+{{end}}</table>{{end}}
+
+{{if .Res.IOCs.IPs}}<h2>Indicators of compromise</h2>
+<p class="muted">IPs</p><p><code>{{range .Res.IOCs.IPs}}{{.}} {{end}}</code></p>
+{{if .Res.IOCs.Domains}}<p class="muted">Domains</p><p><code>{{range .Res.IOCs.Domains}}{{.}} {{end}}</code></p>{{end}}{{end}}
+
+<hr style="margin-top:28px;border:none;border-top:1px solid #eee">
+<div class="muted">Generated by AnalysisHub — Network Traffic Analysis. Deterministic engine (Suricata + Zeek + behavioural detection){{if eq .Scan.AutoSummaryKind "ai"}} with AI-assisted summary{{end}}.</div>
+</body></html>`))

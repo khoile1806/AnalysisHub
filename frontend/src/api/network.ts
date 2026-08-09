@@ -9,11 +9,14 @@ export interface NetAlert { signature: string; category: string; severity: numbe
 export interface NetDNS { query: string; type: string; src: string; rcode?: string; answers?: string[] }
 export interface NetTLS { sni: string; ja3: string; ja3s: string; subject: string; issuer: string; version: string; dst: string }
 export interface NetHTTP { host: string; url: string; method: string; ua: string; status: number; dst: string }
-export interface NetFile { filename: string; magic: string; size: number; sha256: string; md5: string; src: string; dst: string; yara?: string[] }
+export interface NetFile { filename: string; magic: string; size: number; sha256: string; md5: string; src: string; dst: string; yara?: string[]; decrypted?: boolean }
+export interface NetFronting { sni: string; host: string; src: string; dst: string }
 export interface NetGraphNode { id: string; kind: string }
 export interface NetGraphEdge { src: string; dst: string; proto: string; bytes: number; flows: number; ports: string[] }
 export interface NetProtoStat { name: string; level: number; frames: number; bytes: number }
 export interface NetConversation { a: string; b: string; a_internal: boolean; first_seen?: string; last_seen?: string; count: number; bytes: number; protos?: string[]; ports?: string[] }
+export interface NetTimelineBucket { t: number; packets: number; bytes: number; flows: number }
+export interface NetTimeline { start_ts: string; duration_sec: number; bucket_sec: number; buckets: NetTimelineBucket[] }
 export interface NetGeo { asn: string; cc: string; org: string }
 export interface NetZeekNotice { note: string; msg: string; sub: string; src: string; dst: string }
 export interface NetZeekFile { tx: string; rx: string; source: string; mime: string; filename: string; sha256: string; md5: string; bytes: number }
@@ -41,8 +44,11 @@ export interface NetworkResult {
   files?: NetFile[]
   protocols?: NetProtoStat[]
   conversations?: NetConversation[]
+  timeline?: NetTimeline
   zeek?: NetZeek
   geo?: Record<string, NetGeo>
+  decrypted_http?: NetHTTP[]
+  domain_fronting?: NetFronting[]
   graph?: { nodes: NetGraphNode[]; edges: NetGraphEdge[] }
   iocs?: { ips: string[]; domains: string[] }
   max_severity?: number
@@ -105,11 +111,12 @@ export function nsafeParse<T>(raw?: string): T | null {
 }
 
 export const networkApi = {
-  analyze: async (file: File, caseId?: string): Promise<{ scan_id: string }> => {
+  analyze: async (file: File, caseId?: string, keylog?: File | null): Promise<{ scan_id: string; decrypt?: boolean }> => {
     const fd = new FormData()
     fd.append('file', file)
     if (caseId) fd.append('case_id', caseId)
-    const { data } = await apiClient.post<ApiResponse<{ scan_id: string }>>('/network/analyze', fd, {
+    if (keylog) fd.append('keylog', keylog)
+    const { data } = await apiClient.post<ApiResponse<{ scan_id: string; decrypt?: boolean }>>('/network/analyze', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     return data.data
@@ -141,6 +148,12 @@ export const networkApi = {
   analyzeInMalware: async (id: string, sha: string): Promise<{ malware_scan_id: string }> => {
     const { data } = await apiClient.post<ApiResponse<{ malware_scan_id: string }>>(`/network/${id}/files/${sha}/analyze-malware`)
     return data.data
+  },
+  openReport: async (id: string): Promise<void> => {
+    const res = await apiClient.get(`/network/${id}/report`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(res.data as Blob)
+    window.open(url, '_blank')
+    setTimeout(() => window.URL.revokeObjectURL(url), 60_000)
   },
   remove: async (id: string): Promise<void> => { await apiClient.delete(`/network/${id}`) },
   config: async (): Promise<{ available: boolean; rules: number }> => {

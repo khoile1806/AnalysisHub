@@ -10,6 +10,7 @@ GET  /health                       -> {"ok": true, "suricata": bool, "rules": in
 import base64
 import bisect
 import csv
+import hashlib
 import json
 import os
 import re
@@ -323,6 +324,126 @@ def distil_zeek(d):
     return z
 
 
+# ── TLS decryption (SSLKEYLOG) ───────────────────────────────────────────────
+def sniff_mime(b):
+    """Very small magic sniff for a mime-ish label used on decrypted objects."""
+    if b[:2] == b"MZ":
+        return "application/x-dosexec"
+    if b[:4] == b"\x7fELF":
+        return "application/x-elf"
+    if b[:4] == b"%PDF":
+        return "application/pdf"
+    if b[:4] == b"PK\x03\x04":
+        return "application/zip"
+    if b[:3] == b"\x1f\x8b":
+        return "application/gzip"
+    if b[:4] == b"\x89PNG":
+        return "image/png"
+    if b[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    return "application/octet-stream"
+
+
+def _tshark_fields(pcap, keylog, disp, fields, cap=300):
+    """Run tshark with keylog decryption and a display filter, returning rows of
+    the requested fields (tab-separated)."""
+    cmd = ["tshark", "-r", pcap, "-o", "tls.keylog_file:" + keylog, "-Y", disp,
+           "-T", "fields", "-E", "separator=\t"]
+    for f in fields:
+        cmd += ["-e", f]
+    try:
+        p = subprocess.run(cmd, capture_output=True, timeout=180, text=True)
+    except Exception:
+        return []
+    rows = []
+    for ln in (p.stdout or "").splitlines():
+        if ln.strip():
+            rows.append(ln.split("\t"))
+        if len(rows) >= cap:
+            break
+    return rows
+
+
+def tls_decrypt(pcap, keylog):
+    """Decrypt TLS with the provided SSLKEYLOG and pull out (1) reconstructed
+    HTTP objects (files transferred over HTTPS), (2) the decrypted HTTP requests,
+    and (3) domain-fronting cases (TLS SNI ≠ HTTP Host on the same stream)."""
+    if not shutil.which("tshark"):
+        return {"files": [], "http": [], "fronting": []}
+    d = tempfile.mkdtemp(prefix="tlsdec-")
+    files = []
+    try:
+        objdir = os.path.join(d, "obj")
+        os.makedirs(objdir, exist_ok=True)
+        try:
+            subprocess.run(["tshark", "-r", pcap, "-o", "tls.keylog_file:" + keylog,
+                            "--export-objects", "http," + objdir],
+                           capture_output=True, timeout=ANALYZE_TIMEOUT)
+        except Exception:
+            pass
+        total = 0
+        for root, _dirs, fnames in os.walk(objdir):
+            for name in fnames:
+                fp = os.path.join(root, name)
+                try:
+                    sz = os.path.getsize(fp)
+                except OSError:
+                    continue
+                if sz == 0 or sz > CARVE_MAX_FILE or total + sz > CARVE_MAX_TOTAL:
+                    continue
+                try:
+                    data = open(fp, "rb").read()
+                except OSError:
+                    continue
+                total += sz
+                files.append({"filename": name, "sha256": hashlib.sha256(data).hexdigest(),
+                              "size": sz, "mime": sniff_mime(data), "yara": yara_scan(fp),
+                              "b64": base64.b64encode(data).decode("ascii")})
+                if len(files) >= CARVE_MAX_FILES:
+                    break
+
+        # Decrypted HTTP requests — HTTP/1.1 AND HTTP/2 (HTTPS is usually h2).
+        http = []
+        for c in _tshark_fields(pcap, keylog, "http.request or http2.headers.method",
+                                ["ip.src", "ip.dst", "tcp.dstport", "http.request.method",
+                                 "http.host", "http.request.uri", "http.user_agent",
+                                 "http2.headers.method", "http2.headers.authority", "http2.headers.path"]):
+            c = (c + [""] * 10)[:10]
+            method = c[3] or c[7]
+            host = c[4] or c[8]
+            url = c[5] or c[9]
+            if not method and not host:
+                continue
+            http.append({"src": c[0], "dst": c[1], "dport": c[2], "method": method,
+                         "host": host, "url": url, "ua": c[6]})
+
+        # Domain fronting: join SNI (per TCP stream) with the decrypted HTTP Host.
+        sni = {}
+        for r in _tshark_fields(pcap, keylog, "tls.handshake.extensions_server_name",
+                                ["tcp.stream", "tls.handshake.extensions_server_name", "ip.dst"]):
+            if len(r) >= 2 and r[0] and r[1]:
+                sni[r[0]] = (r[1], r[2] if len(r) > 2 else "")
+        fronting = []
+        seen_front = set()
+        for r in _tshark_fields(pcap, keylog, "http.host or http2.headers.authority",
+                                ["tcp.stream", "http.host", "http2.headers.authority", "ip.src", "ip.dst"]):
+            r = (r + [""] * 5)[:5]
+            host = (r[1] or r[2]).lower()
+            if not r[0] or r[0] not in sni or not host:
+                continue
+            s = sni[r[0]][0].lower()
+            if s and host and s != host and not host.endswith("." + s) and not s.endswith("." + host):
+                key = s + "|" + host
+                if key in seen_front:
+                    continue
+                seen_front.add(key)
+                fronting.append({"sni": sni[r[0]][0], "host": (r[1] or r[2]),
+                                 "src": r[3], "dst": r[4]})
+        return {"files": files, "http": http[:300], "fronting": fronting[:50]}
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
 def distil_eve(path):
     """Parse eve.json (NDJSON) into a compact summary + a host-flow graph."""
     flows, alerts, dns, tls, http, files = [], [], [], [], [], []
@@ -478,6 +599,12 @@ def analyze():
     pcap = os.path.join(tmp, "capture.pcap")
     out = os.path.join(tmp, "out")
     os.makedirs(out, exist_ok=True)
+    # Optional SSLKEYLOG for decrypting TLS.
+    keylog = None
+    kf = request.files.get("keylog")
+    if kf is not None:
+        keylog = os.path.join(tmp, "keys.log")
+        kf.save(keylog)
     try:
         f.save(pcap)
         if os.path.getsize(pcap) == 0:
@@ -495,6 +622,23 @@ def analyze():
         if zdir:
             shutil.rmtree(zdir, ignore_errors=True)
         result["geo"] = geo_enrich(result.get("iocs", {}).get("ips", []))
+
+        # TLS decryption (when a keylog was supplied): pull decrypted files into the
+        # carve pipeline + surface decrypted HTTP and domain-fronting.
+        if keylog and os.path.exists(keylog) and os.path.getsize(keylog) > 0:
+            dec = tls_decrypt(pcap, keylog)
+            result["decrypted_http"] = dec["http"]
+            result["domain_fronting"] = dec["fronting"]
+            have = {c["sha256"] for c in result["carved"]}
+            for df in dec["files"]:
+                if df["sha256"] in have:
+                    continue
+                have.add(df["sha256"])
+                result["carved"].append({"sha256": df["sha256"], "size": df["size"],
+                                         "yara": df["yara"], "b64": df["b64"]})
+                result["files"].append({"filename": df["filename"], "magic": df["mime"],
+                                        "size": df["size"], "sha256": df["sha256"], "md5": "",
+                                        "src": "", "dst": "", "decrypted": True})
         return jsonify(result)
     except Exception as e:
         return jsonify(error=str(e)), 200

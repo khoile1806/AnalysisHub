@@ -45,12 +45,24 @@ type NetworkResult struct {
 		Domains []string `json:"domains"`
 	} `json:"iocs"`
 	MaxSeverity   int                `json:"max_severity"`
-	Protocols     []ProtoStat        `json:"protocols,omitempty"`     // tshark protocol hierarchy
-	Conversations []Conversation     `json:"conversations,omitempty"` // host↔host aggregation
-	Zeek          *ZeekResult        `json:"zeek,omitempty"`          // deep protocol logs (Zeek)
-	Geo           map[string]GeoInfo `json:"geo,omitempty"`           // external IP → ASN/country
-	Carved        []CarvedFile       `json:"carved,omitempty"`        // reconstructed files (base64), stripped after saving
+	Protocols     []ProtoStat        `json:"protocols,omitempty"`       // tshark protocol hierarchy
+	Conversations []Conversation     `json:"conversations,omitempty"`   // host↔host aggregation
+	Timeline      *TimelineData      `json:"timeline,omitempty"`        // traffic over time
+	Zeek          *ZeekResult        `json:"zeek,omitempty"`            // deep protocol logs (Zeek)
+	Geo           map[string]GeoInfo `json:"geo,omitempty"`             // external IP → ASN/country
+	DecryptedHTTP []HTTPRec          `json:"decrypted_http,omitempty"`  // HTTP requests decrypted from TLS via keylog
+	DomainFront   []FrontingRec      `json:"domain_fronting,omitempty"` // TLS SNI ≠ HTTP Host
+	Carved        []CarvedFile       `json:"carved,omitempty"`          // reconstructed files (base64), stripped after saving
 	Error         string             `json:"error,omitempty"`
+}
+
+// FrontingRec is a domain-fronting case: the TLS SNI presented on the wire
+// differs from the (decrypted) HTTP Host actually requested.
+type FrontingRec struct {
+	SNI  string `json:"sni"`
+	Host string `json:"host"`
+	Src  string `json:"src"`
+	Dst  string `json:"dst"`
 }
 
 // GeoInfo is the ASN/country enrichment for one external IP (iptoasn dataset).
@@ -194,14 +206,15 @@ type HTTPRec struct {
 	Dst    string `json:"dst"`
 }
 type FileRec struct {
-	Filename string   `json:"filename"`
-	Magic    string   `json:"magic"`
-	Size     int64    `json:"size"`
-	SHA256   string   `json:"sha256"`
-	MD5      string   `json:"md5"`
-	Src      string   `json:"src"`
-	Dst      string   `json:"dst"`
-	Yara     []string `json:"yara,omitempty"` // YARA matches on the reconstructed file
+	Filename  string   `json:"filename"`
+	Magic     string   `json:"magic"`
+	Size      int64    `json:"size"`
+	SHA256    string   `json:"sha256"`
+	MD5       string   `json:"md5"`
+	Src       string   `json:"src"`
+	Dst       string   `json:"dst"`
+	Yara      []string `json:"yara,omitempty"`      // YARA matches on the reconstructed file
+	Decrypted bool     `json:"decrypted,omitempty"` // reconstructed from decrypted TLS
 }
 type Graph struct {
 	Nodes []GraphNode `json:"nodes"`
@@ -297,7 +310,7 @@ func netSteps() []ChainStep {
 // Analyze runs the full pcap pipeline for an already-persisted scan row. When a
 // non-nil AI client is passed it also auto-writes a narrative summary; otherwise
 // a deterministic summary is produced.
-func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, filename string, client ai.Client, maxTokens int) {
+func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, filename string, keylog []byte, client ai.Client, maxTokens int) {
 	e.sem <- struct{}{}
 	defer func() { <-e.sem }()
 	defer func() {
@@ -317,7 +330,7 @@ func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, fil
 	e.db.Model(&scan).Update("status", "running")
 	e.mark(&scan, &steps, "suricata", "running", "")
 
-	res, err := e.callSidecar(ctx, filename, data)
+	res, err := e.callSidecar(ctx, filename, data, keylog)
 	if err != nil {
 		e.fail(&scan, &steps, "suricata", err.Error())
 		return
@@ -327,6 +340,7 @@ func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, fil
 	carvedFindings := e.saveCarved(scanID, scan.CaseID, res)
 	res.Carved = nil
 	res.Conversations = buildConversations(res) // host↔host aggregation for the UI + summary
+	res.Timeline = buildTimeline(res)           // traffic-over-time series
 
 	resJSON, _ := json.Marshal(res)
 	scan.Result = string(resJSON)
@@ -340,8 +354,9 @@ func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, fil
 	findings, _ := e.buildFindings(ctx, res) // Suricata signatures + reputation
 	behavior, _ := analyzeBehavior(res)      // beaconing, exfil, TLS/DNS anomalies
 	findings = append(findings, behavior...)
-	findings = append(findings, e.intelFindings(res)...) // JA3 blocklist + IOC store
-	findings = append(findings, zeekFindings(res)...)    // Zeek notices + TLS validation
+	findings = append(findings, e.intelFindings(res)...)  // JA3 blocklist + IOC store
+	findings = append(findings, zeekFindings(res)...)     // Zeek notices + TLS validation
+	findings = append(findings, frontingFindings(res)...) // domain fronting (decrypted)
 	findings = append(findings, carvedFindings...)
 	c2 := countC2(findings)
 	scan.C2Count = c2
@@ -369,7 +384,7 @@ func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, fil
 	})
 }
 
-func (e *Engine) callSidecar(ctx context.Context, filename string, data []byte) (*NetworkResult, error) {
+func (e *Engine) callSidecar(ctx context.Context, filename string, data, keylog []byte) (*NetworkResult, error) {
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	fw, err := w.CreateFormFile("file", filename)
@@ -378,6 +393,11 @@ func (e *Engine) callSidecar(ctx context.Context, filename string, data []byte) 
 	}
 	if _, err := fw.Write(data); err != nil {
 		return nil, err
+	}
+	if len(keylog) > 0 {
+		if kw, kerr := w.CreateFormFile("keylog", "keys.log"); kerr == nil {
+			_, _ = kw.Write(keylog)
+		}
 	}
 	w.Close()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.sidecar+"/analyze", &body)

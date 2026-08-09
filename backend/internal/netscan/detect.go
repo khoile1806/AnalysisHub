@@ -316,6 +316,77 @@ func (e *Engine) intelFindings(res *NetworkResult) []NetworkFinding {
 	return out
 }
 
+// TimelineBucket is traffic volume in one time slice of the capture.
+type TimelineBucket struct {
+	T       int   `json:"t"` // offset seconds from capture start
+	Packets int64 `json:"packets"`
+	Bytes   int64 `json:"bytes"`
+	Flows   int   `json:"flows"`
+}
+
+// TimelineData is the per-time-bucket traffic series (bucketed by flow start),
+// so bursts and beaconing are visible over the capture's timeline.
+type TimelineData struct {
+	StartTS     string           `json:"start_ts"`
+	DurationSec int              `json:"duration_sec"`
+	BucketSec   int              `json:"bucket_sec"`
+	Buckets     []TimelineBucket `json:"buckets"`
+}
+
+func buildTimeline(res *NetworkResult) *TimelineData {
+	var mn, mx time.Time
+	have := false
+	for _, f := range res.Flows {
+		if t, ok := parseSuriTime(f.Start); ok {
+			if !have || t.Before(mn) {
+				mn = t
+			}
+			if !have || t.After(mx) {
+				mx = t
+			}
+			have = true
+		}
+		if t, ok := parseSuriTime(f.End); ok && t.After(mx) {
+			mx = t
+		}
+	}
+	if !have {
+		return nil
+	}
+	span := mx.Sub(mn).Seconds()
+	if span < 1 {
+		span = 1
+	}
+	n := 48
+	bucketSec := span / float64(n)
+	if bucketSec < 1 {
+		bucketSec = 1
+		n = int(span) + 1
+	}
+	buckets := make([]TimelineBucket, n)
+	for i := range buckets {
+		buckets[i].T = int(float64(i) * bucketSec)
+	}
+	for _, f := range res.Flows {
+		t, ok := parseSuriTime(f.Start)
+		if !ok {
+			continue
+		}
+		idx := int(t.Sub(mn).Seconds() / bucketSec)
+		if idx < 0 {
+			idx = 0
+		}
+		if idx >= n {
+			idx = n - 1
+		}
+		buckets[idx].Bytes += f.Bytes
+		buckets[idx].Packets += f.Pkts
+		buckets[idx].Flows++
+	}
+	return &TimelineData{StartTS: mn.UTC().Format("2006-01-02 15:04:05"),
+		DurationSec: int(span), BucketSec: int(bucketSec), Buckets: buckets}
+}
+
 // Conversation is one host-to-host relationship over the capture: who initiated,
 // when it started/ended, how many flows, how many bytes, and over what protocols.
 type Conversation struct {
@@ -401,6 +472,19 @@ func sortedKeys(m map[string]bool) []string {
 	sort.Strings(out)
 	if len(out) > 10 {
 		out = out[:10]
+	}
+	return out
+}
+
+// frontingFindings flags domain-fronting: the TLS SNI on the wire differs from
+// the decrypted HTTP Host — a classic C2 / censorship-evasion technique.
+func frontingFindings(res *NetworkResult) []NetworkFinding {
+	var out []NetworkFinding
+	for _, f := range res.DomainFront {
+		out = append(out, NetworkFinding{Severity: "high", Category: "tls", Source: "domain-fronting",
+			Title:     "Domain fronting: SNI ≠ Host",
+			Detail:    fmt.Sprintf("TLS SNI %q but HTTP Host %q on %s→%s", sanitizeLine(f.SNI), sanitizeLine(f.Host), f.Src, f.Dst),
+			Indicator: f.Dst})
 	}
 	return out
 }
