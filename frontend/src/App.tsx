@@ -35,6 +35,7 @@ const OfflineBundlesPage = lazy(() => import('@/pages/OfflineBundles'))
 const PlaybooksPage = lazy(() => import('@/pages/Playbooks'))
 const SandboxAnalysisPage = lazy(() => import('@/pages/SandboxAnalysis'))
 const MalwareAnalysisPage = lazy(() => import('@/pages/MalwareAnalysis'))
+const NetworkAnalysisPage = lazy(() => import('@/pages/NetworkAnalysis'))
 const RecipePage = lazy(() => import('@/pages/Recipe'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -198,6 +199,16 @@ export default function App() {
             <ChunkErrorBoundary>
               <Suspense fallback={<PageFallback />}>
                 <MalwareAnalysisPage />
+              </Suspense>
+            </ChunkErrorBoundary>
+          }
+        />
+        <Route
+          path="/network-analysis"
+          element={
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <NetworkAnalysisPage />
               </Suspense>
             </ChunkErrorBoundary>
           }

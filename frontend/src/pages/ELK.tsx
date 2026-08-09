@@ -24,7 +24,8 @@ import {
 } from 'lucide-react'
 import { JsonViewer } from '@/components/JsonViewer'
 import { getErrorMessage } from '@/lib/utils'
-import { logsearchApi, LogIngestJob, LogIndex, ELKStatus, type SigmaOfflineResult } from '@/api/logsearch'
+import { logsearchApi, LogIngestJob, LogIndex, ELKStatus, type AutoShutdown, type SigmaOfflineResult } from '@/api/logsearch'
+import { useKeepalive } from '@/hooks/useKeepalive'
 import { casesApi } from '@/api/cases'
 import { SigmaAlertRow } from '@/components/Agent/EvtxViewer'
 
@@ -35,6 +36,7 @@ type TabType = 'hunt' | 'ingest' | 'connections'
 // ---------------------------------------------------------------------------
 export default function ELKHuntingPage() {
   const [activeTab, setActiveTab] = useState<TabType>('hunt')
+  useKeepalive('elk') // keep ELK alive / auto-start while this page is open
 
   const tabs: { id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'hunt',        label: 'Threat Hunt',   icon: Search },
@@ -567,6 +569,16 @@ function SummaryList({ title, items, mono }: { title: string; items: { key: stri
   )
 }
 
+// autoShutdownLabel renders the idle-shutdown countdown for the power card header.
+function autoShutdownLabel(a: AutoShutdown | undefined, running: boolean): string {
+  if (!a || !a.enabled) return 'stop when idle to free RAM'
+  if (a.manual_off) return 'auto-shutdown paused (stopped by admin)'
+  if (!running) return 'auto-starts on demand'
+  if (a.stops_in_sec == null) return `auto-stops after ${Math.round(a.timeout_sec / 60)}m idle`
+  const s = a.stops_in_sec
+  return s <= 0 ? 'auto-stopping…' : `auto-stops in ${Math.floor(s / 60)}m ${s % 60}s (idle)`
+}
+
 // ELKPowerCard — start/stop the built-in ES+Kibana containers to free RAM when
 // idle. When in-app control is disabled it degrades to a status + manual hint.
 function ELKPowerCard({ elk, esUp, onPower, pending }: {
@@ -590,7 +602,7 @@ function ELKPowerCard({ elk, esUp, onPower, pending }: {
       <div className="flex items-center gap-2 mb-3">
         <Power className={`h-4 w-4 ${anyRunning ? 'text-emerald-500' : 'text-gray-500'}`} />
         <h3 className="font-semibold text-gray-100 text-sm">ELK system</h3>
-        <span className="ml-auto text-xs text-gray-500">stop when idle to free RAM</span>
+        <span className="ml-auto text-xs text-gray-500">{autoShutdownLabel(elk?.auto_shutdown, anyRunning)}</span>
       </div>
 
       <div className="flex items-center gap-6 text-xs text-gray-300 mb-3">

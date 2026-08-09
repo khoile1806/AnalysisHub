@@ -104,6 +104,11 @@ type Config struct {
 	// archive member) in MB. Held in memory for static extraction, so raising it
 	// raises peak memory per analysis. Default 1024 (1 GB).
 	MalwareMaxUploadMB int
+	// NetAnalyzerURL points at the Suricata pcap-analysis sidecar. Empty → the
+	// feature self-disables (upload returns "not configured").
+	NetAnalyzerURL string
+	// NetworkMaxUploadMB caps an uploaded pcap (held while streamed to the sidecar).
+	NetworkMaxUploadMB int
 	// MalwareBazaarKey is an optional abuse.ch MalwareBazaar Auth-Key for hash
 	// lookups (only the hash is sent, never the file). Empty still works against
 	// open deployments; skipped entirely in local-only mode.
@@ -280,6 +285,15 @@ type Config struct {
 	// LogSearchRetentionDays is how many days ingested hunt-* logs are kept before
 	// ILM deletes them (protects RAM/disk on a long-running box). 0 = keep forever.
 	LogSearchRetentionDays int
+
+	// Idle auto-shutdown: the ELK (ES+Kibana) and Sandbox (volatility) containers
+	// are RAM-heavy but only needed intermittently. When enabled, a background
+	// reaper stops them after they go unused for the configured number of minutes;
+	// they auto-start again on demand (the analyst opening the page) or via the
+	// admin toggle. Needs DockerAPIURL to be set (same scoped proxy as the toggle).
+	IdlePowerEnabled      bool // master switch (default true)
+	ELKIdleTimeoutMin     int  // stop ELK after N idle minutes (default 3; 0 = never)
+	SandboxIdleTimeoutMin int  // stop the sandbox after N idle minutes (default 3; 0 = never)
 }
 
 // Insecure placeholder secrets. Booting in production with any of these is
@@ -332,6 +346,8 @@ func Load() *Config {
 		MalwareYaraRules:         getEnv("MALWARE_YARA_RULES", "/app/yara-rules"),
 		MalwareMaxUploadMB:       getEnvInt("MALWARE_MAX_UPLOAD_MB", 1024),
 		MalwareBazaarKey:         getEnv("MALWARE_BAZAAR_KEY", ""),
+		NetAnalyzerURL:           getEnv("NET_ANALYZER_URL", ""),
+		NetworkMaxUploadMB:       getEnvInt("NETWORK_MAX_UPLOAD_MB", 512),
 		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),
 		OsintPortScanConcurrency: getEnvInt("OSINT_PORTSCAN_CONCURRENCY", 800),
 		OsintPortScanMaxHosts:    getEnvInt("OSINT_PORTSCAN_MAX_HOSTS", 2),
@@ -355,6 +371,9 @@ func Load() *Config {
 		LogSearchKibanaURL:       getEnv("LOGSEARCH_KIBANA_URL", ""),
 		DockerAPIURL:             getEnv("DOCKER_API_URL", ""),
 		LogSearchRetentionDays:   getEnvInt("LOGSEARCH_RETENTION_DAYS", 30),
+		IdlePowerEnabled:         getEnv("IDLE_POWER_ENABLED", "true") == "true",
+		ELKIdleTimeoutMin:        getEnvInt("ELK_IDLE_TIMEOUT_MIN", 3),
+		SandboxIdleTimeoutMin:    getEnvInt("SANDBOX_IDLE_TIMEOUT_MIN", 3),
 
 		OOBEnabled:    getEnv("OOB_ENABLED", "false") == "true",
 		OOBDomain:     strings.ToLower(strings.TrimSuffix(getEnv("OOB_DOMAIN", ""), ".")),

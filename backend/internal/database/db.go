@@ -102,6 +102,8 @@ func Init(dsn string, appEnv string) (*gorm.DB, error) {
 		&models.VulnTool{},
 		&models.VulnFinding{},
 		&models.MalwareScan{},
+		&models.MalwareCapeConfig{},
+		&models.NetworkScan{},
 		&models.ProxyProfile{},
 		&models.ProxyFlow{},
 		&models.ProxyPoolSetting{},

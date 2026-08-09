@@ -46,11 +46,20 @@ export interface ContainerState {
   status: string
 }
 
+export interface AutoShutdown {
+  enabled: boolean
+  timeout_sec: number
+  idle_sec?: number
+  stops_in_sec?: number
+  manual_off?: boolean
+}
+
 export interface ELKStatus {
   control_enabled: boolean
   hint?: string
   elasticsearch?: ContainerState
   kibana?: ContainerState
+  auto_shutdown?: AutoShutdown
 }
 
 export interface LogSearchHealth {
@@ -108,12 +117,18 @@ export const logsearchApi = {
     const { data } = await api.post(`/logsearch/elk/${verb}`)
     return data
   },
-  sandboxStatus: async (): Promise<{ control_enabled: boolean; hint?: string; sandbox?: ContainerState }> => {
+  sandboxStatus: async (): Promise<{ control_enabled: boolean; hint?: string; sandbox?: ContainerState; auto_shutdown?: AutoShutdown }> => {
     const { data } = await api.get('/logsearch/sandbox/status')
     return data
   },
   sandboxPower: async (verb: 'start' | 'stop'): Promise<{ ok: boolean }> => {
     const { data } = await api.post(`/logsearch/sandbox/${verb}`)
+    return data
+  },
+  // Heartbeat that keeps a managed service alive while its page is open and
+  // auto-starts it on demand. svc = 'elk' | 'sandbox'.
+  keepalive: async (svc: 'elk' | 'sandbox'): Promise<{ ok: boolean; starting?: boolean; manual_off?: boolean }> => {
+    const { data } = await api.post(`/logsearch/keepalive/${svc}`)
     return data
   },
   upload: async (

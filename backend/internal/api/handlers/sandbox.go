@@ -85,6 +85,7 @@ func NewSandboxHandler(targetURL string) (*SandboxHandler, error) {
 // Proxy streams the request (HTTP assets + WebSocket) to ttyd. It must be
 // mounted behind SandboxAuth.
 func (h *SandboxHandler) Proxy(c *gin.Context) {
+	markSandboxActivity() // reset the idle-shutdown timer while the terminal is in use
 	h.proxy.ServeHTTP(c.Writer, c.Request)
 }
 

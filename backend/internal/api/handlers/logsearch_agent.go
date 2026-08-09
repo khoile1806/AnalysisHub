@@ -104,6 +104,7 @@ func (h *LogSearchHandler) CollectLogs(c *gin.Context) {
 // One log file collected by an agent. Form fields: file, host, os, channel,
 // case, log_type, timezone.
 func (h *LogSearchHandler) AgentIngest(c *gin.Context) {
+	markELKActivity() // agent pushing logs keeps ELK alive
 	agentID, _ := c.Get(middleware.ContextAgentID)
 	var agent models.Agent
 	if idStr, ok := agentID.(string); ok {

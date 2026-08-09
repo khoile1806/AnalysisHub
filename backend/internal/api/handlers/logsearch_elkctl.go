@@ -107,6 +107,7 @@ func (h *LogSearchHandler) ELKStatus(c *gin.Context) {
 	client := dockerHTTP()
 	out["elasticsearch"] = h.inspect(client, elkESContainer)
 	out["kibana"] = h.inspect(client, elkKibanaContainer)
+	out["auto_shutdown"] = h.autoShutdownInfo(svcELK)
 	c.JSON(http.StatusOK, out)
 }
 
@@ -120,6 +121,7 @@ func (h *LogSearchHandler) SandboxStatus(c *gin.Context) {
 		return
 	}
 	out["sandbox"] = h.inspect(dockerHTTP(), sandboxContainer)
+	out["auto_shutdown"] = h.autoShutdownInfo(svcSandbox)
 	c.JSON(http.StatusOK, out)
 }
 
@@ -138,6 +140,12 @@ func (h *LogSearchHandler) SandboxPower(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
+	// A manual STOP is respected by the reaper/keepalive (no auto-start until the
+	// admin starts it again); a manual START clears that and resets the idle timer.
+	idleState.mu.Lock()
+	idleState.sandbox.manualOff = verb == "stop"
+	idleState.sandbox.last = time.Now()
+	idleState.mu.Unlock()
 	c.JSON(http.StatusOK, gin.H{"ok": true, "verb": verb})
 }
 
@@ -171,5 +179,9 @@ func (h *LogSearchHandler) ELKPower(c *gin.Context) {
 	if verb == "start" && h.KibanaURL != "" {
 		go logsearch.EnsureKibanaDataView(h.KibanaURL)
 	}
+	idleState.mu.Lock()
+	idleState.elk.manualOff = verb == "stop"
+	idleState.elk.last = time.Now()
+	idleState.mu.Unlock()
 	c.JSON(http.StatusOK, gin.H{"ok": true, "verb": verb})
 }

@@ -266,13 +266,17 @@ func NewRouter(
 			handlers.ReconcileStalledJobs(db)
 			go logsearch.EnsureKibanaDataView(cfg.LogSearchKibanaURL)
 			ls := handlers.NewLogSearchHandler(db, store, handlers.LogSearchConfig{
-				ESURL:         cfg.LogSearchESURL,
-				KibanaURL:     cfg.LogSearchKibanaURL,
-				DockerAPIURL:  cfg.DockerAPIURL,
-				RetentionDays: cfg.LogSearchRetentionDays,
-				Enricher:      enrich,
-				Hub:           hub,
+				ESURL:                 cfg.LogSearchESURL,
+				KibanaURL:             cfg.LogSearchKibanaURL,
+				DockerAPIURL:          cfg.DockerAPIURL,
+				RetentionDays:         cfg.LogSearchRetentionDays,
+				Enricher:              enrich,
+				Hub:                   hub,
+				IdlePowerEnabled:      cfg.IdlePowerEnabled,
+				ELKIdleTimeoutMin:     cfg.ELKIdleTimeoutMin,
+				SandboxIdleTimeoutMin: cfg.SandboxIdleTimeoutMin,
 			})
+			ls.StartIdlePowerWorker()
 			protected.GET("/logsearch/meta", ls.Meta)
 			protected.GET("/logsearch/health", ls.Health)
 			protected.GET("/logsearch/summary", ls.Summary)
@@ -300,6 +304,9 @@ func NewRouter(
 			// Volatility/Kali sandbox power toggle (same docker-proxy mechanism).
 			protected.GET("/logsearch/sandbox/status", ls.SandboxStatus)
 			protected.POST("/logsearch/sandbox/:verb", middleware.RequireAdmin(), ls.SandboxPower)
+			// Idle keepalive / auto-start: the ELK & Sandbox pages heartbeat here so
+			// the container stays up while in use and auto-starts on open.
+			protected.POST("/logsearch/keepalive/:svc", ls.Keepalive)
 		}
 
 		// Splunk Hunt
@@ -534,6 +541,9 @@ func NewRouter(
 		// the handler — the upload is, by definition, potentially malicious.
 		malwareHandler := handlers.NewMalwareHandler(db, store, cfg, enrich, aiHandler)
 		protected.GET("/malware/config", malwareHandler.Config)
+		protected.GET("/malware/cape-config", malwareHandler.GetCapeConfig)
+		protected.PUT("/malware/cape-config", malwareHandler.PutCapeConfig)
+		protected.POST("/malware/cape-config/test", malwareHandler.TestCapeConfig)
 		protected.POST("/malware/analyze", malwareHandler.Analyze)
 		protected.GET("/malware", malwareHandler.List)
 		protected.GET("/malware/:id", malwareHandler.Get)
@@ -542,6 +552,20 @@ func NewRouter(
 		protected.GET("/malware/:id/diff/:other", malwareHandler.Diff)
 		protected.POST("/malware/:id/retrohunt", malwareHandler.RetroHunt)
 		protected.DELETE("/malware/:id", malwareHandler.Delete)
+
+		// Network-traffic (PCAP) analysis via the Suricata sidecar.
+		networkHandler := handlers.NewNetworkHandler(db, store, cfg, enrich, aiHandler, malwareHandler)
+		protected.GET("/network/config", networkHandler.Config)
+		protected.POST("/network/analyze", networkHandler.Analyze)
+		protected.GET("/network", networkHandler.List)
+		protected.GET("/network/:id", networkHandler.Get)
+		protected.POST("/network/:id/ai-analyze", networkHandler.AIAnalyze)
+		// Carved-file inspection: preview (type/hex/strings), download, and pivot
+		// into Malware Analysis. Admin-gated in the handlers.
+		protected.GET("/network/:id/files/:sha/preview", networkHandler.PreviewCarvedFile)
+		protected.GET("/network/:id/files/:sha/download", networkHandler.DownloadCarvedFile)
+		protected.POST("/network/:id/files/:sha/analyze-malware", networkHandler.AnalyzeCarvedInMalware)
+		protected.DELETE("/network/:id", networkHandler.Delete)
 
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)

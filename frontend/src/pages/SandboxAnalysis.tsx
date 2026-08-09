@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/auth'
 import { useUiStore } from '@/store/uiStore'
 import { logsearchApi } from '@/api/logsearch'
+import { useKeepalive } from '@/hooks/useKeepalive'
 import { getErrorMessage } from '@/lib/utils'
 
 interface DumpFile {
@@ -23,6 +24,7 @@ function formatBytes(bytes: number) {
 export default function SandboxAnalysis() {
   const token = useAuthStore(s => s.token)
   const queryClient = useQueryClient()
+  useKeepalive('sandbox') // keep the sandbox alive / auto-start while this page is open
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0) // 0–100, upload %
   const [terminalUrl, setTerminalUrl] = useState<string>('')
@@ -206,9 +208,19 @@ export default function SandboxAnalysis() {
           {/* Sandbox power toggle */}
           {sbx?.control_enabled ? (
             <div className="flex items-center gap-2 mr-1">
-              <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="flex items-center gap-1.5 text-xs text-gray-400" title={
+                sbx?.auto_shutdown?.enabled
+                  ? (sbx.auto_shutdown.manual_off ? 'auto-shutdown paused (stopped by admin)'
+                     : sbxRunning && sbx.auto_shutdown.stops_in_sec != null
+                       ? `auto-stops in ${Math.floor(sbx.auto_shutdown.stops_in_sec / 60)}m ${sbx.auto_shutdown.stops_in_sec % 60}s (idle)`
+                       : 'auto-starts on demand, stops when idle')
+                  : undefined
+              }>
                 <Power className={`h-3.5 w-3.5 ${sbxRunning ? 'text-emerald-400' : 'text-gray-500'}`} />
                 {sbxRunning ? 'running' : 'stopped'}
+                {sbx?.auto_shutdown?.enabled && sbxRunning && sbx.auto_shutdown.stops_in_sec != null && !sbx.auto_shutdown.manual_off && (
+                  <span className="text-[10px] text-gray-600">· ⏻ {Math.max(0, Math.floor(sbx.auto_shutdown.stops_in_sec / 60))}m</span>
+                )}
               </span>
               <button
                 disabled={sbxRunning || sbxPowerMut.isPending}

@@ -196,6 +196,8 @@ services:
       # Local malware dynamic analysis via the emulator sidecar (no CAPE/VM). Points
       # at the internal service; the feature self-disables if the service is down.
       - MALWARE_EMULATOR_URL=${MALWARE_EMULATOR_URL:-http://malware_emulator:8091}
+      # Network-traffic (pcap) analysis sidecar — Suricata offline mode.
+      - NET_ANALYZER_URL=${NET_ANALYZER_URL:-http://net_analyzer:8092}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@analysishub.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
       - PUBLIC_URL=${PUBLIC_URL:-}
@@ -229,6 +231,13 @@ services:
       # free their RAM when idle. Auto-enabled when this points at a reachable
       # proxy; set empty to hide the toggle (falls back to a manual command).
       - DOCKER_API_URL=${DOCKER_API_URL:-http://docker_socket_proxy:2375}
+      # Idle auto-shutdown for the RAM-heavy ELK + Sandbox containers: they boot
+      # with the stack and stop themselves after this many idle minutes, then
+      # auto-start when an analyst opens the page (needs the docker proxy above).
+      # Set IDLE_POWER_ENABLED=false to keep them always-on.
+      - IDLE_POWER_ENABLED=${IDLE_POWER_ENABLED:-true}
+      - ELK_IDLE_TIMEOUT_MIN=${ELK_IDLE_TIMEOUT_MIN:-3}
+      - SANDBOX_IDLE_TIMEOUT_MIN=${SANDBOX_IDLE_TIMEOUT_MIN:-3}
       # OOB interaction server ("Catch"). Disabled unless OOB_ENABLED=true AND the
       # OOB_DOMAIN zone is delegated to OOB_PUBLIC_IP. See .env.example for setup.
       - OOB_ENABLED=${OOB_ENABLED:-false}
@@ -303,6 +312,19 @@ services:
     # No network egress needed — emulation is entirely local. (Docker has no
     # per-service "disable network" here without a custom network; the service
     # simply never makes outbound calls.)
+    restart: unless-stopped
+
+  # Network-traffic analysis sidecar (Suricata, offline pcap mode). The backend
+  # POSTs an uploaded .pcap; Suricata reads the FILE (no live capture, no raw
+  # caps) and returns flows/DNS/TLS-JA3/HTTP + ET-Open C2 alerts distilled to JSON.
+  # No host port; reached at NET_ANALYZER_URL. Stateless.
+  net_analyzer:
+    build:
+      context: .
+      dockerfile: net-analyzer/Dockerfile
+    container_name: analysishub_net_analyzer
+    expose:
+      - "8092"
     restart: unless-stopped
 
   frontend:

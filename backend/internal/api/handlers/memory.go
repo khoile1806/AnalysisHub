@@ -12,6 +12,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/analysishub/backend/internal/api/middleware"
 )
 
 const memoryDumpDir = "/app/storage/memory_dumps"
@@ -81,7 +84,25 @@ func UploadMemoryDump(c *gin.Context) {
 		return
 	}
 
+	registerMemoryDumpEvidence(c, fileName, file.Size)
 	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "filename": fileName})
+}
+
+// registerMemoryDumpEvidence records a finalized memory dump in the central
+// Evidence Store, so a RAM image (however acquired) is auditable and downloadable
+// only from there (admin-gated + logged). StoredPath is relative to the storage
+// root ("memory_dumps/<file>") — the same volume the Evidence download serves.
+func registerMemoryDumpEvidence(c *gin.Context, fileName string, size int64) {
+	db, ok := mustGetDB(c)
+	if !ok {
+		return
+	}
+	var uid *uuid.UUID
+	if id, ok := middleware.GetUserID(c); ok {
+		uid = &id
+	}
+	writeAudit(c, db, uid, nil, "memory.acquire", fileName, "memory dump registered in Evidence Store")
+	registerExistingEvidence(db, nil, nil, "", "memory-dump", "memory-acquire", fileName, "memory_dumps/"+fileName, size, "")
 }
 
 // UploadMemoryDumpChunk assembles a large memory dump from sequential chunks so
@@ -177,6 +198,7 @@ func UploadMemoryDumpChunk(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "finalize failed: " + err.Error()})
 		return
 	}
+	registerMemoryDumpEvidence(c, filename, info.Size())
 	c.JSON(http.StatusOK, gin.H{"done": true, "filename": filename, "size": info.Size()})
 }
 

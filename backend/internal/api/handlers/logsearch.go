@@ -57,6 +57,11 @@ type LogSearchHandler struct {
 	DockerAPIURL string                    // scoped docker-socket-proxy base URL; empty = toggle off
 	Hub          *ws.Hub                   // agent WS hub — used to trigger agent log collection
 	sem          chan struct{}
+
+	// Idle auto-shutdown policy for the ELK + Sandbox containers.
+	IdlePowerEnabled      bool
+	ELKIdleTimeoutMin     int
+	SandboxIdleTimeoutMin int
 }
 
 // LogSearchConfig carries the wiring the handler needs.
@@ -67,18 +72,25 @@ type LogSearchConfig struct {
 	RetentionDays int
 	Enricher      *threatintel.EnrichClient
 	Hub           *ws.Hub
+
+	IdlePowerEnabled      bool
+	ELKIdleTimeoutMin     int
+	SandboxIdleTimeoutMin int
 }
 
 func NewLogSearchHandler(db *gorm.DB, store *storage.LocalStorage, cfg LogSearchConfig) *LogSearchHandler {
 	return &LogSearchHandler{
-		DB:           db,
-		Store:        store,
-		ES:           logsearch.NewESClient(cfg.ESURL, cfg.RetentionDays),
-		Enricher:     cfg.Enricher,
-		KibanaURL:    cfg.KibanaURL,
-		DockerAPIURL: cfg.DockerAPIURL,
-		Hub:          cfg.Hub,
-		sem:          make(chan struct{}, logIngestConcurrency),
+		DB:                    db,
+		Store:                 store,
+		ES:                    logsearch.NewESClient(cfg.ESURL, cfg.RetentionDays),
+		Enricher:              cfg.Enricher,
+		KibanaURL:             cfg.KibanaURL,
+		DockerAPIURL:          cfg.DockerAPIURL,
+		Hub:                   cfg.Hub,
+		sem:                   make(chan struct{}, logIngestConcurrency),
+		IdlePowerEnabled:      cfg.IdlePowerEnabled,
+		ELKIdleTimeoutMin:     cfg.ELKIdleTimeoutMin,
+		SandboxIdleTimeoutMin: cfg.SandboxIdleTimeoutMin,
 	}
 }
 
@@ -167,6 +179,7 @@ func atoiSafe(s string) int {
 
 // Upload POST /api/v1/logsearch/upload — multipart: case, log_type, case_id?, files[]
 func (h *LogSearchHandler) Upload(c *gin.Context) {
+	markELKActivity() // ingesting logs keeps ELK alive
 	caseName := strings.TrimSpace(c.PostForm("case"))
 	if caseName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "case is required"})
