@@ -29,10 +29,6 @@ import (
 
 const avatarMaxBytes = 4 << 20 // 4 MB cap on a fetched avatar
 
-// avatarMatchMaxDist is the Hamming threshold (out of 64 bits) under which two
-// avatar fingerprints are treated as the same picture.
-const avatarMatchMaxDist = 10
-
 var avatarHTTPClient = &http.Client{Timeout: 10 * time.Second}
 
 // squareBounds returns the centred square sub-rectangle of b, so circular/cropped

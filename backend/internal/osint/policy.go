@@ -43,13 +43,6 @@ var activeCollectors = map[string]bool{
 	"webgrade": true, // GETs the target web root to grade security headers + TLS
 }
 
-// intrusiveCollectors are active collectors whose traffic is unmistakably a scan
-// rather than a normal request. Not used to gate on its own yet, but recorded so
-// the UI can flag the loudest collector.
-var intrusiveCollectors = map[string]bool{
-	"portscan": true,
-}
-
 // ClassOf returns the class of a collector by name.
 func ClassOf(name string) CollectorClass {
 	if activeCollectors[name] {
@@ -57,9 +50,6 @@ func ClassOf(name string) CollectorClass {
 	}
 	return ClassPassive
 }
-
-// IsIntrusiveCollector reports whether a collector performs an unmistakable scan.
-func IsIntrusiveCollector(name string) bool { return intrusiveCollectors[name] }
 
 // ScopeMode is the collector set a scope decision permits.
 type ScopeMode string

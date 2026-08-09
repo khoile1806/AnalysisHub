@@ -128,10 +128,6 @@ func CaptureWebScreenshot(ctx context.Context, rawURL string) ([]byte, error) {
 	return data, nil
 }
 
-// ScreenshotAvailable reports whether a headless browser is installed, so the UI
-// can hide the capture button when it isn't.
-func ScreenshotAvailable() bool { return chromiumBinary() != "" }
-
 // chromiumBinary locates a usable headless-browser binary.
 func chromiumBinary() string {
 	for _, name := range []string{

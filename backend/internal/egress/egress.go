@@ -57,13 +57,6 @@ func SetKillSwitch(on bool) {
 	mu.Unlock()
 }
 
-// KillSwitchOn reports whether the kill-switch is currently armed.
-func KillSwitchOn() bool {
-	mu.RLock()
-	defer mu.RUnlock()
-	return killSwitch
-}
-
 // laneProxies maps a named egress lane ("osint", "vulnscan") to its upstream
 // proxy, so a Proxy Manager profile can drive a specific traffic class without an
 // env var. The default lane uses the global proxyURL, not this map.

@@ -25,12 +25,6 @@ import (
 // the agent caps at 5000 entries before iterating d.Info().
 const fsListTimeout = 30 * time.Second
 
-// fsReadTimeout is how long the backend waits for the first chunk of a
-// read_file / read_folder / read_bundle response. Large directories or files
-// may take time to start streaming, so we give the agent 90 s before giving
-// up. Once streaming has started there is no per-chunk deadline.
-const fsReadTimeout = 90 * time.Second
-
 // ListAgentFS returns the directory listing of <path> on the given agent.
 //
 // GET /api/v1/agents/:id/fs?path=<abs-path>

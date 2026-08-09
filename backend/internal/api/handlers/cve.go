@@ -523,25 +523,6 @@ func nvdStatusError(status int) error {
 	}
 }
 
-// searchNVDByCPE finds CVEs whose applicability ranges include a specific
-// product version, using NVD's virtualMatchString. This is materially more
-// accurate than a keyword search ("nginx 1.18") because NVD resolves it against
-// each CVE's CPE version ranges — so 1.18.0 correctly matches a "< 1.20.1"
-// advisory. cpe23 is a full CPE 2.3 string with a concrete version component.
-func searchNVDByCPE(ctx context.Context, f cveFetch, cpe23 string, limit int) ([]CveSummary, error) {
-	params := url.Values{}
-	params.Set("virtualMatchString", cpe23)
-	params.Set("resultsPerPage", strconv.Itoa(limit))
-	raw, status, err := fetchNVD(ctx, f, params)
-	if err != nil {
-		return nil, err
-	}
-	if status != http.StatusOK {
-		return nil, nvdStatusError(status)
-	}
-	return parseNVDSummaries(raw)
-}
-
 // resolveProductCPE looks up a product name in NVD's CPE dictionary and returns a
 // "cpe:2.3:a:vendor:product" (no version) for the best application match. This lets
 // CVE matching stay CPE-accurate (version-range aware) even when the fingerprinter

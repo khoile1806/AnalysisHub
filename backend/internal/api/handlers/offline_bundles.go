@@ -16,7 +16,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/analysishub/backend/internal/models"
-	"github.com/analysishub/backend/internal/storage"
 )
 
 // offlineBundleTool mirrors the JSON shape written to bundle.json inside
@@ -260,53 +259,6 @@ func GenerateOfflineBundle(c *gin.Context) {
 	writeLauncher(zw, "README.txt", buildReadme(req.Name, req.Platform, req.CaseName, tools))
 
 	log.Printf("[offline-bundle] generated %q (%d tools, platform=%s)", req.Name, len(tools), req.Platform)
-}
-
-// generateSelfExtractingExe streams a single self-contained Windows executable:
-// the pre-built offline-agent stub with a ZIP payload (bundle.json + tools/)
-// appended to it. The agent opens its own file as a ZIP at startup, unpacks the
-// payload to a temp dir, and runs - so the operator just double-clicks ONE .exe,
-// no installer and no loose files. Go's archive/zip locates the appended ZIP's
-// end-of-central-directory from the end of the file, so the leading exe bytes are
-// transparently ignored on read.
-func generateSelfExtractingExe(c *gin.Context, db *gorm.DB, store *storage.LocalStorage,
-	defaultsDir string, manifest offlineBundleManifest, tools []models.Tool, exeName string) {
-	_ = db
-
-	stubPath := filepath.Join(defaultsDir, "agent-offline.exe")
-	stub, err := os.Open(stubPath)
-	if err != nil {
-		log.Printf("[offline-bundle] stub agent-offline.exe not found at %s: %v", stubPath, err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false,
-			"error": "windows offline-agent binary not available on the server (build it with `make build-offline-all` in agent/)"})
-		return
-	}
-	defer stub.Close()
-
-	c.Header("Content-Type", "application/octet-stream")
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, exeName))
-	c.Status(http.StatusOK)
-
-	// 1. Write the agent stub executable.
-	if _, err := io.Copy(c.Writer, stub); err != nil {
-		log.Printf("[offline-bundle] write stub: %v", err)
-		return
-	}
-
-	// 2. Append the bundle payload as a ZIP (continues in the same stream).
-	zw := zip.NewWriter(c.Writer)
-	defer zw.Close()
-	if err := writeJSONEntry(zw, "bundle.json", manifest); err != nil {
-		log.Printf("[offline-bundle] write manifest: %v", err)
-		return
-	}
-	for _, t := range tools {
-		toolPath := store.GetToolPath(t.ID.String() + filepath.Ext(t.FileName))
-		if err := addToolToZip(zw, toolPath, t.ID.String(), t.FileName); err != nil {
-			log.Printf("[offline-bundle] add tool %s: %v", t.Name, err)
-		}
-	}
-	log.Printf("[offline-bundle] generated single-exe %q (%d tools)", exeName, len(tools))
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

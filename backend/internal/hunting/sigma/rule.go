@@ -33,18 +33,6 @@ type Rule struct {
 	filepath string
 }
 
-// LoadRule parses a Sigma YAML file and returns its first rule.
-func LoadRule(path string) (*Rule, error) {
-	rules, err := LoadRules(path)
-	if err != nil {
-		return nil, err
-	}
-	if len(rules) == 0 {
-		return nil, nil
-	}
-	return rules[0], nil
-}
-
 // LoadRules parses a Sigma YAML file, which may hold several documents. Upstream
 // "rule collections" put shared keys in a document marked `action: global` and
 // the per-rule deltas in the ones that follow; decoding only the first document

@@ -120,14 +120,6 @@ func reloadRetireBytes(data []byte) (int, error) {
 // the updater.
 func ReloadRetireFromBytes(data []byte) (int, error) { return reloadRetireBytes(data) }
 
-// RetireLibCount returns how many libraries are currently loaded.
-func RetireLibCount() int {
-	ensureRetire()
-	retireMu.RLock()
-	defer retireMu.RUnlock()
-	return len(retireLibs)
-}
-
 // detectRetireJS scans the page's <script src> URLs against the retire.js database,
 // returning one Technology per matched library with its version and the exact
 // known vulnerabilities affecting that version.
