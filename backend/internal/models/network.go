@@ -6,6 +6,30 @@ import (
 	"github.com/google/uuid"
 )
 
+// NetworkSuricataRule is an operator-managed Suricata ruleset, the network-side
+// twin of MalwareYaraRule. Intel arrives after the capture does, so a ruleset is
+// compile-checked on upload and then replayed over the captures already stored —
+// a rule that only ever applies to future traffic answers the wrong question.
+type NetworkSuricataRule struct {
+	ID      uint   `gorm:"primaryKey"         json:"id"`
+	Name    string `gorm:"not null"           json:"name"`
+	Content string `gorm:"type:text"          json:"content,omitempty"`
+	Enabled bool   `gorm:"default:true;index" json:"enabled"`
+	// SIDs / Msgs are the signature ids and messages declared by the ruleset,
+	// extracted at upload time for the listing.
+	SIDs string `gorm:"type:text" json:"sids,omitempty"` // JSON []string
+	Msgs string `gorm:"type:text" json:"msgs,omitempty"` // JSON []string
+	// Validated records whether Suricata itself accepted the ruleset. A rule that
+	// does not parse is dropped silently at runtime, which reads like clean traffic.
+	Validated bool       `                 json:"validated"`
+	Source    string     `                 json:"source,omitempty"` // upload | paste
+	Note      string     `gorm:"type:text" json:"note,omitempty"`
+	CreatedBy uuid.UUID  `gorm:"type:uuid" json:"created_by"`
+	CreatedAt time.Time  `                 json:"created_at"`
+	UpdatedAt time.Time  `                 json:"updated_at"`
+	HuntedAt  *time.Time `                 json:"hunted_at,omitempty"`
+}
+
 // NetworkScan is one PCAP network-traffic analysis. An uploaded capture is run
 // through the Suricata sidecar (offline mode); the distilled result (flows, DNS,
 // TLS/JA3, HTTP, ET-Open alerts, a host-flow graph) is stored as JSON, and the

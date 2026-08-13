@@ -160,6 +160,10 @@ services:
       dockerfile: backend/Dockerfile
     container_name: analysishub_backend
     user: root
+    # Malware analysis holds each sample's bytes in memory (MALWARE_MAX_UPLOAD_MB,
+    # times the concurrency limit), so the backend needs a bound of its own — an
+    # oversized upload should fail its own analysis, not the whole host.
+    mem_limit: ${BACKEND_MEM:-6g}
     # Publish the backend on a host port so canary links (/c/<slug>) are reachable
     # directly at CANARY_BASE_URL (http://<host>:43888). Container listens on 8080.
     ports:
@@ -196,6 +200,9 @@ services:
       # Local malware dynamic analysis via the emulator sidecar (no CAPE/VM). Points
       # at the internal service; the feature self-disables if the service is down.
       - MALWARE_EMULATOR_URL=${MALWARE_EMULATOR_URL:-http://malware_emulator:8091}
+      # Known-good hash allowlist (NSRL export / golden-image inventory) — clears
+      # heuristic-only verdicts so system binaries are not reported as suspicious.
+      - MALWARE_GOODWARE_LIST=${MALWARE_GOODWARE_LIST:-}
       # Network-traffic (pcap) analysis sidecar — Suricata offline mode.
       - NET_ANALYZER_URL=${NET_ANALYZER_URL:-http://net_analyzer:8092}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@analysishub.local}
@@ -309,6 +316,23 @@ services:
     container_name: analysishub_malware_emulator
     expose:
       - "8091"
+    # A ceiling, not a reservation: capa/FLOSS/radare2 on a large packed binary can
+    # allocate hard, and an OOM inside the sidecar must stay inside the sidecar
+    # rather than take the host down with it.
+    mem_limit: ${MALWARE_EMULATOR_MEM:-4g}
+    environment:
+      # Where ClamAV signatures are read from AND where the in-product update
+      # writes them. Kept separate from the read-only host mount below, so an
+      # operator can either supply signatures themselves or fetch them from the UI.
+      - CLAMAV_DB=/clamav-db
+    volumes:
+      # OPTIONAL offline AV, route 1: mount a signature directory you populate
+      # yourself. Read-only — the sandbox must never be able to write to it.
+      - ${CLAMAV_DB_PATH:-./clamav-db}:/var/lib/clamav:ro
+      # Route 2: the writable store the admin "Update signatures" action fills. The
+      # image still downloads NOTHING on its own; this volume stays empty until
+      # someone explicitly asks, so the no-egress default is unchanged.
+      - clamav_db:/clamav-db
     # No network egress needed — emulation is entirely local. (Docker has no
     # per-service "disable network" here without a custom network; the service
     # simply never makes outbound calls.)
@@ -347,4 +371,7 @@ volumes:
   postgres_data:
   redis_data:
   storage_data:
+  # ClamAV signatures fetched by the admin "Update signatures" action. Empty until
+  # someone asks for them — the image never downloads anything by itself.
+  clamav_db:
   elasticsearch_data:

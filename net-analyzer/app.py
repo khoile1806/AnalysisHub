@@ -646,6 +646,112 @@ def analyze():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+@app.post("/rules/validate")
+def rules_validate():
+    """Compile-check an operator-supplied Suricata ruleset WITHOUT running it.
+
+    A rule that does not parse is silently dropped by Suricata — the run still
+    succeeds and reports nothing, which reads exactly like "the traffic is clean".
+    So a ruleset is checked here first, and refused with the parser's own message."""
+    src = request.form.get("rules") or ""
+    if not src.strip():
+        return jsonify(ok=False, error="empty ruleset"), 400
+    exe = shutil.which("suricata")
+    if not exe:
+        return jsonify(ok=False, error="suricata is not installed in this sidecar"), 200
+    tmp = tempfile.mkdtemp(prefix="netrules-")
+    try:
+        path = os.path.join(tmp, "custom.rules")
+        with open(path, "w", errors="replace") as fh:
+            fh.write(src)
+        p = subprocess.run([exe, "-T", "-S", path, "-l", tmp],
+                           capture_output=True, timeout=120)
+        detail = (p.stderr or p.stdout or b"").decode("utf-8", "replace")
+        if p.returncode != 0:
+            return jsonify(ok=False, error=_first_error(detail)), 200
+        return jsonify(ok=True, sids=_rule_sids(src), msgs=_rule_msgs(src))
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 200
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@app.post("/retrohunt")
+def retrohunt():
+    """Replay ONE stored pcap against an operator ruleset only (`-S` replaces the
+    bundled rules rather than adding to them), so the answer is "did THIS rule
+    fire", not "what does the whole rule set say about this capture again"."""
+    f = request.files.get("file")
+    src = request.form.get("rules") or ""
+    if f is None:
+        return jsonify(error="file is required"), 400
+    if not src.strip():
+        return jsonify(error="rules are required"), 400
+    exe = shutil.which("suricata")
+    if not exe:
+        return jsonify(error="suricata is not installed in this sidecar"), 200
+    tmp = tempfile.mkdtemp(prefix="netretro-")
+    out = os.path.join(tmp, "out")
+    os.makedirs(out, exist_ok=True)
+    try:
+        pcap = os.path.join(tmp, "capture.pcap")
+        f.save(pcap)
+        if os.path.getsize(pcap) == 0:
+            return jsonify(error="empty file"), 400
+        rules = os.path.join(tmp, "custom.rules")
+        with open(rules, "w", errors="replace") as fh:
+            fh.write(src)
+        p = subprocess.run([exe, "-r", pcap, "-l", out, "-k", "none", "-S", rules],
+                           capture_output=True, timeout=ANALYZE_TIMEOUT)
+        eve = os.path.join(out, "eve.json")
+        if not os.path.exists(eve):
+            detail = (p.stderr or b"").decode("utf-8", "replace")
+            return jsonify(error=_first_error(detail) or "suricata produced no output"), 200
+        hits = []
+        with open(eve, "r", errors="replace") as fh:
+            for line in fh:
+                try:
+                    ev = json.loads(line)
+                except Exception:
+                    continue
+                if ev.get("event_type") != "alert":
+                    continue
+                a = ev.get("alert") or {}
+                hits.append({"signature": a.get("signature"), "sid": a.get("signature_id"),
+                             "category": a.get("category"), "severity": a.get("severity"),
+                             "src": ev.get("src_ip"), "dst": ev.get("dest_ip"),
+                             "dport": ev.get("dest_port"), "proto": ev.get("proto"),
+                             "timestamp": ev.get("timestamp")})
+                if len(hits) >= 200:
+                    break
+        return jsonify(alerts=hits, matched=bool(hits))
+    except Exception as e:
+        return jsonify(error=str(e)), 200
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _first_error(text):
+    """The first line Suricata flagged as an error — the rest is startup noise."""
+    for line in (text or "").splitlines():
+        s = line.strip()
+        if s.startswith("E:") or "error" in s.lower():
+            return s[:400]
+    return ""
+
+
+RE_SID = re.compile(r"\bsid\s*:\s*(\d+)")
+RE_MSG = re.compile(r'\bmsg\s*:\s*"([^"]{1,200})"')
+
+
+def _rule_sids(src):
+    return list(dict.fromkeys(RE_SID.findall(src or "")))[:200]
+
+
+def _rule_msgs(src):
+    return list(dict.fromkeys(RE_MSG.findall(src or "")))[:200]
+
+
 @app.get("/health")
 def health():
     rules = 0

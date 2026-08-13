@@ -104,6 +104,11 @@ type Config struct {
 	// archive member) in MB. Held in memory for static extraction, so raising it
 	// raises peak memory per analysis. Default 1024 (1 GB).
 	MalwareMaxUploadMB int
+	// MalwareGoodwareList is a path to a known-good hash file (one MD5/SHA1/SHA256
+	// per line, `#` comments allowed — e.g. an NSRL RDS export or a golden-image
+	// inventory). A hash listed there clears a verdict that rests only on
+	// heuristics, which is the main brake on false positives. Empty → disabled.
+	MalwareGoodwareList string
 	// NetAnalyzerURL points at the Suricata pcap-analysis sidecar. Empty → the
 	// feature self-disables (upload returns "not configured").
 	NetAnalyzerURL string
@@ -344,7 +349,8 @@ func Load() *Config {
 		MalwareEmulatorURL:       getEnv("MALWARE_EMULATOR_URL", ""),
 		MalwareLocalOnly:         getEnv("MALWARE_LOCAL_ONLY", "false") == "true",
 		MalwareYaraRules:         getEnv("MALWARE_YARA_RULES", "/app/yara-rules"),
-		MalwareMaxUploadMB:       getEnvInt("MALWARE_MAX_UPLOAD_MB", 1024),
+		MalwareMaxUploadMB:       getEnvInt("MALWARE_MAX_UPLOAD_MB", 256),
+		MalwareGoodwareList:      getEnv("MALWARE_GOODWARE_LIST", ""),
 		MalwareBazaarKey:         getEnv("MALWARE_BAZAAR_KEY", ""),
 		NetAnalyzerURL:           getEnv("NET_ANALYZER_URL", ""),
 		NetworkMaxUploadMB:       getEnvInt("NETWORK_MAX_UPLOAD_MB", 512),

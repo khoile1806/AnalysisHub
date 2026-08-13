@@ -1,7 +1,6 @@
 package netscan
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -552,7 +551,7 @@ func (e *Engine) saveCarved(scanID string, caseID *uuid.UUID, res *NetworkResult
 		if name == "" {
 			name = cf.SHA256 + ".bin"
 		}
-		rel, serr := e.store.SaveAnalysisUpload("network-carved/"+scanID, cf.SHA256+".bin", bytes.NewReader(data))
+		rel, serr := e.store.SaveInertSample("network-carved/"+scanID, cf.SHA256+".bin", data)
 		if serr != nil {
 			continue
 		}

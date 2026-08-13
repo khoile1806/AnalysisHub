@@ -511,12 +511,16 @@ func stripThink(s string) string {
 		if i < 0 {
 			break
 		}
-		j := strings.Index(s, "</think>")
+		// Search for the closer AFTER the opener — a stray "</think>" before the
+		// first "<think>" would otherwise make the splice re-insert the opener and
+		// loop forever (CPU pin / unbounded growth).
+		after := s[i+len("<think>"):]
+		j := strings.Index(after, "</think>")
 		if j < 0 {
 			s = s[:i]
 			break
 		}
-		s = s[:i] + s[j+len("</think>"):]
+		s = s[:i] + after[j+len("</think>"):]
 	}
 	s = strings.ReplaceAll(s, "```json", "")
 	s = strings.ReplaceAll(s, "```", "")

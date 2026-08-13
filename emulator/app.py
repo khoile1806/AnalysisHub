@@ -7,6 +7,8 @@ call is intercepted/stubbed — so this is safe to run in a plain container with
 VM. Fully local: nothing leaves the box.
 
 POST /emulate  (multipart: file)  -> normalised BehaviorSummary JSON
+POST /triage   (multipart: file)  -> first-pass triage (magic/metadata/fuzzy/entropy/PE)
+POST /email    (multipart: file)  -> .msg/.eml analysis + attachments (base64)
 GET  /health                      -> {"ok": true, "speakeasy": bool}
 """
 import json
@@ -18,6 +20,11 @@ import subprocess
 import tempfile
 
 from flask import Flask, request, jsonify
+
+import deepen
+import docext
+import mailparse
+import triage as triage_mod
 
 app = Flask(__name__)
 
@@ -451,6 +458,7 @@ def _emulate_core(data):
     os.close(fd)
     try:
         se = speakeasy.Speakeasy()
+        shellcode_arch = None
         try:
             module = se.load_module(path)
             # all_entrypoints follows exports/TLS callbacks too (more coverage on
@@ -461,11 +469,15 @@ def _emulate_core(data):
             except TypeError:
                 se.run_module(module)
         except Exception:
-            # Not a loadable PE — try as raw shellcode (x86, then x64).
+            # Not a loadable PE — treat it as position-independent code. Carved
+            # blobs (document droppers, pcap payloads, overlays) arrive this way,
+            # and without this they would be reported as "no behaviour observed".
+            shellcode_arch = None
             for arch in ("x86", "amd64"):
                 try:
                     sc = se.load_shellcode(path, arch)
                     se.run_shellcode(sc, offset=0)
+                    shellcode_arch = arch
                     break
                 except Exception:
                     continue
@@ -482,6 +494,15 @@ def _emulate_core(data):
                 mem_cfg = None
             if mem_cfg:
                 result["memory_config"] = mem_cfg
+        # B3: an unpacked PE living only in RAM is the real payload of a packed
+        # sample — hand it back so the caller can analyse it as its own file.
+        if mem_blob:
+            carved = deepen.carve_pe_from_memory(mem_blob)
+            if carved:
+                result["memory_pe"] = carved
+        if shellcode_arch:
+            result["shellcode"] = {"arch": shellcode_arch,
+                                   "markers": deepen.looks_like_shellcode(data)}
         result["api_count"] = len(result.get("call_trace") or [])
         if result["api_count"] == 0 and not result.get("memory_yara"):
             note = (
@@ -1179,31 +1200,55 @@ def analyze():
     data = f.read()
     if not data:
         return jsonify(error="empty file"), 400
+    # Tools the operator switched off in the UI are not run here either.
+    off = {s.strip() for s in (request.form.get("skip") or "").split(",") if s.strip()}
     fd, path = tempfile.mkstemp(suffix=".bin")
     os.write(fd, data)
     os.close(fd)
     work_path = path
     try:
-        sig = run_authenticode(path)  # fast (reads only the signature), run regardless of size
+        sig = run_authenticode(path) if "authenticode" not in off else None
         # Statically unpack (UPX) so capa/FLOSS/config see the REAL payload.
-        work_path, unpacked = maybe_unpack(path)
+        work_path, unpacked = (path, None) if "upx" in off else maybe_unpack(path)
         try:
             with open(work_path, "rb") as fh:
                 work = fh.read()
         except OSError:
             work, work_path = data, path
-        dotnet = analyze_dotnet(work)
-        config = extract_config(work, dotnet)
+        dotnet = analyze_dotnet(work) if "dotnet" not in off else None
+        # A .NET RAT ships obfuscated: its strings, config and C2 only become
+        # readable after de4dot has undone that, so metadata + config extraction
+        # are re-run against the cleaned assembly when one is produced.
+        deobf = None
+        if dotnet and dotnet.get("is_dotnet") and dotnet.get("obfuscator") and "de4dot" not in off:
+            clean_path, detail = deepen.run_de4dot(work_path)
+            if clean_path:
+                try:
+                    with open(clean_path, "rb") as fh:
+                        clean = fh.read()
+                    dn2 = analyze_dotnet(clean)
+                    if dn2 and dn2.get("is_dotnet"):
+                        dotnet = dn2
+                        work = clean
+                    deobf = {"tool": "de4dot", "detail": detail}
+                except OSError:
+                    pass
+                finally:
+                    try:
+                        os.remove(clean_path)
+                    except OSError:
+                        pass
+        config = extract_config(work, dotnet) if "config_extract" not in off else None
         packer = detect_packer(work)
         if len(work) > DEEPSTATIC_MAX_BYTES:
             return jsonify(capabilities=[], attck=[], floss_strings=[], signature=sig,
-                           config=config, unpacked=unpacked, dotnet=dotnet, packer=packer,
+                           config=config, unpacked=unpacked, dotnet=dotnet, packer=packer, deobfuscated=deobf,
                            note="file too large for capa/FLOSS (%d MB) — deep static skipped" % (len(work) // (1024 * 1024)))
-        capa = run_capa(work_path)
-        floss = run_floss(work_path)
+        capa = run_capa(work_path) if "capa" not in off else {"capabilities": [], "attck": []}
+        floss = run_floss(work_path) if "floss" not in off else []
         return jsonify(capabilities=capa["capabilities"], attck=capa["attck"],
                        floss_strings=floss, signature=sig, config=config,
-                       unpacked=unpacked, dotnet=dotnet, packer=packer)
+                       unpacked=unpacked, dotnet=dotnet, packer=packer, deobfuscated=deobf)
     except Exception as e:
         return jsonify(error=str(e), capabilities=[], attck=[], floss_strings=[]), 200
     finally:
@@ -1470,7 +1515,95 @@ def analyze_office(path):
         vp.close()
     except Exception as e:
         out["error"] = str(e)
+    stomp = detect_vba_stomping(path, out.get("macros") or [])
+    if stomp:
+        out["stomping"] = stomp
+        out["suspicious"] = list(dict.fromkeys(
+            (out.get("suspicious") or []) + [stomp["summary"]]))[:120]
     return out
+
+
+def detect_vba_stomping(path, macros):
+    """VBA stomping: the p-code, not the source, is what Office executes.
+
+    An attacker overwrites the compressed VBA source with something harmless and
+    leaves the compiled p-code intact — every source-reading tool (including the
+    olevba pass above) then reports a clean document while Office runs the real
+    macro. The tell is a mismatch: p-code that does substantially more than the
+    source it is supposed to have been compiled from.
+
+    Reported as evidence, never as a verdict on its own: legitimate documents
+    saved by an older Office version can also carry mismatched p-code."""
+    try:
+        from oletools.olevba import VBA_Parser
+    except Exception:
+        return None
+    pcode = ""
+    try:
+        vp = VBA_Parser(path)
+        try:
+            if not vp.detect_vba_macros():
+                return None
+            # extract_pcode is the decompiled p-code (pcodedmp under the hood).
+            pcode = vp.extract_pcode() or ""
+        finally:
+            vp.close()
+    except Exception:
+        return None
+    if not pcode.strip():
+        return None
+
+    source = "\n".join((m.get("code") or "") for m in macros)
+    src_lines = [ln.strip() for ln in source.splitlines() if ln.strip()]
+    # Identifiers the p-code calls that the source never mentions. These are the
+    # ones worth naming in a report — they ARE the hidden behaviour.
+    hidden = []
+    for ident in sorted(set(RE_PCODE_IDENT.findall(pcode))):
+        if len(ident) < 4 or ident.lower() in PCODE_COMMON:
+            continue
+        if ident.lower() not in source.lower():
+            hidden.append(ident)
+    interesting = [h for h in hidden if h.lower() in PCODE_INTERESTING]
+
+    # Source stripped to nothing while p-code survives is the classic form.
+    empty_source = len(src_lines) <= 2
+    if not interesting and not (empty_source and len(pcode.splitlines()) > 20):
+        return None
+
+    if empty_source:
+        summary = ("VBA stomping: the document carries compiled p-code but (almost) no VBA "
+                   "source — Office would execute code no source-reading tool can show")
+    else:
+        summary = ("VBA stomping: the compiled p-code calls %s, which the VBA source never "
+                   "mentions — the source shown is not the code that runs"
+                   % ", ".join(interesting[:5]))
+    return {"summary": summary, "hidden_calls": interesting[:40],
+            "source_lines": len(src_lines), "pcode_lines": len(pcode.splitlines()),
+            "pcode_preview": pcode[:4000]}
+
+
+RE_PCODE_IDENT = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{3,40}\b")
+
+# Identifiers that appear in essentially every p-code dump — structural noise.
+PCODE_COMMON = {
+    "attribute", "value", "sub", "function", "end", "dim", "line", "ldaddr", "argsld",
+    "argsmemld", "st", "imp", "func", "paramomitted", "litstr", "litdi2", "litdi4",
+    "quoterem", "endsub", "endfunc", "vb_name", "vb_base", "vb_globalnamespace",
+    "vb_creatable", "vb_predeclaredid", "vb_exposed", "vb_customizable", "module",
+    "true", "false", "public", "private", "option", "explicit", "byval", "byref",
+    "string", "integer", "long", "variant", "object", "boolean", "as", "then", "else",
+}
+
+# The identifiers that make a hidden call worth reporting: process execution,
+# downloads, persistence, and the standard VBA droppers.
+PCODE_INTERESTING = {
+    "shell", "wscript", "createobject", "getobject", "run", "exec", "winhttprequest",
+    "xmlhttp", "serverxmlhttp", "msxml2", "urldownloadtofile", "adodb", "stream",
+    "savetofile", "environ", "regwrite", "specialfolders", "powershell", "cmd",
+    "callbyname", "application", "documentopen", "autoopen", "autoexec", "workbook_open",
+    "document_open", "auto_open", "virtualalloc", "rtlmovememory", "createthread",
+    "kernel32", "lib", "declare", "ptrsafe", "chrw", "strreverse", "base64", "decode",
+}
 
 
 def analyze_pdf(data):
@@ -1501,12 +1634,53 @@ def analyze_pdf(data):
 
 
 def analyze_script(data):
-    """Text script: surface downloader/stager markers + de-obfuscated layers."""
+    """Text script: surface downloader/stager markers + de-obfuscated layers.
+
+    `-EncodedCommand` is only the first layer of a real dropper; the deep pass
+    also folds concatenation, the -f format operator, [char] arithmetic, -replace
+    chains and Gzip/Deflate payloads, and reports HOW it was hidden."""
     text = data.decode("utf-8", "ignore") or data.decode("latin-1", "ignore")
     if len(text) > DOC_MAX_TEXT:
         text = text[:DOC_MAX_TEXT]
-    return {"markers": _scan_markers(text), "decoded": _decode_layers(text),
-            "preview": text[:4000]}
+    out = {"markers": _scan_markers(text), "decoded": _decode_layers(text),
+           "preview": text[:4000]}
+    final, steps = deepen.deobfuscate_powershell(text)
+    if steps:
+        out["deob_steps"] = steps
+        # Re-scan the de-obfuscated text: the markers that matter (IEX, download,
+        # AMSI bypass) are usually only visible after the layers come off.
+        out["markers"] = sorted(set(out["markers"]) | set(_scan_markers(final)))
+        snippet = final.strip()
+        if snippet and snippet != text.strip():
+            out["decoded"] = list(dict.fromkeys(out["decoded"] + [snippet[:6000]]))
+    for extra in deepen.hex_escape_decode(text):
+        if extra not in out["decoded"]:
+            out["decoded"].append(extra)
+    out["decoded"] = out["decoded"][:40]
+    # Harvest the network indicators from the script BODY (and from every layer
+    # peeled off it). A URL written in source is not the same as a string found in
+    # a binary's string table: it is the address the script actually contacts, so
+    # it is reported here — where the exporter grades it medium confidence and can
+    # turn it into a detection rule — instead of being left to the generic
+    # string sweep, which grades everything low and produces no rules.
+    out["iocs"] = _script_iocs([text] + list(out["decoded"]))
+    return out
+
+
+def _script_iocs(chunks):
+    """URLs and host:port pairs from a script and its de-obfuscated layers."""
+    found = []
+    for chunk in chunks:
+        if not chunk:
+            continue
+        for u in RE_URL.findall(chunk):
+            u = u.rstrip(").,;'\"")
+            if u not in found:
+                found.append(u)
+        for hp in RE_HOSTPORT.findall(chunk):
+            if hp not in found:
+                found.append(hp)
+    return found[:120]
 
 
 @app.post("/document")
@@ -1521,6 +1695,7 @@ def document():
         return jsonify(error="empty file"), 400
     name = (f.filename or "").lower()
     kind = (request.form.get("kind") or "").lower()
+    off = {s.strip() for s in (request.form.get("skip") or "").split(",") if s.strip()}
     ext = os.path.splitext(name)[1]
     is_office = kind == "office" or ext in OFFICE_EXT or data[:2] == b"PK" or data[:4] == b"\xd0\xcf\x11\xe0"
     is_pdf = kind == "pdf" or ext == ".pdf" or data[:5] == b"%PDF-"
@@ -1529,7 +1704,10 @@ def document():
     try:
         if is_pdf:
             result["doc_type"] = "pdf"
-            result.update(analyze_pdf(data))
+            if "pdf_deep" not in off:
+                result.update(analyze_pdf(data))
+        elif is_office and "olevba" in off:
+            result["doc_type"] = "office"
         elif is_office:
             # olevba needs a path
             fd, path = tempfile.mkstemp(suffix=ext or ".bin")
@@ -1545,12 +1723,128 @@ def document():
                     pass
         elif is_script:
             result["doc_type"] = "script"
-            result.update(analyze_script(data))
+            if "script_deobf" not in off:
+                result.update(analyze_script(data))
         else:
             result["doc_type"] = "unknown"
+
+        # Extended lure analysis (RTF/OLE-DDE/LNK/OneNote/HTML-smuggling/deep PDF).
+        # These formats replaced macros as the primary delivery vector, so they run
+        # for EVERY document — including ones the base analyser classed "unknown".
+        fd2, p2 = tempfile.mkstemp(suffix=ext or ".bin")
+        os.write(fd2, data)
+        os.close(fd2)
+        try:
+            ext_res = docext.extended(p2, data, ext, result.get("doc_type", ""), off)
+        finally:
+            try:
+                os.remove(p2)
+            except OSError:
+                pass
+        if ext_res:
+            sus, iocs, scripts = docext.summarize(ext_res)
+            result["extended"] = ext_res
+            result["suspicious"] = list(dict.fromkeys((result.get("suspicious") or []) + sus))[:120]
+            result["iocs"] = list(dict.fromkeys((result.get("iocs") or []) + iocs))[:120]
+            result["scripts"] = list(dict.fromkeys((result.get("scripts") or []) + scripts))[:20]
+            if result.get("doc_type") in ("", "unknown") and ext_res:
+                result["doc_type"] = next(iter(ext_res))  # rtf | lnk | onenote | html | pdf_deep
         return jsonify(result)
     except Exception as e:
         return jsonify(error=str(e), doc_type=result.get("doc_type", "")), 200
+
+
+@app.post("/triage")
+def triage():
+    """First-pass triage: magic, metadata, fuzzy hash, carving, entropy map, deep
+    PE structure, offline AV. Cheap, static, runs for every sample."""
+    f = request.files.get("file")
+    if f is None:
+        return jsonify(error="file is required"), 400
+    data = f.read()
+    if not data:
+        return jsonify(error="empty file"), 400
+    skip = {s.strip() for s in (request.form.get("skip") or "").split(",") if s.strip()}
+    fd, path = tempfile.mkstemp(suffix=os.path.splitext(f.filename or "")[1] or ".bin")
+    os.write(fd, data)
+    os.close(fd)
+    try:
+        return jsonify(triage_mod.triage(path, data, f.filename or "", skip))
+    except Exception as e:
+        return jsonify(error=str(e)), 200
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+@app.post("/email")
+def email_analyse():
+    """Parse an Outlook .msg or a MIME .eml: headers, Received chain, SPF/DKIM/
+    DMARC, URLs, phishing indicators, and the attachments (base64) so the caller
+    can push each one back through the malware pipeline."""
+    f = request.files.get("file")
+    if f is None:
+        return jsonify(error="file is required"), 400
+    data = f.read()
+    if not data:
+        return jsonify(error="empty file"), 400
+    try:
+        return jsonify(mailparse.analyse(data, f.filename or ""))
+    except Exception as e:
+        return jsonify(error=str(e)), 200
+
+
+@app.post("/clamav/update")
+def clamav_update():
+    """Run freshclam ON REQUEST only.
+
+    The image never downloads signatures at build time — that is the no-egress
+    guarantee, and it must stay the default. But the consequence is that ClamAV
+    reports "unavailable" forever unless someone can turn it on, so this is the
+    one explicit, audited action that fetches a database. It reaches the internet;
+    the caller is expected to have said so out loud."""
+    exe = shutil.which("freshclam")
+    if not exe:
+        return jsonify(ok=False, error="freshclam is not installed in this sidecar"), 200
+    datadir = os.environ.get("CLAMAV_DB", "/var/lib/clamav")
+    try:
+        os.makedirs(datadir, exist_ok=True)
+    except OSError as e:
+        return jsonify(ok=False, error="cannot create %s: %s" % (datadir, e)), 200
+    try:
+        # freshclam's default log path (/var/log/clamav) is root-owned, and the
+        # sidecar does not run as root — without an explicit log it fails before it
+        # ever reaches the network, with an error that looks nothing like the real
+        # problem. Keep the log next to the database, which we own.
+        p = subprocess.run([exe, "--datadir=" + datadir, "--stdout",
+                            "--log=" + os.path.join(datadir, "freshclam.log")],
+                           capture_output=True, timeout=900)
+    except subprocess.TimeoutExpired:
+        return jsonify(ok=False, error="freshclam timed out after 15 minutes"), 200
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 200
+    out = (p.stdout or b"").decode("utf-8", "replace")
+    err = (p.stderr or b"").decode("utf-8", "replace")
+    present = triage_mod.clamav_db_present()
+    # freshclam exits 1 for "already up to date" in some builds, so the database
+    # being PRESENT is what decides — not the exit code.
+    return jsonify(ok=present, db_present=present, exit_code=p.returncode,
+                   detail=(out or err)[-2000:],
+                   signatures=_clamav_signature_count(datadir))
+
+
+def _clamav_signature_count(datadir):
+    """How many signature files are installed, so the UI can say something real."""
+    n = 0
+    for d in (datadir, "/usr/share/clamav"):
+        try:
+            n += sum(1 for f in os.listdir(d)
+                     if f.endswith((".cvd", ".cld", ".cud", ".hdb", ".ndb", ".ldb")))
+        except OSError:
+            continue
+    return n
 
 
 @app.get("/health")
@@ -1570,6 +1864,16 @@ def health():
         dnet = True
     except Exception:
         dnet = False
+    try:
+        import extract_msg  # noqa: F401
+        msg = True
+    except Exception:
+        msg = False
+    try:
+        import LnkParse3  # noqa: F401
+        lnk = True
+    except Exception:
+        lnk = False
     return jsonify(ok=True, speakeasy=emu,
                    capa=shutil.which("capa") is not None,
                    floss=shutil.which("floss") is not None,
@@ -1577,7 +1881,18 @@ def health():
                    osslsigncode=shutil.which("osslsigncode") is not None,
                    oletools=ole,
                    upx=shutil.which("upx") is not None,
-                   dotnet=dnet)
+                   dotnet=dnet,
+                   # triage toolbox
+                   magic=shutil.which("file") is not None,
+                   exiftool=shutil.which("exiftool") is not None,
+                   ssdeep=shutil.which("ssdeep") is not None,
+                   binwalk=shutil.which("binwalk") is not None,
+                   # ClamAV counts as available only with signatures loaded — the
+                   # binary alone would let the UI claim an AV pass that never ran.
+                   clamav=shutil.which("clamscan") is not None and triage_mod.clamav_db_present(),
+                   # lure/e-mail toolbox
+                   extract_msg=msg,
+                   lnkparse=lnk)
 
 
 @app.post("/emulate")

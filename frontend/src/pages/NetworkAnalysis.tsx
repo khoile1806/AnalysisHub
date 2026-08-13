@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -8,7 +8,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import {
   Upload, Loader2, Trash2, Network, ShieldAlert, ShieldCheck, ShieldQuestion, AlertTriangle,
   Globe, Boxes, Radar, FileWarning, Loader, Brain, Sparkles, Activity, ArrowUpDown, Layers,
-  Eye, Download, Bug, X, FileText, MessagesSquare, FileDown, Clock,
+  Eye, Download, Bug, X, FileText, MessagesSquare, Clock, ExternalLink, XCircle,
 } from 'lucide-react'
 import {
   networkApi, nsafeParse,
@@ -617,8 +617,96 @@ function CarvedFileActions({ scanId, sha, name }: { scanId: string; sha: string;
   )
 }
 
+// ── report preview ───────────────────────────────────────────────────────────
+// The document shown here is byte-for-byte the one that downloads: previewing a
+// separate rendering would let the two drift. It carries both language editions
+// with a switch inside the page, so nothing here selects a language.
+const NET_TLP = ['clear', 'green', 'amber', 'amber+strict', 'red']
+
+function NetReportDialog({ scan, onClose }: { scan: NetworkScan; onClose: () => void }) {
+  const [tlp, setTlp] = useState('amber')
+  const [caseRef, setCaseRef] = useState('')
+  const [doc, setDoc] = useState<{ html: string; markdown: string } | null>(null)
+  const [showSource, setShowSource] = useState(false)
+  const frame = useRef<HTMLIFrameElement>(null)
+  const opts = { tlp, case_ref: caseRef }
+
+  const build = useMutation({
+    mutationFn: () => networkApi.report(scan.id, opts),
+    onSuccess: (d) => setDoc({ html: d.html, markdown: d.markdown }),
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const rebuild = build.mutate
+  useEffect(() => { rebuild() }, [rebuild, tlp])
+
+  const save = async (blobP: Promise<{ blob: Blob; filename: string }>) => {
+    try {
+      const { blob, filename } = await blobP
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename; a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e) { toast.error(getErrorMessage(e)) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-start justify-center overflow-y-auto p-4" onClick={onClose}>
+      <div className="w-full max-w-5xl rounded-lg border border-slate-700 bg-gray-900 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-sky-400" />
+          <h3 className="text-sm font-semibold text-gray-200">Capture report — preview before download</h3>
+          {build.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-400" />}
+          <button className="ml-auto text-gray-500 hover:text-gray-300" onClick={onClose}><XCircle className="h-4 w-4" /></button>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <select className="input text-[11px] py-1" value={tlp} onChange={(e) => setTlp(e.target.value)}>
+            {NET_TLP.map((t) => <option key={t} value={t}>TLP:{t.toUpperCase()}</option>)}
+          </select>
+          <input className="input text-[11px] py-1 w-44" placeholder="Case reference" value={caseRef}
+            onChange={(e) => setCaseRef(e.target.value)} onBlur={() => rebuild()} />
+          <button className="btn-primary text-[11px] py-1 inline-flex items-center gap-1" disabled={!doc}
+            onClick={() => save(networkApi.reportDownload(scan.id, 'html', opts))}>
+            <Download className="h-3 w-3" /> Download HTML
+          </button>
+          <button className="btn-secondary text-[11px] py-1 inline-flex items-center gap-1" disabled={!doc}
+            onClick={() => { frame.current?.contentWindow?.focus(); frame.current?.contentWindow?.print() }}>
+            <FileText className="h-3 w-3" /> Print / PDF
+          </button>
+          <button className="btn-secondary text-[11px] py-1 inline-flex items-center gap-1" disabled={!doc}
+            onClick={() => save(networkApi.reportDownload(scan.id, 'md', opts))}>
+            <Download className="h-3 w-3 text-slate-500" /> Markdown
+          </button>
+          <button className="btn-secondary text-[11px] py-1 inline-flex items-center gap-1"
+            title="Indicator list as CSV (block list / hunt input)"
+            onClick={() => save(networkApi.iocsDownload(scan.id, 'csv'))}>
+            <Download className="h-3 w-3 text-slate-500" /> IOC CSV
+          </button>
+          <button className="btn-secondary text-[11px] py-1 inline-flex items-center gap-1"
+            title="Suricata rules for the flagged infrastructure"
+            onClick={() => save(networkApi.iocsDownload(scan.id, 'suricata'))}>
+            <Download className="h-3 w-3 text-slate-500" /> Suricata
+          </button>
+          <button className="text-[11px] text-gray-500 hover:text-gray-300 ml-auto" onClick={() => setShowSource((s) => !s)}>
+            {showSource ? 'show rendered' : 'show source'}
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-500 -mt-1">
+          The file contains both English and Vietnamese with a language switch at the top of the report.
+        </p>
+        {showSource ? (
+          <pre className="font-mono text-[10px] text-gray-400 bg-black/40 rounded p-2 h-[65vh] overflow-auto whitespace-pre-wrap">{doc?.markdown ?? ''}</pre>
+        ) : (
+          <iframe ref={frame} title="capture report preview" srcDoc={doc?.html ?? ''}
+            className="w-full h-[65vh] rounded bg-white border border-slate-700" sandbox="allow-same-origin allow-modals" />
+        )}
+      </div>
+    </div>
+  )
+}
+
 function Detail({ id }: { id: string }) {
   const qc = useQueryClient()
+  const [showReport, setShowReport] = useState(false)
   const { data: scan } = useQuery({
     queryKey: ['network', id],
     queryFn: () => networkApi.get(id),
@@ -646,7 +734,20 @@ function Detail({ id }: { id: string }) {
             <div className="text-sm text-gray-200/90 font-medium break-all mt-0.5">{scan.file_name}</div>
             <div className="text-[11px] text-gray-400 mt-0.5">{scan.summary}</div>
           </div>
-          {scan.status === 'done' && <button className="btn-secondary text-[11px] py-1 px-2" title="Export HTML report (print → PDF)" onClick={() => networkApi.openReport(scan.id).catch((e) => toast.error(getErrorMessage(e)))}><FileDown className="h-3.5 w-3.5" /></button>}
+          {scan.status === 'done' && (
+            <div className="flex flex-col gap-1.5">
+              <button className="btn-secondary text-[11px] py-1 inline-flex items-center gap-1"
+                title="Open the formatted report (EN/VI switch built in) in a new tab"
+                onClick={() => networkApi.openReport(scan.id).catch((e) => toast.error(getErrorMessage(e)))}>
+                <ExternalLink className="h-3.5 w-3.5 text-sky-400" /> Quick review
+              </button>
+              <button className="btn-secondary text-[11px] py-1 inline-flex items-center gap-1"
+                title="Preview the report, set TLP / case reference, then download HTML or print to PDF"
+                onClick={() => setShowReport(true)}>
+                <FileText className="h-3.5 w-3.5" /> Report
+              </button>
+            </div>
+          )}
           <button className="btn-secondary text-[11px] py-1 px-2" onClick={() => del.mutate()}><Trash2 className="h-3.5 w-3.5" /></button>
         </div>
         <div className="mt-3 flex gap-4 flex-wrap text-[11px] text-gray-400">
@@ -797,6 +898,156 @@ function Detail({ id }: { id: string }) {
           <p className="text-[10px] text-gray-600 mt-1">Carved files: view content (hex/strings), download, or send to Malware Analysis. Only cleartext-protocol files can be reconstructed.</p>
         </Card>
       )}
+
+      {scan.status === 'done' && <RelatedSamples id={scan.id} />}
+
+      {showReport && <NetReportDialog scan={scan} onClose={() => setShowReport(false)} />}
+    </div>
+  )
+}
+
+// RelatedSamples closes the loop with Malware Analysis: a file this capture
+// carried that we already analysed, or a sample that talks to the same C2.
+function RelatedSamples({ id }: { id: string }) {
+  const nav = useNavigate()
+  const { data } = useQuery({
+    queryKey: ['network-malware-matches', id],
+    queryFn: () => networkApi.malwareMatches(id),
+  })
+  if (!data) return null
+  if (!data.matches.length) {
+    return (
+      <Card title="Related samples" icon={Bug}>
+        <p className="text-[11px] text-gray-500">
+          No stored sample matches this capture ({data.hashes_seen} file hash(es), {data.hosts_seen} host(s) compared).
+        </p>
+      </Card>
+    )
+  }
+  return (
+    <Card title={`Related samples (${data.matches.length})`} icon={Bug}
+      right={<span className="text-[10px] text-gray-500">matched by file hash or shared C2</span>}>
+      <div className="space-y-1.5">
+        {data.matches.map((m) => (
+          <div key={m.id} className="flex items-start justify-between gap-3 rounded border border-slate-700/60 p-2">
+            <div className="min-w-0">
+              <p className="text-[12px] text-gray-200 truncate">{m.name}</p>
+              <p className="font-mono text-[10px] text-amber-300 break-all">{m.indicators.join(', ')}</p>
+              <p className="text-[10px] text-gray-500">analysed {m.when} · verdict {m.verdict} · via {m.via}</p>
+            </div>
+            <button className="text-[10px] px-1.5 py-0.5 rounded border border-slate-700 text-sky-300 hover:border-sky-500/50 shrink-0"
+              onClick={() => nav(`/malware?id=${m.id}`)}>
+              open analysis
+            </button>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+// SuricataRulesPanel — operator rulesets plus the retro-hunt over stored captures.
+// Intel lands after the traffic does; without a replay, a rule added today only
+// ever describes traffic that has not happened yet.
+function SuricataRulesPanel() {
+  const qc = useQueryClient()
+  const { data } = useQuery({ queryKey: ['network-rules'], queryFn: () => networkApi.rulesList() })
+  const [name, setName] = useState('')
+  const [body, setBody] = useState('')
+  const [err, setErr] = useState('')
+  const [hunting, setHunting] = useState(0)
+
+  const refresh = () => qc.invalidateQueries({ queryKey: ['network-rules'] })
+  const create = useMutation({
+    mutationFn: (b: { name?: string; content?: string; file?: File }) => networkApi.ruleCreate(b),
+    onSuccess: (r) => {
+      setErr(''); setBody(''); setName('')
+      toast.success(`Ruleset added: ${r.sids.length} signature(s)` +
+        (r.retrohunt_targets ? ` — replaying over ${r.retrohunt_targets} stored capture(s)` : ''))
+      refresh()
+    },
+    onError: (e) => { const m = getErrorMessage(e); setErr(m); toast.error(m) },
+  })
+  const toggle = useMutation({
+    mutationFn: (v: { id: number; enabled: boolean }) => networkApi.ruleUpdate(v.id, { enabled: v.enabled }),
+    onSuccess: refresh, onError: (e) => toast.error(getErrorMessage(e)),
+  })
+  const remove = useMutation({
+    mutationFn: (rid: number) => networkApi.ruleDelete(rid),
+    onSuccess: () => { toast.success('Ruleset removed'); refresh() },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  })
+
+  const hunt = async (rid: number) => {
+    setHunting(rid)
+    try {
+      const r = await networkApi.ruleRetroHunt(rid)
+      toast.success(r.match_count
+        ? `${r.match_count} capture(s) matched out of ${r.scanned} replayed`
+        : `No match across ${r.scanned} replayed capture(s)`)
+      qc.invalidateQueries({ queryKey: ['network-list'] })
+      refresh()
+    } catch (e) { toast.error(getErrorMessage(e)) } finally { setHunting(0) }
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-gray-900/40 p-3 space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <ShieldAlert className="h-4 w-4 text-sky-400" />
+        <h3 className="text-sm font-semibold text-gray-200">Suricata rulesets</h3>
+        <span className="text-[10px] text-gray-500">
+          {data?.rulesets.length ?? 0} managed · {data?.replayable ?? 0} capture(s) can be replayed
+        </span>
+      </div>
+      <p className="text-[10px] text-gray-600">
+        A new ruleset is validated by Suricata itself and then replayed over the captures already stored —
+        a rule that only applies to future traffic answers the wrong question. Hits are recorded on the
+        capture they fired on, tagged <span className="font-mono">retrohunt</span>.
+      </p>
+
+      {!!data?.rulesets.length && (
+        <div className="space-y-1">
+          {data.rulesets.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 rounded border border-slate-800 px-2 py-1.5">
+              <input type="checkbox" checked={r.enabled} onChange={(e) => toggle.mutate({ id: r.id, enabled: e.target.checked })} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] text-gray-200 truncate">{r.name}</p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {(r.sid_list ?? []).length} sid(s){r.sid_list?.length ? `: ${r.sid_list.slice(0, 4).join(', ')}` : ''}
+                  {r.hunted_at ? ` · last hunt ${new Date(r.hunted_at).toLocaleString()}` : ' · never hunted'}
+                </p>
+              </div>
+              <button className="btn-secondary text-[10px] py-0.5" disabled={hunting === r.id || !data.replayable}
+                title="Replay this ruleset over every stored capture"
+                onClick={() => hunt(r.id)}>
+                {hunting === r.id ? <Loader2 className="h-3 w-3 animate-spin inline" /> : null} Retro-hunt
+              </button>
+              <button className="text-gray-600 hover:text-red-400" title="Remove ruleset"
+                onClick={() => { if (confirm(`Remove ruleset "${r.name}"?\n\nFindings it already recorded on captures are kept — they are evidence of what was true at hunt time.`)) remove.mutate(r.id) }}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <input className="input text-[11px] py-1 w-40" placeholder="ruleset name (optional)" value={name} onChange={(e) => setName(e.target.value)} />
+        <label className="btn-secondary text-[11px] py-1 cursor-pointer">
+          Upload .rules
+          <input type="file" accept=".rules,.txt" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) create.mutate({ file: f, name: name || undefined }); e.target.value = '' }} />
+        </label>
+      </div>
+      <textarea className="input font-mono text-[11px] w-full h-20" placeholder={'alert http any any -> any any (msg:"..."; http.host; content:"evil.example"; sid:9100001; rev:1;)'}
+        value={body} onChange={(e) => setBody(e.target.value)} />
+      <div className="flex items-center gap-2">
+        <button className="btn-secondary text-[11px] py-1" disabled={!body.trim() || create.isPending}
+          onClick={() => create.mutate({ name: name || undefined, content: body })}>
+          {create.isPending ? <Loader2 className="h-3 w-3 animate-spin inline" /> : null} Add ruleset
+        </button>
+        {err && <span className="text-[10px] text-red-400 break-all">{err}</span>}
+      </div>
     </div>
   )
 }
@@ -806,6 +1057,9 @@ export default function NetworkAnalysisPage() {
   const [file, setFile] = useState<File | null>(null)
   const [keylog, setKeylog] = useState<File | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  // Ruleset management is an occasional admin task, not part of reading a capture,
+  // so it stays folded away behind the header chip.
+  const [showRules, setShowRules] = useState(false)
   const { data: cfg } = useQuery({ queryKey: ['network-config'], queryFn: () => networkApi.config() })
   const { data: scans = [] } = useQuery({
     queryKey: ['network-list'], queryFn: () => networkApi.list(),
@@ -826,6 +1080,11 @@ export default function NetworkAnalysisPage() {
         <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded border ${cfg?.available ? 'border-emerald-500/40 text-emerald-400' : 'border-slate-700 text-gray-600'}`}>
           Suricata {cfg?.available ? `on (${cfg.rules} rules)` : 'off'}
         </span>
+        <button className={`text-[10px] px-1.5 py-0.5 rounded border ${showRules ? 'border-sky-500/50 text-sky-300' : 'border-slate-700 text-gray-400 hover:text-gray-200'}`}
+          onClick={() => setShowRules((s) => !s)}
+          title="Manage your own Suricata rulesets and replay them over the captures already stored">
+          Rules ⚙
+        </button>
       </div>
 
       <div className="rounded-lg border border-slate-800 bg-gray-900/40 p-3 space-y-3">
@@ -847,6 +1106,8 @@ export default function NetworkAnalysisPage() {
           <p className="text-[10px] text-gray-600">Admin-only. Raw pcap → Evidence Store (audited). Provide an SSLKEYLOG to see inside encrypted TLS traffic.</p>
         </div>
       </div>
+
+      {showRules && <SuricataRulesPanel />}
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
         <div className="space-y-2">

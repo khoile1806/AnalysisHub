@@ -4,6 +4,12 @@ interface ApiResponse<T> { success: boolean; data: T }
 
 export interface NetChainStep { id: string; label: string; status: 'pending' | 'running' | 'done' | 'failed'; detail: string }
 
+// The rendered report carries BOTH language editions with an in-document switch.
+export interface NetworkReportDoc { html: string; markdown: string; title: string; lang: string; languages: string[] }
+// One normalised indicator from a capture. Confidence follows provenance: what a
+// detector flagged is actionable, what was merely observed is not.
+export interface NetIOC { type: string; value: string; context?: string; confidence?: string }
+
 export interface NetFlow { src: string; sport: number; dst: string; dport: number; proto: string; app: string; bytes: number; to_server?: number; to_client?: number; pkts?: number; start?: string; end?: string; state: string }
 export interface NetAlert { signature: string; category: string; severity: number; sid: number; src: string; dst: string; dport: number; proto: string }
 export interface NetDNS { query: string; type: string; src: string; rcode?: string; answers?: string[] }
@@ -149,15 +155,143 @@ export const networkApi = {
     const { data } = await apiClient.post<ApiResponse<{ malware_scan_id: string }>>(`/network/${id}/files/${sha}/analyze-malware`)
     return data.data
   },
+  // Quick review: open the rendered report in a new tab. The document carries
+  // both language editions with an in-page switch, so no language is chosen here.
   openReport: async (id: string): Promise<void> => {
     const res = await apiClient.get(`/network/${id}/report`, { responseType: 'blob' })
     const url = window.URL.createObjectURL(res.data as Blob)
-    window.open(url, '_blank')
+    const win = window.open(url, '_blank')
+    if (!win) {
+      window.URL.revokeObjectURL(url)
+      throw new Error('Pop-up blocked — allow pop-ups for this site to open the report')
+    }
     setTimeout(() => window.URL.revokeObjectURL(url), 60_000)
+  },
+  // The same document as JSON, for the preview dialog.
+  report: async (id: string, opts: { lang?: string; tlp?: string; case_ref?: string } = {}): Promise<NetworkReportDoc> => {
+    const { data } = await apiClient.get<ApiResponse<NetworkReportDoc>>(`/network/${id}/report`, {
+      params: { ...opts, format: 'json' },
+    })
+    return data.data
+  },
+  // Download the report (html | md) with the server's filename.
+  reportDownload: async (id: string, format: 'html' | 'md', opts: { lang?: string; tlp?: string; case_ref?: string } = {}): Promise<{ blob: Blob; filename: string }> => {
+    const res = await apiClient.get(`/network/${id}/report`, {
+      params: { ...opts, download: format },
+      responseType: 'blob',
+    })
+    const disp = String(res.headers['content-disposition'] ?? '')
+    const m = /filename="?([^"]+)"?/.exec(disp)
+    return { blob: res.data as Blob, filename: m?.[1] ?? `${id}-report.${format}` }
+  },
+  // Normalised indicators for this capture (block list / hunt input).
+  iocs: async (id: string): Promise<NetIOC[]> => {
+    const { data } = await apiClient.get<ApiResponse<NetIOC[]>>(`/network/${id}/iocs`)
+    return data.data
+  },
+  iocsDownload: async (id: string, format: 'csv' | 'suricata'): Promise<{ blob: Blob; filename: string }> => {
+    const res = await apiClient.get(`/network/${id}/iocs`, { params: { format }, responseType: 'blob' })
+    const disp = String(res.headers['content-disposition'] ?? '')
+    const m = /filename="?([^"]+)"?/.exec(disp)
+    return { blob: res.data as Blob, filename: m?.[1] ?? `${id}-iocs.${format === 'csv' ? 'csv' : 'rules'}` }
   },
   remove: async (id: string): Promise<void> => { await apiClient.delete(`/network/${id}`) },
   config: async (): Promise<{ available: boolean; rules: number }> => {
     const { data } = await apiClient.get<ApiResponse<{ available: boolean; rules: number }>>('/network/config')
     return data.data
   },
+
+  // ── Operator Suricata rulesets + retro-hunt ────────────────────────────────
+  // Intel arrives after the traffic does: a rule added today has to be replayed
+  // over the captures already stored, or it only ever describes future traffic.
+  rulesList: async (): Promise<SuricataInventory> => {
+    const { data } = await apiClient.get<ApiResponse<SuricataInventory>>('/network/rules')
+    return data.data
+  },
+  ruleGet: async (id: number): Promise<SuricataRuleset> => {
+    const { data } = await apiClient.get<ApiResponse<SuricataRuleset>>(`/network/rules/${id}`)
+    return data.data
+  },
+  ruleCreate: async (body: { name?: string; content?: string; file?: File }): Promise<SuricataCreated> => {
+    if (body.file) {
+      const fd = new FormData()
+      fd.append('file', body.file)
+      if (body.name) fd.append('name', body.name)
+      const { data } = await apiClient.post<ApiResponse<SuricataCreated>>('/network/rules', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data.data
+    }
+    const { data } = await apiClient.post<ApiResponse<SuricataCreated>>('/network/rules',
+      { name: body.name, content: body.content })
+    return data.data
+  },
+  ruleUpdate: async (id: number, body: { enabled?: boolean; content?: string; name?: string }): Promise<void> => {
+    await apiClient.put(`/network/rules/${id}`, body)
+  },
+  ruleDelete: async (id: number): Promise<void> => { await apiClient.delete(`/network/rules/${id}`) },
+  ruleRetroHunt: async (id: number, limit?: number): Promise<RetroHuntResult> => {
+    const { data } = await apiClient.post<ApiResponse<RetroHuntResult>>(
+      `/network/rules/${id}/retrohunt${limit ? `?limit=${limit}` : ''}`)
+    return data.data
+  },
+  // Stored samples related to this capture (file carried over the wire, or a
+  // shared C2 address).
+  malwareMatches: async (id: string): Promise<{ matches: NetCorrelationHit[]; hashes_seen: number; hosts_seen: number }> => {
+    const { data } = await apiClient.get<ApiResponse<{ matches: NetCorrelationHit[]; hashes_seen: number; hosts_seen: number }>>(
+      `/network/${id}/malware-matches`)
+    return data.data
+  },
+}
+
+// SuricataRuleset is an operator-managed detection ruleset for captures.
+export interface SuricataRuleset {
+  id: number
+  name: string
+  content?: string
+  enabled: boolean
+  validated: boolean
+  sid_list?: string[]
+  msg_list?: string[]
+  size?: number
+  note?: string
+  source?: string
+  created_at: string
+  hunted_at?: string
+}
+
+export interface SuricataInventory {
+  rulesets: SuricataRuleset[]
+  replayable: number      // captures whose pcap is still on disk
+  analyzer_enabled: boolean
+}
+
+export interface SuricataCreated {
+  id: number
+  sids: string[]
+  msgs: string[]
+  validated: boolean
+  retrohunt_targets?: number
+}
+
+export interface RetroMatch {
+  scan_id: string
+  file_name: string
+  alerts: number
+  signatures: string[]
+}
+
+export interface RetroHuntResult {
+  scanned: number
+  matches: RetroMatch[]
+  match_count: number
+}
+
+export interface NetCorrelationHit {
+  id: string
+  name: string
+  verdict?: string
+  when?: string
+  indicators: string[]
+  via: string
 }

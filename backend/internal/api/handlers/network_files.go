@@ -45,21 +45,23 @@ func (h *NetworkHandler) carvedFile(scanID, sha string, cap int64) ([]byte, int6
 	if err != nil || st.IsDir() {
 		return nil, 0, "", false
 	}
-	f, err := os.Open(abs)
-	if err != nil {
+	// Carved payloads are stored defanged; read back the ORIGINAL bytes.
+	full, rerr := h.Store.ReadInertSample(rel)
+	if rerr != nil {
 		return nil, 0, "", false
 	}
-	defer f.Close()
-	buf := make([]byte, cap)
-	n, _ := f.Read(buf)
-	data := buf[:n]
+	size := int64(len(full))
+	data := full
+	if int64(len(data)) > cap {
+		data = data[:cap]
+	}
 
 	name := "carved-" + sha[:12] + ".bin"
 	var ev models.CaseEvidence
 	if h.DB.Where("sha256 = ? AND stored_path = ?", sha, rel).First(&ev).Error == nil && ev.FileName != "" {
 		name = ev.FileName
 	}
-	return data, st.Size(), name, true
+	return data, size, name, true
 }
 
 // PreviewCarvedFile returns type + hex + strings for a carved file (admin only).
@@ -114,7 +116,14 @@ func (h *NetworkHandler) DownloadCarvedFile(c *gin.Context) {
 		uid = &id
 	}
 	writeAudit(c, h.DB, uid, nil, "network.file_download", name, "downloaded a carved file from a capture")
-	c.FileAttachment(abs, name)
+	// Stored defanged — hand the analyst the real bytes they asked for.
+	data, rerr := h.Store.ReadInertSample(rel)
+	if rerr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "cannot read carved file"})
+		return
+	}
+	c.Header("Content-Disposition", `attachment; filename="`+name+`"`)
+	c.Data(http.StatusOK, "application/octet-stream", data)
 }
 
 // AnalyzeCarvedInMalware pivots a carved file into the Malware Analysis pipeline

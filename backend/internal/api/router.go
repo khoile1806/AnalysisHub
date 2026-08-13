@@ -547,10 +547,34 @@ func NewRouter(
 		protected.POST("/malware/analyze", malwareHandler.Analyze)
 		protected.GET("/malware", malwareHandler.List)
 		protected.GET("/malware/:id", malwareHandler.Get)
+		protected.GET("/malware/stats", malwareHandler.Stats)     // queue, durations, failure rate
+		protected.GET("/malware/yara", malwareHandler.ListYaraRules)
+		protected.POST("/malware/yara", malwareHandler.CreateYaraRule)
+		protected.GET("/malware/yara/:rid", malwareHandler.GetYaraRule)
+		protected.PUT("/malware/yara/:rid", malwareHandler.UpdateYaraRule)
+		protected.DELETE("/malware/yara/:rid", malwareHandler.DeleteYaraRule)
+		protected.GET("/malware/tools", malwareHandler.Tools)     // toolbox inventory + on/off state
+		protected.PUT("/malware/tools", malwareHandler.SetTools)  // admin switches tools on/off
+		protected.POST("/malware/bundle", malwareHandler.Bundle)  // dropped-file set (ransomware IR)
 		protected.POST("/malware/:id/detonate", malwareHandler.Detonate)
 		protected.POST("/malware/:id/reverse", malwareHandler.Reverse)
 		protected.GET("/malware/:id/diff/:other", malwareHandler.Diff)
 		protected.POST("/malware/:id/retrohunt", malwareHandler.RetroHunt)
+		// Byte-level view, indicator set, exports (MISP/STIX/OpenIOC/CSV/Suricata/
+		// YARA), the rendered report, and the analyst's own verdict.
+		protected.GET("/malware/:id/session", malwareHandler.Session) // upload → extracted components tree
+		protected.GET("/malware/:id/hex", malwareHandler.Hex)
+		protected.GET("/malware/:id/iocs", malwareHandler.IOCs)
+		protected.GET("/malware/:id/export/:format", malwareHandler.Export)
+		protected.GET("/malware/:id/report", malwareHandler.Report)
+		protected.PUT("/malware/:id/verdict", malwareHandler.SetVerdict)
+		// Re-run the pipeline over samples already stored (explicit, never automatic).
+		protected.GET("/malware/stale", malwareHandler.StaleScans)
+		protected.POST("/malware/clamav/update", malwareHandler.UpdateClamDB)
+		protected.POST("/malware/reanalyze-stale", malwareHandler.ReanalyzeStale)
+		protected.POST("/malware/:id/reanalyze", malwareHandler.Reanalyze)
+		// Cross-feature pivot: this sample's C2 seen in a stored capture, and back.
+		protected.GET("/malware/:id/network-matches", malwareHandler.MalwareNetworkMatches)
 		protected.DELETE("/malware/:id", malwareHandler.Delete)
 
 		// Network-traffic (PCAP) analysis via the Suricata sidecar.
@@ -561,12 +585,21 @@ func NewRouter(
 		protected.GET("/network/:id", networkHandler.Get)
 		protected.POST("/network/:id/ai-analyze", networkHandler.AIAnalyze)
 		protected.GET("/network/:id/report", networkHandler.Report)
+		protected.GET("/network/:id/iocs", networkHandler.IOCs) // JSON | ?format=csv|suricata
 		// Carved-file inspection: preview (type/hex/strings), download, and pivot
 		// into Malware Analysis. Admin-gated in the handlers.
 		protected.GET("/network/:id/files/:sha/preview", networkHandler.PreviewCarvedFile)
 		protected.GET("/network/:id/files/:sha/download", networkHandler.DownloadCarvedFile)
 		protected.POST("/network/:id/files/:sha/analyze-malware", networkHandler.AnalyzeCarvedInMalware)
 		protected.DELETE("/network/:id", networkHandler.Delete)
+		// Operator Suricata rulesets + retro-hunt over the captures already stored.
+		protected.GET("/network/rules", networkHandler.ListSuricataRules)
+		protected.POST("/network/rules", networkHandler.CreateSuricataRule)
+		protected.GET("/network/rules/:rid", networkHandler.GetSuricataRule)
+		protected.PUT("/network/rules/:rid", networkHandler.UpdateSuricataRule)
+		protected.DELETE("/network/rules/:rid", networkHandler.DeleteSuricataRule)
+		protected.POST("/network/rules/:rid/retrohunt", networkHandler.RetroHunt)
+		protected.GET("/network/:id/malware-matches", networkHandler.NetworkMalwareMatches)
 
 		// Compliance findings + report
 		complianceHandler := handlers.NewComplianceHandler(db)

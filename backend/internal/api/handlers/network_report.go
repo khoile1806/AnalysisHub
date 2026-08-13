@@ -2,23 +2,32 @@ package handlers
 
 import (
 	"encoding/json"
-	"html/template"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/models"
 	"github.com/analysishub/backend/internal/netscan"
+	"github.com/analysishub/backend/internal/report"
 )
 
-// network_report.go — a self-contained HTML report for a capture analysis
-// (verdict, analyst summary, conversations, findings, IOCs). It is print-friendly
-// so an analyst can Ctrl+P → PDF and attach it to a case.
-
-// Report renders the standalone HTML report for a completed capture.
+// network_report.go — the capture report, rendered through the SAME document
+// shell as the malware reports (cover band with the verdict, contents list,
+// bilingual EN/VI switch, print stylesheet). One report shape across the product
+// means an analyst learns it once and a fix reaches every feature.
+//
 // GET /api/v1/network/:id/report
+//   (default)         → the HTML document (what the UI opens in a tab)
+//   ?format=json      → {html, markdown, …} for a preview dialog
+//   ?download=html|md → the same content as a named file attachment
+//   ?lang=en|vi       → which edition the document opens on (default English)
+
+// Report renders the standalone report for a completed capture.
 func (h *NetworkHandler) Report(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -35,70 +44,139 @@ func (h *NetworkHandler) Report(c *gin.Context) {
 	var findings []netscan.NetworkFinding
 	_ = json.Unmarshal([]byte(scan.Findings), &findings)
 
-	geoLabel := func(ip string) string {
-		if g, ok := res.Geo[ip]; ok {
-			return strings.TrimSpace(g.CC + " AS" + g.ASN + " " + g.Org)
+	opt := netscan.ReportOptions{
+		TLP:     strings.TrimSpace(c.Query("tlp")),
+		Analyst: strings.TrimSpace(c.Query("analyst")),
+		CaseRef: strings.TrimSpace(c.Query("case_ref")),
+	}
+	if opt.Analyst == "" {
+		if uid, ok := middleware.GetUserID(c); ok {
+			var user models.User
+			if h.DB.First(&user, "id = ?", uid).Error == nil {
+				opt.Analyst = analystLabel(&user)
+			}
 		}
-		return ""
 	}
-	data := map[string]interface{}{
-		"Scan":     scan,
-		"Res":      res,
-		"Findings": findings,
-		"Created":  scan.CreatedAt.UTC().Format("2006-01-02 15:04:05 UTC"),
-		"Geo":      geoLabel,
+
+	// Both editions go into one file with an in-document switch; `lang` only picks
+	// which one it opens on (and which Markdown a Markdown download returns).
+	shown := "en"
+	if strings.HasPrefix(strings.ToLower(c.Query("lang")), "vi") {
+		shown = "vi"
 	}
-	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := netReportTmpl.Execute(c.Writer, data); err != nil {
-		c.String(http.StatusInternalServerError, "report render error: %v", err)
+	build := func(lang string) string {
+		o := opt
+		o.Lang = lang
+		return netscan.BuildReport(&scan, &res, findings, o)
 	}
+	editions := []report.Edition{
+		{Lang: "en", Markdown: build("en")},
+		{Lang: "vi", Markdown: build("vi")},
+	}
+	md := editions[0].Markdown
+	if shown == "vi" {
+		md = editions[1].Markdown
+	}
+
+	tlp := opt.TLP
+	if tlp == "" {
+		tlp = "amber"
+	}
+	meta := report.DocMeta{
+		Title:       fmt.Sprintf("Network capture — %s", baseFileName(scan.FileName)),
+		Subject:     captureSubject(&scan, &res),
+		TLP:         tlp,
+		Generated:   time.Now().UTC().Format("2006-01-02 15:04 UTC"),
+		Verdict:     scan.Verdict,
+		ThreatScore: scan.ThreatScore,
+		SHA256:      scan.Sha256,
+		FileType:    "pcap",
+		Size:        scan.Size,
+		Analyst:     opt.Analyst,
+		CaseRef:     opt.CaseRef,
+		Scope:       "network",
+		Lang:        shown,
+	}
+	if v := new(netscan.NetVerdict); scan.NetworkAI != "" && json.Unmarshal([]byte(scan.NetworkAI), v) == nil {
+		meta.Confidence = v.Confidence
+		meta.Family = v.Family
+	}
+	htmlDoc := report.RenderMulti(editions, meta)
+
+	switch strings.ToLower(c.Query("download")) {
+	case "html":
+		name := fmt.Sprintf("%s-report.html", sanitizeExportName(scan.FileName))
+		c.Header("Content-Disposition", `attachment; filename="`+name+`"`)
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlDoc))
+		return
+	case "md", "markdown":
+		name := fmt.Sprintf("%s-report.md", sanitizeExportName(scan.FileName))
+		c.Header("Content-Disposition", `attachment; filename="`+name+`"`)
+		c.Data(http.StatusOK, "text/markdown; charset=utf-8", []byte(md))
+		return
+	}
+
+	if strings.EqualFold(c.Query("format"), "json") {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+			"html":      htmlDoc,
+			"markdown":  md,
+			"title":     meta.Title,
+			"lang":      shown,
+			"languages": []string{"en", "vi"},
+		}})
+		return
+	}
+	// Default: the document itself — the UI opens this straight in a tab.
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlDoc))
 }
 
-var netReportTmpl = template.Must(template.New("netreport").Funcs(template.FuncMap{
-	"upper": strings.ToUpper,
-}).Parse(`<!doctype html><html><head><meta charset="utf-8">
-<title>Network Analysis Report — {{.Scan.FileName}}</title>
-<style>
- body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;max-width:960px;margin:24px auto;padding:0 20px;line-height:1.5}
- h1{font-size:22px;margin:0 0 4px} h2{font-size:15px;margin:22px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
- .muted{color:#666;font-size:12px} .verdict{display:inline-block;padding:4px 10px;border-radius:6px;font-weight:700;font-size:13px}
- .malicious{background:#fde2e1;color:#a01813} .suspicious{background:#fdf0d5;color:#8a5a00}
- .benign{background:#dff5e3;color:#1a6b34} .unknown{background:#eee;color:#555}
- table{border-collapse:collapse;width:100%;font-size:11px;margin:6px 0} th,td{border:1px solid #e2e2e2;padding:4px 6px;text-align:left;vertical-align:top}
- th{background:#f6f6f6} .sev-high,.sev-critical{color:#a01813;font-weight:600} .sev-medium{color:#8a5a00} code{font-family:ui-monospace,Consolas,monospace}
- .summary{background:#f8f9fb;border:1px solid #e2e6ee;border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap}
- @media print{body{margin:0}}
-</style></head><body>
-<h1>Network Traffic Analysis Report</h1>
-<div class="muted">{{.Scan.FileName}} &middot; sha256 <code>{{.Scan.Sha256}}</code> &middot; analysed {{.Created}}</div>
-<p style="margin:12px 0">
- <span class="verdict {{.Scan.Verdict}}">{{upper .Scan.Verdict}}</span>
- &nbsp; Threat score <b>{{.Scan.ThreatScore}}/100</b>
- &nbsp; {{.Scan.FlowCount}} flows &middot; {{.Scan.AlertCount}} alerts &middot; {{.Scan.C2Count}} C2/malicious
-</p>
+// captureSubject is the one-line "what this capture is" under the cover title.
+func captureSubject(scan *models.NetworkScan, res *netscan.NetworkResult) string {
+	parts := []string{fmt.Sprintf("%d flows · %d alerts · %d C2", scan.FlowCount, scan.AlertCount, scan.C2Count)}
+	if res.Timeline != nil && res.Timeline.StartTS != "" {
+		parts = append(parts, fmt.Sprintf("%s (+%ds)", res.Timeline.StartTS, res.Timeline.DurationSec))
+	}
+	if n := len(res.Files); n > 0 {
+		parts = append(parts, fmt.Sprintf("%d file(s) transferred", n))
+	}
+	return strings.Join(parts, " · ")
+}
 
-{{if .Scan.AutoSummary}}<h2>Analyst summary{{if eq .Scan.AutoSummaryKind "ai"}} (AI-generated){{end}}</h2>
-<div class="summary">{{.Scan.AutoSummary}}</div>{{end}}
+// IOCs returns the capture's normalised indicator set (block list / hunt input).
+//
+// GET /api/v1/network/:id/iocs
+func (h *NetworkHandler) IOCs(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "invalid id"})
+		return
+	}
+	var scan models.NetworkScan
+	if h.DB.First(&scan, "id = ?", id).Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "not found"})
+		return
+	}
+	var res netscan.NetworkResult
+	_ = json.Unmarshal([]byte(scan.Result), &res)
+	var findings []netscan.NetworkFinding
+	_ = json.Unmarshal([]byte(scan.Findings), &findings)
+	iocs := netscan.CollectIOCs(&scan, &res, findings)
 
-{{if .Res.Conversations}}<h2>Conversations</h2>
-<table><tr><th>Initiator → Responder</th><th>Geo / ASN</th><th>Times</th><th>Bytes</th><th>Protocols</th><th>First → Last (UTC)</th></tr>
-{{range .Res.Conversations}}<tr><td><code>{{.A}} → {{.B}}</code></td><td>{{call $.Geo .B}}</td><td>{{.Count}}</td><td>{{.Bytes}}</td><td>{{range .Protos}}{{.}} {{end}}</td><td>{{.FirstSeen}}{{if .LastSeen}} → {{.LastSeen}}{{end}}</td></tr>
-{{end}}</table>{{end}}
-
-{{if .Findings}}<h2>Findings ({{len .Findings}})</h2>
-<table><tr><th>Severity</th><th>Category</th><th>Title</th><th>Detail</th></tr>
-{{range .Findings}}<tr><td class="sev-{{.Severity}}">{{.Severity}}</td><td>{{.Category}}</td><td>{{.Title}}</td><td>{{.Detail}}</td></tr>
-{{end}}</table>{{end}}
-
-{{if .Res.Files}}<h2>Files transferred</h2>
-<table><tr><th>Filename</th><th>Type</th><th>Size</th><th>SHA256</th><th>YARA</th></tr>
-{{range .Res.Files}}<tr><td>{{.Filename}}</td><td>{{.Magic}}</td><td>{{.Size}}</td><td><code>{{.SHA256}}</code></td><td class="sev-high">{{range .Yara}}{{.}} {{end}}</td></tr>
-{{end}}</table>{{end}}
-
-{{if .Res.IOCs.IPs}}<h2>Indicators of compromise</h2>
-<p class="muted">IPs</p><p><code>{{range .Res.IOCs.IPs}}{{.}} {{end}}</code></p>
-{{if .Res.IOCs.Domains}}<p class="muted">Domains</p><p><code>{{range .Res.IOCs.Domains}}{{.}} {{end}}</code></p>{{end}}{{end}}
-
-<hr style="margin-top:28px;border:none;border-top:1px solid #eee">
-<div class="muted">Generated by AnalysisHub — Network Traffic Analysis. Deterministic engine (Suricata + Zeek + behavioural detection){{if eq .Scan.AutoSummaryKind "ai"}} with AI-assisted summary{{end}}.</div>
-</body></html>`))
+	switch strings.ToLower(c.Query("format")) {
+	case "csv":
+		var b strings.Builder
+		b.WriteString("type,value,confidence,context,capture,verdict\n")
+		q := func(s string) string { return `"` + strings.ReplaceAll(s, `"`, `""`) + `"` }
+		for _, i := range iocs {
+			fmt.Fprintf(&b, "%s,%s,%s,%s,%s,%s\n", q(i.Type), q(i.Value), q(i.Confidence), q(i.Context),
+				q(scan.FileName), q(scan.Verdict))
+		}
+		c.Header("Content-Disposition", `attachment; filename="`+sanitizeExportName(scan.FileName)+`-iocs.csv"`)
+		c.Data(http.StatusOK, "text/csv; charset=utf-8", []byte(b.String()))
+	case "suricata":
+		c.Header("Content-Disposition", `attachment; filename="`+sanitizeExportName(scan.FileName)+`.rules"`)
+		c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(netscan.BuildSuricataRules(&scan, iocs)))
+	default:
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": iocs})
+	}
+}
