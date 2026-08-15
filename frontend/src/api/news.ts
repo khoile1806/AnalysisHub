@@ -8,6 +8,27 @@ export type NewsCategory =
   | 'high-quality'
   | 'world-news'
   | 'vn-target'
+  // Not an RSS feed: produced by the plugin-release-watch service and folded in
+  // by the backend's plugin-watch worker.
+  | 'wp-plugin-watch'
+
+// PluginRelease is attached only to wp-plugin-watch articles: the facts an
+// analyst triages on, as data rather than prose inside the headline.
+export interface PluginRelease {
+  slug: string
+  name: string
+  version: string
+  previous_version?: string
+  /** wordpress.org rounds this DOWN into buckets — a floor, not a count. */
+  active_installs: number
+  /** The same figure rendered with its "+", so the caveat is never lost. */
+  active_installs_label: string
+  /** Cumulative downloads. Unlike active_installs this IS exact. Absent for a
+   *  plugin with none yet, so the UI must not assume it is present. */
+  downloads?: number
+  signal: 'security_fix' | 'new_plugin' | 'release'
+  last_updated?: string
+}
 
 export interface NewsArticle {
   id: string
@@ -22,6 +43,8 @@ export interface NewsArticle {
   tags?: string[]
   fetched_at: string
   image_url?: string
+  /** Present only for wp-plugin-watch articles. */
+  plugin?: PluginRelease
 }
 
 export interface NewsCategoryMeta {

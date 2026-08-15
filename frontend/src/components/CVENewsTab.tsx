@@ -261,6 +261,7 @@ function ArticleCard({
             </h3>
             <ExternalLink className="h-3.5 w-3.5 text-gray-600 group-hover:text-emerald-400 flex-shrink-0 mt-1" />
           </div>
+          {article.plugin && <PluginFacts plugin={article.plugin} />}
           {article.description && (
             <p className="mt-1.5 text-xs text-gray-400 line-clamp-2">{article.description}</p>
           )}
@@ -284,6 +285,49 @@ function ArticleCard({
         </div>
       </div>
     </a>
+  )
+}
+
+// PluginFacts lays out the three things that decide whether a plugin release is
+// worth opening — which plugin, which version moved, and how many sites run it —
+// as separate fields rather than a sentence to be re-read.
+//
+// The install figure is shown with its "+" and labelled "cai dat" because
+// wordpress.org rounds it DOWN into buckets: 20,000 means "at least 20,000",
+// never "exactly 20,000". The download total next to it IS exact, so the two are
+// deliberately styled differently and never summed or compared.
+function PluginFacts({ plugin }: { plugin: NonNullable<NewsArticle['plugin']> }) {
+  const bump = plugin.previous_version
+    ? `${plugin.previous_version} → ${plugin.version}`
+    : plugin.version
+  const tone =
+    plugin.signal === 'security_fix'
+      ? 'border-red-800/60 bg-red-950/20 text-red-300'
+      : plugin.signal === 'new_plugin'
+        ? 'border-amber-800/60 bg-amber-950/20 text-amber-300'
+        : 'border-gray-700 bg-gray-800/40 text-gray-300'
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+      <span className="px-1.5 py-0.5 rounded border border-gray-700 bg-gray-800/60 text-gray-200 font-medium">
+        {plugin.name}
+      </span>
+      <span className={`px-1.5 py-0.5 rounded border font-mono ${tone}`} title="Phien ban truoc → phien ban vua phat hanh">
+        {bump}
+      </span>
+      <span
+        className="px-1.5 py-0.5 rounded border border-sky-900/60 bg-sky-950/20 text-sky-300"
+        title="wordpress.org lam tron XUONG theo bac, nen day la muc san (it nhat bang tung nay), khong phai so dem chinh xac"
+      >
+        {plugin.active_installs_label} cai dat
+      </span>
+      {!!plugin.downloads && plugin.downloads > 0 && (
+        <span className="text-gray-500" title="Tong luot tai — day la con so chinh xac wordpress.org cong bo">
+          {plugin.downloads!.toLocaleString('en-US')} luot tai
+        </span>
+      )}
+      <span className="text-gray-600 font-mono">{plugin.slug}</span>
+    </div>
   )
 }
 

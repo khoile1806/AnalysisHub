@@ -35,7 +35,13 @@ var Categories = []Category{
 	{Slug: "darkweb", Label: "Dark Web / Deep Web News", Icon: "Eye"},
 	{Slug: "high-quality", Label: "Additional High-Quality Feeds", Icon: "Star"},
 	{Slug: "world-news", Label: "World News", Icon: "Globe"},
+	{Slug: "wp-plugin-watch", Label: "WordPress Plugin Releases", Icon: "Package"},
 }
+
+// The wp-plugin-watch category has no entry in Feeds: its articles do not come
+// from RSS. They are produced by the plugin-release-watch tool (tools/
+// plugin-release-watch), which polls the wordpress.org plugin API and writes a
+// report the worker ingests from disk. See handlers.syncPluginWatch.
 
 // Feeds is the flat list of every feed polled by the worker.
 var Feeds = []Feed{

@@ -42,6 +42,28 @@ type NewsArticle struct {
 	Tags        []string `json:"tags,omitempty"`
 	FetchedAt   string   `json:"fetched_at"`
 	ImageURL    string   `json:"image_url,omitempty"`
+	// Plugin is set only for wp-plugin-watch articles. The facts an analyst
+	// triages on — which plugin, which version, how many sites — are carried as
+	// DATA rather than only as prose inside the title, so the UI can lay them out
+	// and sort/filter on them instead of parsing a headline.
+	Plugin *PluginRelease `json:"plugin,omitempty"`
+}
+
+// PluginRelease is the structured half of a plugin-release article.
+type PluginRelease struct {
+	Slug            string `json:"slug"`
+	Name            string `json:"name"`
+	Version         string `json:"version"`
+	PreviousVersion string `json:"previous_version,omitempty"`
+	// ActiveInstalls is wp.org's published bucket, rounded DOWN — 20000 means
+	// "20,000+". ActiveInstallsLabel carries that caveat in the rendered form so
+	// the UI never has to re-derive it. Downloads is the exact cumulative count,
+	// which is the only hard number wp.org publishes about reach.
+	ActiveInstalls      int    `json:"active_installs"`
+	ActiveInstallsLabel string `json:"active_installs_label"`
+	Downloads           int    `json:"downloads,omitempty"`
+	Signal              string `json:"signal"` // security_fix | new_plugin | release
+	LastUpdated         string `json:"last_updated,omitempty"`
 }
 
 var (
@@ -60,6 +82,11 @@ var (
 	newsDescriptionLimit  = 500
 	newsRefreshInterval   = 5 * time.Minute
 	newsPerFeedTimeout    = 15 * time.Second
+	// pluginWatchInterval is deliberately much shorter than the RSS cycle. It
+	// reads one local file — no network, no parsing budget — and the whole point
+	// of the plugin feed is to reach the analyst while the release is still fresh,
+	// so making it wait behind a 72-feed fan-out would defeat it.
+	pluginWatchInterval = 1 * time.Minute
 )
 
 // ── Feed health / dead-feed pruning ─────────────────────────────────────────
@@ -262,6 +289,11 @@ func StartNewsUpdateWorker(hub *ws.Hub) {
 		safeLoop("news-worker", func() { syncAllFeeds(hub) })
 		runWorker("news-worker", newsRefreshInterval, func() { syncAllFeeds(hub) })
 	}()
+	// Plugin releases run on their own, faster clock — see pluginWatchInterval.
+	go func() {
+		safeLoop("plugin-watch", func() { syncPluginWatch(hub) })
+		runWorker("plugin-watch", pluginWatchInterval, func() { syncPluginWatch(hub) })
+	}()
 }
 
 // syncAllFeeds fans out one fetch goroutine per registered feed, gated by a
@@ -358,6 +390,72 @@ func syncAllFeeds(hub *ws.Hub) {
 	wg.Wait()
 	log.Printf("[news-worker] sync complete: %d new articles, %d feeds ok, %d failed, %d skipped (dead-feed backoff)",
 		newCount, okCount, failCount, skipCount)
+
+}
+
+// syncPluginWatch folds the plugin-release-watch report into the news
+// collection. It is not an RSS feed: the watcher service writes a rolling report
+// to a shared file and this reads it, so the two sides never have to be up at
+// the same time.
+//
+// The report carries a rolling window rather than one run's delta, which is what
+// makes a missed read harmless — everything still recent is re-offered, and
+// mergeAndPersist drops what was already stored.
+//
+// A missing report is the normal state on an install that does not run the
+// tool, so it is silent rather than logged as an error.
+func syncPluginWatch(hub *ws.Hub) {
+	path := news.PluginWatchReportPath()
+	report, err := news.LoadPluginWatchReport(path)
+	if err != nil {
+		log.Printf("[news-worker] plugin-watch: %v", err)
+		return
+	}
+	if report == nil || len(report.Events) == 0 {
+		return
+	}
+
+	fetchedAt := time.Now().UTC().Format(time.RFC3339)
+	published := report.GeneratedAt.UTC().Format(time.RFC3339)
+
+	articles := make([]NewsArticle, 0, len(report.Events))
+	for _, ev := range report.Events {
+		previous := ""
+		if ev.PreviousVersion != nil {
+			previous = *ev.PreviousVersion
+		}
+		articles = append(articles, NewsArticle{
+			ID:          ev.ArticleID(),
+			Title:       ev.Title(),
+			Link:        ev.Link(),
+			Description: ev.Description(),
+			Source:      "WordPress Plugin Watch",
+			Category:    news.PluginWatchCategory,
+			Published:   published,
+			FetchedAt:   fetchedAt,
+			Tags:        ev.Tags(),
+			Plugin: &PluginRelease{
+				Slug:                ev.Slug,
+				Name:                ev.DisplayName(),
+				Version:             ev.CurrentVersion,
+				PreviousVersion:     previous,
+				ActiveInstalls:      ev.ActiveInstalls,
+				ActiveInstallsLabel: ev.InstallsLabel(),
+				Downloads:           ev.Downloaded,
+				Signal:              string(ev.Signal),
+				LastUpdated:         ev.LastUpdated,
+			},
+		})
+	}
+
+	// mergeAndPersist dedupes on ID, and ArticleID is slug@version, so re-reading
+	// the same report on the next cycle adds nothing.
+	if added := mergeAndPersist(news.PluginWatchCategory, articles); added > 0 {
+		log.Printf("[news-worker] plugin-watch: %d bai moi tu %s", added, path)
+		if hub != nil {
+			hub.PublishNewsUpdate(news.PluginWatchCategory)
+		}
+	}
 }
 
 // fetchOneFeed downloads + parses a single feed. Failures are surfaced to

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, Bug, Trash2, Plus, ExternalLink, Loader2, BarChart3, List, Zap, ShieldAlert,
-  Newspaper, Shield, Building, Eye, Star, Globe, Target,
+  Newspaper, Shield, Building, Eye, Star, Globe, Target, Package,
   type LucideIcon,
 } from 'lucide-react'
 import CVENewsTab from '@/components/CVENewsTab'
@@ -45,10 +45,12 @@ type TabType =
   | 'news-high-quality'
   | 'news-world-news'
   | 'news-vn-target'
+  | 'news-wp-plugin-watch'
 
 const TABS: { id: TabType; label: string; icon: LucideIcon }[] = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'list', label: 'CVE alert', icon: List },
+  { id: 'news-wp-plugin-watch', label: 'Plugin Releases', icon: Package },
   { id: 'news-vn-target', label: 'VN Target', icon: Target },
   { id: 'news-world-news', label: 'World News', icon: Globe },
   { id: 'news-high-quality', label: 'High Quality', icon: Star },

@@ -338,6 +338,37 @@ services:
     # simply never makes outbound calls.)
     restart: unless-stopped
 
+  # WordPress plugin release watcher. Polls the public wordpress.org plugin API
+  # for the whole repository (~15-20 releases an hour) and writes a rolling
+  # report the backend's news worker turns into Threat Intel articles, so a new
+  # plugin or a freshly-published security fix shows up in the feed within
+  # minutes of being released — which is the window that matters when the point
+  # is to read the patch before anyone else does.
+  #
+  # Only outbound HTTPS to api.wordpress.org, only metadata. It never touches a
+  # live WordPress site.
+  plugin_watch:
+    build:
+      # Repo root: the Dockerfile copies from tools/plugin-release-watch/.
+      context: .
+      dockerfile: tools/plugin-release-watch/Dockerfile
+    container_name: analysishub_plugin_watch
+    command:
+      - "--json"
+      - "/data/plugin-watch/report.json"
+      - "--state"
+      - "/data/plugin-watch/release-state.json"
+      - "--interval"
+      - "${PLUGIN_WATCH_INTERVAL:-120}"
+      - "--keep-hours"
+      - "${PLUGIN_WATCH_KEEP_HOURS:-24}"
+    volumes:
+      # Same host directory the backend mounts at /app/data, so the report lands
+      # exactly where news.PluginWatchReportPath() looks for it.
+      - ./backend/data:/data
+    mem_limit: 256m
+    restart: unless-stopped
+
   # Network-traffic analysis sidecar (Suricata, offline pcap mode). The backend
   # POSTs an uploaded .pcap; Suricata reads the FILE (no live capture, no raw
   # caps) and returns flows/DNS/TLS-JA3/HTTP + ET-Open C2 alerts distilled to JSON.
