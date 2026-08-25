@@ -11,6 +11,7 @@ FROM node:20-bookworm-slim
 # python3 gives the second supported language; unzip stages a dropped folder so a
 # loader can reach the payload files it requires at runtime. No build toolchain.
 RUN set -eux; \
+    echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries; \
     apt-get update; \
     apt-get install -y --no-install-recommends python3 python3-minimal unzip ca-certificates curl; \
     rm -rf /var/lib/apt/lists/*

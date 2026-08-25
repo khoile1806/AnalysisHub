@@ -3,7 +3,7 @@ FROM kalilinux/kali-rolling
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python 2, Python 3, and build dependencies
-RUN apt-get update && apt-get install -y \
+RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && apt-get update && apt-get install -y \
     kali-linux-core \
     kali-tools-top10 \
     net-tools \

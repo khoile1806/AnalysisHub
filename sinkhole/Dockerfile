@@ -9,6 +9,7 @@ FROM python:3.11-slim
 # openssl generates the self-signed leaf at first start; libcap lets an
 # unprivileged process bind 53/80/443 without running the service as root.
 RUN set -eux; \
+    echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries; \
     apt-get update; \
     apt-get install -y --no-install-recommends openssl libcap2-bin tcpdump; \
     rm -rf /var/lib/apt/lists/*

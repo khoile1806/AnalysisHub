@@ -3,6 +3,8 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -43,8 +45,23 @@ var upgrader = websocket.Upgrader{
 			// sent, so there is no cross-site hijacking risk.
 			return true
 		}
-		_, ok := allowedWSOrigins[origin]
-		return ok
+		if _, ok := allowedWSOrigins[origin]; ok {
+			return true
+		}
+		// Same-origin is always allowed, whatever address the server was reached
+		// by. What this check exists to stop is a page on ANOTHER site opening a
+		// socket here; a page served by this very host is not that. Requiring the
+		// operator to enumerate every IP and hostname in ALLOWED_ORIGINS meant a
+		// fresh deployment reached at http://<server-ip>:3000 served HTTP fine and
+		// then failed every WebSocket — a silent, confusing half-broken state.
+		//
+		// Both nginx proxy blocks forward `Host: $http_host`, so r.Host is the
+		// authority the browser actually typed, port included.
+		if u, err := url.Parse(origin); err == nil && u.Host != "" &&
+			strings.EqualFold(u.Host, r.Host) {
+			return true
+		}
+		return false
 	},
 }
 

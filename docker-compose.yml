@@ -209,7 +209,7 @@ services:
       # sinkhole whose capture is folded into the behaviour report. Both sit on the
       # isolated sandbox_net; leaving these empty disables the step.
       - SCRIPT_SANDBOX_URL=${SCRIPT_SANDBOX_URL:-http://script_sandbox:8094}
-      - SINKHOLE_URL=${SINKHOLE_URL:-http://10.99.0.5:8095}
+      - SINKHOLE_URL=${SINKHOLE_URL:-http://${SINKHOLE_IP:-10.99.0.5}:8095}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@analysishub.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
       - PUBLIC_URL=${PUBLIC_URL:-}
@@ -428,10 +428,10 @@ services:
     # Every name the sample resolves must land on the sinkhole, including the ones
     # baked into a hard-coded C2 list.
     dns:
-      - 10.99.0.5
+      - ${SINKHOLE_IP:-10.99.0.5}
     dns_search: []
     environment:
-      - SINKHOLE_URL=http://10.99.0.5:8095
+      - SINKHOLE_URL=http://${SINKHOLE_IP:-10.99.0.5}:8095
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
       - SANDBOX_MAX_TIMEOUT=${SANDBOX_MAX_TIMEOUT:-180}
     read_only: true
@@ -462,9 +462,9 @@ services:
     networks:
       sandbox_net:
         # Pinned so it can be the sandbox's resolver without a lookup of its own.
-        ipv4_address: 10.99.0.5
+        ipv4_address: ${SINKHOLE_IP:-10.99.0.5}
     environment:
-      - SINKHOLE_IP=10.99.0.5
+      - SINKHOLE_IP=${SINKHOLE_IP:-10.99.0.5}
       - CONTROL_PORT=8095
     read_only: true
     tmpfs:
@@ -510,7 +510,7 @@ networks:
     internal: true
     ipam:
       config:
-        - subnet: 10.99.0.0/24
+        - subnet: ${SANDBOX_SUBNET:-10.99.0.0/24}
 
 volumes:
   postgres_data:

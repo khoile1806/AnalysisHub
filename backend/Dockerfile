@@ -4,7 +4,14 @@
 # leaves the previous image running — pin it so builds are reproducible.
 FROM golang:1.25-alpine AS agent-builder
 
-RUN apk add --no-cache git ca-certificates
+# Retried, and the result verified with `apk info -e`. A first build on a clean
+# machine otherwise dies outright when the Alpine CDN hiccups for a second, and
+# the operator sees only "exit code: 1" with no indication that simply running
+# the build again would have worked. Same idiom as the apt loop in
+# net-analyzer/Dockerfile. The `apk info -e` guard matters: without it the loop
+# exits 0 after three failed attempts and the missing package surfaces much
+# later as a confusing build error in an unrelated stage.
+RUN for i in 1 2 3; do apk add --no-cache git ca-certificates && break || { echo "[build] apk retry $i"; sleep 5; }; done; apk info -e git > /dev/null
 
 WORKDIR /agent
 COPY ./agent .
@@ -34,7 +41,7 @@ RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 # Stage 1: Build backend binary
 FROM golang:1.25-alpine AS builder
 
-RUN apk add --no-cache git ca-certificates tzdata
+RUN for i in 1 2 3; do apk add --no-cache git ca-certificates tzdata && break || { echo "[build] apk retry $i"; sleep 5; }; done; apk info -e git > /dev/null
 
 WORKDIR /build
 
@@ -53,7 +60,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Stage 1.5a: Build YARA Scanner (Linux)
 FROM python:3.11-slim AS scanner-builder-linux
 
-RUN apt-get update && apt-get install -y binutils gcc libmagic1
+RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && apt-get update && apt-get install -y binutils gcc libmagic1
 
 WORKDIR /scanner
 COPY ./tools/yara-scanner .
@@ -70,7 +77,7 @@ RUN wine pyinstaller build.spec --clean --noconfirm --distpath dist/windows
 
 # Stage 1.5c: Bundle
 FROM alpine:3.19 AS scanner-bundler
-RUN apk add --no-cache zip
+RUN for i in 1 2 3; do apk add --no-cache zip && break || { echo "[build] apk retry $i"; sleep 5; }; done; apk info -e zip > /dev/null
 WORKDIR /app/defaults
 RUN mkdir -p linux windows
 COPY --from=scanner-builder-linux /scanner/dist/linux/yara-scanner linux/
@@ -86,7 +93,7 @@ RUN wget -qO winpmem.exe https://github.com/Velocidex/WinPmem/releases/download/
 # feature degrades (the tool reports "not installed") instead of breaking the
 # image build.
 FROM alpine:3.19 AS scanner-tools
-RUN apk add --no-cache curl unzip git ca-certificates
+RUN for i in 1 2 3; do apk add --no-cache curl unzip git ca-certificates && break || { echo "[build] apk retry $i"; sleep 5; }; done; apk info -e curl > /dev/null
 RUN set -eux; mkdir -p /out; \
     for tool in httpx nuclei subfinder naabu dnsx katana cdncheck tlsx; do \
       url=$(curl -fsSL "https://api.github.com/repos/projectdiscovery/$tool/releases/latest" \
@@ -136,7 +143,7 @@ RUN git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates /ou
 # "redline" tool-result processor. Best-effort: if the build fails, the processor
 # just reports goauditparser as missing and stores Redline results raw.
 FROM golang:1.25-alpine AS goauditparser-builder
-RUN apk add --no-cache git ca-certificates
+RUN for i in 1 2 3; do apk add --no-cache git ca-certificates && break || { echo "[build] apk retry $i"; sleep 5; }; done; apk info -e git > /dev/null
 RUN mkdir -p /out && \
     (GOBIN=/out go install github.com/mandiant/goauditparser@latest \
      || echo "[build] goauditparser build failed — redline result processor will report it missing")
