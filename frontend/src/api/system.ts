@@ -76,12 +76,40 @@ export interface RecentSession {
   tokens_used: number
   finished_at: string | null
   provider_id: string
+  duration_ms?: number
+}
+
+// One row of the per-FEATURE breakdown — the question the old panel could not
+// answer, because it only counted AI Analysis sessions and every other AI feature
+// in the platform spent tokens invisibly.
+export interface FeatureTokenStat {
+  feature: string
+  calls: number
+  failed: number
+  total_tokens: number
+  avg_tokens: number
+  avg_ms: number
+  last_used: string | null
+}
+
+export interface DailyTokenPoint {
+  day: string
+  calls: number
+  total_tokens: number
 }
 
 export interface TokenStatsData {
+  window_days: number
+  // total_sessions now counts COMPLETIONS, which is what a provider bills for.
   total_sessions: number
   total_tokens: number
+  failed_calls: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
   by_provider: ProviderTokenStat[]
+  by_feature: FeatureTokenStat[]
+  daily: DailyTokenPoint[]
   recent: RecentSession[]
 }
 
@@ -147,8 +175,9 @@ export const systemApi = {
     return data.data
   },
 
-  getTokenStats: async (): Promise<TokenStatsData> => {
-    const { data } = await apiClient.get<ApiResponse<TokenStatsData>>('/system/token-stats')
+  getTokenStats: async (days?: number): Promise<TokenStatsData> => {
+    const { data } = await apiClient.get<ApiResponse<TokenStatsData>>('/system/token-stats',
+      { params: days ? { days } : undefined })
     return data.data
   },
 

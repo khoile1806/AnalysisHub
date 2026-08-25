@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"github.com/analysishub/backend/internal/aiusage"
 	"github.com/analysishub/backend/internal/api"
 	"github.com/analysishub/backend/internal/api/handlers"
 	"github.com/analysishub/backend/internal/config"
@@ -125,6 +126,10 @@ func main() {
 		slog.Error("database init failed", "error", err)
 		os.Exit(1)
 	}
+
+	// The AI token ledger is append-only per completion; trim what has aged out of
+	// the reporting window so a busy deployment does not carry rows nothing reads.
+	aiusage.Prune(db)
 
 	// Proxy Manager: start the egress flow recorder (ring + rolling DB history)
 	// and restore the active proxy profile so a switch survives a restart. A saved

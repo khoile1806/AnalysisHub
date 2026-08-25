@@ -38,10 +38,18 @@ type NetworkHandler struct {
 }
 
 func NewNetworkHandler(db *gorm.DB, store *storage.LocalStorage, cfg *config.Config, enrich *threatintel.EnrichClient, aiHandler *AIHandler, malwareHandler *MalwareHandler) *NetworkHandler {
-	return &NetworkHandler{
+	h := &NetworkHandler{
 		DB: db, Store: store, Cfg: cfg, AI: aiHandler, Malware: malwareHandler,
 		engine: netscan.NewEngine(db, store, cfg.NetAnalyzerURL, enrich, cfg.MalwareLocalOnly),
 	}
+	// Close the loop between the two features. Carved files already flow from a
+	// pcap INTO malware analysis; this sends a detonation's captured traffic back
+	// the other way, so live malware traffic finally reaches the Suricata/Zeek
+	// pipeline instead of existing only as the sinkhole's JSON records.
+	if malwareHandler != nil {
+		malwareHandler.SetPcapAnalyzer(h.AnalyzeDetonationPcap)
+	}
+	return h
 }
 
 func (h *NetworkHandler) maxUpload() int64 {

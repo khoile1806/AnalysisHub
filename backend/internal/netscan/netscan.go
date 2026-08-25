@@ -354,9 +354,11 @@ func (e *Engine) Analyze(parent context.Context, scanID string, data []byte, fil
 	findings, _ := e.buildFindings(ctx, res) // Suricata signatures + reputation
 	behavior, _ := analyzeBehavior(res)      // beaconing, exfil, TLS/DNS anomalies
 	findings = append(findings, behavior...)
-	findings = append(findings, e.intelFindings(res)...)  // JA3 blocklist + IOC store
-	findings = append(findings, zeekFindings(res)...)     // Zeek notices + TLS validation
-	findings = append(findings, frontingFindings(res)...) // domain fronting (decrypted)
+	findings = append(findings, e.intelFindings(res)...)    // JA3 blocklist + IOC store
+	findings = append(findings, volumetricFindings(res)...) // floods / scans / sweeps (no signature exists)
+	findings = append(findings, beaconFindings(res)...)     // C2 check-in schedules (same, on the time axis)
+	findings = append(findings, zeekFindings(res)...)       // Zeek notices + TLS validation
+	findings = append(findings, frontingFindings(res)...)   // domain fronting (decrypted)
 	findings = append(findings, carvedFindings...)
 	c2 := countC2(findings)
 	scan.C2Count = c2

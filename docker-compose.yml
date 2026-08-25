@@ -205,6 +205,11 @@ services:
       - MALWARE_GOODWARE_LIST=${MALWARE_GOODWARE_LIST:-}
       # Network-traffic (pcap) analysis sidecar — Suricata offline mode.
       - NET_ANALYZER_URL=${NET_ANALYZER_URL:-http://net_analyzer:8092}
+      # Script detonation sandbox (instrumented Node/Python) and the fake-C2
+      # sinkhole whose capture is folded into the behaviour report. Both sit on the
+      # isolated sandbox_net; leaving these empty disables the step.
+      - SCRIPT_SANDBOX_URL=${SCRIPT_SANDBOX_URL:-http://script_sandbox:8094}
+      - SINKHOLE_URL=${SINKHOLE_URL:-http://10.99.0.5:8095}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@analysishub.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@123456}
       - PUBLIC_URL=${PUBLIC_URL:-}
@@ -276,6 +281,11 @@ services:
       # NOTE: intentionally no depends_on for elasticsearch/kibana — the backend
       # starts immediately (it tolerates ELK being down/stopped) instead of waiting
       # ~1 min for Elasticsearch to become healthy.
+    # The backend is deliberately the ONLY member of both networks: it can submit
+    # samples to the sandbox, while the sandbox has no route to anything else.
+    networks:
+      - default
+      - sandbox_net
     restart: unless-stopped
 
   # Volatility + Kali offensive sandbox. The ttyd web terminal is intentionally
@@ -397,6 +407,110 @@ services:
     # NOTE: no depends_on for kibana — nginx resolves it at request time (see the
     # /kbn location), so the frontend stays up even while an admin has ELK stopped.
     restart: unless-stopped
+
+  # ── Script sandbox: the one service that runs attacker code on purpose ─────
+  # JS/Node and Python samples are executed under instrumentation (V8 Inspector +
+  # API hooks) so a packed stager decrypts its own payload for us. Containment is
+  # the compose configuration below, not a promise in a comment:
+  #   • sandbox_net is `internal: true` — there is NO route off the host from it.
+  #   • Its only neighbour is the sinkhole, which answers every protocol.
+  #   • Root filesystem read-only; the sample gets a tmpfs to work in.
+  #   • Every capability dropped, no privilege escalation, PID-bounded, non-root.
+  script_sandbox:
+    build:
+      context: .
+      dockerfile: script-sandbox/Dockerfile
+    container_name: analysishub_script_sandbox
+    expose:
+      - "8094"
+    networks:
+      sandbox_net:
+    # Every name the sample resolves must land on the sinkhole, including the ones
+    # baked into a hard-coded C2 list.
+    dns:
+      - 10.99.0.5
+    dns_search: []
+    environment:
+      - SINKHOLE_URL=http://10.99.0.5:8095
+      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-60}
+      - SANDBOX_MAX_TIMEOUT=${SANDBOX_MAX_TIMEOUT:-180}
+    read_only: true
+    tmpfs:
+      # noexec is deliberate: the sample is run by the node/python interpreter,
+      # which never needs to mmap a dropped file as executable. A native payload
+      # written here therefore cannot be launched.
+      - /tmp:rw,noexec,nosuid,size=1g
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: ${SANDBOX_MEM:-2g}
+    depends_on:
+      - sinkhole
+    restart: unless-stopped
+
+  # ── Sinkhole: the fake Internet ────────────────────────────────────────────
+  # Resolves every name to itself and answers DNS/HTTP/HTTPS plus a catch-all TCP
+  # list, so a sample completes its beacon → task → exfil routine and each step is
+  # captured with the URI, User-Agent, SNI and body a detection rule needs.
+  sinkhole:
+    build:
+      context: .
+      dockerfile: sinkhole/Dockerfile
+    container_name: analysishub_sinkhole
+    networks:
+      sandbox_net:
+        # Pinned so it can be the sandbox's resolver without a lookup of its own.
+        ipv4_address: 10.99.0.5
+    environment:
+      - SINKHOLE_IP=10.99.0.5
+      - CONTROL_PORT=8095
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=64m
+    cap_drop:
+      - ALL
+    cap_add:
+      # Binding 53/80/443 as a non-root user.
+      - NET_BIND_SERVICE
+      # Capturing the detonation as a pcap. The capture lives here, not in the
+      # sandbox: a Docker bridge is a switch, so only an endpoint sees the
+      # traffic — and this endpoint is the one that does NOT execute malware.
+      # Every sandbox packet arrives here anyway, because DNS resolves every name
+      # to this address and the network has no other destination.
+      - NET_RAW
+      - NET_ADMIN
+    # no-new-privileges is deliberately NOT set here, and only here.
+    #
+    # It blocks the exact mechanism tcpdump needs: the binary carries
+    # cap_net_raw=ep, and no_new_privs forbids a file capability from raising a
+    # non-root process's privileges — so the capture failed with "Operation not
+    # permitted" even though NET_RAW was in the bounding set.
+    #
+    # What that costs is bounded: this container still drops ALL capabilities and
+    # adds back only three, still runs as a non-root user, and still has a
+    # read-only root filesystem. Nothing here can gain a capability that is not
+    # already in the bounding set. It also does not EXECUTE attacker code — it
+    # parses attacker input. The container that runs malware (script_sandbox)
+    # keeps no-new-privileges and has no capabilities at all.
+    pids_limit: 256
+    mem_limit: ${SINKHOLE_MEM:-512m}
+    restart: unless-stopped
+
+networks:
+  # The stack's normal network (implicit before these services existed).
+  default:
+  # Detonation network. `internal: true` removes the gateway, so containers here
+  # have no route to the host, to the other services, or to the Internet — the
+  # sandbox can reach the sinkhole and nothing else. The backend is the only
+  # member of both networks, which is what lets it submit work without giving the
+  # sandbox a path back into Postgres/Redis/the Docker proxy.
+  sandbox_net:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.99.0.0/24
 
 volumes:
   postgres_data:

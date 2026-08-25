@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import IntelButton from '@/components/IntelButton'
 import toast from 'react-hot-toast'
 import { ReactFlow, Background, Controls, MiniMap, MarkerType, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -172,7 +173,11 @@ function TopTalkers({ result }: { result: NetworkResult }) {
         <thead><tr className="text-gray-500 text-left"><th className="pr-2">Destination</th>{hasGeo && <th className="pr-2">Geo / ASN</th>}<th className="pr-2">Bytes</th><th className="pr-2">↑ out</th><th className="pr-2">↓ in</th><th className="pr-2">Flows</th><th className="pr-2">Ports</th></tr></thead>
         <tbody>{rows.map((r, i) => (
           <tr key={i} className="border-t border-slate-800/50">
-            <td className="pr-2"><span className={`font-mono ${r.internal ? 'text-sky-300' : 'text-gray-200'}`}>{r.dst}</span>{r.domain && <span className="text-emerald-500 ml-1 break-all">{r.domain}</span>}</td>
+            <td className="pr-2 whitespace-nowrap">
+              <span className={`font-mono ${r.internal ? 'text-sky-300' : 'text-gray-200'}`}>{r.dst}</span>
+              <IntelButton value={r.dst} kind="ip" size="xs" className="ml-1 align-middle" />
+              {r.domain && <><span className="text-emerald-500 ml-1 break-all">{r.domain}</span><IntelButton value={r.domain} kind="domain" size="xs" className="ml-1 align-middle" /></>}
+            </td>
             {hasGeo && <td className="pr-2 text-gray-400">{geoLabel(r.geo) || '—'}</td>}
             <td className="pr-2 text-gray-300">{fmtBytesFull(r.bytes)}</td>
             <td className="pr-2 text-amber-300/80">{fmtBytes(r.out)}</td>
@@ -219,7 +224,10 @@ function ZeekPanel({ result }: { result: NetworkResult }) {
                 <td className="pr-2 text-gray-400">{f.source || '—'}</td>
                 <td className="pr-2 text-gray-400 break-all">{f.mime || '—'}</td>
                 <td className="pr-2 text-gray-400">{fmtBytesFull(f.bytes)}</td>
-                <td className="pr-2 font-mono text-gray-600 break-all">{f.sha256 ? f.sha256.slice(0, 16) + '…' : '—'}</td>
+                <td className="pr-2 font-mono text-gray-600 break-all whitespace-nowrap">
+                  {f.sha256 ? f.sha256.slice(0, 16) + '…' : '—'}
+                  <IntelButton value={f.sha256} kind="hash" size="xs" className="ml-1 align-middle" />
+                </td>
               </tr>
             ))}</tbody>
           </table></div>
@@ -425,8 +433,8 @@ function FlowGraph({ result, findings }: { result: NetworkResult; findings: Netw
         </ReactFlow>
         {selInfo && sel && (
           <div className="absolute top-2 right-2 w-64 rounded-lg border border-slate-700 bg-gray-900/95 p-3 text-[11px] shadow-xl">
-            <div className="flex items-center gap-1.5 mb-1"><span className={`h-2 w-2 rounded-full ${selInfo.internal ? 'bg-sky-400' : selInfo.findings.length ? 'bg-red-500' : 'bg-slate-500'}`} /><b className="text-gray-100 break-all">{sel}</b></div>
-            {selInfo.domain && <div className="text-emerald-400 break-all mb-1">{selInfo.domain}</div>}
+            <div className="flex items-center gap-1.5 mb-1"><span className={`h-2 w-2 rounded-full ${selInfo.internal ? 'bg-sky-400' : selInfo.findings.length ? 'bg-red-500' : 'bg-slate-500'}`} /><b className="text-gray-100 break-all">{sel}</b><IntelButton value={sel} kind="ip" size="xs" /></div>
+            {selInfo.domain && <div className="text-emerald-400 break-all mb-1">{selInfo.domain}<IntelButton value={selInfo.domain} kind="domain" size="xs" className="ml-1 align-middle" /></div>}
             {selInfo.geo && <div className="text-gray-300 mb-1">{geoLabel(selInfo.geo)}</div>}
             <div className="grid grid-cols-2 gap-1 text-gray-400">
               <span>Role <b className="text-gray-200">{selInfo.internal ? 'internal' : 'external'}</b></span>
@@ -569,6 +577,7 @@ function FilePreviewModal({ preview, onClose }: { preview: CarvedPreview; onClos
           <span className="px-1.5 py-0.5 rounded bg-slate-800 text-gray-200">{preview.type}</span>
           <span>{fmtBytesFull(preview.size)}{preview.truncated && <span className="text-amber-400"> (preview truncated)</span>}</span>
           <span className="font-mono text-gray-600 break-all">{preview.sha256.slice(0, 24)}…</span>
+          <IntelButton value={preview.sha256} kind="hash" label="VirusTotal" />
           <span className="ml-auto flex gap-1">
             <button className={`px-2 py-0.5 rounded text-[11px] ${tab === 'hex' ? 'bg-slate-700 text-gray-100' : 'text-gray-400'}`} onClick={() => setTab('hex')}>Hex</button>
             <button className={`px-2 py-0.5 rounded text-[11px] ${tab === 'strings' ? 'bg-slate-700 text-gray-100' : 'text-gray-400'}`} onClick={() => setTab('strings')}>Strings ({preview.strings.length})</button>
@@ -814,10 +823,16 @@ function Detail({ id }: { id: string }) {
             <thead className="sticky top-0 bg-gray-900"><tr className="text-gray-500 text-left"><th className="pr-2 py-1">Query</th><th className="pr-2">Type</th><th className="pr-2">Rcode</th><th className="pr-2">Answers</th></tr></thead>
             <tbody>{result.dns.slice(0, 300).map((d, i) => (
               <tr key={i} className="border-t border-slate-800/50">
-                <td className="pr-2 text-gray-300 break-all">{d.query}</td>
+                <td className="pr-2 text-gray-300 break-all">
+                  {d.query}<IntelButton value={d.query} kind="domain" size="xs" className="ml-1 align-middle" />
+                </td>
                 <td className="pr-2 text-gray-500">{d.type || '—'}</td>
                 <td className="pr-2">{d.rcode ? <span className={d.rcode === 'NXDOMAIN' ? 'text-amber-400' : 'text-gray-500'}>{d.rcode}</span> : '—'}</td>
-                <td className="pr-2 font-mono text-gray-500 break-all">{(d.answers ?? []).join(', ') || '—'}</td>
+                <td className="pr-2 font-mono text-gray-500 break-all">
+                  {(d.answers ?? []).length === 0 ? '—' : (d.answers ?? []).map((a, k) => (
+                    <span key={k} className="whitespace-nowrap">{k > 0 && ', '}{a}<IntelButton value={a} kind="ip" size="xs" className="ml-0.5 align-middle" /></span>
+                  ))}
+                </td>
               </tr>
             ))}</tbody>
           </table></div>
@@ -850,7 +865,7 @@ function Detail({ id }: { id: string }) {
             <tbody>{result.http.slice(0, 200).map((h, i) => (
               <tr key={i} className="border-t border-slate-800/50">
                 <td className="pr-2 text-gray-300">{h.method}</td>
-                <td className="pr-2 text-gray-300 break-all">{h.host}{h.url}</td>
+                <td className="pr-2 text-gray-300 break-all">{h.host}<IntelButton value={h.host} kind="domain" size="xs" className="mx-1 align-middle" />{h.url}</td>
                 <td className="pr-2 text-gray-500">{h.status || '—'}</td>
                 <td className="pr-2 text-gray-600 break-all">{h.ua || '—'}</td>
               </tr>
@@ -865,7 +880,7 @@ function Detail({ id }: { id: string }) {
             <tbody>{result.decrypted_http.slice(0, 200).map((h, i) => (
               <tr key={i} className="border-t border-slate-800/50">
                 <td className="pr-2 text-gray-300">{h.method}</td>
-                <td className="pr-2 text-gray-200 break-all">{h.host}{h.url}</td>
+                <td className="pr-2 text-gray-200 break-all">{h.host}<IntelButton value={h.host} kind="domain" size="xs" className="mx-1 align-middle" />{h.url}</td>
                 <td className="pr-2 font-mono text-gray-500">{h.dst}</td>
                 <td className="pr-2 text-gray-600 break-all">{h.ua || '—'}</td>
               </tr>

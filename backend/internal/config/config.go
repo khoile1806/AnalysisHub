@@ -109,6 +109,21 @@ type Config struct {
 	// inventory). A hash listed there clears a verdict that rests only on
 	// heuristics, which is the main brake on false positives. Empty → disabled.
 	MalwareGoodwareList string
+	// ScriptSandboxURL points at the script detonation sandbox — the dynamic
+	// backend for samples that are not Windows PE. speakeasy emulates PE and
+	// shellcode, so a Node/Electron dropper, a malicious npm postinstall or an
+	// obfuscated .js stager previously produced "no behaviour observed" for the
+	// entire script-malware class. The sandbox EXECUTES those under
+	// instrumentation on an isolated network. Empty → the step is skipped.
+	ScriptSandboxURL string
+	// ScriptSandboxTimeout is the per-detonation budget in seconds, passed to the
+	// sandbox (which clamps it to its own maximum).
+	ScriptSandboxTimeout int
+	// SinkholeURL is the fake-C2 control API. The backend reaches it directly to
+	// collect the pcap a detonation produced, so the sample's live traffic can be
+	// run through the same Suricata/Zeek pipeline as an uploaded capture. Empty
+	// disables pcap collection; the rest of the detonation is unaffected.
+	SinkholeURL string
 	// NetAnalyzerURL points at the Suricata pcap-analysis sidecar. Empty → the
 	// feature self-disables (upload returns "not configured").
 	NetAnalyzerURL string
@@ -352,6 +367,9 @@ func Load() *Config {
 		MalwareMaxUploadMB:       getEnvInt("MALWARE_MAX_UPLOAD_MB", 256),
 		MalwareGoodwareList:      getEnv("MALWARE_GOODWARE_LIST", ""),
 		MalwareBazaarKey:         getEnv("MALWARE_BAZAAR_KEY", ""),
+		ScriptSandboxURL:         getEnv("SCRIPT_SANDBOX_URL", ""),
+		ScriptSandboxTimeout:     getEnvInt("SCRIPT_SANDBOX_TIMEOUT", 60),
+		SinkholeURL:              getEnv("SINKHOLE_URL", ""),
 		NetAnalyzerURL:           getEnv("NET_ANALYZER_URL", ""),
 		NetworkMaxUploadMB:       getEnvInt("NETWORK_MAX_UPLOAD_MB", 512),
 		OsintPortScanMax:         getEnvInt("OSINT_PORTSCAN_MAX", 65535),

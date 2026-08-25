@@ -107,3 +107,19 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false
   }
 }
+
+// isRoutableIP reports whether an address can meaningfully be looked up in a public
+// threat-intel dataset. Loopback, link-local, multicast and RFC1918 addresses cannot:
+// querying them burns an API call to learn nothing.
+export function isRoutableIP(ip: string): boolean {
+  if (!ip || ip === '0.0.0.0' || ip === '::' || ip === '::1') return false
+  if (ip.includes(':')) {
+    const low = ip.toLowerCase()
+    return !low.startsWith('fe80') && !low.startsWith('fc') && !low.startsWith('fd')
+  }
+  const octet = (n: number) => parseInt(ip.split('.')[n] || '0', 10)
+  if (ip.startsWith('127.') || ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('169.254.')) return false
+  if (octet(0) === 172 && octet(1) >= 16 && octet(1) <= 31) return false
+  if (octet(0) >= 224) return false // multicast / reserved
+  return true
+}

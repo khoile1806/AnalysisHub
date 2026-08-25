@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm"
 
 	ai "github.com/analysishub/backend/internal/ai"
+	"github.com/analysishub/backend/internal/aiusage"
 	"github.com/analysishub/backend/internal/analysis"
 	"github.com/analysishub/backend/internal/api/middleware"
 	"github.com/analysishub/backend/internal/config"
@@ -809,5 +810,10 @@ func (h *AIHandler) newDecryptedClient(p *models.AIProvider) (ai.Client, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AI client: %w", err)
 	}
-	return client, nil
+	// Every AI client in the platform is built here, so wrapping once is what
+	// makes token accounting complete: malware synthesis, reverse engineering,
+	// OSINT triage, timeline extraction and anything added later are all recorded
+	// without their call sites knowing about it. Metering degrades to a no-op if
+	// the sink is nil — it can never be the reason an analysis fails.
+	return ai.Meter(client, p.ID.String(), aiusage.New(h.db)), nil
 }

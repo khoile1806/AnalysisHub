@@ -44,6 +44,44 @@ CARVE_MAX_FILES = int(os.environ.get("NET_CARVE_MAX_FILES", "20"))
 CARVE_MAX_TOTAL = int(os.environ.get("NET_CARVE_MAX_TOTAL", str(48 * 1024 * 1024)))  # 48 MB total
 
 
+# Suricata's own engine events describe the CAPTURE and the parser's view of it,
+# not the traffic's intent. They are emitted by the decoder/stream/app-layer
+# machinery rather than by a detection ruleset, and they fire constantly on
+# perfectly ordinary evidence:
+#
+#   invalid checksum      — any NIC with TX offload (every Docker veth, every VM)
+#   3way handshake …      — a capture that started mid-conversation, or one side
+#                           of an asymmetric path
+#   unable to match …     — a truncated capture, or a filter that kept one direction
+#
+# Measured on real files: an hping3 flood produced 191 alerts, ALL of them stream
+# events and none from a ruleset — while the capture's actual attack went
+# unreported. Counting these buries genuine detections and drives the verdict off
+# artifacts of how the pcap was taken.
+#
+# Only events prefixed "SURICATA " are engine events; every ruleset signature
+# (ET/…) keeps its own prefix and is never touched by this.
+_ENGINE_EVENT_MARKERS = (
+    "invalid checksum", "checksum invalid",
+    "3way handshake", "invalid ack", "wrong seq", "wrong thread",
+    "shutdown rst", "pkt seen on wrong thread",
+    "applayer detect protocol", "applayer protocol detection skipped",
+    "applayer wrong direction first data", "applayer mismatch protocol",
+    "unable to match response to request", "unable to match request to response",
+    "reassembly", "segment before base seq", "retransmission",
+    "excessive retransmissions", "packet with broken ack",
+    "data on stream", "suspected data injection",
+)
+
+
+def _is_capture_artifact(signature):
+    """True for a Suricata ENGINE event, as opposed to a ruleset detection."""
+    sig = (signature or "").lower()
+    if not sig.startswith("suricata "):
+        return False  # a real ruleset detection, whatever it says
+    return any(m in sig for m in _ENGINE_EVENT_MARKERS)
+
+
 def run_suricata(pcap_path, out_dir):
     """Run Suricata in offline mode over the pcap. Returns True on a run that
     produced eve.json (even with warnings). File carving (file-store) is enabled
@@ -238,11 +276,63 @@ def run_zeek(pcap):
         return None
     d = tempfile.mkdtemp(prefix="zeek-")
     try:
-        subprocess.run([zeek, "-C", "-r", pcap, "LogAscii::use_json=T"],
+        # extract-all-files reconstructs transferred files for EVERY protocol Zeek
+        # parses, which is the point: measured on a real capture, Suricata produced
+        # no fileinfo event at all for a binary sent over FTP-data — it could not
+        # tie the data channel to its control channel (app_proto "failed") — while
+        # Zeek identified the same file by name and size. Carving only from
+        # Suricata's filestore therefore loses every SMB, FTP and SMTP transfer,
+        # which is most of what matters in a lateral-movement or phishing capture.
+        subprocess.run([zeek, "-C", "-r", pcap, "LogAscii::use_json=T",
+                        "policy/frameworks/files/extract-all-files",
+                        "FileExtract::default_limit=%d" % CARVE_MAX_FILE],
                        cwd=d, capture_output=True, timeout=ANALYZE_TIMEOUT)
     except Exception:
         pass
     return d
+
+
+# Zeek names an extracted file extract-<ts>-<protocol>-<fuid>.<ext>; the protocol
+# is the only part worth keeping, since it says HOW the file crossed the wire.
+_ZEEK_EXTRACT_RE = re.compile(r"^extract-[^-]*-(?P<proto>[A-Za-z0-9_]+)-")
+
+
+def collect_zeek_carved(zdir, have_sha, budget):
+    """Read files Zeek reconstructed and return (carved, file_records) for the ones
+    not already carved by Suricata. `budget` is the remaining byte allowance."""
+    if not zdir:
+        return [], []
+    store = os.path.join(zdir, "extract_files")
+    if not os.path.isdir(store):
+        return [], []
+    carved, records, total = [], [], 0
+    for name in sorted(os.listdir(store)):
+        if len(carved) >= CARVE_MAX_FILES:
+            break
+        fp = os.path.join(store, name)
+        try:
+            sz = os.path.getsize(fp)
+        except OSError:
+            continue
+        if sz == 0 or sz > CARVE_MAX_FILE or total + sz > budget:
+            continue
+        try:
+            with open(fp, "rb") as fh:
+                data = fh.read()
+        except OSError:
+            continue
+        sha = hashlib.sha256(data).hexdigest()
+        if sha in have_sha:
+            continue
+        have_sha.add(sha)
+        total += sz
+        m = _ZEEK_EXTRACT_RE.match(name)
+        proto = (m.group("proto") if m else "zeek").upper()
+        carved.append({"sha256": sha, "size": sz, "yara": yara_scan(fp),
+                       "b64": base64.b64encode(data).decode("ascii")})
+        records.append({"filename": name, "magic": "", "size": sz, "sha256": sha,
+                        "md5": "", "src": "", "dst": "", "source": proto, "carved_by": "zeek"})
+    return carved, records
 
 
 def _read_ndjson(path, cap):
@@ -507,8 +597,20 @@ def distil_eve(path):
                                       "end": fl.get("end", ""),
                                       "state": (fl.get("state") or "")})
                 elif et == "alert":
-                    stats["alerts"] += 1
                     a = ev.get("alert") or {}
+                    # Decoder events about checksums are an artifact of how the
+                    # capture was taken, not a property of the traffic. Any NIC
+                    # with TX checksum offload — every Docker veth, every VM
+                    # vNIC, most modern hardware — hands the packet to the
+                    # capture before the checksum is computed, so Suricata sees
+                    # thousands of "invalid checksum" events. Counting them
+                    # drowned one real ET detection under eight artifacts and
+                    # pushed max_severity around. (-k none already stops these
+                    # from affecting packet ACCEPTANCE; the decoder-event rules
+                    # still fire independently.)
+                    if _is_capture_artifact(a.get("signature")):
+                        continue
+                    stats["alerts"] += 1
                     sev = int(a.get("severity", 3))
                     if 4 - sev > max_sev:
                         max_sev = 4 - sev
@@ -620,6 +722,17 @@ def analyze():
         zdir = run_zeek(pcap)
         result["zeek"] = distil_zeek(zdir)
         if zdir:
+            # Merge Zeek's reconstructions in before the directory goes away. A file
+            # Suricata already carved keeps its entry; the rest are what SMB/FTP/SMTP
+            # transfers contribute, and they are the ones that used to be lost.
+            have = {c["sha256"] for c in result["carved"]}
+            spent = sum(c["size"] for c in result["carved"])
+            zcarved, zrecords = collect_zeek_carved(zdir, have, max(0, CARVE_MAX_TOTAL - spent))
+            result["carved"].extend(zcarved)
+            known = {f.get("sha256") for f in result.get("files", []) if f.get("sha256")}
+            for r in zrecords:
+                if r["sha256"] not in known:
+                    result.setdefault("files", []).append(r)
             shutil.rmtree(zdir, ignore_errors=True)
         result["geo"] = geo_enrich(result.get("iocs", {}).get("ips", []))
 

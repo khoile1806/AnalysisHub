@@ -815,17 +815,22 @@ function HealthTab() {
 
 function TokenUsageTab() {
   const [showAll, setShowAll] = useState(false)
+  // A single all-time total hides a cost spike; the window is what makes one
+  // visible.
+  const [days, setDays] = useState(30)
 
   const { data, isLoading, isFetching, refetch, error } = useQuery({
-    queryKey: ['system-token-stats'],
-    queryFn: systemApi.getTokenStats,
+    queryKey: ['system-token-stats', days],
+    queryFn: () => systemApi.getTokenStats(days),
     staleTime: 60_000,
   })
 
   // The API may return null (not []) for these arrays when there are no sessions
   // yet; normalise so downstream .length/.map never dereference null.
   const byProvider = data?.by_provider ?? []
+  const byFeature = data?.by_feature ?? []
   const recent = data?.recent ?? []
+  const maxFeatureTokens = byFeature.reduce((m, f) => Math.max(m, f.total_tokens), 0)
   const maxTokens = byProvider.reduce((m, p) => Math.max(m, p.total_tokens), 0)
 
   const providerBarColors = [
@@ -838,8 +843,23 @@ function TokenUsageTab() {
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-600">Stats from all completed analysis sessions</span>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-xs text-gray-600">
+          Every AI completion the platform makes — recorded at the client, so a new
+          feature is counted without anyone wiring it up.
+        </span>
+        <div className="flex items-center gap-2">
+        <select
+          className="input text-xs py-1"
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+          title="Reporting window. A single all-time total hides a cost spike."
+        >
+          <option value={1}>Last 24 hours</option>
+          <option value={7}>Last 7 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={90}>Last 90 days</option>
+        </select>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
@@ -848,6 +868,7 @@ function TokenUsageTab() {
           <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+        </div>
       </div>
 
       {isLoading && (
@@ -883,9 +904,12 @@ function TokenUsageTab() {
                 <BarChart3 className="h-5 w-5 text-sky-400" />
               </span>
               <div>
-                <div className="text-2xl font-bold text-sky-300">{data.total_sessions}</div>
-                <div className="text-[11px] text-gray-500">Analysis Sessions</div>
-                <div className="text-[10px] text-gray-700">{byProvider.length} provider(s) used</div>
+                <div className="text-2xl font-bold text-sky-300">{data.total_sessions.toLocaleString()}</div>
+                <div className="text-[11px] text-gray-500">AI Calls (last {data.window_days}d)</div>
+                <div className="text-[10px] text-gray-700">
+                  {byProvider.length} provider(s) · {byFeature.length} feature(s)
+                  {data.failed_calls > 0 && <span className="text-red-400"> · {data.failed_calls} failed</span>}
+                </div>
               </div>
             </div>
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex items-center gap-4">
@@ -898,10 +922,57 @@ function TokenUsageTab() {
                     ? fmtTokens(Math.round(data.total_tokens / data.total_sessions))
                     : '—'}
                 </div>
-                <div className="text-[11px] text-gray-500">Avg Tokens / Session</div>
+                <div className="text-[11px] text-gray-500">Avg Tokens / Call</div>
+                <div className="text-[10px] text-gray-700">
+                  in {fmtTokens(data.input_tokens)} · out {fmtTokens(data.output_tokens)}
+                  {data.cache_read_tokens > 0 && <> · cached {fmtTokens(data.cache_read_tokens)}</>}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Per-feature breakdown — WHAT is spending the tokens.
+              The old panel could not answer this at all: it aggregated AI Analysis
+              sessions only, so malware synthesis, reverse engineering, campaign
+              analysis, OSINT triage and timeline extraction were invisible. */}
+          {byFeature.length > 0 && (
+            <div className="rounded-xl border border-gray-800/60 overflow-hidden">
+              <div className="px-5 py-3 bg-gray-900/60 border-b border-gray-800/60 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-400" />
+                <span className="text-sm font-semibold text-gray-200">Theo tính năng</span>
+                <span className="text-[10px] text-gray-600 ml-auto">
+                  what actually consumed the tokens
+                </span>
+              </div>
+              <div className="divide-y divide-gray-800/60">
+                {byFeature.map((f) => (
+                  <div key={f.feature} className="px-5 py-3">
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <span className="text-[12px] font-mono text-gray-200 truncate max-w-[280px]" title={f.feature}>
+                        {f.feature}
+                      </span>
+                      <span className="text-[11px] text-gray-500">{f.calls.toLocaleString()} call(s)</span>
+                      {f.failed > 0 && (
+                        <span className="text-[11px] text-red-400" title="a failed call still bills its input tokens">
+                          {f.failed} failed
+                        </span>
+                      )}
+                      <span className="ml-auto text-sm font-bold text-gray-200">{fmtTokens(f.total_tokens)}</span>
+                    </div>
+                    <div className="h-1.5 rounded bg-gray-800/60 mt-1.5 overflow-hidden">
+                      <div className="h-full bg-amber-500/60 rounded"
+                        style={{ width: maxFeatureTokens > 0 ? `${Math.max(2, (f.total_tokens / maxFeatureTokens) * 100)}%` : '0%' }} />
+                    </div>
+                    <div className="text-[10px] text-gray-600 mt-1">
+                      avg {fmtTokens(Math.round(f.avg_tokens))} / call
+                      {f.avg_ms > 0 && <> · {(f.avg_ms / 1000).toFixed(1)}s avg</>}
+                      {f.last_used && <> · last {new Date(f.last_used).toLocaleString()}</>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Per-provider breakdown */}
           {byProvider.length > 0 && (

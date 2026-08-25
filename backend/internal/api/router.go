@@ -560,6 +560,9 @@ func NewRouter(
 		protected.POST("/malware/:id/reverse", malwareHandler.Reverse)
 		protected.GET("/malware/:id/diff/:other", malwareHandler.Diff)
 		protected.POST("/malware/:id/retrohunt", malwareHandler.RetroHunt)
+		// AI over the WHOLE drop: what the package is, how it executes, what each
+		// file is for, and which C2 it reaches. One call per incident, not per file.
+		protected.POST("/malware/:id/campaign-analyze", malwareHandler.CampaignAnalyze)
 		// Byte-level view, indicator set, exports (MISP/STIX/OpenIOC/CSV/Suricata/
 		// YARA), the rendered report, and the analyst's own verdict.
 		protected.GET("/malware/:id/session", malwareHandler.Session) // upload → extracted components tree
