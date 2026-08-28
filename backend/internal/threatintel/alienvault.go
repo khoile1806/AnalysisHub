@@ -3,16 +3,15 @@ package threatintel
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
 
 const ovBase = "https://otx.alienvault.com/api/v1/indicators"
 
-func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) (Finding, bool) {
+func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) (Finding, error) {
 	if c.alienVault == "" {
-		return Finding{}, false
+		return Finding{}, errNotApplicable
 	}
 
 	var endpoint string
@@ -24,23 +23,23 @@ func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) 
 	case "domain":
 		endpoint = ovBase + "/domain/" + ioc + "/general"
 	default:
-		return Finding{}, false
+		return Finding{}, errNotApplicable
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("AlienVault OTX", err)
 	}
 	req.Header.Set("X-OTX-API-KEY", c.alienVault)
 
 	resp, err := c.hc.Do(req)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("AlienVault OTX", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return Finding{}, false
+		return Finding{}, unavailableStatus("AlienVault OTX", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 128*1024))
@@ -55,12 +54,12 @@ func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) 
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("AlienVault OTX", err)
 	}
 
 	count := result.PulseInfo.Count
-	malicious := count > 0
-	summary := fmt.Sprintf("%d related threat pulse(s)", count)
+	malicious := otxMalicious(count)
+	summary := otxSummary(count)
 
 	// Include up to 3 pulse names as labels
 	var labels []string
@@ -73,10 +72,7 @@ func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) 
 		}
 	}
 
-	score := 0
-	if count > 0 {
-		score = min(count*10, 80)
-	}
+	score := otxScore(count)
 
 	return Finding{
 		Source:    "AlienVault OTX",
@@ -84,5 +80,5 @@ func (c *EnrichClient) lookupAlienVault(ctx context.Context, ioc, itype string) 
 		Malicious: malicious,
 		Summary:   summary,
 		Labels:    labels,
-	}, true
+	}, nil
 }

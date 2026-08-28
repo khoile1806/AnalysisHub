@@ -371,11 +371,15 @@ services:
       - "--interval"
       - "${PLUGIN_WATCH_INTERVAL:-120}"
       - "--keep-hours"
-      - "${PLUGIN_WATCH_KEEP_HOURS:-24}"
+      - "${PLUGIN_WATCH_KEEP_HOURS:-72}"
     volumes:
       # Same host directory the backend mounts at /app/data, so the report lands
       # exactly where news.PluginWatchReportPath() looks for it.
       - ./backend/data:/data
+    # The rolling window is what makes a missed read harmless: everything still
+    # inside it is re-offered on the next cycle and ingestion dedupes on
+    # slug@version. Three days rather than one, so a weekend of backend downtime
+    # does not drop releases out of the window before anything reads them.
     mem_limit: 256m
     restart: unless-stopped
 

@@ -235,6 +235,12 @@ func NewRouter(
 		protected.DELETE("/iocs/:id", handlers.DeleteIOC)
 		// Batch IOC matching — any scan view highlights values already in the store.
 		protected.POST("/iocs/match", handlers.MatchIOCs)
+		// Retro-match: what did new intelligence just tell us about old evidence.
+		protected.POST("/iocs/retro-match", handlers.RetroMatch)
+		// Automatic feed ingestion + the lifecycle counters that make it useful.
+		protected.GET("/iocs/feeds", handlers.ListIOCFeeds)
+		protected.POST("/iocs/feeds/refresh", handlers.RefreshIOCFeedsNow)
+		protected.GET("/iocs/export", handlers.ExportIOCStore)
 
 		// On-demand threat-intel lookup (VirusTotal + configured sources).
 		intelHandler := handlers.NewIntelHandler(enrich)
@@ -456,6 +462,8 @@ func NewRouter(
 		// News (used by CVE → News tab inside AnalysisHub).
 		protected.GET("/news", handlers.GetNews)
 		protected.GET("/news/categories", handlers.GetNewsCategories)
+		// Is the plugin-release watcher still writing? Its failure mode is silence.
+		protected.GET("/news/plugin-watch/status", handlers.PluginWatchStatusHandler)
 		protected.GET("/news/stream", handlers.StreamNews)
 
 		// Cases

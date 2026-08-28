@@ -470,7 +470,7 @@ func (e *Engine) buildFindings(ctx context.Context, res *NetworkResult) ([]Netwo
 	if !e.localOnly && e.enrich != nil && e.enrich.Configured() {
 		set := threatintel.IOCSet{IPs: capStr(res.IOCs.IPs, 40), Domains: capStr(res.IOCs.Domains, 40)}
 		if set.Total() > 0 {
-			for _, r := range e.enrich.Enrich(ctx, set) {
+			for _, r := range e.enrich.Enrich(ctx, set).Results {
 				if !r.Threat {
 					continue
 				}

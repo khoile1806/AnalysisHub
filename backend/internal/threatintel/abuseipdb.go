@@ -10,27 +10,27 @@ import (
 
 const abuseIPDBBase = "https://api.abuseipdb.com/api/v2"
 
-func (c *EnrichClient) lookupAbuseIPDB(ctx context.Context, ip string) (Finding, bool) {
+func (c *EnrichClient) lookupAbuseIPDB(ctx context.Context, ip string) (Finding, error) {
 	if c.abuseIPDB == "" {
-		return Finding{}, false
+		return Finding{}, errNotApplicable
 	}
 
 	url := abuseIPDBBase + "/check?ipAddress=" + ip + "&maxAgeInDays=90"
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("AbuseIPDB", err)
 	}
 	req.Header.Set("Key", c.abuseIPDB)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.hc.Do(req)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("AbuseIPDB", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return Finding{}, false
+		return Finding{}, unavailableStatus("AbuseIPDB", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
@@ -49,7 +49,7 @@ func (c *EnrichClient) lookupAbuseIPDB(ctx context.Context, ip string) (Finding,
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("AbuseIPDB", err)
 	}
 
 	d := result.Data
@@ -79,5 +79,5 @@ func (c *EnrichClient) lookupAbuseIPDB(ctx context.Context, ip string) (Finding,
 		Malicious: malicious,
 		Summary:   summary,
 		Extra:     extra,
-	}, true
+	}, nil
 }

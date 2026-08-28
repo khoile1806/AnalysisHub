@@ -406,6 +406,14 @@ func syncAllFeeds(hub *ws.Hub) {
 // tool, so it is silent rather than logged as an error.
 func syncPluginWatch(hub *ws.Hub) {
 	path := news.PluginWatchReportPath()
+
+	// A stopped watcher looks exactly like a quiet week: no new articles, no
+	// error, nothing in the log. Say so, once per cycle, so the silence is
+	// attributable.
+	if h := news.PluginWatchStatus(path); h.Present && h.Stale {
+		log.Printf("[news-worker] plugin-watch: %s", h.Detail)
+	}
+
 	report, err := news.LoadPluginWatchReport(path)
 	if err != nil {
 		log.Printf("[news-worker] plugin-watch: %v", err)

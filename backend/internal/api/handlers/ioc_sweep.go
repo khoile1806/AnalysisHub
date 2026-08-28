@@ -234,12 +234,18 @@ func lookupStoreIndicators(db *gorm.DB, values []string) []sweepIndicator {
 			end = len(values)
 		}
 		var iocs []models.IOC
-		if db.Where("lower(value) IN ?", values[i:end]).Find(&iocs).Error != nil {
+		// Only live indicators sweep: an expired C2 address now belongs to somebody
+		// else, and a hit on it is a false positive an analyst has to disprove.
+		if ActiveIOCs(db).Where("lower(value) IN ?", values[i:end]).Find(&iocs).Error != nil {
 			continue
 		}
+		hit := make([]string, 0, len(iocs))
 		for _, ioc := range iocs {
-			out = append(out, sweepIndicator{Value: strings.ToLower(ioc.Value), Type: storeTypeToSweep(ioc.Type)})
+			low := strings.ToLower(ioc.Value)
+			hit = append(hit, low)
+			out = append(out, sweepIndicator{Value: low, Type: storeTypeToSweep(ioc.Type)})
 		}
+		RecordIOCHits(db, hit)
 	}
 	return out
 }

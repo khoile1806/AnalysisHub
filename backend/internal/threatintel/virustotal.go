@@ -11,9 +11,9 @@ import (
 
 const vtBase = "https://www.virustotal.com/api/v3"
 
-func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Finding, bool) {
+func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Finding, error) {
 	if key == "" {
-		return Finding{}, false
+		return Finding{}, errNotApplicable
 	}
 
 	var endpoint string
@@ -27,30 +27,34 @@ func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Fi
 	case "url":
 		endpoint = vtBase + "/urls/" + base64.RawURLEncoding.EncodeToString([]byte(ioc))
 	default:
-		return Finding{}, false
+		return Finding{}, errNotApplicable
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("VirusTotal", err)
 	}
 	req.Header.Set("x-apikey", key)
 
 	resp, err := c.hc.Do(req)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("VirusTotal", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
+		// A real answer: VirusTotal has been asked and has never seen this.
 		return Finding{
 			Source:  "VirusTotal",
 			Summary: "Not found in the VT database",
 			Score:   0,
-		}, true
+		}, nil
 	}
 	if resp.StatusCode != 200 {
-		return Finding{}, false
+		// 429 lives here, and on the free tier (4 requests/minute) it is the
+		// common case rather than the exception. Reporting it as "no data" would
+		// be indistinguishable from a clean verdict.
+		return Finding{}, unavailableStatus("VirusTotal", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
@@ -70,27 +74,26 @@ func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Fi
 						Value string `json:"value"`
 					} `json:"popular_threat_category"`
 				} `json:"popular_threat_classification"`
-				Tags        []string `json:"tags"`
-				Country     string   `json:"country"`
-				ASOwner     string   `json:"as_owner"`
-				Reputation  int      `json:"reputation"`
+				Tags       []string `json:"tags"`
+				Country    string   `json:"country"`
+				ASOwner    string   `json:"as_owner"`
+				Reputation int      `json:"reputation"`
 			} `json:"attributes"`
 		} `json:"data"`
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("VirusTotal", err)
 	}
 
 	stats := result.Data.Attributes.LastAnalysisStats
 	total := stats.Malicious + stats.Suspicious + stats.Harmless + stats.Undetected
 	if total == 0 {
-		return Finding{Source: "VirusTotal", Summary: "No analysis data in VT yet", Score: 0}, true
+		return Finding{Source: "VirusTotal", Summary: "No analysis data in VT yet", Score: 0}, nil
 	}
 
-	flagged := stats.Malicious + stats.Suspicious
-	score := (flagged * 100) / total
-	malicious := stats.Malicious > 2
+	score := vtScore(stats.Malicious, stats.Suspicious, total)
+	malicious := vtMalicious(stats.Malicious, stats.Suspicious)
 
 	summary := fmt.Sprintf("%d/%d engines flagged it malicious", stats.Malicious, total)
 	if stats.Suspicious > 0 {
@@ -129,5 +132,5 @@ func (c *EnrichClient) lookupVT(ctx context.Context, ioc, itype, key string) (Fi
 		Summary:   summary,
 		Labels:    labels,
 		Extra:     extra,
-	}, true
+	}, nil
 }

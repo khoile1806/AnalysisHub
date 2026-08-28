@@ -576,13 +576,24 @@ func (h *AIHandler) StreamSession(c *gin.Context) {
 			results := h.enrich.Enrich(ctx, iocs)
 			enrichSummary = threatintel.FormatSummary(results)
 
-			threats := 0
-			for _, r := range results {
+			threats, unchecked := 0, 0
+			for _, r := range results.Results {
 				if r.Threat {
 					threats++
 				}
+				if !r.Complete && len(r.Findings) == 0 {
+					unchecked++
+				}
 			}
-			enrichDetail := fmt.Sprintf("%d/%d IOC(s) flagged malicious", threats, len(results))
+			// Report what was NOT established as well as what was: an operator reading
+			// "0 flagged" must be able to tell a clean sweep from a throttled one.
+			enrichDetail := fmt.Sprintf("%d/%d IOC(s) flagged malicious", threats, len(results.Results))
+			if unchecked > 0 {
+				enrichDetail += fmt.Sprintf(", %d could not be checked", unchecked)
+			}
+			if results.Truncated() {
+				enrichDetail += fmt.Sprintf(", %d skipped (lookup budget)", results.Skipped)
+			}
 			setStep(enrichIdx, "done", enrichDetail)
 			h.sendLog(c, "success", "Enrichment complete — "+enrichDetail)
 		}

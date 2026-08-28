@@ -11,28 +11,28 @@ import (
 
 const shodanBase = "https://api.shodan.io"
 
-func (c *EnrichClient) lookupShodan(ctx context.Context, ip string) (Finding, bool) {
+func (c *EnrichClient) lookupShodan(ctx context.Context, ip string) (Finding, error) {
 	if c.shodan == "" {
-		return Finding{}, false
+		return Finding{}, errNotApplicable
 	}
 
 	url := shodanBase + "/shodan/host/" + ip + "?key=" + c.shodan
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("Shodan", err)
 	}
 
 	resp, err := c.hc.Do(req)
 	if err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("Shodan", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return Finding{Source: "Shodan", Summary: "IP not in the Shodan index"}, true
+		return Finding{Source: "Shodan", Summary: "IP not in the Shodan index"}, nil
 	}
 	if resp.StatusCode != 200 {
-		return Finding{}, false
+		return Finding{}, unavailableStatus("Shodan", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
@@ -49,7 +49,7 @@ func (c *EnrichClient) lookupShodan(ctx context.Context, ip string) (Finding, bo
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return Finding{}, false
+		return Finding{}, unavailable("Shodan", err)
 	}
 
 	portStrs := make([]string, 0, len(result.Ports))
@@ -102,7 +102,7 @@ func (c *EnrichClient) lookupShodan(ctx context.Context, ip string) (Finding, bo
 		Summary:   summary,
 		Labels:    result.Tags,
 		Extra:     extra,
-	}, true
+	}, nil
 }
 
 func tagsContainAny(tags []string, keywords ...string) bool {

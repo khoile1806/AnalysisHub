@@ -276,6 +276,10 @@ func main() {
 	// ------------------------------------------------------------------ //
 	handlers.StartCVEUpdateWorker(hub)
 	handlers.StartNewsUpdateWorker(hub)
+	// Pulls current attacker infrastructure into the IOC store and retires what
+	// has expired. Without it the store is a snapshot of whenever somebody last
+	// imported something, which is the opposite of what intelligence is for.
+	handlers.StartIOCFeedWorker(db)
 	handlers.StartFleetScheduler(db, hub)
 	handlers.StartToolResultWorker(db, store, cfg)
 	handlers.StartStuckJobWatcher(db)

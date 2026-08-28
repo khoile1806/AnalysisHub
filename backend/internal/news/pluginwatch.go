@@ -101,6 +101,64 @@ func LoadPluginWatchReport(path string) (*PluginWatchReport, error) {
 	return &report, nil
 }
 
+// PluginWatchStaleAfter is how old a report may get before the watcher is
+// presumed to have stopped.
+//
+// The service writes on a ~2 minute cycle, so anything past a quarter of an hour
+// is several missed cycles rather than one slow one.
+const PluginWatchStaleAfter = 15 * time.Minute
+
+// PluginWatchHealth describes whether releases are still arriving.
+type PluginWatchHealth struct {
+	Present     bool      `json:"present"`
+	GeneratedAt time.Time `json:"generated_at,omitempty"`
+	AgeSeconds  int64     `json:"age_seconds"`
+	Stale       bool      `json:"stale"`
+	Events      int       `json:"events"`
+	Detail      string    `json:"detail"`
+}
+
+// PluginWatchStatus reports the freshness of the watcher's output.
+//
+// This is the failure that matters for "do not miss a release". The pipeline is
+// otherwise sound — the watcher survives a bad cycle, the report carries a
+// rolling window so a missed read is harmless, and ingestion dedupes by
+// slug@version — but if the watcher stops, everything downstream simply goes
+// quiet. A feature whose failure mode is silence needs somebody to notice the
+// silence, and nothing was watching the watcher.
+func PluginWatchStatus(path string) PluginWatchHealth {
+	report, err := LoadPluginWatchReport(path)
+	if err != nil {
+		return PluginWatchHealth{Detail: err.Error()}
+	}
+	if report == nil {
+		return PluginWatchHealth{
+			Detail: "no report at " + path + " — the plugin_watch service has never written one",
+		}
+	}
+
+	age := time.Since(report.GeneratedAt)
+	if age < 0 {
+		age = 0
+	}
+	h := PluginWatchHealth{
+		Present:     true,
+		GeneratedAt: report.GeneratedAt,
+		AgeSeconds:  int64(age.Seconds()),
+		Stale:       age > PluginWatchStaleAfter,
+		Events:      len(report.Events),
+	}
+	if h.Stale {
+		h.Detail = fmt.Sprintf(
+			"last written %s ago — the watcher has missed several cycles and new plugin "+
+				"releases are NOT being collected", age.Round(time.Minute))
+	} else {
+		h.Detail = fmt.Sprintf("fresh (%s old), %d event(s) in the rolling window",
+			age.Round(time.Second), len(report.Events))
+	}
+	return h
+}
+
 // Title is the headline shown in the news list.
 //
 // The install count is in the title on purpose: when scanning a list, "how many

@@ -40,7 +40,7 @@ func collectThreatIntel(ctx context.Context, env *collectorEnv) ([]models.OsintF
 
 	results := env.enrich.Enrich(ctx, set)
 	var out []models.OsintFinding
-	for _, r := range results {
+	for _, r := range results.Results {
 		if len(r.Findings) == 0 {
 			continue
 		}

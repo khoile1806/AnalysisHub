@@ -51,14 +51,24 @@ func MatchIOCs(c *gin.Context) {
 	if len(lowered) > 0 {
 		var iocs []models.IOC
 		// Case-insensitive match so a SHA-256 stored uppercase still hits.
-		db.Where("lower(value) IN ?", lowered).Find(&iocs)
+		// Scoped to ACTIVE indicators: an expired or retired one must not fire, or
+		// the store keeps alerting on infrastructure that changed hands months ago.
+		ActiveIOCs(db).Where("lower(value) IN ?", lowered).Find(&iocs)
+		hit := make([]string, 0, len(iocs))
 		for _, ioc := range iocs {
-			matches[strings.ToLower(ioc.Value)] = gin.H{
+			low := strings.ToLower(ioc.Value)
+			hit = append(hit, low)
+			matches[low] = gin.H{
 				"type":        ioc.Type,
 				"source":      ioc.Source,
 				"description": ioc.Description,
+				"confidence":  ioc.Confidence,
+				"tlp":         ioc.TLP,
+				"campaign":    ioc.Campaign,
+				"hit_count":   ioc.HitCount,
 			}
 		}
+		RecordIOCHits(db, hit)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "count": len(matches), "matches": matches})

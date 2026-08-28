@@ -114,11 +114,14 @@ func (h *IntelHandler) Lookup(c *gin.Context) {
 	results := h.enrich.Enrich(ctx, set)
 
 	resp["configured"] = true
-	if len(results) > 0 {
-		r := results[0]
+	if len(results.Results) > 0 {
+		r := results.Results[0]
 		resp["threat"] = r.Threat
 		resp["max_score"] = r.MaxScore
 		resp["findings"] = r.Findings
+		// The UI needs these to distinguish a clean verdict from an unanswered one.
+		resp["complete"] = r.Complete
+		resp["unavailable"] = r.Unavailable
 	} else {
 		resp["threat"] = false
 		resp["max_score"] = 0

@@ -22,11 +22,19 @@ export default function IntelLookupModal({
   })
 
   const score = data?.max_score ?? 0
-  const verdict = data?.threat ? (score >= 70 ? 'malicious' : 'suspicious') : 'clean'
+  // A source that could not be reached is not a source that said "clean". When
+  // nothing was learned at all, saying NO THREAT is the one claim the evidence
+  // does not support — rate limiting is routine on the free tiers, so this is a
+  // common state rather than an edge case.
+  const nothingLearned = !!data && (data.findings?.length ?? 0) === 0 && data.complete === false
+  const verdict = data?.threat
+    ? (score >= 70 ? 'malicious' : 'suspicious')
+    : nothingLearned ? 'unknown' : 'clean'
   const verdictStyle = {
     malicious: { icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/30', label: 'MALICIOUS' },
     suspicious: { icon: ShieldAlert, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30', label: 'SUSPICIOUS' },
     clean: { icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30', label: 'NO THREAT' },
+    unknown: { icon: ShieldQuestion, color: 'text-gray-300', bg: 'bg-gray-500/10 border-gray-500/30', label: 'NOT CHECKED' },
   }[verdict]
   const VIcon = verdictStyle.icon
 
@@ -72,6 +80,20 @@ export default function IntelLookupModal({
                       <p className="text-xs text-gray-400">Max maliciousness score: {score}/100</p>
                     </div>
                   </div>
+
+                  {/* Sources that could not be consulted. Shown above the
+                      findings because it changes how the findings read. */}
+                  {(data.unavailable?.length ?? 0) > 0 && (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                      <p className="text-xs font-semibold text-amber-200">Not every source could be checked</p>
+                      <ul className="mt-1 space-y-0.5 text-[11px] text-amber-200/80">
+                        {data.unavailable!.map((u, i) => <li key={i}>· {u}</li>)}
+                      </ul>
+                      <p className="mt-1.5 text-[11px] text-amber-200/60">
+                        The verdict above rests only on the sources that answered.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Per-source findings */}
                   {(data.findings?.length ?? 0) === 0 ? (

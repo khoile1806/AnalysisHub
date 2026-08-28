@@ -20,6 +20,10 @@ export interface IntelLookupResult {
   threat?: boolean
   max_score?: number
   findings?: IntelFinding[]
+  // complete=false means at least one source could not be consulted, so an
+  // absence of findings below is not a clean verdict.
+  complete?: boolean
+  unavailable?: string[]
 }
 
 export interface IocMatch {
