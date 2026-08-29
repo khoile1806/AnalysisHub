@@ -363,6 +363,12 @@ services:
       context: .
       dockerfile: tools/plugin-release-watch/Dockerfile
     container_name: analysishub_plugin_watch
+    # Run as the host user that owns ./backend/data. The image builds a
+    # /data/plugin-watch owned by its own uid 10002, but the bind mount below
+    # replaces /data at runtime with a host directory owned by whoever cloned the
+    # repo — so the built ownership is irrelevant and the container could not
+    # write. Override PLUGIN_WATCH_UID/GID if your checkout is not owned by 1000.
+    user: "${PLUGIN_WATCH_UID:-1000}:${PLUGIN_WATCH_GID:-1000}"
     command:
       - "--json"
       - "/data/plugin-watch/report.json"
