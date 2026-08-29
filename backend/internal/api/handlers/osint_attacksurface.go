@@ -38,12 +38,12 @@ type SurfaceHost struct {
 
 // AttackSurface is the response: the scored host rows plus roll-up totals.
 type AttackSurface struct {
-	Hosts       []SurfaceHost `json:"hosts"`
-	TotalHosts  int           `json:"total_hosts"`
-	TotalVulns  int           `json:"total_vulns"`
-	TotalKEV    int           `json:"total_kev"`
-	TotalPoC    int           `json:"total_poc"`
-	Takeovers   int           `json:"takeovers"`
+	Hosts      []SurfaceHost `json:"hosts"`
+	TotalHosts int           `json:"total_hosts"`
+	TotalVulns int           `json:"total_vulns"`
+	TotalKEV   int           `json:"total_kev"`
+	TotalPoC   int           `json:"total_poc"`
+	Takeovers  int           `json:"takeovers"`
 }
 
 var gradeInValue = regexp.MustCompile(`(?i)grade ([A-F])`)
@@ -195,22 +195,22 @@ func computeAttackSurface(db *gorm.DB, scan *models.OsintScan) AttackSurface {
 
 // SurfaceDiff is the change between two attack-surface snapshots of the same target.
 type SurfaceDiff struct {
-	NewHosts     []SurfaceHost `json:"new_hosts"`     // hosts present in B, absent in A
-	RemovedHosts []string      `json:"removed_hosts"` // hosts present in A, absent in B
-	Changed      []SurfaceHostChange `json:"changed"` // hosts in both with a material change
-	Unchanged    int           `json:"unchanged"`
+	NewHosts     []SurfaceHost       `json:"new_hosts"`     // hosts present in B, absent in A
+	RemovedHosts []string            `json:"removed_hosts"` // hosts present in A, absent in B
+	Changed      []SurfaceHostChange `json:"changed"`       // hosts in both with a material change
+	Unchanged    int                 `json:"unchanged"`
 }
 
 // SurfaceHostChange records what changed on a host between two scans.
 type SurfaceHostChange struct {
-	Host          string   `json:"host"`
-	RiskBefore    int      `json:"risk_before"`
-	RiskAfter     int      `json:"risk_after"`
-	GradeBefore   string   `json:"grade_before,omitempty"`
-	GradeAfter    string   `json:"grade_after,omitempty"`
-	NewServices   []string `json:"new_services,omitempty"`
-	NewCVEs       []string `json:"new_cves,omitempty"`
-	TakeoverNew   bool     `json:"takeover_new,omitempty"`
+	Host        string   `json:"host"`
+	RiskBefore  int      `json:"risk_before"`
+	RiskAfter   int      `json:"risk_after"`
+	GradeBefore string   `json:"grade_before,omitempty"`
+	GradeAfter  string   `json:"grade_after,omitempty"`
+	NewServices []string `json:"new_services,omitempty"`
+	NewCVEs     []string `json:"new_cves,omitempty"`
+	TakeoverNew bool     `json:"takeover_new,omitempty"`
 }
 
 // DiffOsintAttackSurface compares the attack surface of two scans of the same

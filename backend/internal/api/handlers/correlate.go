@@ -84,7 +84,7 @@ func (h *MalwareHandler) MalwareNetworkMatches(c *gin.Context) {
 		}
 		matches = append(matches, CorrelationHit{
 			ID: cap.ID.String(), Name: cap.FileName, Verdict: cap.Verdict,
-			When: cap.CreatedAt.UTC().Format("2006-01-02 15:04 UTC"),
+			When:       cap.CreatedAt.UTC().Format("2006-01-02 15:04 UTC"),
 			Indicators: shared, Via: wanted[shared[0]],
 		})
 	}
@@ -144,7 +144,7 @@ func (h *NetworkHandler) NetworkMalwareMatches(c *gin.Context) {
 			s := samples[i]
 			matches = append(matches, CorrelationHit{
 				ID: s.ID.String(), Name: s.FileName, Verdict: s.Verdict,
-				When: s.CreatedAt.UTC().Format("2006-01-02 15:04 UTC"),
+				When:       s.CreatedAt.UTC().Format("2006-01-02 15:04 UTC"),
 				Indicators: []string{s.SHA256}, Via: "sha256",
 			})
 		}
@@ -186,7 +186,7 @@ func (h *NetworkHandler) NetworkMalwareMatches(c *gin.Context) {
 			}
 			matches = append(matches, CorrelationHit{
 				ID: s.ID.String(), Name: s.FileName, Verdict: s.Verdict,
-				When: s.CreatedAt.UTC().Format("2006-01-02 15:04 UTC"),
+				When:       s.CreatedAt.UTC().Format("2006-01-02 15:04 UTC"),
 				Indicators: shared, Via: "c2",
 			})
 		}

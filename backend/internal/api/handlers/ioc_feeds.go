@@ -150,11 +150,24 @@ func upsertFeedIndicators(db *gorm.DB, items []threatintel.FeedIndicator) (creat
 	// would be worse than reporting the true one this way.
 	before := countIOCs(db)
 	processed := 0
+	// Deduplicate on (value, type) across the whole import.
+	//
+	// Postgres refuses an ON CONFLICT DO UPDATE that would touch the same row
+	// twice in one statement — "cannot affect row a second time" — and it takes
+	// the WHOLE batch down with it, not just the duplicate. ThreatFox routinely
+	// lists one indicator under two malware families, so this fired on the first
+	// real refresh and silently dropped 500 indicators per collision.
+	seen := make(map[string]bool, len(items))
 	for _, it := range items {
 		value := strings.TrimSpace(it.Value)
 		if value == "" {
 			continue
 		}
+		key := it.Type + "|" + strings.ToLower(value)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
 		batch = append(batch, models.IOC{
 			Value:       value,
 			Type:        it.Type,
